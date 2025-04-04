@@ -1,6 +1,9 @@
-const http = require('http')
+const { User, Users } = require('./entities/Users');
+const { Company } = require('./entities/Company');
 
-http.createServer((request, response)=>{
-    response.write('hello world');
-    response.end();
-}).listen(9090)
+const arthur = new Users("1", "Arthur", "arthur@email.com", "1234");
+const empresaX = new Company("10", "Empresa X", arthur);
+
+empresaX.addUser(arthur);
+
+console.log(empresaX.getUsers());
