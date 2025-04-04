@@ -7,6 +7,10 @@ export class Company{
         this.queues=[]
     }
 
+    get id(){
+        return this.id;
+    }
+
     
     
 }
