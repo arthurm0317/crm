@@ -1,9 +1,14 @@
-const { User, Users } = require('./entities/Users');
-const { Company } = require('./entities/Company');
+const { Evolution } = require('./requests/evolution');
+require('dotenv').config();
 
-const arthur = new Users("1", "Arthur", "arthur@email.com", "1234");
-const empresaX = new Company("10", "Empresa X", arthur);
+const evolution = new Evolution(process.env.EVOLUTION_API_KEY, process.env.EVOLUTION_SERVER_URL);
 
-empresaX.addUser(arthur);
+const instanceData = {
+  instanceName: 'arthur-instance',
+  number: '557588821124',
+  qrcode: true,
+  integration: 'WHATSAPP-BAILEYS',
+};
 
-console.log(empresaX.getUsers());
+evolution.createInstance(instanceData);
+console.log(evolution.qrcode)
