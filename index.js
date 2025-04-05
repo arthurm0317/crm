@@ -1,14 +1,14 @@
-const { Evolution } = require('./requests/evolution');
-require('dotenv').config();
+const { Client } = require('whatsapp-web.js');
+const qrcode = require('qrcode-terminal');
 
-const evolution = new Evolution(process.env.EVOLUTION_API_KEY, process.env.EVOLUTION_SERVER_URL);
+const client = new Client();
 
-const instanceData = {
-  instanceName: 'arthur-instance',
-  number: '557588821124',
-  qrcode: true,
-  integration: 'WHATSAPP-BAILEYS',
-};
+client.on('ready', () => {
+    console.log('Client is ready!');
+});
 
-evolution.createInstance(instanceData);
-console.log(evolution.qrcode)
+client.on('qr', qr => {
+    qrcode.generate(qr, {small: true});
+});
+
+client.initialize();
