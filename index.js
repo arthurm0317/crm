@@ -12,3 +12,5 @@ client.on('qr', qr => {
 });
 
 client.initialize();
+
+teste
