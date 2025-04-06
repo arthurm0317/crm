@@ -1,15 +1,11 @@
+const { Users } = require('./entities/Users');
 const { createUser } = require('./services/UserService');
 
 
 (async()=>{
     try{
-        const result = await createUser({
-            id:1,
-            name:'arthur',
-            email:'arthur@gmail.com',
-            password:'teste123'
-        });
-        console.log('beleza')
+        const user = new Users(112, 'arthur', 'artgfasdfa', 'password')
+        createUser(user)
     }catch(error){
         console.log('deu bigode', error)
     }

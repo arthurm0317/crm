@@ -51,5 +51,8 @@ class Users{
     removeQueue(queueId) {
         this.queue = this.queue.filter(q => q !== queueId);
     }
+    getPassword(){
+        return this._password
+    }
 }
 module.exports = { Users };
