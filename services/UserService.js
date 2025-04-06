@@ -13,4 +13,12 @@ const createUser = async(user)=>{
     return result.rows[0]
 }
 
-module.exports = {createUser}
+const getAllUsers = async()=>{
+    const result = await pool.query(
+        'SELECT * FROM users'
+    )
+    return result.rows
+}
+
+
+module.exports = {createUser, getAllUsers}

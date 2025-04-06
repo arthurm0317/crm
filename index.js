@@ -1,16 +1,11 @@
-const { Client } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
+const express = require('express');
+const app = express();
+const userRoutes = require('./routes/UserRoutes');
 
-const client = new Client();
+app.use(express.json());
+app.use('/api', userRoutes);
 
-client.on('ready', () => {
-    console.log('Client is ready!');
+const PORT = 3000;
+app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT} 🚀`);
 });
-
-client.on('qr', qr => {
-    qrcode.generate(qr, {small: true});
-});
-
-client.initialize();
-
-teste
