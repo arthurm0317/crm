@@ -1,4 +1,4 @@
-const { createUser, getAllUsers } = require('../services/UserService');
+const { createUser, getAllUsers, searchUser} = require('../services/UserService');
 const { Users } = require('../entities/Users');
 const { v4: uuidv4 } = require('uuid');
 
@@ -39,7 +39,30 @@ const getAllUsersController = async(req, res)=>{
         })
     }
 }
+const searchUserController = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const user = new Users(null, null, email, password, null);
+    const result = await searchUser(user);
+
+    if (!result) {
+      return res.status(404).json({ message: 'Usuário não encontrado' });
+    }
+
+    res.status(200).json({
+      schema: result.schema,
+      user: result.user
+    });
+
+  } catch (error) {
+    console.error("Erro ao buscar usuário:", error.message);
+    res.status(500).json({ error: 'Erro ao buscar usuário' });
+  }
+};
+
 module.exports ={
     createUserController,
-    getAllUsersController
+    getAllUsersController,
+    searchUserController
 }
