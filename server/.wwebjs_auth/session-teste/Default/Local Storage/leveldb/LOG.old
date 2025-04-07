@@ -1,0 +1,5 @@
+2025/04/06-22:52:06.419 218c Reusing MANIFEST E:\crm final\crm\server\.wwebjs_auth\session-teste\Default\Local Storage\leveldb/MANIFEST-000001
+2025/04/06-22:52:06.422 218c Recovering log #3
+2025/04/06-22:52:06.423 218c Reusing old log E:\crm final\crm\server\.wwebjs_auth\session-teste\Default\Local Storage\leveldb/000003.log 
+2025/04/06-22:53:01.734 5dd8 Level-0 table #5: started
+2025/04/06-22:53:01.773 5dd8 Level-0 table #5: 20341 bytes OK
