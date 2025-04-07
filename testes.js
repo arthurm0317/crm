@@ -1,12 +1,13 @@
-const { Users } = require('./entities/Users');
-const { createUser } = require('./services/UserService');
+const express = require('express');
+const app = express();
+const userRoutes = require('./routes/UserRoutes');
+const companyRoutes = require('./routes/CompanyRoutes')
 
+app.use(express.json());
+app.use('/api', userRoutes);
+app.use('/company', companyRoutes)
 
-(async()=>{
-    try{
-        const user = new Users(112, 'arthur', 'artgfasdfa', 'password')
-        createUser(user)
-    }catch(error){
-        console.log('deu bigode', error)
-    }
-})();
+const PORT = 3000;
+app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT} 🚀`);
+});

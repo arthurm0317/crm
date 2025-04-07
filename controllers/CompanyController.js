@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const { Company } = require('../entities/company');
-const { createCompany } = require('../services/CompanyService');
+const { createCompany, getAllCompanies } = require('../services/CompanyService');
 
 const createCompanyController = async (req, res) => {
     try {
@@ -10,8 +10,7 @@ const createCompanyController = async (req, res) => {
         const result = await createCompany(newCompany); 
 
         res.status(201).json({
-            message: 'Empresa criada',
-            company: result
+            message: 'Empresa criada'
         });
     } catch (error) {
         console.error("Erro ao criar empresa:", error.message);
@@ -21,4 +20,18 @@ const createCompanyController = async (req, res) => {
     }
 };
 
-module.exports = { createCompanyController };
+const getAllCompaniesController = async(req, res)=>{
+    try{
+        const result = await getAllCompanies();
+        res.status(201).json({
+            empresas: result
+        })
+    }catch(error){
+        console.log(error)
+        res.status(500).json({
+            message:"Erro ao buscar empresas"
+        })
+    }
+}
+
+module.exports = { createCompanyController, getAllCompaniesController };
