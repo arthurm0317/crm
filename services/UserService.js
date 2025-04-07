@@ -2,23 +2,25 @@ const pool = require('../db/queries')
 const {Users} = require('../entities/Users')
 const { v4: uuidv4 } = require('uuid');
 
-const createUser = async(user)=>{
-    const id = uuidv4();
-    const name = user.name;
-    const email = user.email;
-    const password = user.getPassword();
+const createUser = async (user, schema) => {
+
     const result = await pool.query(
-        'INSERT INTO users(id, name, email, password) VALUES ($1, $2, $3, $4)',[id, name, email, password]
-    )
-    return result.rows[0]
-}
+        `INSERT INTO ${schema}.users (id, name, email, password, permission) VALUES ($1, $2, $3, $4, $5)`,
+        [
+            user.getId(),
+            user.getName(),
+            user.getEmail(),
+            user.getPassword(),
+            user.getPermission()
+        ]
+    );
 
-const getAllUsers = async()=>{
-    const result = await pool.query(
-        'SELECT * FROM users'
-    )
-    return result.rows
-}
+    return result.rows[0];
+};
 
+const getAllUsers = async (schema = 'public') => {
+    const result = await pool.query(`SELECT * FROM ${schema}.users`);
+    return result.rows;
+};
 
-module.exports = {createUser, getAllUsers}
+module.exports = { createUser, getAllUsers };

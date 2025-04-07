@@ -1,9 +1,11 @@
 const express = require('express');
 const app = express();
 const userRoutes = require('./routes/UserRoutes');
+const companyRoutes = require('./routes/CompanyRoutes')
 
 app.use(express.json());
 app.use('/api', userRoutes);
+app.use('/company', companyRoutes)
 
 const PORT = 3000;
 app.listen(PORT, () => {

@@ -1,48 +1,26 @@
-class Users{
-
-    constructor(id, name, email, password, permission=null, online=false){
-        this.id=id;
-        this.name=name;
-        this.email=email;
-        this._password=password;
-        this.permission=permission;
-        this.queue=[];
-        this.online=online
-        this.chats=[];
-    }
-
-
-    getId() {
-        return this.id;
-    }
-
-    getName() {
-        return this.name;
-    }
-    setName(name) {
+class Users {
+    constructor(id, name, email, password, permission) {
+        this.id = id;
         this.name = name;
-    }
-
-    getEmail() {
-        return this.email;
-    }
-    setEmail(email) {
         this.email = email;
-    }
-
-    getPermission() {
-        return this.permission;
-    }
-    setPermission(permission) {
+        this.password = password;
         this.permission = permission;
+        this.online = false;
+        this.queue = [];
     }
 
-    isOnline() {
-        return this.online;
-    }
-    setOnline(boolean) {
-        this.online = boolean;
-    }
+    getId() { return this.id; }
+    getName() { return this.name; }
+    getEmail() { return this.email; } 
+    getPassword() { return this.password; } 
+    getPermission() { return this.permission; }
+
+    setName(name) { this.name = name; }
+    setEmail(email) { this.email = email; }
+    setPermission(permission) { this.permission = permission; }
+
+    isOnline() { return this.online; }
+    setOnline(boolean) { this.online = boolean; }
 
     addQueue(queueId) {
         this.queue.push(queueId);
@@ -51,8 +29,6 @@ class Users{
     removeQueue(queueId) {
         this.queue = this.queue.filter(q => q !== queueId);
     }
-    getPassword(){
-        return this._password
-    }
 }
+
 module.exports = { Users };
