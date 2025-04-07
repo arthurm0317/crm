@@ -4,33 +4,32 @@ import QRCode from "react-qr-code";
 import { useEffect, useState } from "react";
 import ChatComponent from "./ChatComponent";
 
-//sessão um de conexão/teste de reconexão (isso permite que caso você tenha logado uma session ele retorne a ela automaticamente quando recarregada a pagina)
 const socket = io("http://localhost:3001", {
   reconnection: true,
   reconnectionAttempts: 5,
   reconnectionDelay: 1000,
 });
-// isso seta a sessão pra se a pessoa vai entrar numa que ja existe ou criar uma nova e faz o qr code aparecer 
+
 function App() {
   const [session, setSession] = useState("");
   const [qrCode, setQrCode] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState("");
-  const [messages, setMessages] = useState([]); // <-- adicionado aqui
-//cria a sessão/loga caso ja exista
+  const [messages, setMessages] = useState({});
+  const [contacts, setContacts] = useState([]);
+  const [selectedContact, setSelectedContact] = useState(null);
+
   const createSessionForWhatsapp = async () => {
     try {
-      localStorage.setItem("sessionId", session); // Salva o nome da sessão
+      localStorage.setItem("sessionId", session);
       const res = await fetch(`http://localhost:3001/check-session/${session}`);
       const data = await res.json();
       if (data.exists) {
-        console.log("🔁 Sessão já existe. Reconectando...");
         setConnectionStatus("Reconectando sessão existente...");
       } else {
-        console.log("🆕 Criando nova sessão...");
         setConnectionStatus("Criando nova sessão...");
       }
-//aviso de erro padrão
+
       socket.emit("createSession", { id: session });
     } catch (err) {
       console.error("Erro ao verificar/criar sessão:", err);
@@ -39,46 +38,62 @@ function App() {
   };
 
   useEffect(() => {
-    socket.emit("connected", "hello from client");
-//só pra confirmar no terminal se apareceu 
     socket.on("qr", (qr) => {
-      console.log("📷 QR RECEBIDO", qr);
       setQrCode(qr);
       setConnectionStatus("Escaneie o QR Code no WhatsApp");
     });
 
     socket.on("ready", ({ sessionId }) => {
-      console.log("✅ Sessão conectada!", sessionId);
       setIsAuthenticated(true);
       setConnectionStatus("Sessão conectada com sucesso!");
     });
 
-    socket.on("messageSent", ({ to }) => {
-      setConnectionStatus(`✅ Mensagem enviada para ${to}`);
+    socket.on("messageSent", ({ to, message }) => {
+      const text = typeof message === "string" ? message : message?.body || "";
+    
+      setMessages((prev) => ({
+        ...prev,
+        [to]: [...(prev[to] || []), { from: session, body: text, timestamp: Date.now() }],
+      }));
     });
+    
 
     socket.on("messageFailed", ({ to, error }) => {
       setConnectionStatus(`❌ Falha ao enviar mensagem para ${to}: ${error}`);
     });
-    
-    socket.on("message", ({ from, body }) => {
-    setMessages((prev) => [...prev, { from, body }]);
+
+    socket.on("message", ({ from, body, timestamp }) => {
+      setMessages((prev) => {
+        const existingMessages = prev[from] || [];
+        const isDuplicate = existingMessages.some((msg) => msg.body === body && msg.timestamp === timestamp);
+        if (isDuplicate) return prev;
+
+        return {
+          ...prev,
+          [from]: [...existingMessages, { from, body, timestamp }],
+        };
+      });
+
+      setContacts((prev) => {
+        if (!prev.includes(from)) return [...prev, from];
+        return prev;
+      });
     });
+
     const savedSession = localStorage.getItem("sessionId");
     if (savedSession) {
       setSession(savedSession);
       socket.emit("createSession", { id: savedSession });
       setConnectionStatus("Reconectando sessão...");
     }
+
     socket.on("connect", () => {
       const savedSession = localStorage.getItem("sessionId");
       if (savedSession) {
-        console.log("🔄 Reenviando createSession após reconexão");
         socket.emit("createSession", { id: savedSession });
       }
     });
-    
-//sessão socket 
+
     return () => {
       socket.off("qr");
       socket.off("ready");
@@ -87,13 +102,14 @@ function App() {
       socket.off("message");
     };
   }, []);
-//front da tela 1
+
   return (
     <div className="App">
       <h1>📞 WhatsApp Web JS</h1>
+
       {!isAuthenticated ? (
         <>
-          <h2>Escaneie o QR Code</h2>
+          <h2>Conectar nova sessão</h2>
           <input
             type="text"
             value={session}
@@ -111,26 +127,52 @@ function App() {
           )}
         </>
       ) : (
-        //front da tela 2
-        <div>
-          <button 
-           style={{ marginBottom: 10, backgroundColor: "#f44336", color: "#fff", padding: "10px", borderRadius: "8px", border: "none", cursor: "pointer" }}
-           onClick={() => {
-  setIsAuthenticated(false);
-  setQrCode("");
-  setSession("");
-  setMessages([]);
-  localStorage.removeItem("sessionId");
-  setConnectionStatus("Você saiu da sessão");
-}}>
-  🔁 Voltar e escolher outra sessão
-</button>
+        <>
+          <button
+            onClick={() => {
+              setIsAuthenticated(false);
+              setQrCode("");
+              setSession("");
+              setMessages({});
+              setSelectedContact(null);
+              setContacts([]);
+              localStorage.removeItem("sessionId");
+              setConnectionStatus("Você saiu da sessão");
+            }}
+          >
+            🔁 Voltar e escolher outra sessão
+          </button>
 
-          <h2>✅ Sessão conectada: {session}</h2> 
+          <h2>✅ Sessão conectada: {session}</h2>
           {connectionStatus && <p>{connectionStatus}</p>}
-          <ChatComponent session={session} socket={socket} messages={messages} />
-        </div>
-        
+
+          <div className="app-container">
+            <div className="contacts-list">
+              {contacts.map((contact) => (
+                <div
+                  key={contact}
+                  className={`contact-item ${selectedContact === contact ? "active" : ""}`}
+                  onClick={() => setSelectedContact(contact)}
+                >
+                  {contact}
+                </div>
+              ))}
+            </div>
+
+            <div className="chat-area">
+              {selectedContact ? (
+                <ChatComponent
+                  session={session}
+                  socket={socket}
+                  messages={messages[selectedContact] || []}
+                  selectedContact={selectedContact}
+                />
+              ) : (
+                <p>👈 Selecione um contato para conversar</p>
+              )}
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

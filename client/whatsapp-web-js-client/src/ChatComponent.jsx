@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import './ChatComponent.css';
 
-function ChatComponent({ session, socket, messages }) {
-  const [phoneNumber, setPhoneNumber] = useState('');
+function ChatComponent({ session, socket, messages, selectedContact }) {
   const [message, setMessage] = useState('');
+  const messagesEndRef = useRef(null);
 
   const sendMessage = () => {
-    if (!phoneNumber || !message) return;
+    if (!message.trim()) return;
 
-    const fullNumber = phoneNumber.includes("@c.us")
-      ? phoneNumber
-      : `${phoneNumber}@c.us`;
+    const fullNumber = selectedContact.includes('@c.us')
+      ? selectedContact
+      : `${selectedContact}@c.us`;
 
     socket.emit("sendMessage", {
       sessionId: session,
@@ -20,34 +21,40 @@ function ChatComponent({ session, socket, messages }) {
     setMessage('');
   };
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
   return (
-    <div style={{ marginTop: 30 }}>
-      <h3>Enviar mensagem</h3>
-      <input
-        type="text"
-        placeholder="Número com DDD (ex: 5599999999999)"
-        value={phoneNumber}
-        onChange={(e) => setPhoneNumber(e.target.value)}
-      />
-      
-      {/* Mostrar mensagens recebidas */}
-      <div style={{ border: "1px solid #ccc", padding: 10, marginBottom: 20 }}>
-        <h4>Mensagens recebidas:</h4>
-        {messages.map((msg, index) => (
-          <div key={index}>
-            <strong>{msg.from}:</strong> {msg.body}
-          </div>
-        ))}
+    <div className="chat-component">
+      <div className="chat-header">
+        <h3>💬 Conversa com: {selectedContact}</h3>
       </div>
 
-      <textarea
-        placeholder="Digite sua mensagem"
-        rows={4}
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-      />
-      <br />
-      <button onClick={sendMessage}>Enviar</button>
+      <div className="chat-messages">
+        {messages.map((msg, index) => {
+          const isSentByMe = msg.from !== selectedContact;
+          return (
+            <div
+              key={index}
+              className={`message-bubble ${isSentByMe ? "sent" : "received"}`}
+            >
+              {msg.body || "[mensagem vazia]"}
+            </div>
+          );
+        })}
+        <div ref={messagesEndRef} />
+      </div>
+
+      <div className="chat-input">
+        <textarea
+          placeholder="Digite sua mensagem"
+          rows={2}
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+        />
+        <button onClick={sendMessage}>Enviar</button>
+      </div>
     </div>
   );
 }

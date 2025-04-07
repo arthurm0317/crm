@@ -1,4 +1,6 @@
-2025/04/06-22:55:24.210 fe4 Reusing MANIFEST E:\crm final\crm\server\.wwebjs_auth\session-teste\Default\Local Storage\leveldb/MANIFEST-000001
-2025/04/06-22:55:24.230 fe4 Recovering log #4
-2025/04/06-22:55:24.231 fe4 Reusing old log E:\crm final\crm\server\.wwebjs_auth\session-teste\Default\Local Storage\leveldb/000004.log 
-2025/04/06-22:55:24.232 fe4 Delete type=0 #3
+2025/04/07-14:12:03.052 62c4 Reusing MANIFEST E:\crm final\crm\server\.wwebjs_auth\session-teste\Default\Local Storage\leveldb/MANIFEST-000001
+2025/04/07-14:12:03.054 62c4 Recovering log #16
+2025/04/07-14:12:03.056 62c4 Reusing old log E:\crm final\crm\server\.wwebjs_auth\session-teste\Default\Local Storage\leveldb/000016.log 
+2025/04/07-14:14:03.671 48d4 Level-0 table #22: started
+2025/04/07-14:14:03.707 48d4 Level-0 table #22: 15644 bytes OK
+2025/04/07-14:14:03.731 48d4 Delete type=0 #16

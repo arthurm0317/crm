@@ -46,7 +46,6 @@ io.on('connection', (socket) => {
     if (sessions[id]) {
       console.log(`⚠️ Sessão ${id} já existe`);
       return;
-    
     }
 
     console.log(`📲 Criando nova sessão: ${id}`);
@@ -71,17 +70,16 @@ io.on('connection', (socket) => {
       console.log(`✅ Sessão ${id} conectada!`);
       socket.emit("ready", { sessionId: id });
 
-
       client.on("message", async (msg) => {
         console.log(`[${msg.from}]: ${msg.body}`);
-      
+
         // Envia pro frontend
         socket.emit("message", {
           from: msg.from,
           body: msg.body,
+          timestamp: msg.timestamp || Date.now(),
         });
       });
-      
     });
 
     client.on("message", (msg) => {
@@ -90,6 +88,7 @@ io.on('connection', (socket) => {
         sessionId: id,
         body: msg.body,
         from: msg.from,
+        timestamp: msg.timestamp || Date.now(),
       });
     });
 
@@ -108,8 +107,18 @@ io.on('connection', (socket) => {
 
     try {
       await client.sendMessage(to, message);
-      console.log(`📤 Mensagem enviada de ${sessionId} para ${to}`);
-      socket.emit("messageSent", { to });
+      console.log(`📤 Mensagem enviada de ${sessionId} para ${to}: ${message}`);
+
+      const text = typeof message === "string" ? message : message.body || "";
+
+      socket.emit("messageSent", {
+        to,
+        message: {
+          body: text,
+          from: sessionId,
+          timestamp: Date.now(),
+        }
+      });
     } catch (err) {
       console.error(`❌ Erro ao enviar mensagem: ${err.message}`);
       socket.emit("messageFailed", {
