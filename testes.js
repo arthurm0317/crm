@@ -1,13 +1,8 @@
-const express = require('express');
-const app = express();
-const userRoutes = require('./routes/UserRoutes');
-const companyRoutes = require('./routes/CompanyRoutes')
+const  {Chat}  = require("./entities/Chat");
 
-app.use(express.json());
-app.use('/api', userRoutes);
-app.use('/company', companyRoutes)
+const chat = new Chat(1, "+5511999999999", new Date());
 
-const PORT = 3000;
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT} 🚀`);
-});
+chat.addMessage(1, "Olá!", false);
+chat.addMessage(2, "Boa tarde, tudo bem?", true);
+
+console.log(chat);
