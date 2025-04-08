@@ -4,7 +4,7 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const http = require('http');
 const { Server } = require("socket.io");
 const cors = require('cors');
-
+const chatInstances = [];
 const app = express();
 const port = 3001;
 const server = http.createServer(app);
@@ -72,22 +72,35 @@ io.on('connection', (socket) => {
 
       client.on("message", async (msg) => {
         console.log(`[${msg.from}]: ${msg.body}`);
-
+        const chat = msg.getChat()
+        console.log(chat)
+        
         // Envia pro frontend
         socket.emit("message", {
           from: msg.from,
           body: msg.body,
           timestamp: msg.timestamp || Date.now(),
+          
         });
       });
     });
-
-    client.on("message", (msg) => {
+    async function listarLabels() {
+      const labels = await client.getLabels();
+      console.log(labels);
+    }
+    client.on("message", async (msg) => {
       console.log(`📨 [${id}] Mensagem recebida:`, msg.body);
+    
+      const chat = await msg.getChat(); // ⬅️ AQUI
+      console.log("💬 Chat:", chat);
+    
+      const labels = await client.getLabels(); // ⬅️ AQUI
+      console.log("🏷️ Labels:", labels);
+    
       socket.emit("message", {
         sessionId: id,
-        body: msg.body,
         from: msg.from,
+        body: msg.body,
         timestamp: msg.timestamp || Date.now(),
       });
     });
@@ -98,13 +111,14 @@ io.on('connection', (socket) => {
   socket.on("sendMessage", async ({ to, message, sessionId }) => {
     const client = sessions[sessionId];
     if (!client) {
+      
       socket.emit("messageFailed", {
         to,
         error: "Sessão não encontrada",
       });
       return;
     }
-
+    
     try {
       await client.sendMessage(to, message);
       console.log(`📤 Mensagem enviada de ${sessionId} para ${to}: ${message}`);
