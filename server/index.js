@@ -4,6 +4,11 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const http = require('http');
 const { Server } = require("socket.io");
 const cors = require('cors');
+const { Chat } = require('../entities/Chat');
+const { v4: uuidv4 } = require('uuid');
+const { createChat } = require('../services/ChatService');
+const { Message } = require('../entities/Message');
+
 const chatInstances = [];
 const app = express();
 const port = 3001;
@@ -93,6 +98,10 @@ io.on('connection', (socket) => {
     
       const chat = await msg.getChat(); // ⬅️ AQUI
       console.log("💬 Chat:", chat);
+      
+      const chatDb = new Chat(uuidv4(),chat.id.server, chat.id.user, chat.id._serialized, chat.lastMessage.fromMe, chat.name, chat.isGroup, chat.timestamp)
+      const mensagem = new Message(uuidv4(), msg.body, chat.lastMessage.fromMe, chatDb.getId())
+      createChat(chatDb, 'public', mensagem)
     
       const labels = await client.getLabels(); // ⬅️ AQUI
       console.log("🏷️ Labels:", labels);
