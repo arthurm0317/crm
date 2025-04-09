@@ -18,6 +18,23 @@ const createCompany = async (company) => {
             permission TEXT,
             online BOOLEAN DEFAULT false
         );`);
+        await pool.query(`CREATE TABLE IF NOT EXISTS ${schema}.chats (
+            id UUID PRIMARY KEY,
+            server TEXT,
+            number TEXT,
+            serialized TEXT,
+            fromMe BOOLEAN,
+            isGroup BOOLEAN,
+            contact TEXT,
+            createdAt BIGINT,  
+            messages JSONB
+        );`);
+        await pool.query(`CREATE TABLE IF NOT EXISTS ${schema}.queues(
+            id UUID PRIMARY KEY,
+            name TEXT UNIQUE NOT NULL,
+            color TEXT,
+            users JSONB
+        );`);
     const superAdmin = new Users(
         superAdminId,
         superAdminData.name,
