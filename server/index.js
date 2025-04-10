@@ -1,27 +1,25 @@
 // backend index.js (versão aprimorada com destroy e reinicialização de sessões)
 const express = require('express');
 const fs = require('fs');
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client, LocalAuth} = require('whatsapp-web.js');
 const http = require('http');
 const { Server } = require("socket.io");
 const cors = require('cors');
-<<<<<<< HEAD
-
-=======
 const { Chat } = require('../entities/Chat');
 const { v4: uuidv4 } = require('uuid');
 const { createChat } = require('../services/ChatService');
 const { Message } = require('../entities/Message');
+const { searchUser } = require('../services/UserService');
 
 const chatInstances = [];
->>>>>>> 490f398f2b54bf27a89dc03a6e3d4d90fbc4fde8
 const app = express();
 const port = 3001;
 const server = http.createServer(app);
+
 const sessions = {}; // armazena todas as instâncias
 const users = [
-  { username: "admin", password: "123456", role: "admin" },
-  { username: "user", password: "123456", role: "user" }
+  { email: "arthur", password: "password", role: "admin" },
+  { email: "joao", password: "123123", role: "user" }
 ];
 
 app.use(cors());
@@ -114,9 +112,6 @@ io.on('connection', (socket) => {
     });
 
     client.on("message", async (msg) => {
-<<<<<<< HEAD
-      console.log(`📨 [${id}] Mensagem: ${msg.body}`);
-=======
       console.log(`📨 [${id}] Mensagem recebida:`, msg.body);
     
       const chat = await msg.getChat(); // ⬅️ AQUI
@@ -129,7 +124,6 @@ io.on('connection', (socket) => {
       const labels = await client.getLabels(); // ⬅️ AQUI
       console.log("🏷️ Labels:", labels);
     
->>>>>>> 490f398f2b54bf27a89dc03a6e3d4d90fbc4fde8
       socket.emit("message", {
         sessionId: id,
         from: msg.from,
@@ -173,16 +167,27 @@ io.on('connection', (socket) => {
   });
 });
 
-app.post("/login", (req, res) => {
+app.post("/login", async (req, res) => {
   const { username, password } = req.body;
-  const user = users.find(u => u.username === username && u.password === password);
-  if (!user) {
-    return res.status(401).json({ success: false, message: "usuario ou senha incorretos" });
+
+  try {
+    const user = await searchUser(username, password);
+  
+    console.log("usuario", user)
+    console.log("permissao:", user.permission)
+    if (!user) {
+      return res.status(401).json({ success: false, message: "usuario ou senha incorretos" });
+    }
+    console.log("permissao", user.permission)
+    return res.status(201).json({
+      success: true,
+      user: { username: user.user.email, role: user.user.permission }
+    });
+
+  } catch (error) {
+    console.error("Erro no login:", error);
+    return res.status(500).json({ success: false, message: "Erro interno no servidor" });
   }
-  return res.json({
-    success: true,
-    user: { username: user.username, role: user.role }
-  });
 });
 
 server.listen(port, () => {

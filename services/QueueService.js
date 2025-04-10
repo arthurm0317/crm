@@ -33,11 +33,8 @@ const addUserinQueue = async (username, queue, schema) => {
     
     if (queueExist.rowCount > 0) {
         const result = await pool.query(
-            `UPDATE ${schema}.queues
-             SET users = users || $1::jsonb
-             WHERE name=$2
-             RETURNING *`,
-            [JSON.stringify([userData.id, userData.name]), queue] // ← aqui também
+            `INSERT INTO ${schema}.queue_users (user_id, queue_id) VALUES ($1, $2)
+     ON CONFLICT DO NOTHING`, [userData.id, queueExist.rows[0].id] 
         )
         return result.rows[0];
     } else {
@@ -45,7 +42,25 @@ const addUserinQueue = async (username, queue, schema) => {
     }
 };
 
+const getUserQueues = async(username, schema)=>{
+    const user = await pool.query(
+        `SELECT * FROM ${schema}.users WHERE name=$1`,[username]
+    )
+
+    const queue = await pool.query(
+        `SELECT * FROM ${schema}.queue_users where user_id=$1`,[user.rows[0].id]
+    )
+
+    for (let i = 0; i < queue.rowCount; i++) {
+        const result = await pool.query(
+        `SELECT * FROM ${schema}.queues WHERE id=$1`,[queue.rows[i].queue_id]
+    )
+    return result.rows[i]
+    }
+}
+
 module.exports = {
     createQueue,
-    addUserinQueue
+    addUserinQueue,
+    getUserQueues
 }

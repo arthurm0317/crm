@@ -22,7 +22,7 @@ const getAllUsers = async (schema = 'public') => {
     const result = await pool.query(`SELECT * FROM ${schema}.users`);
     return result.rows;
 };
-const searchUser = async (user) => {
+const searchUser = async (userMail, userPassword) => {
     const availableSchemas = await pool.query(`
       SELECT schema_name 
       FROM information_schema.schemata
@@ -35,7 +35,7 @@ const searchUser = async (user) => {
       try {
         const result = await pool.query(
           `SELECT * FROM ${schema}.users WHERE email = $1 AND password = $2`,
-          [user.getEmail(), user.getPassword()]
+          [userMail, userPassword]
         );
   
         if (result.rows.length > 0) {
@@ -53,7 +53,5 @@ const searchUser = async (user) => {
   
     return null; 
   };
-
-  const searchUserByName = async()
 
 module.exports = { createUser, getAllUsers, searchUser };
