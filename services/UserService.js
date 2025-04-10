@@ -54,4 +54,6 @@ const searchUser = async (user) => {
     return null; 
   };
 
+  const searchUserByName = async()
+
 module.exports = { createUser, getAllUsers, searchUser };

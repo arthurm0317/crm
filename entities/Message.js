@@ -4,8 +4,6 @@ class Message {
       this.message = message;
       this.fromMe = fromMe;
       this.chatId = chatId;
-      this.contact = contact;
-      this.createdAt = createdAt;
   }
 }
 

@@ -5,7 +5,16 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const http = require('http');
 const { Server } = require("socket.io");
 const cors = require('cors');
+<<<<<<< HEAD
 
+=======
+const { Chat } = require('../entities/Chat');
+const { v4: uuidv4 } = require('uuid');
+const { createChat } = require('../services/ChatService');
+const { Message } = require('../entities/Message');
+
+const chatInstances = [];
+>>>>>>> 490f398f2b54bf27a89dc03a6e3d4d90fbc4fde8
 const app = express();
 const port = 3001;
 const server = http.createServer(app);
@@ -105,7 +114,22 @@ io.on('connection', (socket) => {
     });
 
     client.on("message", async (msg) => {
+<<<<<<< HEAD
       console.log(`📨 [${id}] Mensagem: ${msg.body}`);
+=======
+      console.log(`📨 [${id}] Mensagem recebida:`, msg.body);
+    
+      const chat = await msg.getChat(); // ⬅️ AQUI
+      console.log("💬 Chat:", chat);
+      
+      const chatDb = new Chat(uuidv4(),chat.id.server, chat.id.user, chat.id._serialized, chat.lastMessage.fromMe, chat.name, chat.isGroup, chat.timestamp)
+      const mensagem = new Message(uuidv4(), msg.body, chat.lastMessage.fromMe, chatDb.getId())
+      createChat(chatDb, 'public', mensagem)
+    
+      const labels = await client.getLabels(); // ⬅️ AQUI
+      console.log("🏷️ Labels:", labels);
+    
+>>>>>>> 490f398f2b54bf27a89dc03a6e3d4d90fbc4fde8
       socket.emit("message", {
         sessionId: id,
         from: msg.from,
