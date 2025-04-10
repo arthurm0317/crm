@@ -1,10 +1,11 @@
-// backend index.js (versão aprimorada com destroy e reinicialização de sessões)
+// backend index.js 
 const express = require('express');
 const fs = require('fs');
 const { Client, LocalAuth} = require('whatsapp-web.js');
 const http = require('http');
 const { Server } = require("socket.io");
 const cors = require('cors');
+
 const { Chat } = require('../entities/Chat');
 const { v4: uuidv4 } = require('uuid');
 const { createChat } = require('../services/ChatService');
@@ -31,7 +32,12 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
   },
 });
-
+//const sessionIds = getSessionsByCompany(username ou outro);
+//for (const id of sessionIds) {
+//  if (!sessions[id]) {
+//    createSession(id);
+//  }
+//}
 // verifica se sessão existe no disco
 app.get("/check-session/:id", (req, res) => {
   const sessionId = req.params.id;
@@ -112,8 +118,10 @@ io.on('connection', (socket) => {
     });
 
     client.on("message", async (msg) => {
+      console.log(`📨 [${id}] Mensagem: ${msg.body}`);
       console.log(`📨 [${id}] Mensagem recebida:`, msg.body);
-    
+      
+
       const chat = await msg.getChat(); // ⬅️ AQUI
       console.log("💬 Chat:", chat);
       

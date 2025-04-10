@@ -3,7 +3,8 @@ import io from "socket.io-client";
 import QRCode from "react-qr-code";
 import { useEffect, useState } from "react";
 import ChatComponent from "./ChatComponent";
-import SidebarSessions from "./sidebar"; // certifique-se que o caminho está certo
+import SidebarSessions from "./sidebar";
+import SidebarNav from "./sidebar";
 
 const socket = io("http://localhost:3001", {
   reconnection: true,
@@ -25,6 +26,9 @@ function App() {
   const [loginUsername, setLoginUsername] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
+
+  // controle da visualização (sidebar nav)
+  const [currentView, setCurrentView] = useState("connections");
 
   const createSessionForWhatsapp = async () => {
     try {
@@ -156,81 +160,79 @@ function App() {
   }
 
   return (
-    <div className="App">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1>📞 WhatsApp CRM</h1>
-        <div>
-          <strong>Usuário:</strong> {authUser.username} ({authUser.role}) &nbsp;
-          <button onClick={() => setAuthUser(null)}>Sair</button>
-        </div>
-      </div>
+    <div className="App" style={{ display: "flex", height: "100vh" }}>
+      <SidebarNav currentView={currentView} setCurrentView={setCurrentView} />
 
-      {authUser.role === "admin" && !isAuthenticated && (
-        <>
-          <h2>Conectar nova sessão</h2>
-          <input
-            type="text"
-            value={session}
-            onChange={(e) => setSession(e.target.value)}
-            placeholder="Nome da sessão"
-          />
-          <button onClick={createSessionForWhatsapp}>
-            Criar ou Reconectar Sessão
-          </button>
-          {connectionStatus && <p>{connectionStatus}</p>}
-          {qrCode && (
-            <div style={{ marginTop: 20 }}>
-              <QRCode value={qrCode} />
-            </div>
-          )}
-        </>
-      )}
-
-      {isAuthenticated && (
-        <div className="main-layout">
-          <SidebarSessions
-            currentSession={session}
-            onSelect={(sessId) => {
-              setSession(sessId);
-              setConnectionStatus(`Sessão alterada para: ${sessId}`);
-              localStorage.setItem("sessionId", sessId);
-              socket.emit("createSession", { id: sessId }); // reconectar socket
-            }}
-          />
-
-          <div className="content-area">
-            <h2>✅ Sessão conectada: {session}</h2>
-            {connectionStatus && <p>{connectionStatus}</p>}
-
-            <div className="app-container">
-              <div className="contacts-list">
-                {contacts.map((contact) => (
-                  <div
-                    key={contact}
-                    className={`contact-item ${selectedContact === contact ? "active" : ""}`}
-                    onClick={() => setSelectedContact(contact)}
-                  >
-                    {contact}
-                  </div>
-                ))}
-              </div>
-
-              <div className="chat-area">
-                {selectedContact ? (
-                  <ChatComponent
-                    session={session}
-                    socket={socket}
-                    messages={messages[selectedContact] || []}
-                    selectedContact={selectedContact}
-                  />
-                ) : (
-                  <p>👈 Selecione um contato para conversar</p>
-                )}
-              </div>
-            </div>
+      <div style={{ flex: 1, padding: "20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h1>📞 WhatsApp CRM</h1>
+          <div>
+            <strong>Usuário:</strong> {authUser.username} ({authUser.role}) &nbsp;
+            <button onClick={() => setAuthUser(null)}>Sair</button>
           </div>
         </div>
-      )}
+
+        {currentView === "connections" && authUser.role === "admin" && (
+          <div>
+            <h2>Conectar nova sessão</h2>
+            <input
+              type="text"
+              value={session}
+              onChange={(e) => setSession(e.target.value)}
+              placeholder="Nome da sessão"
+            />
+            <button onClick={createSessionForWhatsapp}>
+              Criar ou Reconectar Sessão
+            </button>
+            {connectionStatus && <p>{connectionStatus}</p>}
+            {qrCode && (
+              <div style={{ marginTop: 20 }}>
+                <QRCode value={qrCode} />
+              </div>
+            )}
+            {isAuthenticated && (
+              <SidebarSessions
+                currentSession={session}
+                onSelect={(sessId) => {
+                  setSession(sessId);
+                  setConnectionStatus(`Sessão alterada para: ${sessId}`);
+                  localStorage.setItem("sessionId", sessId);
+                  socket.emit("createSession", { id: sessId });
+                }}
+              />
+            )}
+          </div>
+        )}
+
+        {currentView === "chats" && isAuthenticated && (
+          <div className="app-container">
+            <div className="contacts-list">
+              {contacts.map((contact) => (
+                <div
+                  key={contact}
+                  className={`contact-item ${selectedContact === contact ? "active" : ""}`}
+                  onClick={() => setSelectedContact(contact)}
+                >
+                  {contact}
+                </div>
+              ))}
+            </div>
+
+            <div className="chat-area">
+              {selectedContact ? (
+                <ChatComponent
+                  session={session}
+                  socket={socket}
+                  messages={messages[selectedContact] || []}
+                  selectedContact={selectedContact}
+                />
+              ) : (
+                <p>👈 Selecione um contato para conversar</p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
