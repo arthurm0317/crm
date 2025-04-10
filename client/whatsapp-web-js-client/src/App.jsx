@@ -3,6 +3,7 @@ import io from "socket.io-client";
 import QRCode from "react-qr-code";
 import { useEffect, useState } from "react";
 import ChatComponent from "./ChatComponent";
+import SidebarSessions from "./sidebar"; // certifique-se que o caminho está certo
 
 const socket = io("http://localhost:3001", {
   reconnection: true,
@@ -18,6 +19,12 @@ function App() {
   const [messages, setMessages] = useState({});
   const [contacts, setContacts] = useState([]);
   const [selectedContact, setSelectedContact] = useState(null);
+
+  // login provisório
+  const [authUser, setAuthUser] = useState(null);
+  const [loginUsername, setLoginUsername] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
 
   const createSessionForWhatsapp = async () => {
     try {
@@ -37,6 +44,31 @@ function App() {
     }
   };
 
+  const handleLogin = async () => {
+    try {
+      const res = await fetch("http://localhost:3001/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: loginUsername,
+          password: loginPassword,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        setLoginError(data.message || "Erro de login");
+        return;
+      }
+
+      setAuthUser(data.user);
+      setLoginError("");
+    } catch (err) {
+      setLoginError("Erro na requisição");
+    }
+  };
+
   useEffect(() => {
     socket.on("qr", (qr) => {
       setQrCode(qr);
@@ -50,13 +82,11 @@ function App() {
 
     socket.on("messageSent", ({ to, message }) => {
       const text = typeof message === "string" ? message : message?.body || "";
-    
       setMessages((prev) => ({
         ...prev,
         [to]: [...(prev[to] || []), { from: session, body: text, timestamp: Date.now() }],
       }));
     });
-    
 
     socket.on("messageFailed", ({ to, error }) => {
       setConnectionStatus(`❌ Falha ao enviar mensagem para ${to}: ${error}`);
@@ -103,11 +133,39 @@ function App() {
     };
   }, []);
 
+  if (!authUser) {
+    return (
+      <div className="App">
+        <h1>🔐 Login</h1>
+        <input
+          type="text"
+          placeholder="Usuário"
+          value={loginUsername}
+          onChange={(e) => setLoginUsername(e.target.value)}
+        />
+        <input
+          type="password"
+          placeholder="Senha"
+          value={loginPassword}
+          onChange={(e) => setLoginPassword(e.target.value)}
+        />
+        <button onClick={handleLogin}>Entrar</button>
+        {loginError && <p style={{ color: "red" }}>{loginError}</p>}
+      </div>
+    );
+  }
+
   return (
     <div className="App">
-      <h1>📞 WhatsApp Web JS</h1>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h1>📞 WhatsApp CRM</h1>
+        <div>
+          <strong>Usuário:</strong> {authUser.username} ({authUser.role}) &nbsp;
+          <button onClick={() => setAuthUser(null)}>Sair</button>
+        </div>
+      </div>
 
-      {!isAuthenticated ? (
+      {authUser.role === "admin" && !isAuthenticated && (
         <>
           <h2>Conectar nova sessão</h2>
           <input
@@ -126,53 +184,52 @@ function App() {
             </div>
           )}
         </>
-      ) : (
-        <>
-          <button
-            onClick={() => {
-              setIsAuthenticated(false);
-              setQrCode("");
-              setSession("");
-              setMessages({});
-              setSelectedContact(null);
-              setContacts([]);
-              localStorage.removeItem("sessionId");
-              setConnectionStatus("Você saiu da sessão");
+      )}
+
+      {isAuthenticated && (
+        <div className="main-layout">
+          <SidebarSessions
+            currentSession={session}
+            onSelect={(sessId) => {
+              setSession(sessId);
+              setConnectionStatus(`Sessão alterada para: ${sessId}`);
+              localStorage.setItem("sessionId", sessId);
+              socket.emit("createSession", { id: sessId }); // reconectar socket
             }}
-          >
-            🔁 Voltar e escolher outra sessão
-          </button>
+          />
 
-          <h2>✅ Sessão conectada: {session}</h2>
-          {connectionStatus && <p>{connectionStatus}</p>}
+          <div className="content-area">
+            <h2>✅ Sessão conectada: {session}</h2>
+            {connectionStatus && <p>{connectionStatus}</p>}
 
-          <div className="app-container">
-            <div className="contacts-list">
-              {contacts.map((contact) => (
-                <div
-                  key={contact}
-                  className={`contact-item ${selectedContact === contact ? "active" : ""}`}
-                  onClick={() => setSelectedContact(contact)}
-                >
-                  {contact}
-                </div>
-              ))}
-            </div>
+            <div className="app-container">
+              <div className="contacts-list">
+                {contacts.map((contact) => (
+                  <div
+                    key={contact}
+                    className={`contact-item ${selectedContact === contact ? "active" : ""}`}
+                    onClick={() => setSelectedContact(contact)}
+                  >
+                    {contact}
+                  </div>
+                ))}
+              </div>
 
-            <div className="chat-area">
-              {selectedContact ? (
-                <ChatComponent
-                  session={session}
-                  socket={socket}
-                  messages={messages[selectedContact] || []}
-                  selectedContact={selectedContact}
-                />
-              ) : (
-                <p>👈 Selecione um contato para conversar</p>
-              )}
+              <div className="chat-area">
+                {selectedContact ? (
+                  <ChatComponent
+                    session={session}
+                    socket={socket}
+                    messages={messages[selectedContact] || []}
+                    selectedContact={selectedContact}
+                  />
+                ) : (
+                  <p>👈 Selecione um contato para conversar</p>
+                )}
+              </div>
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
