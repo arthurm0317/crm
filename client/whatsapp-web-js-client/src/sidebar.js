@@ -1,44 +1,23 @@
-//temporaria só pra ver como fica
-import React, { useEffect, useState } from "react";
-import axios from 'axios';
-import "./sidebar.css"; // criaremos um estilo simples também
+// src/SidebarNav.jsx
+import "./sidebar.css";
 
-function SidebarSessions({ currentSession, onSelect }) {
-  const [sessions, setSessions] = useState([]);
-
-  useEffect(() => {
-    const fetchSessions = async () => {
-      try {
-        const res = await axios.get("http://localhost:3001/active-sessions");
-        setSessions(res.data.sessions);
-      } catch (err) {
-        console.error("Erro ao buscar sessões ativas:", err);
-      }
-    };
-
-    fetchSessions();
-
-    const interval = setInterval(fetchSessions, 5000); // atualiza a cada 5s
-    return () => clearInterval(interval);
-  }, []);
-
+const SidebarNav = ({ currentView, setCurrentView }) => {
   return (
-    <div className="sidebar-sessions">
-      <h4>Sessões ativas</h4>
-      {sessions.length === 0 && <p>Nenhuma sessão ativa</p>}
-      <ul>
-        {sessions.map((sess) => (
-          <li
-            key={sess}
-            className={sess === currentSession ? "active" : ""}
-            onClick={() => onSelect(sess)}
-          >
-            {sess}
-          </li>
-        ))}
-      </ul>
+    <div className="sidebar-nav">
+      <button
+        className={currentView === "connections" ? "active" : ""}
+        onClick={() => setCurrentView("connections")}
+      >
+        Conexões
+      </button>
+      <button
+        className={currentView === "chats" ? "active" : ""}
+        onClick={() => setCurrentView("chats")}
+      >
+        Chats
+      </button>
     </div>
   );
-}
+};
 
-export default SidebarSessions;
+export default SidebarNav;
