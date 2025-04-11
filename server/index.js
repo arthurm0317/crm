@@ -5,19 +5,21 @@ const { Client, LocalAuth} = require('whatsapp-web.js');
 const http = require('http');
 const { Server } = require("socket.io");
 const cors = require('cors');
-
 const { Chat } = require('../entities/Chat');
 const { v4: uuidv4 } = require('uuid');
 const { createChat } = require('../services/ChatService');
 const { Message } = require('../entities/Message');
 const { searchUser } = require('../services/UserService');
+const Connections = require('../entities/Connection');
 
 const chatInstances = [];
 const app = express();
 const port = 3001;
 const server = http.createServer(app);
 
-const sessions = {}; // armazena todas as instâncias
+const sessions = {}; 
+console.log("sessao:", sessions)
+console.log("sessao:", sessions[0])
 const users = [
   { email: "arthur", password: "password", role: "admin" },
   { email: "joao", password: "123123", role: "user" }
@@ -120,21 +122,28 @@ io.on('connection', (socket) => {
     client.on("message", async (msg) => {
       console.log(`📨 [${id}] Mensagem: ${msg.body}`);
       console.log(`📨 [${id}] Mensagem recebida:`, msg.body);
+
+      console.log("sessao:", sessions)
+      console.log("sessao:", sessions[0])
       
 
       const chat = await msg.getChat(); // ⬅️ AQUI
       console.log("💬 Chat:", chat);
+      console.log("contato", await chat.getContact())
       
-      const chatDb = new Chat(uuidv4(),chat.id.server, chat.id.user, chat.id._serialized, chat.lastMessage.fromMe, chat.name, chat.isGroup, chat.timestamp)
-      const mensagem = new Message(uuidv4(), msg.body, chat.lastMessage.fromMe, chatDb.getId())
-      createChat(chatDb, 'public', mensagem)
+      const conn = new Connections(uuidv4(), "teste", "557588821124", null)
+
+      const chatDB = new Chat(uuidv4(), chat.id._serialized, conn.getId(), null, false, (await chat.getContact()).pushname, null, "waiting", new Date(), null)
+
+      const mensagem = new Message(uuidv4(), msg.body, false, chatDB.getId())
+      createChat(chatDB, 'public', mensagem)
     
       const labels = await client.getLabels(); // ⬅️ AQUI
       console.log("🏷️ Labels:", labels);
     
       socket.emit("message", {
         sessionId: id,
-        from: msg.from,
+        from: (await chat.getContact()).pushname,
         body: msg.body,
         timestamp: msg.timestamp || Date.now(),
       });
@@ -181,12 +190,9 @@ app.post("/login", async (req, res) => {
   try {
     const user = await searchUser(username, password);
   
-    console.log("usuario", user)
-    console.log("permissao:", user.permission)
     if (!user) {
       return res.status(401).json({ success: false, message: "usuario ou senha incorretos" });
     }
-    console.log("permissao", user.permission)
     return res.status(201).json({
       success: true,
       user: { username: user.user.email, role: user.user.permission }

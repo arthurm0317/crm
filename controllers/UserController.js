@@ -4,9 +4,6 @@ const { v4: uuidv4 } = require('uuid');
 
 const createUserController = async (req, res) => {
     try {
-      console.log("createUser foi chamado!");
-      console.log("BODY RECEBIDO:", req.body);
-  
       const { name, email, password, permission } = req.body;
   
       const user = new Users(

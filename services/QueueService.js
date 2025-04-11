@@ -51,12 +51,18 @@ const getUserQueues = async(username, schema)=>{
         `SELECT * FROM ${schema}.queue_users where user_id=$1`,[user.rows[0].id]
     )
 
+    const queueData = [];
+
     for (let i = 0; i < queue.rowCount; i++) {
-        const result = await pool.query(
-        `SELECT * FROM ${schema}.queues WHERE id=$1`,[queue.rows[i].queue_id]
-    )
-    return result.rows[i]
+    const result = await pool.query(
+        `SELECT * FROM ${schema}.queues WHERE id = $1`,
+        [queue.rows[i].queue_id]
+    );
+
+    queueData.push(result.rows[0]);
     }
+
+    return queueData;
 }
 
 module.exports = {

@@ -41,10 +41,8 @@ const getUserQueuesController=async(req,res)=>{
     try{
         const {username}=req.body
         const schema = req.body.schema || 'public';
-        console.log("Body recebido:", req.body);
 
         const result = await getUserQueues(username, schema)
-        console.log(result)
         res.status(201).json({
             result
         })
