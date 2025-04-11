@@ -15,7 +15,7 @@ function Login() {
     >
       <div className="w-100 h-100 d-flex flex-column justify-content-center align-items-center">
         <div className="w-60 w-md-40 mb-4 d-flex justify-content-center align-items-center">
-          <img src="assets/effective-gain_logo.png" className="w-50" alt="Logo" />
+          <img src="./assets/effective-gain_logo.png" className="w-50" alt="Logo" />
         </div>
 
         <div className="col-9 col-md-8 col-lg-6 col-xl-4 max-w-450 p-4 bg-form-light rounded shadow">
