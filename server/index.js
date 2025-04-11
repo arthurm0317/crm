@@ -18,8 +18,7 @@ const port = 3001;
 const server = http.createServer(app);
 
 const sessions = {}; 
-console.log("sessao:", sessions)
-console.log("sessao:", sessions[0])
+
 const users = [
   { email: "arthur", password: "password", role: "admin" },
   { email: "joao", password: "123123", role: "user" }
@@ -50,6 +49,8 @@ app.get("/check-session/:id", (req, res) => {
 // rota para listar sessões ativas
 app.get("/active-sessions", (req, res) => {
   const activeSessions = Object.keys(sessions);
+  const conn = activeSessions.values
+  console.log("sessão", conn)
   res.json({ sessions: activeSessions });
 });
 
@@ -59,6 +60,7 @@ app.get('/', (req, res) => {
 
 io.on('connection', (socket) => {
   console.log('🟢 Cliente conectado via socket:', socket.id);
+  
 
   socket.on('disconnect', () => {
     console.log('desconectado');
@@ -80,6 +82,7 @@ io.on('connection', (socket) => {
   socket.on('createSession', async ({ id }) => {
     if (sessions[id]) {
       console.log(`⚠️ Sessão ${id} já existe. Reinicializando...`);
+      
       try {
         await sessions[id].destroy();
         delete sessions[id];
@@ -94,6 +97,7 @@ io.on('connection', (socket) => {
       puppeteer: { headless: false },
       authStrategy: new LocalAuth({ clientId: id }),
     });
+      
 
     sessions[id] = client;
 
@@ -102,9 +106,10 @@ io.on('connection', (socket) => {
       socket.emit("qr", qr);
     });
 
-    client.on("ready", () => {
+    client.on("ready", async() => {
       console.log(`✅ Sessão ${id} conectada!`);
       socket.emit("ready", { sessionId: id });
+      const connNumber = await client.info.wid.user;
     });
 
     client.on("auth_failure", (msg) => {
@@ -131,7 +136,7 @@ io.on('connection', (socket) => {
       console.log("💬 Chat:", chat);
       console.log("contato", await chat.getContact())
       
-      const conn = new Connections(uuidv4(), "teste", "557588821124", null)
+      const conn = new Connections(uuidv4(), "teste2", connNumber, null)
 
       const chatDB = new Chat(uuidv4(), chat.id._serialized, conn.getId(), null, false, (await chat.getContact()).pushname, null, "waiting", new Date(), null)
 
