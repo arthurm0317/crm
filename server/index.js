@@ -53,6 +53,43 @@ app.get("/active-sessions", (req, res) => {
   console.log("sessão", conn)
   res.json({ sessions: activeSessions });
 });
+// Iniciar conversa manualmente
+app.post("/start-chat", async (req, res) => {
+  const { sessionId, to, message } = req.body;
+
+  const client = sessions[sessionId];
+  if (!client) {
+    return res.status(400).json({ success: false, message: "Sessão não encontrada" });
+  }
+
+  try {
+    const sentMessage = await client.sendMessage(to, message);
+    const chat = await sentMessage.getChat();
+
+    const conn = new Connections(uuidv4(), "manual", to, null);
+    const chatDb = new Chat(
+      uuidv4(),
+      chat.id._serialized,
+      conn.getId(),
+      null,
+      false,
+      chat.name || to,
+      null,
+      "waiting",
+      new Date(),
+      null
+    );
+
+    const mensagem = new Message(uuidv4(), message, true, chatDb.getId());
+    createChat(chatDb, 'public', mensagem);
+
+    return res.status(200).json({ success: true, message: "Mensagem enviada e chat iniciado." });
+
+  } catch (err) {
+    console.error("Erro ao iniciar chat:", err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
 
 app.get('/', (req, res) => {
   res.send('<h1>Hello world</h1>');
@@ -161,32 +198,56 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on("sendMessage", async ({ to, message, sessionId }) => {
-    const client = sessions[sessionId];
-    if (!client) {
-      socket.emit("messageFailed", { to, error: "Sessão não encontrada" });
-      return;
-    }
+socket.on("sendMessage", async ({ to, message, sessionId }) => {
+  const client = sessions[sessionId];
+  if (!client) {
+    socket.emit("messageFailed", { to, error: "Sessão não encontrada" });
+    return;
+  }
 
-    try {
-      await client.sendMessage(to, message);
-      console.log(`📤 Mensagem enviada de ${sessionId} para ${to}: ${message}`);
-      socket.emit("messageSent", {
-        to,
-        message: {
-          body: message,
-          from: sessionId,
-          timestamp: Date.now(),
-        }
-      });
-    } catch (err) {
-      console.error(`❌ Erro ao enviar mensagem: ${err.message}`);
-      socket.emit("messageFailed", {
-        to,
-        error: err.message,
-      });
-    }
-  });
+  try {
+    const sentMessage = await client.sendMessage(to, message);
+    console.log(`📤 Mensagem enviada de ${sessionId} para ${to}: ${message}`);
+
+    // 🔽 Buscando/Simulando o chat para armazenar no sistema
+    const chat = await sentMessage.getChat();
+    const chatDb = new Chat(
+      uuidv4(),
+      chat.id.server,
+      chat.id.user,
+      chat.id._serialized,
+      true, // fromMe
+      chat.name || to, // fallback caso nome não exista
+      chat.isGroup,
+      chat.timestamp || Date.now()
+    );
+    const mensagem = new Message(
+      uuidv4(),
+      message,
+      true, // fromMe
+      chatDb.getId()
+    );
+
+    createChat(chatDb, 'public', mensagem);
+
+    socket.emit("messageSent", {
+      to,
+      message: {
+        body: message,
+        from: sessionId,
+        timestamp: Date.now(),
+      }
+    });
+
+  } catch (err) {
+    console.error(`❌ Erro ao enviar mensagem: ${err.message}`);
+    socket.emit("messageFailed", {
+      to,
+      error: err.message,
+    });
+  }
+});
+
 });
 
 app.post("/login", async (req, res) => {
