@@ -7,10 +7,13 @@ const { Server } = require("socket.io");
 const cors = require('cors');
 const { Chat } = require('../entities/Chat');
 const { v4: uuidv4 } = require('uuid');
-const { createChat } = require('../services/ChatService');
+const { createChat, getChat, getChatService } = require('../services/ChatService');
 const { Message } = require('../entities/Message');
 const { searchUser } = require('../services/UserService');
 const Connections = require('../entities/Connection');
+const { createConnection } = require('../services/ConnectionService');
+const { saveMessage } = require('../services/MessageService');
+const pool = require('../db/queries');
 
 const chatInstances = [];
 const app = express();
@@ -169,16 +172,21 @@ io.on('connection', (socket) => {
       
 
       const chat = await msg.getChat(); // ⬅️ AQUI
-      console.log("💬 Chat:", chat);
-      console.log("contato", await chat.getContact())
-      
+
       const conn = new Connections(uuidv4(), "teste2", client.info.wid.user, null)
+      const connDb = await createConnection(conn, 'public')
 
-      const chatDB = new Chat(uuidv4(), chat.id._serialized, conn.getId(), null, false, (await chat.getContact()).pushname, null, "waiting", new Date(), null)
-
+      console.log("connection: ", connDb)
+      
+      const chatDB = new Chat(uuidv4(), chat.id._serialized, connDb.id, null, false, (await chat.getContact()).pushname, null, "waiting", new Date(), null)
       const mensagem = new Message(uuidv4(), msg.body, false, chatDB.getId())
-      createChat(chatDB, 'public', mensagem)
-    
+      console.log("1",chatDB.id)
+      const chatTest = await getChatService(chatDB, 'public')
+      console.log("2",chatTest)
+      const mensagemDb = await saveMessage(chatTest.id, mensagem, 'public')
+
+      console.log(mensagemDb)
+      
       const labels = await client.getLabels(); // ⬅️ AQUI
       console.log("🏷️ Labels:", labels);
     
@@ -187,6 +195,7 @@ io.on('connection', (socket) => {
         from: (await chat.getContact()).pushname,
         body: msg.body,
         timestamp: msg.timestamp || Date.now(),
+        chatId: chatTest.id
       });
     });
 
@@ -210,16 +219,7 @@ socket.on("sendMessage", async ({ to, message, sessionId }) => {
 
     // 🔽 Buscando/Simulando o chat para armazenar no sistema
     const chat = await sentMessage.getChat();
-    const chatDb = new Chat(
-      uuidv4(),
-      chat.id.server,
-      chat.id.user,
-      chat.id._serialized,
-      true, // fromMe
-      chat.name || to, // fallback caso nome não exista
-      chat.isGroup,
-      chat.timestamp || Date.now()
-    );
+    const chatDb = new Chat(uuidv4(), chat.id._serialized, conn.getId(), null, false, (await chat.getContact()).pushname, null, "waiting", new Date(), null)
     const mensagem = new Message(
       uuidv4(),
       message,
@@ -266,6 +266,21 @@ app.post("/login", async (req, res) => {
   } catch (error) {
     console.error("Erro no login:", error);
     return res.status(500).json({ success: false, message: "Erro interno no servidor" });
+  }
+});
+app.get("/chat/:chatId/messages", async (req, res) => {
+  const { chatId } = req.params;
+  const schema = req.query.schema || 'public';
+
+  try {
+    const result = await pool.query(`
+      SELECT * FROM ${schema}.messages WHERE chat_id = $1 ORDER BY created_at ASC
+    `, [chatId]);
+
+    res.status(200).json({ success: true, messages: result.rows });
+  } catch (err) {
+    console.error("Erro ao buscar mensagens:", err);
+    res.status(500).json({ success: false, message: "Erro ao buscar mensagens" });
   }
 });
 

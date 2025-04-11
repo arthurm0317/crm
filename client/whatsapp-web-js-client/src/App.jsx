@@ -40,6 +40,32 @@ function App() {
     }
   };
 
+  const fetchMessagesFromDB = async (chatId) => {
+    try {
+      const response = await fetch(`http://localhost:3001/chat/${chatId}/messages?schema=public`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setMessages((prev) => ({
+          ...prev,
+          [chatId]: data.messages.map(msg => ({
+            from: msg.from,
+            body: msg.body,
+            timestamp: new Date(msg.created_at).getTime(),
+          }))
+        }));
+      }
+    } catch (err) {
+      console.error("Erro ao buscar mensagens do banco:", err);
+    }
+  };
+
   useEffect(() => {
     socket.on("qr", (qr) => {
       setQrCode(qr);
@@ -63,20 +89,24 @@ function App() {
       setConnectionStatus(`❌ Falha ao enviar mensagem para ${to}: ${error}`);
     });
 
-    socket.on("message", ({ from, body, timestamp }) => {
+    socket.on("message", (data) => {
+      console.log("Mensagem recebida no front:", data);
+      const { from, body, timestamp, chatId } = data;
+    
       setMessages((prev) => {
-        const existingMessages = prev[from] || [];
+        const existingMessages = prev[chatId] || [];
         const isDuplicate = existingMessages.some((msg) => msg.body === body && msg.timestamp === timestamp);
         if (isDuplicate) return prev;
-
+    
         return {
           ...prev,
-          [from]: [...existingMessages, { from, body, timestamp }],
+          [chatId]: [...existingMessages, { from, body, timestamp }],
         };
       });
-
+    
       setContacts((prev) => {
-        if (!prev.includes(from)) return [...prev, from];
+        const exists = prev.find((c) => c.from === from);
+        if (!exists) return [...prev, { from, chatId }];
         return prev;
       });
     });
@@ -151,13 +181,16 @@ function App() {
         {currentView === "chats" && isAuthenticated && (
           <div className="app-container">
             <div className="contacts-list">
-              {contacts.map((contact) => (
+              {contacts.map((contactObj) => (
                 <div
-                  key={contact}
-                  className={`contact-item ${selectedContact === contact ? "active" : ""}`}
-                  onClick={() => setSelectedContact(contact)}
+                  key={contactObj.from}
+                  className={`contact-item ${selectedContact?.from === contactObj.from ? "active" : ""}`}
+                  onClick={() => {
+                    setSelectedContact(contactObj);
+                    fetchMessagesFromDB(contactObj.chatId);
+                  }}
                 >
-                  {contact}
+                  {contactObj.from}
                 </div>
               ))}
             </div>
@@ -167,8 +200,8 @@ function App() {
                 <ChatComponent
                   session={session}
                   socket={socket}
-                  messages={messages[selectedContact] || []}
-                  selectedContact={selectedContact}
+                  messages={messages[selectedContact.chatId] || []}
+                  selectedContact={selectedContact.from}
                 />
               ) : (
                 <p>👈 Selecione um contato para conversar</p>
