@@ -4,9 +4,6 @@ const { v4: uuidv4 } = require('uuid');
 
 const createUserController = async (req, res) => {
     try {
-      console.log("createUser foi chamado!");
-      console.log("BODY RECEBIDO:", req.body);
-  
       const { name, email, password, permission } = req.body;
   
       const user = new Users(
@@ -44,7 +41,7 @@ const searchUserController = async (req, res) => {
 
   try {
     const user = new Users(null, null, email, password, null);
-    const result = await searchUser(user);
+    const result = await searchUser(user.getEmail(), user.getPassword());
 
     if (!result) {
       return res.status(404).json({ message: 'Usuário não encontrado' });

@@ -1,24 +1,28 @@
 // backend index.js 
 const express = require('express');
 const fs = require('fs');
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client, LocalAuth} = require('whatsapp-web.js');
 const http = require('http');
 const { Server } = require("socket.io");
 const cors = require('cors');
-
 const { Chat } = require('../entities/Chat');
 const { v4: uuidv4 } = require('uuid');
 const { createChat } = require('../services/ChatService');
 const { Message } = require('../entities/Message');
+const { searchUser } = require('../services/UserService');
+const Connections = require('../entities/Connection');
 
 const chatInstances = [];
 const app = express();
 const port = 3001;
 const server = http.createServer(app);
-const sessions = {}; // armazena todas as instâncias
+
+const sessions = {}; 
+console.log("sessao:", sessions)
+console.log("sessao:", sessions[0])
 const users = [
-  { username: "admin", password: "123456", role: "admin" },
-  { username: "user", password: "123456", role: "user" }
+  { email: "arthur", password: "password", role: "admin" },
+  { email: "joao", password: "123123", role: "user" }
 ];
 
 app.use(cors());
@@ -47,6 +51,43 @@ app.get("/check-session/:id", (req, res) => {
 app.get("/active-sessions", (req, res) => {
   const activeSessions = Object.keys(sessions);
   res.json({ sessions: activeSessions });
+});
+// Iniciar conversa manualmente
+app.post("/start-chat", async (req, res) => {
+  const { sessionId, to, message } = req.body;
+
+  const client = sessions[sessionId];
+  if (!client) {
+    return res.status(400).json({ success: false, message: "Sessão não encontrada" });
+  }
+
+  try {
+    const sentMessage = await client.sendMessage(to, message);
+    const chat = await sentMessage.getChat();
+
+    const conn = new Connections(uuidv4(), "manual", to, null);
+    const chatDb = new Chat(
+      uuidv4(),
+      chat.id._serialized,
+      conn.getId(),
+      null,
+      false,
+      chat.name || to,
+      null,
+      "waiting",
+      new Date(),
+      null
+    );
+
+    const mensagem = new Message(uuidv4(), message, true, chatDb.getId());
+    createChat(chatDb, 'public', mensagem);
+
+    return res.status(200).json({ success: true, message: "Mensagem enviada e chat iniciado." });
+
+  } catch (err) {
+    console.error("Erro ao iniciar chat:", err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 app.get('/', (req, res) => {
@@ -118,21 +159,28 @@ io.on('connection', (socket) => {
     client.on("message", async (msg) => {
       console.log(`📨 [${id}] Mensagem: ${msg.body}`);
       console.log(`📨 [${id}] Mensagem recebida:`, msg.body);
+
+      console.log("sessao:", sessions)
+      console.log("sessao:", sessions[0])
       
 
       const chat = await msg.getChat(); // ⬅️ AQUI
       console.log("💬 Chat:", chat);
+      console.log("contato", await chat.getContact())
       
-      const chatDb = new Chat(uuidv4(),chat.id.server, chat.id.user, chat.id._serialized, chat.lastMessage.fromMe, chat.name, chat.isGroup, chat.timestamp)
-      const mensagem = new Message(uuidv4(), msg.body, chat.lastMessage.fromMe, chatDb.getId())
-      createChat(chatDb, 'public', mensagem)
+      const conn = new Connections(uuidv4(), "teste", "557588821124", null)
+
+      const chatDB = new Chat(uuidv4(), chat.id._serialized, conn.getId(), null, false, (await chat.getContact()).pushname, null, "waiting", new Date(), null)
+
+      const mensagem = new Message(uuidv4(), msg.body, false, chatDB.getId())
+      createChat(chatDB, 'public', mensagem)
     
       const labels = await client.getLabels(); // ⬅️ AQUI
       console.log("🏷️ Labels:", labels);
     
       socket.emit("message", {
         sessionId: id,
-        from: msg.from,
+        from: (await chat.getContact()).pushname,
         body: msg.body,
         timestamp: msg.timestamp || Date.now(),
       });
@@ -197,16 +245,24 @@ socket.on("sendMessage", async ({ to, message, sessionId }) => {
 
 });
 
-app.post("/login", (req, res) => {
+app.post("/login", async (req, res) => {
   const { username, password } = req.body;
-  const user = users.find(u => u.username === username && u.password === password);
-  if (!user) {
-    return res.status(401).json({ success: false, message: "usuario ou senha incorretos" });
+
+  try {
+    const user = await searchUser(username, password);
+  
+    if (!user) {
+      return res.status(401).json({ success: false, message: "usuario ou senha incorretos" });
+    }
+    return res.status(201).json({
+      success: true,
+      user: { username: user.user.email, role: user.user.permission }
+    });
+
+  } catch (error) {
+    console.error("Erro no login:", error);
+    return res.status(500).json({ success: false, message: "Erro interno no servidor" });
   }
-  return res.json({
-    success: true,
-    user: { username: user.username, role: user.role }
-  });
 });
 
 server.listen(port, () => {

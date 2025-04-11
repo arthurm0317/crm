@@ -1,14 +1,15 @@
 const { Message } = require('./Message');
 
 class Chat {
-    constructor(id, server, number, serialized, fromMe, contact, isGroup=false, createdAt, messages = []) {
+    constructor(id, serialized, connectionId, queueId=null, isGroup=false, contact, assignedUser, status, createdAt, messages = []) {
         this.id = id;
-        this.server = server;
-        this.number = number;
-        this.serialized = serialized;
-        this.fromMe = fromMe;
+        this.chatID = serialized;
+        this.connectionId = connectionId;
+        this.queueId = queueId;
         this.isGroup = isGroup;
         this.contact = contact;
+        this.assignedUser = assignedUser;
+        this.status = status
         this.createdAt = createdAt;
         this.messages = messages;
     }
@@ -20,14 +21,8 @@ class Chat {
     getId(){
         return this.id
     }
-    getServer(){
-        return this.server
-    }
-    getNumber(){
-        return this.number
-    }
-    getSerialized(){
-        return this.serialized
+    getChatId(){
+        return this.chatID
     }
     getIsGroup(){
         return this.isGroup
@@ -41,9 +36,19 @@ class Chat {
     getMessages(){
         return this.messages
     }
-    getFromMe(){
-        return this.fromMe
+    getConnectionId(){
+        return this.connectionId
     }
+    getQueueId(){
+        return this.queueId
+    }
+    getAssignedUser(){
+        return this.assignedUser
+    }
+    getStatus(){
+        return this.status
+    }
+    
 
 
 }

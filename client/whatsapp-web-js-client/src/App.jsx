@@ -21,12 +21,10 @@ function App() {
   const [messages, setMessages] = useState({});
   const [contacts, setContacts] = useState([]);
   const [selectedContact, setSelectedContact] = useState(null);
-
   const [authUser, setAuthUser] = useState(null);
   const [loginUsername, setLoginUsername] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
-
   const [currentView, setCurrentView] = useState("connections");
 
   const [number, setNumber] = useState("");
