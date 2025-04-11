@@ -145,32 +145,56 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on("sendMessage", async ({ to, message, sessionId }) => {
-    const client = sessions[sessionId];
-    if (!client) {
-      socket.emit("messageFailed", { to, error: "Sessão não encontrada" });
-      return;
-    }
+socket.on("sendMessage", async ({ to, message, sessionId }) => {
+  const client = sessions[sessionId];
+  if (!client) {
+    socket.emit("messageFailed", { to, error: "Sessão não encontrada" });
+    return;
+  }
 
-    try {
-      await client.sendMessage(to, message);
-      console.log(`📤 Mensagem enviada de ${sessionId} para ${to}: ${message}`);
-      socket.emit("messageSent", {
-        to,
-        message: {
-          body: message,
-          from: sessionId,
-          timestamp: Date.now(),
-        }
-      });
-    } catch (err) {
-      console.error(`❌ Erro ao enviar mensagem: ${err.message}`);
-      socket.emit("messageFailed", {
-        to,
-        error: err.message,
-      });
-    }
-  });
+  try {
+    const sentMessage = await client.sendMessage(to, message);
+    console.log(`📤 Mensagem enviada de ${sessionId} para ${to}: ${message}`);
+
+    // 🔽 Buscando/Simulando o chat para armazenar no sistema
+    const chat = await sentMessage.getChat();
+    const chatDb = new Chat(
+      uuidv4(),
+      chat.id.server,
+      chat.id.user,
+      chat.id._serialized,
+      true, // fromMe
+      chat.name || to, // fallback caso nome não exista
+      chat.isGroup,
+      chat.timestamp || Date.now()
+    );
+    const mensagem = new Message(
+      uuidv4(),
+      message,
+      true, // fromMe
+      chatDb.getId()
+    );
+
+    createChat(chatDb, 'public', mensagem);
+
+    socket.emit("messageSent", {
+      to,
+      message: {
+        body: message,
+        from: sessionId,
+        timestamp: Date.now(),
+      }
+    });
+
+  } catch (err) {
+    console.error(`❌ Erro ao enviar mensagem: ${err.message}`);
+    socket.emit("messageFailed", {
+      to,
+      error: err.message,
+    });
+  }
+});
+
 });
 
 app.post("/login", (req, res) => {

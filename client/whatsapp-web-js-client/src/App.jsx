@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import ChatComponent from "./ChatComponent";
 import SidebarSessions from "./sidebar";
 import SidebarNav from "./sidebar";
+import axios from "axios"; // <== IMPORTANTE
 
 const socket = io("http://localhost:3001", {
   reconnection: true,
@@ -21,14 +22,42 @@ function App() {
   const [contacts, setContacts] = useState([]);
   const [selectedContact, setSelectedContact] = useState(null);
 
-  // login provisório
   const [authUser, setAuthUser] = useState(null);
   const [loginUsername, setLoginUsername] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
 
-  // controle da visualização (sidebar nav)
   const [currentView, setCurrentView] = useState("connections");
+
+  const [number, setNumber] = useState("");
+  const [message, setMessage] = useState("");
+
+  const handleStart = async () => {
+    if (!number) {
+      return alert('Preencha o número do contato');
+    }
+
+    try {
+      const res = await axios.post('http://localhost:3001/api/start-chat', {
+        sessionId: session,
+        number,
+        message
+      });
+
+      if (res.data.success) {
+        alert('Chat criado com sucesso!');
+        setSelectedContact(number);
+        if (!contacts.includes(number)) {
+          setContacts((prev) => [...prev, number]);
+        }
+      } else {
+        alert('Erro ao iniciar chat');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao conectar com o servidor');
+    }
+  };
 
   const createSessionForWhatsapp = async () => {
     try {
@@ -141,18 +170,8 @@ function App() {
     return (
       <div className="App">
         <h1>🔐 Login</h1>
-        <input
-          type="text"
-          placeholder="Usuário"
-          value={loginUsername}
-          onChange={(e) => setLoginUsername(e.target.value)}
-        />
-        <input
-          type="password"
-          placeholder="Senha"
-          value={loginPassword}
-          onChange={(e) => setLoginPassword(e.target.value)}
-        />
+        <input type="text" placeholder="Usuário" value={loginUsername} onChange={(e) => setLoginUsername(e.target.value)} />
+        <input type="password" placeholder="Senha" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} />
         <button onClick={handleLogin}>Entrar</button>
         {loginError && <p style={{ color: "red" }}>{loginError}</p>}
       </div>
@@ -206,6 +225,23 @@ function App() {
 
         {currentView === "chats" && isAuthenticated && (
           <div className="app-container">
+            <div className="start-chat-form" style={{ marginBottom: 20 }}>
+              <h3>Iniciar novo chat</h3>
+              <input
+                type="text"
+                placeholder="Número do contato"
+                value={number}
+                onChange={(e) => setNumber(e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="Mensagem inicial (opcional)"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+              />
+              <button onClick={handleStart}>Iniciar Chat</button>
+            </div>
+
             <div className="contacts-list">
               {contacts.map((contact) => (
                 <div
