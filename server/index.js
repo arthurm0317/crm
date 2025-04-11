@@ -146,7 +146,6 @@ io.on('connection', (socket) => {
     client.on("ready", async() => {
       console.log(`✅ Sessão ${id} conectada!`);
       socket.emit("ready", { sessionId: id });
-      const connNumber = await client.info.wid.user;
     });
 
     client.on("auth_failure", (msg) => {
@@ -173,7 +172,7 @@ io.on('connection', (socket) => {
       console.log("💬 Chat:", chat);
       console.log("contato", await chat.getContact())
       
-      const conn = new Connections(uuidv4(), "teste2", connNumber, null)
+      const conn = new Connections(uuidv4(), "teste2", client.info.wid.user, null)
 
       const chatDB = new Chat(uuidv4(), chat.id._serialized, conn.getId(), null, false, (await chat.getContact()).pushname, null, "waiting", new Date(), null)
 

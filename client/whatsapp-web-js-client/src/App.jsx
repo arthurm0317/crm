@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import ChatComponent from "./ChatComponent";
 import SidebarSessions from "./sidebar";
 import SidebarNav from "./sidebar";
-import axios from "axios"; // <== IMPORTANTE
 
 const socket = io("http://localhost:3001", {
   reconnection: true,
@@ -21,41 +20,7 @@ function App() {
   const [messages, setMessages] = useState({});
   const [contacts, setContacts] = useState([]);
   const [selectedContact, setSelectedContact] = useState(null);
-  const [authUser, setAuthUser] = useState(null);
-  const [loginUsername, setLoginUsername] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [loginError, setLoginError] = useState("");
   const [currentView, setCurrentView] = useState("connections");
-
-  const [number, setNumber] = useState("");
-  const [message, setMessage] = useState("");
-
-  const handleStart = async () => {
-    if (!number) {
-      return alert('Preencha o número do contato');
-    }
-
-    try {
-      const res = await axios.post('http://localhost:3001/api/start-chat', {
-        sessionId: session,
-        number,
-        message
-      });
-
-      if (res.data.success) {
-        alert('Chat criado com sucesso!');
-        setSelectedContact(number);
-        if (!contacts.includes(number)) {
-          setContacts((prev) => [...prev, number]);
-        }
-      } else {
-        alert('Erro ao iniciar chat');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Erro ao conectar com o servidor');
-    }
-  };
 
   const createSessionForWhatsapp = async () => {
     try {
@@ -72,31 +37,6 @@ function App() {
     } catch (err) {
       console.error("Erro ao verificar/criar sessão:", err);
       setConnectionStatus("❌ Erro ao conectar com o backend");
-    }
-  };
-
-  const handleLogin = async () => {
-    try {
-      const res = await fetch("http://localhost:3001/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: loginUsername,
-          password: loginPassword,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!data.success) {
-        setLoginError(data.message || "Erro de login");
-        return;
-      }
-
-      setAuthUser(data.user);
-      setLoginError("");
-    } catch (err) {
-      setLoginError("Erro na requisição");
     }
   };
 
@@ -164,18 +104,6 @@ function App() {
     };
   }, []);
 
-  if (!authUser) {
-    return (
-      <div className="App">
-        <h1>🔐 Login</h1>
-        <input type="text" placeholder="Usuário" value={loginUsername} onChange={(e) => setLoginUsername(e.target.value)} />
-        <input type="password" placeholder="Senha" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} />
-        <button onClick={handleLogin}>Entrar</button>
-        {loginError && <p style={{ color: "red" }}>{loginError}</p>}
-      </div>
-    );
-  }
-
   return (
     <div className="App" style={{ display: "flex", height: "100vh" }}>
       <SidebarNav currentView={currentView} setCurrentView={setCurrentView} />
@@ -184,12 +112,11 @@ function App() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h1>📞 WhatsApp CRM</h1>
           <div>
-            <strong>Usuário:</strong> {authUser.username} ({authUser.role}) &nbsp;
-            <button onClick={() => setAuthUser(null)}>Sair</button>
+            <strong>Usuário:</strong> admin
           </div>
         </div>
 
-        {currentView === "connections" && authUser.role === "admin" && (
+        {currentView === "connections" && (
           <div>
             <h2>Conectar nova sessão</h2>
             <input
@@ -223,23 +150,6 @@ function App() {
 
         {currentView === "chats" && isAuthenticated && (
           <div className="app-container">
-            <div className="start-chat-form" style={{ marginBottom: 20 }}>
-              <h3>Iniciar novo chat</h3>
-              <input
-                type="text"
-                placeholder="Número do contato"
-                value={number}
-                onChange={(e) => setNumber(e.target.value)}
-              />
-              <input
-                type="text"
-                placeholder="Mensagem inicial (opcional)"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-              />
-              <button onClick={handleStart}>Iniciar Chat</button>
-            </div>
-
             <div className="contacts-list">
               {contacts.map((contact) => (
                 <div
