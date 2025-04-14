@@ -4,15 +4,25 @@ const companyRoutes = require('./routes/CompanyRoutes');
 const queueRoutes = require('./routes/QueueRoutes');
 const connRoutes = require('./routes/ConnectionRoutes');
 const evoRoutes = require('./routes/EvolutionRoutes')
+const chatRoutes = require('./routes/ChatRoutes')
+
+const cors = require('cors');
+
+
+const corsOptions = {
+  origin: 'http://localhost:3002',
+  methods: ['GET', 'POST'],
+};
 
 const app = express();
-
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use('/api', userRoutes);
 app.use('/company', companyRoutes)
 app.use('/queue', queueRoutes)
 app.use('/connection', connRoutes)
 app.use('/evo', evoRoutes)
+app.use('/chat', chatRoutes)
 
 const PORT = 3000;
 app.listen(PORT, () => {

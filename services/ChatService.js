@@ -1,5 +1,6 @@
 const pool = require('../db/queries');
 const { saveMessage } = require('./MessageService');
+const { getOnlineUsers, updateLastAssignedUser, getLastAssignedUser } = require('./UserService');
 
 const createChat = async (chat, schema, message) => {
   const exists = await pool.query(
@@ -57,9 +58,55 @@ const updateChatMessages = async (chat, schema, message) => {
 
   }
 
+  const setUserChat = async (chatId, schema) => {
+    const chatDb = await pool.query(
+      `SELECT * FROM ${schema}.chats WHERE id=$1`,
+      [chatId]
+    );
+    const queueId = chatDb.rows[0].queue_id;
+  
+    const onlineUsers = await getOnlineUsers(schema);
+
+    const queueUsersQuery = await pool.query(
+      `SELECT user_id FROM ${schema}.queue_users WHERE queue_id=$1`,
+      [queueId]
+    );
+  
+    
+    const userIdsInQueue = queueUsersQuery.rows.map(row => row.user_id);
+
+    const eligibleUsers = onlineUsers.filter(user =>
+      user.permission === 'user' && userIdsInQueue.includes(user.id)
+    );
+    if (eligibleUsers.length === 0) {
+      console.log('Nenhum atendente disponível na fila:', queueId);
+      return;
+    }
+  
+    const lastAssigned = await getLastAssignedUser(queueId);
+    let nextUser;
+  
+    if (!lastAssigned) {
+      nextUser = eligibleUsers[0];
+    } else {
+      const lastIndex = eligibleUsers.findIndex(u => u.id === lastAssigned.user_id);
+      nextUser = eligibleUsers[(lastIndex + 1) % eligibleUsers.length];
+    }
+  
+    await updateLastAssignedUser(queueId, nextUser.id);
+  
+    await pool.query(
+      `UPDATE ${schema}.chats SET assigned_user=$1 WHERE id=$2`,
+      [nextUser.id, chatId]
+    );
+  
+    console.log(`Chat atribuído ao usuário ${nextUser.name}`);
+  };
+  
 module.exports = {
     createChat,
     updateChatMessages,
     getMessages,
-    getChatService
-}
+    getChatService,
+    setUserChat
+  }

@@ -17,16 +17,17 @@ function Login() {
   
   const handleLogin = async (e) => {
     e.preventDefault();
-
+    console.log('Enviando login:', { email: username, password });
+  
     try {
-      const response = await axios.post("http://localhost:3001/login", {
-        username,
+      const response = await axios.post("http://localhost:3000/api/login", {
+        email: username,  
         password,
       });
-
+  
       if (response.data.success) {
         console.log("Usuário logado:", response.data.user);
-        navigate('/home')
+        navigate('/home');
       }
     } catch (err) {
       console.error(err);
@@ -56,20 +57,27 @@ function Login() {
         <div className={`col-9 col-md-8 col-lg-6 col-xl-4 max-w-450 p-4 bg-form-${theme} rounded shadow`}>
           <form onSubmit={handleLogin}>
       <div className="d-flex flex-column">
-        <input
-          type="text"
-          placeholder="Email"
-          className="form-control mb-2"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
-        <input
-          type="password"
-          placeholder="Senha"
-          className="form-control mb-2"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+      <input
+        type="text"
+        placeholder="Email"
+        className="form-control mb-2"
+        value={username}
+        onChange={(e) => {
+          setUsername(e.target.value);
+          console.log("Username:", e.target.value);  
+        }}
+      />
+      <input
+        type="password"
+        placeholder="Senha"
+        className="form-control mb-2"
+        value={password}
+        onChange={(e) => {
+          setPassword(e.target.value);
+          console.log("Password:", e.target.value);  
+        }}
+      />
+
         <button type="submit" className={`btn btn-primary btn-1-${theme} mb-2`}>
           Entrar
         </button>

@@ -1,4 +1,4 @@
-const { createUser, getAllUsers, searchUser} = require('../services/UserService');
+const { createUser, getAllUsers, searchUser, changeOnline, getOnlineUsers} = require('../services/UserService');
 const { Users } = require('../entities/Users');
 const { v4: uuidv4 } = require('uuid');
 
@@ -40,26 +40,47 @@ const searchUserController = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const user = new Users(null, null, email, password, null);
-    const result = await searchUser(user.getEmail(), user.getPassword());
+    const result = await searchUser(email, password);
 
     if (!result) {
       return res.status(404).json({ message: 'Usuário não encontrado' });
     }
 
+    console.log("Usuário encontrado:", result);
+
+    changeOnline(result.user.id, 'public');
+
     res.status(200).json({
+      success: true,
+      user: result.user,
+      role: result.user.permission,
       schema: result.schema,
-      user: result.user
     });
 
   } catch (error) {
     console.error("Erro ao buscar usuário:", error.message);
     res.status(500).json({ error: 'Erro ao buscar usuário' });
   }
-};
 
-module.exports ={
+}
+const getOnlineUsersController = async (req, res) => {
+  const { schema } = req.query || { schema: 'public' };
+  try {
+    const result = await getOnlineUsers(schema);
+    res.status(201).json({
+      users: result,
+    });
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({
+      message: 'Não foi possível exibir os usuários',
+    });
+  }
+  
+};
+  module.exports = {
     createUserController,
     getAllUsersController,
-    searchUserController
-}
+    searchUserController,
+    getOnlineUsersController
+  }

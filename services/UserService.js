@@ -54,4 +54,32 @@ const searchUser = async (userMail, userPassword) => {
     return null; 
   };
 
-module.exports = { createUser, getAllUsers, searchUser };
+  const changeOnline = async(userId, schema)=>{
+    const result = await pool.query(
+      `UPDATE ${schema}.users SET online=true WHERE id=$1`,[userId]
+    )
+    return result.rows[0]
+  }
+
+  const getOnlineUsers = async(schema)=>{
+    const result = await pool.query(`SELECT * FROM ${schema}.users WHERE online=true`);
+    return result.rows;
+  }
+
+  const getLastAssignedUser = async (queue) => {
+    const result = await pool.query(
+      'SELECT user_id FROM last_assigned_user WHERE queue = $1',
+      [queue]
+    );
+    return result.rows[0] || null;
+  };
+  const updateLastAssignedUser = async (queue, user_id) => {
+    await pool.query(
+      `INSERT INTO last_assigned_user (queue, user_id)
+       VALUES ($1, $2)
+       ON CONFLICT (queue)
+       DO UPDATE SET user_id = EXCLUDED.user_id`,
+      [queue, user_id]
+    );
+  };
+module.exports = { createUser, getAllUsers, searchUser, changeOnline, getOnlineUsers, getLastAssignedUser, updateLastAssignedUser};
