@@ -82,10 +82,10 @@ const updateChatMessages = async (chat, schema, message) => {
       console.log('Nenhum atendente disponível na fila:', queueId);
       return;
     }
-  
+    console.log("elegible", eligibleUsers)
     const lastAssigned = await getLastAssignedUser(queueId);
     let nextUser;
-  
+    console.log("last", lastAssigned)
     if (!lastAssigned) {
       nextUser = eligibleUsers[0];
     } else {
