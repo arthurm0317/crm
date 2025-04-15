@@ -27,7 +27,27 @@ const createInstance = async ({ instanceName, number }) => {
     console.error('Erro ao criar instância:', err);
   }
 };
+const fetchInstanceEvo = async(instanceName)=>{
+  console.log(instanceName)
+  const options = {
+    method: 'GET',
+    headers: {
+      apikey: process.env.EVOLUTION_API_KEY,
+      'Content-Type': 'application/json'
+    },
+  };
+  try {
+    const response = await fetch(`${process.env.EVOLUTION_SERVER_URL}/instance/fetchInstances?instanceName=${instanceName}`, options);
+    const result = await response.json();
+    console.log(result)
+    
+    return result;
+  } catch (err) {
+    console.error('Erro ao buscar instâncias:', err);
+  }
+
+}
 
 
 
-module.exports = { createInstance };
+module.exports = { createInstance, fetchInstanceEvo};

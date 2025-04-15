@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-
+import React, { useEffect, useState } from 'react';
 import SidebarSessions from './Componentes/SidebarSessions';
 import QRCodeDisplay from './Componentes/QrCodeDisplay';
 import axios from 'axios';
@@ -10,7 +9,7 @@ const App = () => {
   const [instanceName, setInstanceName] = useState('');
   const [number, setNumber] = useState('');
   const [qrCodeBase64, setQrCodeBase64] = useState('');
-
+  const [instances, setInstances] = useState([]);
 
   const handleCreateInstance = async (e) => {
     e.preventDefault();
@@ -21,21 +20,42 @@ const App = () => {
         instanceName,
         number,
       });
-  
+
       console.log('Instância criada:', response.data);
-  
-      // Se o QR code estiver na resposta (ajuste conforme a estrutura real)
+
       const base64 = response.data?.result?.qrcode?.base64;
       if (base64) {
         setQrCodeBase64(base64);
       }
-  
+
       setInstanceName('');
       setNumber('');
     } catch (err) {
       console.error('Erro ao criar instância:', err.message);
     }
   };
+
+  const LoadInstances = async () => {
+    try {
+      const response = await axios.get('http://localhost:3000/evo/fetchInstances', {
+        params: { schema: 'public' }
+      });
+  
+      console.log('Resposta da API:', response.data);
+  
+      if (response.data && response.data.result && Array.isArray(response.data.result)) {
+        setInstances(response.data.result);
+      } else {
+        console.error('A resposta da API não contém um array em "result"');
+      }
+    } catch (err) {
+      console.error('Erro ao carregar instâncias:', err);
+    }
+  };
+  useEffect(() => {
+    LoadInstances();
+  }, []);
+
   const sessionData = sessions.find((s) => s.sessionName === selectedSession);
 
   return (
@@ -45,7 +65,25 @@ const App = () => {
         selected={selectedSession}
         onSelect={setSelectedSession}
       />
-      <div className="flex-1 p-6">
+      
+      <div className="flex-1 p-4">
+        <div>
+          {instances.map((inst, index) => (
+            <div key={index}>
+              <h3>{inst.name}</h3>
+              <p>Status: {inst.connectionStatus}</p>
+              <img src={inst.profilePicUrl} alt="Foto de perfil" width={100} />
+            </div>
+          ))}
+        </div>
+        
+        <button
+          onClick={LoadInstances}
+          className="bg-blue-500 text-white px-4 py-2 rounded"
+        >
+          Carregar Instâncias
+        </button>
+
         <form className="mb-4 space-y-2" onSubmit={handleCreateInstance}>
           <input
             type="text"
@@ -67,14 +105,13 @@ const App = () => {
           >
             Criar Instância
           </button>
-          {qrCodeBase64 && (
-        <div className="mt-4">
-          <h3 className="text-lg font-semibold mb-2">QR Code da nova instância:</h3>
-          <img src={`${qrCodeBase64}`} alt="QR Code" className="max-w-xs" />
-        </div>
-      )}
-      
           
+          {qrCodeBase64 && (
+            <div className="mt-4">
+              <h3 className="text-lg font-semibold mb-2">QR Code da nova instância:</h3>
+              <img src={`${qrCodeBase64}`} alt="QR Code" className="max-w-xs" />
+            </div>
+          )}
         </form>
 
         {sessionData ? (

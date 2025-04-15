@@ -18,6 +18,14 @@ const createConnection = async(connection, schema)=>{
     }
 }
 
+const fetchInstance = async(schema)=>{
+    const result = await pool.query(
+        `SELECT * FROM ${schema}.connections`
+
+    )
+    return result.rows
+}
 module.exports = {
-    createConnection
+    createConnection,
+    fetchInstance
 }
