@@ -10,8 +10,9 @@ const createChat = async (chat, schema, message) => {
 
   if (exists.rowCount > 0) {
     await updateChatMessages(chat, schema, message);
+    return exists.rows[0]
   } else {
-    await pool.query(
+    const result = await pool.query(
       `INSERT INTO ${schema}.chats 
         (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
@@ -28,6 +29,7 @@ const createChat = async (chat, schema, message) => {
         JSON.stringify([message])
       ]
     );
+    return result.rows[0]
   }
 };
 
@@ -39,6 +41,7 @@ const updateChatMessages = async (chat, schema, message) => {
        WHERE chat_id = $2 
        RETURNING *`,
       [JSON.stringify([message]), chat.getChatId()]
+      
     );
     return result.rows[0];
   };
@@ -52,10 +55,15 @@ const updateChatMessages = async (chat, schema, message) => {
 
   const getChatService = async(chat, schema)=>{
     const result = await pool.query(
-        `SELECT * FROM ${schema}.chats WHERE chat_id=$1 AND connection_id=$2`,[chat.getChatId(), chat.getConnectionId()]
-    )
-    return result.rows[0]
-
+      `SELECT * FROM ${schema}.chats WHERE chat_id=$1 AND connection_id=$2`,
+      [chat.chat_id, chat.connection_id]
+    );
+    
+    if (result.rows.length > 0) {
+      const chat = result.rows[0];
+      return chat;
+    }
+    
   }
 
   const setUserChat = async (chatId, schema) => {
