@@ -66,4 +66,6 @@ function UsuariosPage() {
       </div>
     );
   }
+
+  export default UsuariosPage
   
