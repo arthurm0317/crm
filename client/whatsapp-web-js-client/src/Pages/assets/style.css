@@ -445,3 +445,90 @@ a {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
 }
+.chat {
+    border-radius: var(--bs-border-radius);
+}
+.chat-light {
+    background-color: var(--input-bg-color-light);
+    border: 1px solid var(--border-color-light);
+}
+.chat-dark {
+    background-color: var(--input-bg-color-dark);
+    border: 1px solid var(--border-color-dark);
+}
+.chat-list-light {
+    border-right: 1px solid var(--border-color-light);
+    border-color: var(--border-color-light);
+}
+.chat-list-dark {
+    border-right: 1px solid var(--border-color-dark);
+    border-color: var(--border-color-dark);
+}
+.icon-btn {
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+.custom-table-light, .custom-table-dark {
+    border-radius: var(--bs-border-radius);
+    overflow: hidden;
+}
+.custom-table-light {
+    border: 1px solid var(--border-color-light);
+}
+.custom-table-dark {
+    border: 1px solid var(--border-color-dark);
+}
+.custom-table-light thead {
+    background-color: var(--bg-color-light);
+    color: var(--color-light);
+}
+.custom-table-dark thead {
+    background-color: var(--bg-color-dark);
+    color: var(--color-dark);
+}
+.custom-table-light tbody {
+    background-color: var(--input-bg-color-light);
+    color: var(--color-light);
+}
+.custom-table-dark thead {
+    background-color: var(--input-bg-color-dark);
+    color: var(--color-dark);
+}
+.custom-table-light th,
+.custom-table-light td {
+    color: var(--color-light);
+    vertical-align: middle;
+    border: 1px solid var(--border-color-light);
+}
+.custom-table-dark th,
+.custom-table-dark td {
+    color: var(--color-dark);
+    vertical-align: middle;
+    border: 1px solid var(--border-color-dark);
+}
+.custom-table-light tbody tr:hover {
+    background-color: var(--bg-color-light-hover);
+}
+.custom-table-dark tbody tr:hover {
+    background-color: var(--bg-color-dark-hover);
+}
+.table-hover tbody tr:hover {
+    background-color: var(--hover);
+}
+.table-hover tbody tr:hover td {
+    color: var(--color-light);
+}
+.schedule-view { display: none; }
+.schedule-view.active { display: block; }
+.hour-cell {
+  border-bottom: 1px solid #dee2e6;
+  padding: 8px;
+}
+.highlight {
+  background-color: #e7f3ff;
+}
+.text-muted {
+    color: var(--placeholder-color);
+}

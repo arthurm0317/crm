@@ -3,6 +3,7 @@
     /* Transition Time */
     --TT: 0.25s;
     --primary-color: #0082ca;
+    --hover: #99c7e6;
     --box-shadow: rgba(189, 143, 83, 0.25);
     --error-color: #FF8073;
     --success-color: #88EA8F;
