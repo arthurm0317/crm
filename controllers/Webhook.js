@@ -11,8 +11,7 @@ app.use(express.json());
 app.post('/chat', async (req, res) => {
   const result = req.body;
 
-  try{
-
+  try {
     const chat = new Chat(
       uuidv4(),
       result.data.key.remoteJid,
@@ -22,23 +21,33 @@ app.post('/chat', async (req, res) => {
       null,
       null,
       result.data.status,
-      result.date_time,
+      new Date(result.date_time).getTime(),
       []
     );
-  
-    const createChats = await createChat(chat, 'public', result.data.message.conversation);
-    const chatDb = await getChatService(createChats, 'public');
-    await saveMessage(chatDb.id, new Message(uuidv4(), result.data.message.conversation, result.data.key.fromMe, result.data.key.remoteJid, result.data.pushName, result.date_time), 'public');
-    res.status(200).json({
-      result
-    });
-  }catch(err){
-    res.status(500).json({
-      error: err
-    })
+
+    const createChats = await createChat(chat, 'crm', result.data.message.conversation);
+    const chatDb = await getChatService(createChats, 'crm');
+    await saveMessage(
+      chatDb.id,
+      new Message(
+        uuidv4(),
+        result.data.message.conversation,
+        result.data.key.fromMe,
+        result.data.key.remoteJid,
+        result.data.pushName,
+        new Date(result.date_time).getTime()
+      ),
+      'crm' 
+    );
+
+    res.status(200).json({ result });
+
+  } catch (err) {
+    console.error("Erro no webhook /chat:", err);
+    res.status(500).json({ error: err.message });
   }
-  
 });
+
 
 
 const PORT = 3002;

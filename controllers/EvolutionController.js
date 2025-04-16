@@ -7,7 +7,7 @@ const createInstanceController = async(req, res)=>{
     try{
         console.log("Corpo da requisição:", req.body);
         const {instanceName, number} = req.body
-        const schema = req.body.schema || 'public'
+        const schema = req.body.schema || 'crm'
 
         const result = await createInstance({
             instanceName: instanceName,
@@ -28,7 +28,7 @@ const createInstanceController = async(req, res)=>{
 
 const fetchInstanceController = async (req, res) => {
     try {
-      const schema = req.query.schema || 'public';
+      const schema = req.query.schema || 'crm';
   
       const instances = await fetchInstance(schema);
   

@@ -14,7 +14,7 @@ const createUserController = async (req, res) => {
         permission
       );
   
-        const schema = req.body.schema || 'public';
+        const schema = req.body.schema || 'crm';
         const result = await createUser(user, schema);
 
       res.status(201).json(result);
@@ -48,7 +48,7 @@ const searchUserController = async (req, res) => {
 
     console.log("Usuário encontrado:", result);
 
-    changeOnline(result.user.id, 'public');
+    changeOnline(result.user.id, 'crm');
 
     res.status(200).json({
       success: true,
@@ -64,7 +64,7 @@ const searchUserController = async (req, res) => {
 
 }
 const getOnlineUsersController = async (req, res) => {
-  const { schema } = req.query || { schema: 'public' };
+  const { schema } = req.query || { schema: 'crm' };
   try {
     const result = await getOnlineUsers(schema);
     res.status(201).json({

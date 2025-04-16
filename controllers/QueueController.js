@@ -8,7 +8,7 @@ const createQueueController = async(req, res)=>{
 
         const queue = new Queue(uuidv4(), name, color)
         
-        const schema = req.body.schema || 'public'
+        const schema = req.body.schema || 'crm'
         const result = createQueue(queue, schema)
         
         res.status(201).json({
@@ -23,7 +23,7 @@ const createQueueController = async(req, res)=>{
 const addUserinQueueController = async(req, res)=>{    
    try{
     const {user, queue}=req.body;
-    const schema = req.body.schema || 'public';
+    const schema = req.body.schema || 'crm';
 
     console.log("Body recebido:", req.body);
     

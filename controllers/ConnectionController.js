@@ -12,7 +12,7 @@ const createConnectionController = async(req, res)=>{
             []
         )
         console.log(conn)
-        const schema = req.body.schema || 'public';
+        const schema = req.body.schema || 'crm';
         const result = await createConnection(conn, schema);
 
       res.status(201).json(result);
