@@ -7,10 +7,13 @@ const { Server } = require("socket.io");
 const cors = require('cors');
 const { Chat } = require('../entities/Chat');
 const { v4: uuidv4 } = require('uuid');
-const { createChat } = require('../services/ChatService');
+const { createChat, getChat, getChatService } = require('../services/ChatService');
 const { Message } = require('../entities/Message');
 const { searchUser } = require('../services/UserService');
 const Connections = require('../entities/Connection');
+const { createConnection } = require('../services/ConnectionService');
+const { saveMessage } = require('../services/MessageService');
+const pool = require('../db/queries');
 
 const chatInstances = [];
 const app = express();
@@ -18,8 +21,7 @@ const port = 3001;
 const server = http.createServer(app);
 
 const sessions = {}; 
-console.log("sessao:", sessions)
-console.log("sessao:", sessions[0])
+
 const users = [
   { email: "arthur", password: "password", role: "admin" },
   { email: "joao", password: "123123", role: "user" }
@@ -30,9 +32,10 @@ app.use(express.json());
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST"],
-  },
+    origin: ['http://localhost:3000', 'http://localhost:3002'], // adicione todas as origens que vão usar o socket
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
 });
 //const sessionIds = getSessionsByCompany(username ou outro);
 //for (const id of sessionIds) {
@@ -50,7 +53,46 @@ app.get("/check-session/:id", (req, res) => {
 // rota para listar sessões ativas
 app.get("/active-sessions", (req, res) => {
   const activeSessions = Object.keys(sessions);
+  const conn = activeSessions.values
+  console.log("sessão", conn)
   res.json({ sessions: activeSessions });
+});
+// Iniciar conversa manualmente
+app.post("/start-chat", async (req, res) => {
+  const { sessionId, to, message } = req.body;
+
+  const client = sessions[sessionId];
+  if (!client) {
+    return res.status(400).json({ success: false, message: "Sessão não encontrada" });
+  }
+
+  try {
+    const sentMessage = await client.sendMessage(to, message);
+    const chat = await sentMessage.getChat();
+
+    const conn = new Connections(uuidv4(), "manual", to, null);
+    const chatDb = new Chat(
+      uuidv4(),
+      chat.id._serialized,
+      conn.getId(),
+      null,
+      false,
+      chat.name || to,
+      null,
+      "waiting",
+      new Date(),
+      null
+    );
+
+    const mensagem = new Message(uuidv4(), message, true, chatDb.getId());
+    createChat(chatDb, 'public', mensagem);
+
+    return res.status(200).json({ success: true, message: "Mensagem enviada e chat iniciado." });
+
+  } catch (err) {
+    console.error("Erro ao iniciar chat:", err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 app.get('/', (req, res) => {
@@ -59,6 +101,7 @@ app.get('/', (req, res) => {
 
 io.on('connection', (socket) => {
   console.log('🟢 Cliente conectado via socket:', socket.id);
+  
 
   socket.on('disconnect', () => {
     console.log('desconectado');
@@ -80,6 +123,7 @@ io.on('connection', (socket) => {
   socket.on('createSession', async ({ id }) => {
     if (sessions[id]) {
       console.log(`⚠️ Sessão ${id} já existe. Reinicializando...`);
+      
       try {
         await sessions[id].destroy();
         delete sessions[id];
@@ -94,6 +138,7 @@ io.on('connection', (socket) => {
       puppeteer: { headless: false },
       authStrategy: new LocalAuth({ clientId: id }),
     });
+      
 
     sessions[id] = client;
 
@@ -102,7 +147,7 @@ io.on('connection', (socket) => {
       socket.emit("qr", qr);
     });
 
-    client.on("ready", () => {
+    client.on("ready", async() => {
       console.log(`✅ Sessão ${id} conectada!`);
       socket.emit("ready", { sessionId: id });
     });
@@ -128,16 +173,21 @@ io.on('connection', (socket) => {
       
 
       const chat = await msg.getChat(); // ⬅️ AQUI
-      console.log("💬 Chat:", chat);
-      console.log("contato", await chat.getContact())
+
+      const conn = new Connections(uuidv4(), "teste2", client.info.wid.user, null)
+      const connDb = await createConnection(conn, 'public')
+
+      console.log("connection: ", connDb)
       
-      const conn = new Connections(uuidv4(), "teste", "557588821124", null)
-
-      const chatDB = new Chat(uuidv4(), chat.id._serialized, conn.getId(), null, false, (await chat.getContact()).pushname, null, "waiting", new Date(), null)
-
+      const chatDB = new Chat(uuidv4(), chat.id._serialized, connDb.id, null, false, (await chat.getContact()).pushname, null, "waiting", new Date(), null)
       const mensagem = new Message(uuidv4(), msg.body, false, chatDB.getId())
-      createChat(chatDB, 'public', mensagem)
-    
+      console.log("1",chatDB.id)
+      const chatTest = await getChatService(chatDB, 'public')
+      console.log("2",chatTest)
+      const mensagemDb = await saveMessage(chatTest.id, mensagem, 'public')
+
+      console.log(mensagemDb)
+      
       const labels = await client.getLabels(); // ⬅️ AQUI
       console.log("🏷️ Labels:", labels);
     
@@ -146,6 +196,7 @@ io.on('connection', (socket) => {
         from: (await chat.getContact()).pushname,
         body: msg.body,
         timestamp: msg.timestamp || Date.now(),
+        chatId: chatTest.id
       });
     });
 
@@ -156,32 +207,47 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on("sendMessage", async ({ to, message, sessionId }) => {
-    const client = sessions[sessionId];
-    if (!client) {
-      socket.emit("messageFailed", { to, error: "Sessão não encontrada" });
-      return;
-    }
+socket.on("sendMessage", async ({ to, message, sessionId }) => {
+  const client = sessions[sessionId];
+  if (!client) {
+    socket.emit("messageFailed", { to, error: "Sessão não encontrada" });
+    return;
+  }
 
-    try {
-      await client.sendMessage(to, message);
-      console.log(`📤 Mensagem enviada de ${sessionId} para ${to}: ${message}`);
-      socket.emit("messageSent", {
-        to,
-        message: {
-          body: message,
-          from: sessionId,
-          timestamp: Date.now(),
-        }
-      });
-    } catch (err) {
-      console.error(`❌ Erro ao enviar mensagem: ${err.message}`);
-      socket.emit("messageFailed", {
-        to,
-        error: err.message,
-      });
-    }
-  });
+  try {
+    const sentMessage = await client.sendMessage(to, message);
+    console.log(`📤 Mensagem enviada de ${sessionId} para ${to}: ${message}`);
+
+    // 🔽 Buscando/Simulando o chat para armazenar no sistema
+    const chat = await sentMessage.getChat();
+    const chatDb = new Chat(uuidv4(), chat.id._serialized, conn.getId(), null, false, (await chat.getContact()).pushname, null, "waiting", new Date(), null)
+    const mensagem = new Message(
+      uuidv4(),
+      message,
+      true, // fromMe
+      chatDb.getId()
+    );
+
+    createChat(chatDb, 'public', mensagem);
+
+    socket.emit("messageSent", {
+      to,
+      message: {
+        body: message,
+        from: sessionId,
+        timestamp: Date.now(),
+      }
+    });
+
+  } catch (err) {
+    console.error(`❌ Erro ao enviar mensagem: ${err.message}`);
+    socket.emit("messageFailed", {
+      to,
+      error: err.message,
+    });
+  }
+});
+
 });
 
 app.post("/login", async (req, res) => {
@@ -201,6 +267,21 @@ app.post("/login", async (req, res) => {
   } catch (error) {
     console.error("Erro no login:", error);
     return res.status(500).json({ success: false, message: "Erro interno no servidor" });
+  }
+});
+app.get("/chat/:chatId/messages", async (req, res) => {
+  const { chatId } = req.params;
+  const schema = req.query.schema || 'public';
+
+  try {
+    const result = await pool.query(`
+      SELECT * FROM ${schema}.messages WHERE chat_id = $1 ORDER BY created_at ASC
+    `, [chatId]);
+
+    res.status(200).json({ success: true, messages: result.rows });
+  } catch (err) {
+    console.error("Erro ao buscar mensagens:", err);
+    res.status(500).json({ success: false, message: "Erro ao buscar mensagens" });
   }
 });
 

@@ -1,238 +1,127 @@
-import './App.css';
-import io from "socket.io-client";
-import QRCode from "react-qr-code";
-import { useEffect, useState } from "react";
-import ChatComponent from "./ChatComponent";
-import SidebarSessions from "./sidebar";
-import SidebarNav from "./sidebar";
+import React, { useEffect, useState } from 'react';
+import SidebarSessions from './Componentes/SidebarSessions';
+import QRCodeDisplay from './Componentes/QrCodeDisplay';
+import axios from 'axios';
 
-const socket = io("http://localhost:3001", {
-  reconnection: true,
-  reconnectionAttempts: 5,
-  reconnectionDelay: 1000,
-});
+const App = () => {
+  const [sessions, setSessions] = useState([]);
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [instanceName, setInstanceName] = useState('');
+  const [number, setNumber] = useState('');
+  const [qrCodeBase64, setQrCodeBase64] = useState('');
+  const [instances, setInstances] = useState([]);
 
-function App() {
-  const [session, setSession] = useState("");
-  const [qrCode, setQrCode] = useState("");
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState("");
-  const [messages, setMessages] = useState({});
-  const [contacts, setContacts] = useState([]);
-  const [selectedContact, setSelectedContact] = useState(null);
-  // login provisório
-  const [authUser, setAuthUser] = useState(null);
-  const [loginUsername, setLoginUsername] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [loginError, setLoginError] = useState("");
-  // controle da visualização (sidebar nav)
-  const [currentView, setCurrentView] = useState("connections");
-
-  const createSessionForWhatsapp = async () => {
+  const handleCreateInstance = async (e) => {
+    e.preventDefault();
+    if (!instanceName || !number) return alert('Preencha todos os campos');
+  
     try {
-      localStorage.setItem("sessionId", session);
-      const res = await fetch(`http://localhost:3001/check-session/${session}`);
-      const data = await res.json();
-      if (data.exists) {
-        setConnectionStatus("Reconectando sessão existente...");
+      const response = await axios.post('http://localhost:3000/evo/instance', {
+        instanceName,
+        number,
+      });
+
+      console.log('Instância criada:', response.data);
+
+      const base64 = response.data?.result?.qrcode?.base64;
+      if (base64) {
+        setQrCodeBase64(base64);
+      }
+
+      setInstanceName('');
+      setNumber('');
+    } catch (err) {
+      console.error('Erro ao criar instância:', err.message);
+    }
+  };
+
+  const LoadInstances = async () => {
+    try {
+      const response = await axios.get('http://localhost:3000/evo/fetchInstances', {
+        params: { schema: 'public' }
+      });
+  
+      console.log('Resposta da API:', response.data);
+  
+      if (response.data && response.data.result && Array.isArray(response.data.result)) {
+        setInstances(response.data.result);
       } else {
-        setConnectionStatus("Criando nova sessão...");
+        console.error('A resposta da API não contém um array em "result"');
       }
-
-      socket.emit("createSession", { id: session });
     } catch (err) {
-      console.error("Erro ao verificar/criar sessão:", err);
-      setConnectionStatus("❌ Erro ao conectar com o backend");
+      console.error('Erro ao carregar instâncias:', err);
     }
   };
-
-  const handleLogin = async () => {
-    try {
-      const res = await fetch("http://localhost:3001/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: loginUsername,
-          password: loginPassword,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!data.success) {
-        setLoginError(data.message || "Erro de login");
-        return;
-      }
-
-      setAuthUser(data.user);
-      setLoginError("");
-    } catch (err) {
-      setLoginError("Erro na requisição");
-    }
-  };
-
   useEffect(() => {
-    socket.on("qr", (qr) => {
-      setQrCode(qr);
-      setConnectionStatus("Escaneie o QR Code no WhatsApp");
-    });
-
-    socket.on("ready", ({ sessionId }) => {
-      setIsAuthenticated(true);
-      setConnectionStatus("Sessão conectada com sucesso!");
-    });
-
-    socket.on("messageSent", ({ to, message }) => {
-      const text = typeof message === "string" ? message : message?.body || "";
-      setMessages((prev) => ({
-        ...prev,
-        [to]: [...(prev[to] || []), { from: session, body: text, timestamp: Date.now() }],
-      }));
-    });
-
-    socket.on("messageFailed", ({ to, error }) => {
-      setConnectionStatus(`❌ Falha ao enviar mensagem para ${to}: ${error}`);
-    });
-
-    socket.on("message", ({ from, body, timestamp }) => {
-      setMessages((prev) => {
-        const existingMessages = prev[from] || [];
-        const isDuplicate = existingMessages.some((msg) => msg.body === body && msg.timestamp === timestamp);
-        if (isDuplicate) return prev;
-
-        return {
-          ...prev,
-          [from]: [...existingMessages, { from, body, timestamp }],
-        };
-      });
-
-      setContacts((prev) => {
-        if (!prev.includes(from)) return [...prev, from];
-        return prev;
-      });
-    });
-
-    const savedSession = localStorage.getItem("sessionId");
-    if (savedSession) {
-      setSession(savedSession);
-      socket.emit("createSession", { id: savedSession });
-      setConnectionStatus("Reconectando sessão...");
-    }
-
-    socket.on("connect", () => {
-      const savedSession = localStorage.getItem("sessionId");
-      if (savedSession) {
-        socket.emit("createSession", { id: savedSession });
-      }
-    });
-
-    return () => {
-      socket.off("qr");
-      socket.off("ready");
-      socket.off("messageSent");
-      socket.off("messageFailed");
-      socket.off("message");
-    };
+    LoadInstances();
   }, []);
 
-  if (!authUser) {
-    return (
-      <div className="App">
-        <h1>🔐 Login</h1>
-        <input
-          type="text"
-          placeholder="Usuário"
-          value={loginUsername}
-          onChange={(e) => setLoginUsername(e.target.value)}
-        />
-        <input
-          type="password"
-          placeholder="Senha"
-          value={loginPassword}
-          onChange={(e) => setLoginPassword(e.target.value)}
-        />
-        <button onClick={handleLogin}>Entrar</button>
-        {loginError && <p style={{ color: "red" }}>{loginError}</p>}
-      </div>
-    );
-  }
+  const sessionData = sessions.find((s) => s.sessionName === selectedSession);
 
   return (
-    <div className="App" style={{ display: "flex", height: "100vh" }}>
-      <SidebarNav currentView={currentView} setCurrentView={setCurrentView} />
-
-      <div style={{ flex: 1, padding: "20px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h1>📞 WhatsApp CRM</h1>
-          <div>
-            <strong>Usuário:</strong> {authUser.username} ({authUser.role}) &nbsp;
-            <button onClick={() => setAuthUser(null)}>Sair</button>
-          </div>
+    <div className="flex h-screen">
+      <SidebarSessions
+        sessions={sessions}
+        selected={selectedSession}
+        onSelect={setSelectedSession}
+      />
+      
+      <div className="flex-1 p-4">
+        <div>
+          {instances.map((inst, index) => (
+            <div key={index}>
+              <h3>{inst.name}</h3>
+              <p>Status: {inst.connectionStatus}</p>
+              <img src={inst.profilePicUrl} alt="Foto de perfil" width={100} />
+            </div>
+          ))}
         </div>
+        
+        <button
+          onClick={LoadInstances}
+          className="bg-blue-500 text-white px-4 py-2 rounded"
+        >
+          Carregar Instâncias
+        </button>
 
-        {currentView === "connections" && authUser.role === "admin" && (
-          <div>
-            <h2>Conectar nova sessão</h2>
-            <input
-              type="text"
-              value={session}
-              onChange={(e) => setSession(e.target.value)}
-              placeholder="Nome da sessão"
-            />
-            <button onClick={createSessionForWhatsapp}>
-              Criar ou Reconectar Sessão
-            </button>
-            {connectionStatus && <p>{connectionStatus}</p>}
-            {qrCode && (
-              <div style={{ marginTop: 20 }}>
-                <QRCode value={qrCode} />
-              </div>
-            )}
-            {isAuthenticated && (
-              <SidebarSessions
-                currentSession={session}
-                onSelect={(sessId) => {
-                  setSession(sessId);
-                  setConnectionStatus(`Sessão alterada para: ${sessId}`);
-                  localStorage.setItem("sessionId", sessId);
-                  socket.emit("createSession", { id: sessId });
-                }}
-              />
-            )}
-          </div>
-        )}
-
-        {currentView === "chats" && isAuthenticated && (
-          <div className="app-container">
-            <div className="contacts-list">
-              {contacts.map((contact) => (
-                <div
-                  key={contact}
-                  className={`contact-item ${selectedContact === contact ? "active" : ""}`}
-                  onClick={() => setSelectedContact(contact)}
-                >
-                  {contact}
-                </div>
-              ))}
+        <form className="mb-4 space-y-2" onSubmit={handleCreateInstance}>
+          <input
+            type="text"
+            placeholder="Nome da instância"
+            value={instanceName}
+            onChange={(e) => setInstanceName(e.target.value)}
+            className="border p-2 rounded w-full"
+          />
+          <input
+            type="text"
+            placeholder="Número"
+            value={number}
+            onChange={(e) => setNumber(e.target.value)}
+            className="border p-2 rounded w-full"
+          />
+          <button
+            type="submit"
+            className="bg-green-600 text-white px-4 py-2 rounded w-full"
+          >
+            Criar Instância
+          </button>
+          
+          {qrCodeBase64 && (
+            <div className="mt-4">
+              <h3 className="text-lg font-semibold mb-2">QR Code da nova instância:</h3>
+              <img src={`${qrCodeBase64}`} alt="QR Code" className="max-w-xs" />
             </div>
+          )}
+        </form>
 
-            <div className="chat-area">
-              {selectedContact ? (
-                <ChatComponent
-                  session={session}
-                  socket={socket}
-                  messages={messages[selectedContact] || []}
-                  selectedContact={selectedContact}
-                />
-              ) : (
-                <p>👈 Selecione um contato para conversar</p>
-              )}
-            </div>
-          </div>
+        {sessionData ? (
+          <QRCodeDisplay session={sessionData} />
+        ) : (
+          <p>Selecione uma sessão para ver o QR Code.</p>
         )}
       </div>
     </div>
   );
-}
+};
 
 export default App;

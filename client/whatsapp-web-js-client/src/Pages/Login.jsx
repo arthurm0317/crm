@@ -1,12 +1,39 @@
-import React from 'react';
+
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './assets/style.css';
 import logo from './assets/effective-gain_logo.png';
-import { useTheme } from './assets/js/script.jsx';
+import { useTheme } from './assets/js/useTheme';
+import React, { useState } from 'react';
+import axios from 'axios'; 
+import { useNavigate } from 'react-router-dom';
 
 function Login() {
   const [theme, setTheme] = useTheme();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const navigate = useNavigate();
+  
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    console.log('Enviando login:', { email: username, password });
+  
+    try {
+      const response = await axios.post("http://localhost:3000/api/login", {
+        email: username,  
+        password,
+      });
+  
+      if (response.data.success) {
+        console.log("Usuário logado:", response.data.user);
+        navigate('/home');
+      }
+    } catch (err) {
+      console.error(err);
+      setErrorMsg(err.response?.data?.message || "Erro no login");
+    }
+  };
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
@@ -15,6 +42,7 @@ function Login() {
     document.cookie = `theme=${newTheme}`;
     setTheme(newTheme);
   };
+
 
   return (
     <div
@@ -27,61 +55,35 @@ function Login() {
         </div>
 
         <div className={`col-9 col-md-8 col-lg-6 col-xl-4 max-w-450 p-4 bg-form-${theme} rounded shadow`}>
-          <form>
-            <div className="mb-3">
-              <div className="input-group mb-3">
-                <span className={`input-group-text igt-${theme}`} id="basic-addon1">
-                  <i className="bi bi-person"></i>
-                </span>
-                <input
-                  type="email"
-                  className={`form-control input-${theme}`}
-                  id="email"
-                  placeholder="E-mail"
-                  aria-describedby="basic-addon1"
-                />
-              </div>
-            </div>
-            <div className="mb-3">
-              <div className="input-group mb-3">
-                <span className={`input-group-text igt-${theme}`} id="basic-addon2">
-                  <i className="bi bi-key"></i>
-                </span>
-                <input
-                  type="password"
-                  className={`form-control input-${theme}`}
-                  id="password"
-                  placeholder="Senha"
-                  aria-describedby="basic-addon2"
-                />
-              </div>
-            </div>
+          <form onSubmit={handleLogin}>
+      <div className="d-flex flex-column">
+      <input
+        type="text"
+        placeholder="Email"
+        className="form-control mb-2"
+        value={username}
+        onChange={(e) => {
+          setUsername(e.target.value);
+          console.log("Username:", e.target.value);  
+        }}
+      />
+      <input
+        type="password"
+        placeholder="Senha"
+        className="form-control mb-2"
+        value={password}
+        onChange={(e) => {
+          setPassword(e.target.value);
+          console.log("Password:", e.target.value);  
+        }}
+      />
 
-            <div className="d-flex justify-content-around align-items-center mb-3">
-              <div className="form-check">
-                <input type="checkbox" className="form-check-input" id="rememberMe" />
-                <label className={`form-check-label ext-label-${theme}`} htmlFor="rememberMe">
-                  Lembrar senha
-                </label>
-              </div>
-              <button
-                type="button"
-                className={`btn btn-2-${theme} toggle-${theme}`}
-                onClick={toggleTheme}
-              >
-                <i className="bi bi-sun"></i>
-              </button>
-            </div>
-
-            <div className="d-flex flex-column">
-              <button type="submit" className={`btn btn-primary btn-1-${theme} mb-2`}>
-                Entrar
-              </button>
-              <a href="./register.html" className={`btn btn-secondary btn-2-${theme}`}>
-                Cadastrar
-              </a>
-            </div>
-          </form>
+        <button type="submit" className={`btn btn-primary btn-1-${theme} mb-2`}>
+          Entrar
+        </button>
+        {errorMsg && <small className="text-danger">{errorMsg}</small>}
+      </div>
+    </form>
         </div>
       </div>
     </div>
