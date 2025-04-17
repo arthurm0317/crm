@@ -48,7 +48,7 @@ const updateChatMessages = async (chat, schema, message) => {
 
   const getMessages = async(chat, schema, connectionId)=>{
       const result = await pool.query(
-        `SELECT * FROM ${schema}.chats WHERE chat_id=$1 AND connection_id=$2`,[chat.getChatId(), connectionId]
+        `SELECT * FROM ${schema}.chats WHERE chat_id=$1 AND connection_id=$2`,[chat, connectionId]
       )
       return result.rows[0].messages
   }
@@ -110,11 +110,18 @@ const updateChatMessages = async (chat, schema, message) => {
   
     console.log(`Chat atribuído ao usuário ${nextUser.name}`);
   };
-  
+
+  const getChats = async (schema) => {
+    const { rows } = await pool.query(
+      `SELECT * FROM ${schema}.chats ORDER BY created_at DESC`
+    );
+    return rows;
+  };
 module.exports = {
     createChat,
     updateChatMessages,
     getMessages,
     getChatService,
-    setUserChat
+    setUserChat,
+    getChats
   }
