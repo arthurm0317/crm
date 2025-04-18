@@ -15,31 +15,6 @@ import AgendaPage from './Lembretes';
 import RelatorioPage from './Relatorios';
 import UsuariosPage from './Usuarios';
 
-window.onerror = function(message, source, lineno, colno, error) {
-  // Retorne true para suprimir o erro
-  return true;
-};
-
-window.onunhandledrejection = function(e) {
-  e.preventDefault();
-  return true;
-};
-if (bootstrap.Tooltip && bootstrap.Tooltip.prototype) {
-  const originalComplete = bootstrap.Tooltip.prototype._complete;
-  bootstrap.Tooltip.prototype._complete = function () {
-    if (!this._element || typeof this._element.removeAttribute !== 'function') {
-      // Se o elemento não existir ou não suportar removeAttribute, retorna
-      return;
-    }
-    try {
-      return originalComplete.apply(this, arguments);
-    } catch (error) {
-      // Suprime qualquer erro no método _complete
-      return;
-    }
-  };
-}
-
 function Painel() {
 
   const username = 'Vitor Manoel Bitencourt Araújo';
