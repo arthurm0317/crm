@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
 
-function ChatPage() {
+function ChatPage({ theme }) {
+  
   const [chats, setChats] = useState([]);
   const [selectedMessages, setSelectedMessages] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
@@ -15,19 +16,17 @@ function ChatPage() {
       .then(res => setChats(res.data))
       .catch(err => console.error('Erro ao carregar chats:', err));
 
-
     socket.on('newMessage', (newMessage) => {
-  
       if (selectedChat && selectedChat.chat_id === newMessage.chatId) {
         setSelectedMessages(prevMessages => [...prevMessages, newMessage.text]);
       }
     });
 
-
     return () => {
       socket.off('newMessage');
     };
-  }, [selectedChat]);  
+  }, [selectedChat]);
+  
   const handleChatClick = async (chat) => {
     try {
       const res = await axios.post('http://localhost:3000/chat/getMessages', {
@@ -43,13 +42,16 @@ function ChatPage() {
   };
 
   return (
-    <div className="d-flex flex-column h-100 w-100 ms-2">
+    <div className={`d-flex flex-column h-100 w-100 ms-2`}>
+      {/* Botão Novo */}
       <div className="mb-3">
-        <button className="btn btn-primary">Novo</button>
+        <button className={`btn btn-1-${theme}`}>Novo</button>
       </div>
 
-      <div className="chat h-100 w-100 d-flex flex-row">
-        <div className="col-3" style={{ overflowY: 'auto', height: '100%' }}>
+      {/* Estrutura do Chat */}
+      <div className={`chat chat-${theme} h-100 w-100 d-flex flex-row`}>
+        {/* Lista de Chats */}
+        <div className={`col-3 chat-list-${theme}`} style={{ overflowY: 'auto', height: '100%' }}>
           {chats.map((chat) => (
             <div
               key={chat.id}
@@ -75,8 +77,8 @@ function ChatPage() {
           ))}
         </div>
 
-        <div className="col-9 p-3" style={{ height: '100%' }}>
-          <h5>Mensagens</h5>
+        {/* Mensagens Selecionadas */}
+        <div className={`col-9 chat-messages-${theme}`} style={{ height: '100%' }}>
           <div style={{ whiteSpace: 'pre-wrap' }}>
             {selectedMessages.map((msg, idx) => (
               <div key={idx}>{msg}</div>

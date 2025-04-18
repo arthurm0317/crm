@@ -480,21 +480,21 @@ a {
 .custom-table-dark {
     border: 1px solid var(--border-color-dark);
 }
-.custom-table-light thead {
-    background-color: var(--bg-color-light);
-    color: var(--color-light);
-}
 .custom-table-dark thead {
     background-color: var(--bg-color-dark);
     color: var(--color-dark);
 }
-.custom-table-light tbody {
+.custom-table-light td {
     background-color: var(--input-bg-color-light);
-    color: var(--color-light);
 }
-.custom-table-dark thead {
+.custom-table-dark td {
     background-color: var(--input-bg-color-dark);
-    color: var(--color-dark);
+}
+.custom-table-light th {
+    background-color: var(--bg-color-light);
+}
+.custom-table-dark th {
+    background-color: var(--bg-color-dark);
 }
 .custom-table-light th,
 .custom-table-light td {
@@ -508,16 +508,16 @@ a {
     vertical-align: middle;
     border: 1px solid var(--border-color-dark);
 }
-.custom-table-light tbody tr:hover {
+.custom-table-light td tr:hover {
     background-color: var(--bg-color-light-hover);
 }
-.custom-table-dark tbody tr:hover {
+.custom-table-dark td tr:hover {
     background-color: var(--bg-color-dark-hover);
 }
-.table-hover tbody tr:hover {
+.table-hover td tr:hover {
     background-color: var(--hover);
 }
-.table-hover tbody tr:hover td {
+.table-hover td tr:hover td {
     color: var(--color-light);
 }
 .schedule-view { display: none; }
