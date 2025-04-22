@@ -3,7 +3,7 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import './assets/style.css';
 import logo from './assets/effective-gain_logo.png';
 import { useTheme } from './assets/js/useTheme';
-import React, { useState } from 'react';
+import React, { use, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -23,12 +23,13 @@ function Login() {
         password,
       });
       if (response.data.success) {
-        console.log(response.data.user.name)
         const userData = {
           username: response.data.user.name,
           role: response.data.user.permission,
-          empresa: response.data.schema,
+          empresa: response.data.company.company_name,
+          schema: response.data.company.schema_name,
         };
+        console.log(userData);
         localStorage.setItem('user', JSON.stringify(userData));
         navigate('/painel');
       }

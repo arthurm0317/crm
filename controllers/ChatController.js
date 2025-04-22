@@ -4,7 +4,7 @@ const setUserChatController = async(req, res)=>{
     const {chat} = req.body
     
     try{
-        const schema = req.body.schema || 'crm'
+        const schema = req.body.schema || 'effective_gain'
         const result = await setUserChat(chat, schema)
 
         res.status(201).json(result)
@@ -18,7 +18,7 @@ const setUserChatController = async(req, res)=>{
 
 const getChatsController = async(req, res)=>{
     try{
-        const schema = req.params?.schema || 'crm'
+        const schema = req.params?.schema || 'effective_gain'
         const result = await getChats(schema)
         res.status(201).json(result)
     }catch(error){
@@ -44,7 +44,7 @@ const getMessagesController = async(req, res)=>{
 const setQueueController = async(req, res)=>{
     try{
         const {queueId, chatId} = req.body
-        const schema = req.body.schema || 'crm'
+        const schema = req.body.schema || 'effective_gain'
 
         const result = await setQueue(schema, chatId, queueId)
         res.json({ messages: result });

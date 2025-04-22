@@ -25,8 +25,8 @@ app.post('/chat', async (req, res) => {
       []
     );
 
-    const createChats = await createChat(chat, 'crm', result.data.message.conversation);
-    const chatDb = await getChatService(createChats, 'crm');
+    const createChats = await createChat(chat, 'effective_gain', result.data.message.conversation);
+    const chatDb = await getChatService(createChats, 'effective_gain');
     await saveMessage(
       chatDb.id,
       new Message(
@@ -37,7 +37,7 @@ app.post('/chat', async (req, res) => {
         result.data.pushName,
         new Date(result.date_time).getTime()
       ),
-      'crm' 
+      'effective_gain' 
     );
 
     res.status(200).json({ result });

@@ -37,10 +37,16 @@ const searchUser = async (userMail, userPassword) => {
           `SELECT * FROM ${schema}.users WHERE email = $1 AND password = $2`,
           [userMail, userPassword]
         );
-  
+        
         if (result.rows.length > 0) {
+          const companyName = await pool.query(
+            `SELECT * FROM effective_gain.companies WHERE schema_name = $1`,
+            [schema]
+          );
+          console.log("schema",schema)
+          console.log("company:", companyName.rows[0])
           return {
-            schema,
+            company: companyName.rows[0],
             user: result.rows[0]
           };
         }

@@ -3,8 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 const { createUser } = require('./UserService');
 const  pool  = require('../db/queries'); 
 
-const createCompany = async (company) => {
-    const schema = company.name.toLowerCase();
+const createCompany = async (company, schema) => {
     const superAdminId = uuidv4();
     const superAdminData = company.superAdmin;
 
@@ -79,6 +78,11 @@ const createCompany = async (company) => {
     );
 
     await createUser(superAdmin, schema);
+
+    await pool.query('INSERT INTO effective_gain.companies (company_name, schema_name) VALUES ($1, $2)', [
+        company.name,
+        schema
+    ]);
 
     return { message: "Empresa criada com sucesso!" };
 };

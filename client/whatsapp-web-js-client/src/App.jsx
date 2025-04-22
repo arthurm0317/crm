@@ -10,6 +10,7 @@ const App = () => {
   const [number, setNumber] = useState('');
   const [qrCodeBase64, setQrCodeBase64] = useState('');
   const [instances, setInstances] = useState([]);
+  const userData = JSON.parse(localStorage.getItem('user'));
 
   const handleCreateInstance = async (e) => {
     e.preventDefault();
@@ -19,6 +20,7 @@ const App = () => {
       const response = await axios.post('http://localhost:3000/evo/instance', {
         instanceName,
         number,
+        schema: userData.schema
       });
 
       console.log('Instância criada:', response.data);
@@ -38,7 +40,7 @@ const App = () => {
   const LoadInstances = async () => {
     try {
       const response = await axios.get('http://localhost:3000/evo/fetchInstances', {
-        params: { schema: 'crm' }
+        params: { schema: userData.schema }
       });
   
       console.log('Resposta da API:', response.data);

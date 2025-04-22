@@ -7,7 +7,7 @@ const createInstanceController = async(req, res)=>{
     try{
         console.log("Corpo da requisição:", req.body);
         const {instanceName, number} = req.body
-        const schema = req.body.schema || 'crm'
+        const schema = req.body.schema || 'effective_gain'
 
         const result = await createInstance({
             instanceName: instanceName,
@@ -29,7 +29,7 @@ const createInstanceController = async(req, res)=>{
 
 const fetchInstanceController = async (req, res) => {
     try {
-      const schema = req.query.schema || 'crm';
+      const schema = req.query.schema || 'effective_gain';
   
       const instances = await fetchInstance(schema);
   
@@ -51,7 +51,7 @@ const sendTextMessageController = async(req, res)=>{
   try{
     const body = req.body
     console.log(req.body)
-    const schema = req.body.schema || 'crm'
+    const schema = req.body.schema || 'effective_gain'
     const instance = await searchConnById(schema, body.connectionId)
     console.log(instance)
     const result = await sendTextMessage(instance.name, body.text, body.number)

@@ -7,14 +7,17 @@ function ChatPage({ theme }) {
   const [chats, setChats] = useState([]);
   const [selectedMessages, setSelectedMessages] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
+  const userData = JSON.parse(localStorage.getItem('user'));
 
-  const schema = 'crm';
+  const schema = userData.schema;
   const socket = io('http://localhost:3000');
+  console.log(schema)
 
   useEffect(() => {
     axios.get(`http://localhost:3000/chat/getChats/${schema}`)
       .then(res => setChats(res.data))
       .catch(err => console.error('Erro ao carregar chats:', err));
+
 
     socket.on('newMessage', (newMessage) => {
       if (selectedChat && selectedChat.chat_id === newMessage.chatId) {

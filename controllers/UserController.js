@@ -14,7 +14,7 @@ const createUserController = async (req, res) => {
         permission
       );
   
-        const schema = req.body.schema || 'crm';
+        const schema = req.body.schema || 'effective_gain';
         const result = await createUser(user, schema);
 
       res.status(201).json(result);
@@ -48,13 +48,14 @@ const searchUserController = async (req, res) => {
 
     console.log("Usuário encontrado:", result);
 
-    changeOnline(result.user.id, 'crm');
+    changeOnline(result.user.id, result.company.schema_name);
 
     res.status(200).json({
       success: true,
       user: result.user,
       role: result.user.permission,
-      schema: result.schema,
+      company: result.company,
+      schema: result.company.company_name
     });
 
   } catch (error) {
@@ -64,7 +65,7 @@ const searchUserController = async (req, res) => {
 
 }
 const getOnlineUsersController = async (req, res) => {
-  const { schema } = req.query || { schema: 'crm' };
+  const { schema } = req.query || { schema: 'effective_gain' };
   try {
     const result = await getOnlineUsers(schema);
     res.status(201).json({
