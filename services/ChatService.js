@@ -44,16 +44,17 @@ const updateChatMessages = async (chat, schema, message) => {
       
     );
     return result.rows[0];
-  };
+};
 
-  const getMessages = async(chat, schema, connectionId)=>{
-      const result = await pool.query(
-        `SELECT * FROM ${schema}.chats WHERE chat_id=$1 AND connection_id=$2`,[chat, connectionId]
-      )
+const getMessages = async(chatId, schema)=>{
+    const result = await client.query(
+      `SELECT * FROM ${schema}.messages WHERE chat_id=$1 ORDER BY created_at ASC`,
+      [chatId]
+    );
       return result.rows[0].messages
-  }
+}
 
-  const getChatService = async(chat, schema)=>{
+const getChatService = async(chat, schema)=>{
     const result = await pool.query(
       `SELECT * FROM ${schema}.chats WHERE chat_id=$1 AND connection_id=$2`,
       [chat.chat_id, chat.connection_id]
@@ -64,9 +65,9 @@ const updateChatMessages = async (chat, schema, message) => {
       return chat;
     }
     
-  }
+}
 
-  const setUserChat = async (chatId, schema) => {
+const setUserChat = async (chatId, schema) => {
     const chatDb = await pool.query(
       `SELECT * FROM ${schema}.chats WHERE id=$1`,
       [chatId]
@@ -109,19 +110,28 @@ const updateChatMessages = async (chat, schema, message) => {
     );
   
     console.log(`Chat atribuído ao usuário ${nextUser.name}`);
-  };
+};
 
-  const getChats = async (schema) => {
+const getChats = async (schema) => {
     const { rows } = await pool.query(
       `SELECT * FROM ${schema}.chats ORDER BY created_at DESC`
     );
     return rows;
-  };
+};
+
+const setQueue = async(schema, chatId, queueId)=>{
+  const result = await pool.query(
+    `UPDATE ${schema}.chats SET queue_id=$1 WHERE id=$2`,[queueId, chatId]
+  )
+  return result.rows[0]
+}
+
 module.exports = {
     createChat,
     updateChatMessages,
     getMessages,
     getChatService,
     setUserChat,
-    getChats
+    getChats,
+    setQueue
   }

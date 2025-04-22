@@ -23,7 +23,14 @@ function Login() {
         password,
       });
       if (response.data.success) {
-        navigate('/home');
+        console.log(response.data.user.name)
+        const userData = {
+          username: response.data.user.name,
+          role: response.data.user.permission,
+          empresa: response.data.schema,
+        };
+        localStorage.setItem('user', JSON.stringify(userData));
+        navigate('/painel');
       }
     } catch (err) {
       setErrorMsg(err.response?.data?.message || "Erro no login");

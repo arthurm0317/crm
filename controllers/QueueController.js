@@ -52,6 +52,7 @@ const getUserQueuesController=async(req,res)=>{
     
 }
 
+
 module.exports = {
     createQueueController,
     addUserinQueueController,

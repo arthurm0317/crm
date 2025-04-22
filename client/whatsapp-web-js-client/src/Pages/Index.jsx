@@ -1,14 +1,12 @@
 import * as bootstrap from 'bootstrap';
 import React, { useState, useEffect } from 'react';
-import 'bootstrap/dist/css/bootstrap.min.css'; // Importando o CSS do Bootstrap
-import 'bootstrap/dist/js/bootstrap.bundle.min.js'; // Importando o JS do Bootstrap
-import shortlogo from './assets/favicon.png'; // Importando o logo
-import logo from './assets/effective-gain_logo.png'; // Importando o logo
-
-import './assets/style.css'; // Seu CSS customizado
-import { useTheme } from './assets/js/useTheme'; // Seu hook de tema
-import { useNavigate } from 'react-router-dom'; // Navegação
-
+import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap/dist/js/bootstrap.bundle.min.js';
+import shortlogo from './assets/favicon.png';
+import logo from './assets/effective-gain_logo.png';
+import './assets/style.css';
+import { useTheme } from './assets/js/useTheme';
+import { useNavigate } from 'react-router-dom';
 import Dashboard from './Dashboard';
 import ChatPage from './Chats';
 import AgendaPage from './Lembretes';
@@ -16,15 +14,23 @@ import RelatorioPage from './Relatorios';
 import UsuariosPage from './Usuarios';
 
 function Painel() {
-
-  const username = 'Vitor Manoel Bitencourt Araújo';
-  const role = 'Admin Primário';
-  const empresa = 'Cartão de TODOS - Nova Iguaçu';
-
+  const [username, setUsername] = useState('');
+  const [role, setRole] = useState('');
+  const [empresa, setEmpresa] = useState('');
   const [theme, setTheme] = useTheme();
   const [page, setPage] = useState('dashboard');
   const navigate = useNavigate();
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+
+  useEffect(() => {
+    const userData = JSON.parse(localStorage.getItem('user'));
+    console.log(userData);
+    if (userData) {
+      setUsername(userData.username);
+      setRole(userData.role);
+      setEmpresa(userData.empresa);
+    }
+  }, []);
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
@@ -33,6 +39,7 @@ function Painel() {
     document.cookie = `theme=${newTheme}`;
     setTheme(newTheme);
   };
+
   const toggleSidebar = () => {
     setIsSidebarExpanded(!isSidebarExpanded);
   };
@@ -42,8 +49,7 @@ function Painel() {
       const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
       if (tooltipTriggerList.length > 0) {
         const tooltipList = [...tooltipTriggerList].map(el => new bootstrap.Tooltip(el));
-  
-        return () => tooltipList.forEach(t => t.dispose()); // Limpa os tooltips ao desmontar
+        return () => tooltipList.forEach(t => t.dispose());
       }
     } catch (error) {
       console.error('Erro ao inicializar tooltips:', error);
@@ -60,11 +66,10 @@ function Painel() {
       default: return <Dashboard theme={theme} />;
     }
   };
-  
+
   return (
     <div className={`bg-screen-${theme}`} style={{ height: '100vh', overflow: 'hidden' }}>
       <div className="d-flex h-100">
-        {/* Sidebar */}
         <div id="sidebar" className={`bg-form-${theme} h-100 sidebar ${isSidebarExpanded ? 'sidebar-expanded' : 'sidebar-collapsed'}`}>
           <div id="sidebar-top" style={{ height: '10%', width: '100%' }} className="p-2 d-flex flex-row align-items-center justify-content-evenly">
             <img src={isSidebarExpanded ? logo : shortlogo} alt="Logo" className="img-fluid" style={{ height: 'auto', width: isSidebarExpanded ? '80%' : '65%' }} />
@@ -125,12 +130,9 @@ function Painel() {
               <i className="bi bi-bar-chart-line"></i>
               <span className="sidebar-label d-none">Relatórios</span>
             </button>
-          </div>        
+          </div>
         </div>
-
-        {/* Conteúdo principal */}
         <div className="d-flex flex-column flex-grow-1">
-          {/* Header */}
           <div className={`header-${theme} ps-1 pe-4 d-flex align-items-center justify-content-between`} style={{ height: '10%' }}>
             <button data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Expandir/Retrair" id="toggleSidebar" className={`btn btn-3-${theme} p-1`} onClick={toggleSidebar}>
               <i className={`bi ${isSidebarExpanded ? 'bi-arrow-bar-left' : 'bi-arrow-bar-right'}`}></i>
@@ -148,8 +150,6 @@ function Painel() {
               </button>
             </div>
           </div>
-
-          {/* Main */}
           <div className={`main-${theme} pe-3 pb-3`} style={{ flexGrow: 1 }} id="main">
             {renderPage()}
           </div>

@@ -1,4 +1,4 @@
-const { setUserChat, getChats, getMessages } = require('../services/ChatService');
+const { setUserChat, getChats, getMessages, setQueue } = require('../services/ChatService');
 
 const setUserChatController = async(req, res)=>{
     const {chat} = req.body
@@ -41,8 +41,21 @@ const getMessagesController = async(req, res)=>{
   }
 }
 
+const setQueueController = async(req, res)=>{
+    try{
+        const {queueId, chatId} = req.body
+        const schema = req.body.schema || 'crm'
+
+        const result = await setQueue(schema, chatId, queueId)
+        res.json({ messages: result });
+    } catch (err) {
+      console.error('Erro ao definir fila do chat:', err);
+      res.status(500).json({ error: err.message });
+    }
+}
 module.exports = {
     setUserChatController,
     getChatsController,
-    getMessagesController
+    getMessagesController,
+    setQueueController
 }

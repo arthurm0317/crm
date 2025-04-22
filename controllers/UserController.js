@@ -1,4 +1,4 @@
-const { createUser, getAllUsers, searchUser, changeOnline, getOnlineUsers} = require('../services/UserService');
+const { createUser, getAllUsers, searchUser, changeOnline, getOnlineUsers, changeOffline} = require('../services/UserService');
 const { Users } = require('../entities/Users');
 const { v4: uuidv4 } = require('uuid');
 
@@ -78,9 +78,26 @@ const getOnlineUsersController = async (req, res) => {
   }
   
 };
+
+const changeOfflineController = async(req, res)=>{
+  const { userID } = req.query 
+  const schema = req.param?.schema
+  try {
+    const result = await changeOffline(userID, schema)
+    res.status(201).json({
+      users: result,
+    });
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({
+      message: error,
+    });
+  }
+}
   module.exports = {
     createUserController,
     getAllUsersController,
     searchUserController,
-    getOnlineUsersController
+    getOnlineUsersController,
+    changeOfflineController
   }

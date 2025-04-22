@@ -38,7 +38,7 @@ const App = () => {
   const LoadInstances = async () => {
     try {
       const response = await axios.get('http://localhost:3000/evo/fetchInstances', {
-        params: { schema: 'public' }
+        params: { schema: 'crm' }
       });
   
       console.log('Resposta da API:', response.data);

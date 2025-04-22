@@ -61,6 +61,13 @@ const searchUser = async (userMail, userPassword) => {
     return result.rows[0]
   }
 
+  const changeOffline = async(userId, schema)=>{
+    const result = await pool.query(
+      `UPDATE ${schema}.users SET online=false WHERE id=$1`,[userId]
+    )
+    return result.rows[0]
+  }
+
   const getOnlineUsers = async(schema)=>{
     const result = await pool.query(`SELECT * FROM ${schema}.users WHERE online=true`);
     return result.rows;
@@ -82,4 +89,4 @@ const searchUser = async (userMail, userPassword) => {
       [queue, user_id]
     );
   };
-module.exports = { createUser, getAllUsers, searchUser, changeOnline, getOnlineUsers, getLastAssignedUser, updateLastAssignedUser};
+module.exports = { createUser, getAllUsers, searchUser, changeOnline, changeOffline, getOnlineUsers, getLastAssignedUser, updateLastAssignedUser};
