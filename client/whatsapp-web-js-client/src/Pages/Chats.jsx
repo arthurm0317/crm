@@ -11,20 +11,22 @@ function ChatPage({ theme }) {
   const schema = userData.schema;
   const socket = io('http://localhost:3000');
   console.log(schema);
-
+  socket.on('connect', () => {
+    console.log('Socket conectado:', socket.id);
+  });
   useEffect(() => {
     axios.get(`http://localhost:3000/chat/getChats/${schema}`)
       .then(res => setChats(res.data))
       .catch(err => console.error('Erro ao carregar chats:', err));
-
-    socket.on('newMessage', (newMessage) => {
+  
+    socket.on('message', (newMessage) => {
       if (selectedChat && selectedChat.chat_id === newMessage.chatId) {
-        setSelectedMessages(prevMessages => [...prevMessages, newMessage.text]);
+        setSelectedMessages(prevMessages => [...prevMessages, newMessage.body]);
       }
     });
-
+  
     return () => {
-      socket.off('newMessage');
+      socket.off('message');
     };
   }, [selectedChat]);
 

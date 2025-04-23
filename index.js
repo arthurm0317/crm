@@ -7,24 +7,21 @@ const queueRoutes = require('./routes/QueueRoutes');
 const connRoutes = require('./routes/ConnectionRoutes');
 const evoRoutes = require('./routes/EvolutionRoutes');
 const chatRoutes = require('./routes/ChatRoutes');
+const webhook = require('./controllers/Webhook');
 
 const cors = require('cors');
 const configureSocket = require('./config/SocketConfig');
 
 const corsOptions = {
-  origin: 'http://localhost:3001',  
+  origin: 'http://localhost:3001',
   methods: ['GET', 'POST'],
 };
 
 const app = express();
-
-
 const server = http.createServer(app);
-
-
 const io = socketIo(server, {
   cors: {
-    origin: 'http://localhost:3001',  
+    origin: 'http://localhost:3001',
     methods: ['GET', 'POST']
   }
 });
@@ -38,8 +35,9 @@ app.use('/connection', connRoutes);
 app.use('/evo', evoRoutes);
 app.use('/chat', chatRoutes);
 
+app.use('/webhook', webhook(io));
 
-configureSocket(io, server); 
+configureSocket(io, server);
 
 const PORT = 3000;
 server.listen(PORT, () => {
