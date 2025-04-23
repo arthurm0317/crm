@@ -30,10 +30,10 @@ const getChatsController = async(req, res)=>{
 }
 
 const getMessagesController = async(req, res)=>{
-    const { chatId, connectionId, schema } = req.body;
-
+    const { chatId, schema } = req.body;
+    console.log(chatId, schema)
   try {
-    const result = await getMessages(chatId, schema, connectionId);
+    const result = await getMessages(chatId, schema);
     res.json({ messages: result });
   } catch (err) {
     console.error('Erro ao buscar mensagens:', err);

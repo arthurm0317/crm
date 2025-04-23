@@ -47,11 +47,14 @@ const updateChatMessages = async (chat, schema, message) => {
 };
 
 const getMessages = async(chatId, schema)=>{
-    const result = await client.query(
+    const chat_id = await pool.query(
+      `SELECT id FROM ${schema}.chats WHERE chat_id=$1`, [chatId])
+    console.log(chat_id.rows[0])
+    const result = await pool.query(
       `SELECT * FROM ${schema}.messages WHERE chat_id=$1 ORDER BY created_at ASC`,
-      [chatId]
+      [chat_id.rows[0].id]
     );
-      return result.rows[0].messages
+      return result.rows
 }
 
 const getChatService = async(chat, schema)=>{

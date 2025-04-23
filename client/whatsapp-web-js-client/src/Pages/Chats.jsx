@@ -3,7 +3,6 @@ import axios from 'axios';
 import io from 'socket.io-client';
 
 function ChatPage({ theme }) {
-  
   const [chats, setChats] = useState([]);
   const [selectedMessages, setSelectedMessages] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
@@ -11,13 +10,12 @@ function ChatPage({ theme }) {
 
   const schema = userData.schema;
   const socket = io('http://localhost:3000');
-  console.log(schema)
+  console.log(schema);
 
   useEffect(() => {
     axios.get(`http://localhost:3000/chat/getChats/${schema}`)
       .then(res => setChats(res.data))
       .catch(err => console.error('Erro ao carregar chats:', err));
-
 
     socket.on('newMessage', (newMessage) => {
       if (selectedChat && selectedChat.chat_id === newMessage.chatId) {
@@ -29,13 +27,12 @@ function ChatPage({ theme }) {
       socket.off('newMessage');
     };
   }, [selectedChat]);
-  
+
   const handleChatClick = async (chat) => {
     try {
       const res = await axios.post('http://localhost:3000/chat/getMessages', {
         chatId: chat.chat_id,
-        connectionId: chat.connection_id,
-        schema
+        schema,
       });
       setSelectedChat(chat);
       setSelectedMessages(res.data.messages);
@@ -46,14 +43,10 @@ function ChatPage({ theme }) {
 
   return (
     <div className={`d-flex flex-column h-100 w-100 ms-2`}>
-      {/* Botão Novo */}
       <div className="mb-3">
         <button className={`btn btn-1-${theme}`}>Novo</button>
       </div>
-
-      {/* Estrutura do Chat */}
       <div className={`chat chat-${theme} h-100 w-100 d-flex flex-row`}>
-        {/* Lista de Chats */}
         <div className={`col-3 chat-list-${theme}`} style={{ overflowY: 'auto', height: '100%' }}>
           {chats.map((chat) => (
             <div
@@ -79,12 +72,10 @@ function ChatPage({ theme }) {
             </div>
           ))}
         </div>
-
-        {/* Mensagens Selecionadas */}
         <div className={`col-9 chat-messages-${theme}`} style={{ height: '100%' }}>
           <div style={{ whiteSpace: 'pre-wrap' }}>
             {selectedMessages.map((msg, idx) => (
-              <div key={idx}>{msg}</div>
+              <div key={idx}>{msg.body}</div> 
             ))}
           </div>
         </div>
