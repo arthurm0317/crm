@@ -70,6 +70,34 @@ const sendTextMessage = async(instanceId, text, number)=>{
   }
 }
 
+const searchContact = async (remoteJid, instanceId) => {
+  const payload = {
+    where: {
+      remoteJid,
+    },
+    instanceId,
+  };
+
+  const options = {
+    method: 'POST',
+    headers: {
+      apikey: process.env.EVOLUTION_API_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  };
+
+  try {
+    const response = await fetch(`${process.env.EVOLUTION_SERVER_URL}/chat/findContacts/${instanceId}`, options);
+    const result = await response.json();
+    console.log(result);
+
+    return result;
+  } catch (err) {
+    console.error('Erro ao buscar contato:', err);
+  }
+};
 
 
-module.exports = { createInstance, fetchInstanceEvo, sendTextMessage};
+
+module.exports = { createInstance, fetchInstanceEvo, sendTextMessage, searchContact};

@@ -5,11 +5,16 @@ const { v4: uuidv4 } = require('uuid');
 const { createChat, getChatService } = require('../services/ChatService');
 const { saveMessage } = require('../services/MessageService');
 const { Message } = require('../entities/Message');
+const { searchConnById } = require('../services/ConnectionService');
+const { searchContact } = require('../requests/evolution');
 
 app.use(express.json());
 
 app.post('/chat', async (req, res) => {
   const result = req.body;
+  const schema = req.body.schema || 'effective_gain'
+  const connection = await searchConnById(result.data.instanceId, 'effective_gain')
+  const contact = await searchContact(result.data.key.remoteJid, connection.name)
 
   try {
     const chat = new Chat(
@@ -18,15 +23,15 @@ app.post('/chat', async (req, res) => {
       result.data.instanceId,
       null,
       false,
-      null,
+      contact.pushName,
       null,
       result.data.status,
       new Date(result.date_time).getTime(),
       []
     );
 
-    const createChats = await createChat(chat, 'effective_gain', result.data.message.conversation);
-    const chatDb = await getChatService(createChats, 'effective_gain');
+    const createChats = await createChat(chat, schema, result.data.message.conversation);
+    const chatDb = await getChatService(createChats, schema);
     await saveMessage(
       chatDb.id,
       new Message(
@@ -37,7 +42,7 @@ app.post('/chat', async (req, res) => {
         result.data.pushName,
         new Date(result.date_time).getTime()
       ),
-      'effective_gain' 
+      schema
     );
 
     res.status(200).json({ result });

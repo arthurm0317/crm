@@ -1,17 +1,34 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import * as bootstrap from 'bootstrap';
+import axios from 'axios';
 
 function UsuariosPage({ theme }) {
+  const userData = JSON.parse(localStorage.getItem('user')); 
+  const schema = userData?.schema
+  const [usuarios, setUsuarios] = useState([]);
 
   useEffect(() => {
-    // Inicializa os tooltips do Bootstrap
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     const tooltipList = [...tooltipTriggerList].map(
       (tooltipTriggerEl) => new bootstrap.Tooltip(tooltipTriggerEl)
     );
 
-    // Limpa os tooltips ao desmontar o componente
     return () => tooltipList.forEach((tooltip) => tooltip.dispose());
+  }, []);
+
+  useEffect(() => {
+    const fetchUsuarios = async () => {
+      try {
+        const response = await axios.get(`http://localhost:3000/api/users/${schema}`);
+
+        setUsuarios(response.data.users || []);
+        console.log(response.data.users)
+      } catch (error) {
+        console.error('Erro ao buscar usuários:', error);
+      }
+    };
+
+    fetchUsuarios();
   }, []);
 
   return (
@@ -27,7 +44,6 @@ function UsuariosPage({ theme }) {
         <table className="table table-bordered table-hover m-0">
           <thead style={{ backgroundColor: 'yellow', color: 'indigo' }}>
             <tr>
-              <th>ID</th>
               <th>Nome</th>
               <th>Email</th>
               <th>Perfil</th>
@@ -35,46 +51,21 @@ function UsuariosPage({ theme }) {
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>44</td>
-              <td>joão</td>
-              <td>joao@gmail.com</td>
-              <td>admin</td>
-              <td>
-                <button className="icon-btn text-primary"><i className="bi bi-pencil-fill"></i></button>
-                <button className="icon-btn text-danger"><i className="bi bi-trash-fill"></i></button>
-              </td>
-            </tr>
-            <tr>
-              <td>3</td>
-              <td>Cauan</td>
-              <td>cauanhakk@gmail.com</td>
-              <td>admin</td>
-              <td>
-                <button className="icon-btn text-primary"><i className="bi bi-pencil-fill"></i></button>
-                <button className="icon-btn text-danger"><i className="bi bi-trash-fill"></i></button>
-              </td>
-            </tr>
-            <tr>
-              <td>2</td>
-              <td>Principal</td>
-              <td>effectivegain@gmail.com</td>
-              <td>admin</td>
-              <td>
-                <button className="icon-btn text-primary"><i className="bi bi-pencil-fill"></i></button>
-                <button className="icon-btn text-danger"><i className="bi bi-trash-fill"></i></button>
-              </td>
-            </tr>
-            <tr>
-              <td>1</td>
-              <td>Admin</td>
-              <td>admin@admin.com</td>
-              <td>admin</td>
-              <td>
-                <button className="icon-btn text-primary"><i className="bi bi-pencil-fill"></i></button>
-                <button className="icon-btn text-danger"><i className="bi bi-trash-fill"></i></button>
-              </td>
-            </tr>
+            {usuarios.map((usuario) => (
+              <tr key={usuario.id}>
+                <td>{usuario.name}</td>
+                <td>{usuario.email}</td>
+                <td>{usuario.permission}</td>
+                <td>
+                  <button className="icon-btn text-primary" data-bs-toggle="tooltip" title="Editar">
+                    <i className="bi bi-pencil-fill"></i>
+                  </button>
+                  <button className="icon-btn text-danger" data-bs-toggle="tooltip" title="Excluir">
+                    <i className="bi bi-trash-fill"></i>
+                  </button>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>

@@ -25,8 +25,9 @@ const createUserController = async (req, res) => {
     }
   };
 const getAllUsersController = async(req, res)=>{
+  const schema = req.query.schema || 'effective_gain'
     try{
-        const result = await getAllUsers()
+        const result = await getAllUsers(schema)
         res.status(201).json({
             users:result
         })

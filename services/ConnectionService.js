@@ -24,12 +24,20 @@ const fetchInstance = async(schema)=>{
     )
     return result.rows
 }
-const searchConnById = async(schema, id)=>{
-    const result = await pool.query(
-        `SELECT * FROM ${schema}.connections WHERE id=$1`,[id]
-    )
-    return result.rows[0]
-}
+const searchConnById = async (instanceId, schema) => {
+    try {
+      const query = `
+        SELECT * 
+        FROM "${schema}".connections 
+        WHERE id = $1
+      `;
+      const result = await pool.query(query, [instanceId]);
+      return result.rows[0];
+    } catch (err) {
+      console.error('Erro ao buscar conexão por ID:', err);
+      throw err;
+    }
+  };
 module.exports = {
     createConnection,
     fetchInstance,

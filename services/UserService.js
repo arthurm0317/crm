@@ -1,6 +1,5 @@
 const pool = require('../db/queries')
-const {Users} = require('../entities/Users')
-const { v4: uuidv4 } = require('uuid');
+
 
 const createUser = async (user, schema) => {
 
@@ -18,7 +17,7 @@ const createUser = async (user, schema) => {
     return result.rows[0];
 };
 
-const getAllUsers = async (schema = 'public') => {
+const getAllUsers = async (schema) => {
     const result = await pool.query(`SELECT * FROM ${schema}.users`);
     return result.rows;
 };
