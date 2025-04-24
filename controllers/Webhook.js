@@ -1,9 +1,10 @@
 const express = require('express');
 const { Chat } = require('../entities/Chat');
 const { v4: uuidv4 } = require('uuid');
-const { createChat, getChatService } = require('../services/ChatService');
+const { createChat, getChatService, setChatQueue } = require('../services/ChatService');
 const { saveMessage } = require('../services/MessageService');
 const { Message } = require('../entities/Message');
+const { setQueue } = require('../services/ConnectionService');
 
 
 const app = express();
@@ -12,6 +13,7 @@ app.use(express.json());
 module.exports = (io) => {
   app.post('/chat', async (req, res) => {
     const result = req.body;
+    const schema = req.body.schema || 'effective_gain';
 
     try {
       const chat = new Chat(
@@ -41,6 +43,7 @@ module.exports = (io) => {
         ),
         'effective_gain'
       );
+      setChatQueue(schema, chatDb.chat_id)
 
       io.emit("message", {
         chatId: chatDb.id,

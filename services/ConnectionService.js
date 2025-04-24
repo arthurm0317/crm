@@ -37,9 +37,24 @@ const searchConnById = async (instanceId, schema) => {
       console.error('Erro ao buscar conexão por ID:', err);
       throw err;
     }
-  };
+};
+const setQueue = async(connectionNumber, queueName, schema)=>{
+    const queueId = await pool.query(
+        `SELECT id FROM ${schema}.queues WHERE name=$1`, [queueName]
+    )
+    if(queueId.rowCount>0){
+        const result = await pool.query(`UPDATE ${schema}.connections SET queue_id=$1 WHERE number=$2`,
+        [
+            queueId.rows[0].id,
+            connectionNumber
+        ]
+        );
+        return result.rows[0]
+    }
+}
 module.exports = {
     createConnection,
     fetchInstance,
-    searchConnById
+    searchConnById,
+    setQueue
 }

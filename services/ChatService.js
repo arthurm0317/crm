@@ -122,7 +122,23 @@ const getChats = async (schema) => {
     return rows;
 };
 
-const setQueue = async(schema, chatId, queueId)=>{
+const setChatQueue = async(schema, chatId)=>{
+  const chatConn = await pool.query(
+    `SELECT * FROM ${schema}.chats WHERE chat_id=$1`, [chatId]
+  )
+  const connQueue = await pool.query(
+    `SELECT * FROM ${schema}.connections WHERE id=$1`, [chatConn.rows[0].connection_id]
+  )
+  if(chatConn.rows[0].queue_id === null){
+    console.log("entrou")
+    const firstQueue = await pool.query(
+      `UPDATE ${schema}.chats SET queue_id=$1 WHERE chat_id=$2`,[connQueue.rows[0].queue_id, chatId]
+    )
+    return firstQueue.rows[0]
+  }
+}
+
+const updateQueue = async(schema, chatId, queueId)=>{
   const result = await pool.query(
     `UPDATE ${schema}.chats SET queue_id=$1 WHERE id=$2`,[queueId, chatId]
   )
@@ -136,5 +152,6 @@ module.exports = {
     getChatService,
     setUserChat,
     getChats,
-    setQueue
+    setChatQueue,
+    updateQueue
   }
