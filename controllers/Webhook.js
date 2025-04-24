@@ -4,8 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 const { createChat, getChatService } = require('../services/ChatService');
 const { saveMessage } = require('../services/MessageService');
 const { Message } = require('../entities/Message');
-const { searchConnById } = require('../services/ConnectionService');
-const { searchContact } = require('../requests/evolution');
+
 
 const app = express();
 app.use(express.json());

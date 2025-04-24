@@ -1,6 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 const xlsx = require('xlsx');
+const pool = require("../db/queries")
+const { v4: uuidv4 } = require('uuid');
+const { insertValueCustomField } = require('./ContactService');
 
 const folderPath = path.join(__dirname, '..', 'uploads');
 
@@ -17,13 +20,42 @@ function processExcelFile() {
   const sheetName = workbook.SheetNames[0]; 
   const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-  console.log(data);
+  getInformationFromExcel(data, 'effective_gain')
 
-  fs.unlinkSync(filePath);
+  // fs.unlinkSync(filePath);
   
 }
 
 const getInformationFromExcel = async (data, schema) => {
-    const result = await pool.query(`
-        INSERT INTO ${schema}.chats `)
-}
+  console.log(data);
+
+  for (const row of data) {
+    const numero = row.numero?.toString();
+    const nome = row.nome;
+
+    if (!numero || !nome) {
+      continue;
+    }
+
+    try {
+      await pool.query(
+        `INSERT INTO ${schema}.contacts (number, contact_name) VALUES ($1, $2)
+         ON CONFLICT (number) DO NOTHING`,
+        [numero, nome]
+      );
+
+      for (const [key, value] of Object.entries(row)) {
+        if (key !== 'numero' && key !== 'nome') {
+          await insertValueCustomField(key, numero, value, schema)
+        }
+      }
+    } catch (error) {
+      console.error(`Erro ao inserir contato ou campo personalizado:`, error);
+    }
+  }
+};
+
+module.exports = {
+  processExcelFile,
+  getInformationFromExcel
+};
