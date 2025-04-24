@@ -27,32 +27,36 @@ function processExcelFile() {
 }
 
 const getInformationFromExcel = async (data, schema) => {
-  console.log(data);
-
   for (const row of data) {
-    const numero = row.numero?.toString();
-    const nome = row.nome;
-
-    if (!numero || !nome) {
-      continue;
-    }
-
-    try {
-      await pool.query(
-        `INSERT INTO ${schema}.contacts (number, contact_name) VALUES ($1, $2)
-         ON CONFLICT (number) DO NOTHING`,
-        [numero, nome]
-      );
-
-      for (const [key, value] of Object.entries(row)) {
-        if (key !== 'numero' && key !== 'nome') {
-          await insertValueCustomField(key, numero, value, schema)
-        }
+    let numero = row.numero?.toString();
+    const nomeSeparado = row.nome.split(' ');
+    
+    for (let i = 0; i < nomeSeparado.length; i++) {
+      const nome = nomeSeparado.map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()) .join(' ');
+      if (!numero || !nome) {
+        continue;
       }
-    } catch (error) {
-      console.error(`Erro ao inserir contato ou campo personalizado:`, error);
+      if (!numero.startsWith('55')) {
+        numero = `55${numero}`;
+      }
+      try {
+        await pool.query(
+          `INSERT INTO ${schema}.contacts (number, contact_name) VALUES ($1, $2)
+           ON CONFLICT (number) DO NOTHING`,
+          [numero, nome]
+        );
+  
+        for (const [key, value] of Object.entries(row)) {
+          if (key !== 'numero' && key !== 'nome') {
+            await insertValueCustomField(key, numero, value, schema)
+          }
+        }
+      } catch (error) {
+        console.error(`Erro ao inserir contato ou campo personalizado:`, error);
+      }
     }
-  }
+    }
+
 };
 
 module.exports = {
