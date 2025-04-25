@@ -1,7 +1,8 @@
 const express = require('express');
-const { createConnectionController } = require('../controllers/ConnectionController');
+const { createConnectionController, setQueueController } = require('../controllers/ConnectionController');
 const router = express.Router();
 
 router.post('/create', createConnectionController)
+router.post('/setConnQueue', setQueueController)
 
 module.exports = router;
