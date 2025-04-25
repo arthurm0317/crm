@@ -17,7 +17,6 @@ const createConnection = async(connection, schema)=>{
         return result.rows[0]
     }
 }
-
 const fetchInstance = async(schema)=>{
     const result = await pool.query(
         `SELECT * FROM ${schema}.connections`
@@ -52,6 +51,8 @@ const setQueue = async(connectionNumber, queueName, schema)=>{
         return result.rows[0]
     }
 }
+
+
 module.exports = {
     createConnection,
     fetchInstance,

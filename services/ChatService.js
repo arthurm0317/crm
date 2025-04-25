@@ -1,8 +1,7 @@
 const pool = require('../db/queries');
-const { saveMessage } = require('./MessageService');
 const { getOnlineUsers, updateLastAssignedUser, getLastAssignedUser } = require('./UserService');
 
-const createChat = async (chat, schema, message) => {
+const createChat = async (chat, schema, message, etapa) => {
   const exists = await pool.query(
     `SELECT * FROM ${schema}.chats WHERE chat_id = $1 AND connection_id = $2`,
     [chat.getChatId(), chat.getConnectionId()]
@@ -12,21 +11,26 @@ const createChat = async (chat, schema, message) => {
     await updateChatMessages(chat, schema, message);
     return exists.rows[0]
   } else {
+    const contactName = await pool.query(
+      `SELECT contact_name FROM ${schema}.contacts WHERE number=$1`, [chat.getChatId().split('@')[0]]
+    )
     const result = await pool.query(
       `INSERT INTO ${schema}.chats 
-        (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages, contact_phone, etapa_id) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
       [
         chat.getId(),
         chat.getChatId(),
         chat.getConnectionId(),
         chat.getQueueId(),
         chat.getIsGroup(),
-        chat.getContact(),
+        contactName.rows[0].contact_name || chat.getChatId().split('@')[0],
         chat.getAssignedUser(),
         chat.getStatus(),
         chat.getCreatedAt(),
-        JSON.stringify([message])
+        JSON.stringify([message]),
+        chat.getChatId().split('@')[0],
+        etapa || null
       ]
     );
     return result.rows[0]
@@ -145,6 +149,32 @@ const updateQueue = async(schema, chatId, queueId)=>{
   return result.rows[0]
 }
 
+const getChatData = async(id, schema)=>{
+  const chat = await pool.query(
+    `SELECT * FROM ${schema}.chats WHERE id=$1`, [id]
+  )
+  const connection = await pool.query(
+    `SELECT * FROM ${schema}.connections WHERE id=$1`, [chat.rows[0].connection_id]
+  )
+  const queue = await pool.query(
+    `SELECT * FROM ${schema}.queues WHERE id=$1`, [chat.rows[0].queue_id]
+  )
+  const user = await pool.query(
+    `SELECT * FROM ${schema}.users WHERE id=$1`, [chat.rows[0].assigned_user]
+  )
+  const etapa = await pool.query(
+    `SELECT * FROM ${schema}.kanban_vendas WHERE id=$1`, [chat.rows[0].etapa_id]
+  )
+  const result = {
+    chat: chat.rows[0],
+    connection: connection.rows[0],
+    queue: queue.rows[0],
+    user: user.rows[0],
+    etapa: etapa.rows[0]
+  }
+  return result
+}
+
 module.exports = {
     createChat,
     updateChatMessages,
@@ -153,5 +183,6 @@ module.exports = {
     setUserChat,
     getChats,
     setChatQueue,
-    updateQueue
+    updateQueue,
+    getChatData
   }

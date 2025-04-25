@@ -9,6 +9,7 @@ const evoRoutes = require('./routes/EvolutionRoutes');
 const chatRoutes = require('./routes/ChatRoutes');
 const webhook = require('./controllers/Webhook');
 const contactRoutes = require('./routes/ContactRoute');
+const kanbanRoutes = require('./routes/KanbanRoutes');
 
 const cors = require('cors');
 const configureSocket = require('./config/SocketConfig');
@@ -38,6 +39,7 @@ app.use('/evo', evoRoutes);
 app.use('/chat', chatRoutes);
 app.use('/contact', contactRoutes);
 app.use('/webhook', webhook(io));
+app.use('/kanban', kanbanRoutes);
 
 configureSocket(io, server);
 
