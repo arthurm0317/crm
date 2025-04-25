@@ -27,6 +27,7 @@ function ChatPage({ theme }) {
   
     return () => {
       socket.off('message');
+      console.log('mensagem recebida')
     };
   }, [selectedChat]);
 
