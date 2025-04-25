@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
 
@@ -6,29 +6,38 @@ function ChatPage({ theme }) {
   const [chats, setChats] = useState([]);
   const [selectedMessages, setSelectedMessages] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
+  const selectedChatRef = useRef(null); 
   const userData = JSON.parse(localStorage.getItem('user'));
 
   const schema = userData.schema;
   const socket = io('http://localhost:3000');
+
   console.log(schema);
   socket.on('connect', () => {
     console.log('Socket conectado:', socket.id);
   });
+
   useEffect(() => {
-    axios.get(`http://localhost:3000/chat/getChats/${schema}`)
-      .then(res => setChats(res.data))
-      .catch(err => console.error('Erro ao carregar chats:', err));
-  
+    selectedChatRef.current = selectedChat;
+  }, [selectedChat]);
+
+  useEffect(() => {
+    axios
+      .get(`http://localhost:3000/chat/getChats/${schema}`)
+      .then((res) => setChats(res.data))
+      .catch((err) => console.error('Erro ao carregar chats:', err));
+
     socket.on('message', (newMessage) => {
-      if (selectedChat && selectedChat.chat_id === newMessage.chatId) {
-        setSelectedMessages(prevMessages => [...prevMessages, newMessage.body]);
+      console.log('nova mensagem recebida:', newMessage);
+      if (selectedChatRef.current && selectedChatRef.current.chat_id === newMessage.chatId) {
+        setSelectedMessages((prevMessages) => [...prevMessages, newMessage.body]);
       }
     });
-  
+
     return () => {
       socket.off('message');
     };
-  }, [selectedChat]);
+  }, []); 
 
   const handleChatClick = async (chat) => {
     try {
@@ -77,7 +86,7 @@ function ChatPage({ theme }) {
         <div className={`col-9 chat-messages-${theme}`} style={{ height: '100%' }}>
           <div style={{ whiteSpace: 'pre-wrap' }}>
             {selectedMessages.map((msg, idx) => (
-              <div key={idx}>{msg.body}</div> 
+              <div key={idx}>{msg.body}</div>
             ))}
           </div>
         </div>
