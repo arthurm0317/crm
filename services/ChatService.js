@@ -2,38 +2,63 @@ const pool = require('../db/queries');
 const { getOnlineUsers, updateLastAssignedUser, getLastAssignedUser } = require('./UserService');
 
 const createChat = async (chat, schema, message, etapa) => {
-  const exists = await pool.query(
-    `SELECT * FROM ${schema}.chats WHERE chat_id = $1 AND connection_id = $2`,
-    [chat.getChatId(), chat.getConnectionId()]
-  );
-
-  if (exists.rowCount > 0) {
-    await updateChatMessages(chat, schema, message);
-    return exists.rows[0]
-  } else {
-    const contactName = await pool.query(
-      `SELECT contact_name FROM ${schema}.contacts WHERE number=$1`, [chat.getChatId().split('@')[0]]
-    )
-    const result = await pool.query(
-      `INSERT INTO ${schema}.chats 
-        (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages, contact_phone, etapa_id) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-      [
-        chat.getId(),
-        chat.getChatId(),
-        chat.getConnectionId(),
-        chat.getQueueId(),
-        chat.getIsGroup(),
-        contactName.rows[0].contact_name || chat.getChatId().split('@')[0],
-        chat.getAssignedUser(),
-        chat.getStatus(),
-        chat.getCreatedAt(),
-        JSON.stringify([message]),
-        chat.getChatId().split('@')[0],
-        etapa || null
-      ]
+  try {
+    const existingChat = await pool.query(
+      `SELECT * FROM ${schema}.chats WHERE chat_id = $1 AND connection_id = $2`,
+      [chat.getChatId(), chat.getConnectionId()]
     );
-    return result.rows[0]
+
+    if (existingChat.rowCount > 0) {
+      await updateChatMessages(chat, schema, message);
+      return existingChat.rows[0];
+    }
+    const contactNumber = chat.getChatId().split('@')[0];
+    const contactQuery = await pool.query(
+      `SELECT * FROM ${schema}.contacts WHERE number = $1`,
+      [contactNumber]
+    );
+
+    let contactName;
+    if (contactQuery.rowCount > 0) {
+      contactName = contactQuery.rows[0].contact_name;
+    } else {
+      const newContact = await pool.query(
+        `INSERT INTO ${schema}.contacts (number, contact_name) VALUES ($1, $2) RETURNING *`,
+        [contactNumber, chat.getContact()] 
+      );
+      contactName = newContact.rows[0].contact_name;
+    }
+
+    const chatValues = [
+      chat.getId(),
+      chat.getChatId(),
+      chat.getConnectionId(),
+      chat.getQueueId(),
+      chat.getIsGroup(),
+      contactName,
+      chat.getAssignedUser(),
+      chat.getStatus(),
+      chat.getCreatedAt(),
+      JSON.stringify([message]),
+      contactNumber,
+      etapa || null
+    ];
+
+    const query = etapa
+      ? `INSERT INTO ${schema}.chats 
+          (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages, contact_phone, etapa_id) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`
+      : `INSERT INTO ${schema}.chats 
+          (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages, contact_phone) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`;
+
+    const result = await pool.query(query, etapa ? chatValues : chatValues.slice(0, -1));
+
+    console.log(`Chat criado com sucesso: ${result.rows[0].id}`);
+    return result.rows[0];
+  } catch (error) {
+    console.error('Erro ao criar chat:', error.message);
+    throw new Error('Erro ao criar chat');
   }
 };
 
@@ -51,9 +76,10 @@ const updateChatMessages = async (chat, schema, message) => {
 };
 
 const getMessages = async(chatId, schema)=>{
+    console.log("chatId", chatId, schema)
     const chat_id = await pool.query(
       `SELECT id FROM ${schema}.chats WHERE chat_id=$1`, [chatId])
-    console.log(chat_id.rows[0])
+    console.log("aaaa", chat_id.rows[0])
     const result = await pool.query(
       `SELECT * FROM ${schema}.messages WHERE chat_id=$1 ORDER BY created_at ASC`,
       [chat_id.rows[0].id]

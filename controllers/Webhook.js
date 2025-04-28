@@ -15,20 +15,27 @@ module.exports = (io) => {
     const result = req.body;
     const schema = req.body.schema || 'effective_gain';
 
+    let contact = result.data.key.remoteJid.split('@')[0];
+    console.log(result)
     try {
-      const chat = new Chat(
-        uuidv4(),
-        result.data.key.remoteJid,
-        result.data.instanceId,
-        null,
-        false,
-        null,
-        null,
-        result.data.status,
-        new Date(result.date_time).getTime(),
-        []
-      );
-
+      if(result.data.key.fromMe === false){
+        contact = result.data.pushName
+    }else{
+        contact=result.data.key.remoteJid.split('@')[0]
+    }
+    const chat = new Chat(
+      uuidv4(),
+      result.data.key.remoteJid,
+      result.data.instanceId,
+      null,
+      result.data.key.fromMe,
+      contact,
+      null,
+      result.data.status,
+      new Date(result.date_time).getTime(),
+      []
+    );
+    console.log("chat", chat) 
       const createChats = await createChat(chat, 'effective_gain', result.data.message.conversation);
       const chatDb = await getChatService(createChats, 'effective_gain');
       await saveMessage(
