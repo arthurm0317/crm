@@ -31,7 +31,7 @@ const getChatsController = async(req, res)=>{
 
 const getMessagesController = async(req, res)=>{
     const { chatId, schema } = req.body;
-    console.log(chatId, schema)
+    console.log("MESSAGE CONTORLLER", chatId, schema)
   try {
     const result = await getMessages(chatId, schema);
     res.json({ messages: result });
