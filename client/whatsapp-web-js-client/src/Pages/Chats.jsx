@@ -6,20 +6,27 @@ function ChatPage({ theme }) {
   const [chats, setChats] = useState([]);
   const [selectedMessages, setSelectedMessages] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
-  const selectedChatRef = useRef(null); 
+  const selectedChatRef = useRef(null);
   const userData = JSON.parse(localStorage.getItem('user'));
 
   const schema = userData.schema;
-  const socket = io('http://localhost:3000');
+  const socket = useRef(io('http://localhost:3000')).current;
 
   console.log(schema);
-  socket.on('connect', () => {
-    console.log('Socket conectado:', socket.id);
-  });
+
+  useEffect(() => {
+    socket.on('connect', () => {
+      console.log('Socket conectado:', socket.id);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [socket]);
 
   useEffect(() => {
     selectedChatRef.current = selectedChat;
-  }, [selectedChat]);
+  },[]);
 
   useEffect(() => {
     axios
@@ -30,15 +37,14 @@ function ChatPage({ theme }) {
     socket.on('message', (newMessage) => {
       console.log('nova mensagem recebida:', newMessage);
       if (selectedChatRef.current && selectedChatRef.current.chat_id === newMessage.chatId) {
-        setSelectedMessages((prevMessages) => [...prevMessages, newMessage.body]);
+        setSelectedMessages((prevMessages) => [...prevMessages, newMessage]);
       }
     });
 
     return () => {
       socket.off('message');
-      console.log('mensagem recebida')
     };
-  }, []); 
+  }, [schema, socket]);
 
   const handleChatClick = async (chat) => {
     try {
@@ -85,9 +91,22 @@ function ChatPage({ theme }) {
           ))}
         </div>
         <div className={`col-9 chat-messages-${theme}`} style={{ height: '100%' }}>
-          <div style={{ whiteSpace: 'pre-wrap' }}>
+          <div style={{ whiteSpace: 'pre-wrap', display: 'flex', flexDirection: 'column' }}>
             {selectedMessages.map((msg, idx) => (
-              <div key={idx}>{msg.body}</div>
+              <div
+                key={idx}
+                style={{
+                  backgroundColor: msg.fromMe ? '#dcf8c6' : '#f1f0f0', 
+                  textAlign: msg.fromMe ? 'right' : 'left', 
+                  padding: '10px',
+                  borderRadius: '10px',
+                  margin: '5px 0',
+                  maxWidth: '70%',
+                  alignSelf: msg.fromMe ? 'flex-end' : 'flex-start', 
+                }}
+              >
+                {msg.body}
+              </div>
             ))}
           </div>
         </div>

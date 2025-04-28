@@ -6,7 +6,6 @@ const { saveMessage } = require('../services/MessageService');
 const { Message } = require('../entities/Message');
 const { setQueue } = require('../services/ConnectionService');
 
-
 const app = express();
 app.use(express.json());
 
@@ -43,15 +42,23 @@ module.exports = (io) => {
         ),
         'effective_gain'
       );
-      setChatQueue(schema, chatDb.chat_id)
+      setChatQueue(schema, chatDb.chat_id);
 
-      io.emit("message", {
+      console.log('Emitindo mensagem:', {
         chatId: chatDb.id,
         body: result.data.message.conversation,
+        fromMe: result.data.key.fromMe,
         from: result.data.pushName,
         timestamp: new Date(result.date_time).getTime()
       });
-
+      io.emit("message", {
+        chatId: chatDb.id,
+        body: result.data.message.conversation,
+        fromMe: result.data.key.fromMe, 
+        from: result.data.pushName,
+        timestamp: new Date(result.date_time).getTime()
+      });
+      
       res.status(200).json({ result });
     } catch (err) {
       console.error("Erro no webhook /chat:", err);

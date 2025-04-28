@@ -24,13 +24,13 @@ const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
     origin: 'http://localhost:3001',
-    methods: ['GET', 'POST']
-  }
+    methods: ['GET', 'POST'],
+  },
 });
 
 app.use(cors(corsOptions));
 app.use(express.json());
-app.use('/webhook', webhook(io));
+app.use('/webhook', webhook(io)); // Mantém apenas uma instância do webhook
 app.use('/api', userRoutes);
 app.use('/company', companyRoutes);
 app.use('/queue', queueRoutes);
@@ -38,7 +38,6 @@ app.use('/connection', connRoutes);
 app.use('/evo', evoRoutes);
 app.use('/chat', chatRoutes);
 app.use('/contact', contactRoutes);
-app.use('/webhook', webhook(io));
 app.use('/kanban', kanbanRoutes);
 
 configureSocket(io, server);
