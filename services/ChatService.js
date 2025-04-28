@@ -201,6 +201,20 @@ const getChatData = async(id, schema)=>{
   return result
 }
 
+const getChatByUser = async (userId, schema) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM ${schema}.chats WHERE assigned_user = $1`,
+      [userId]
+    );
+
+    return result.rows;
+  } catch (error) {
+    console.error('Erro ao buscar chats do usuário:', error.message);
+    throw new Error('Erro ao buscar chats do usuário');
+  }
+};
+
 module.exports = {
     createChat,
     updateChatMessages,
@@ -210,5 +224,6 @@ module.exports = {
     getChats,
     setChatQueue,
     updateQueue,
-    getChatData
+    getChatData,
+    getChatByUser 
   }

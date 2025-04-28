@@ -1,4 +1,5 @@
-const { setUserChat, getChats, getMessages, setQueue, getChatData } = require('../services/ChatService');
+const { get } = require('../routes/UserRoutes');
+const { setUserChat, getChats, getMessages, setQueue, getChatData, getChatByUser } = require('../services/ChatService');
 
 const setUserChatController = async(req, res)=>{
     const {chat} = req.body
@@ -69,10 +70,29 @@ const getChatDataController = async (req, res) => {
     }
 };
 
+const getChatByUserController = async (req, res) => {
+    console.log(req.params)
+    const { userId } = req.params;
+    const schema = req.params.schema || 'effective_gain';
+
+    if (!userId) {
+        return res.status(400).json({ error: 'O parâmetro userId é obrigatório.' });
+    }
+
+    try {
+        const result = await getChatByUser(userId, schema);
+        res.status(200).json({ messages: result });
+    } catch (err) {
+        console.error('Erro ao buscar chats do usuário:', err.message);
+        res.status(500).json({ error: 'Erro ao buscar chats do usuário.' });
+    }
+}
+
 module.exports = {
     setUserChatController,
     getChatsController,
     getMessagesController,
     setQueueController,
-    getChatDataController
+    getChatDataController,
+    getChatByUserController
 }

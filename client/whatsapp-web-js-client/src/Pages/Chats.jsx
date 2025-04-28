@@ -3,7 +3,7 @@ import axios from 'axios';
 import io from 'socket.io-client';
 
 function ChatPage({ theme }) {
-  const [chats, setChats] = useState([]);
+  const [chats, setChats] = useState([]); // Estado inicial como array vazio
   const [selectedMessages, setSelectedMessages] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
   const selectedChatRef = useRef(null);
@@ -11,8 +11,6 @@ function ChatPage({ theme }) {
 
   const schema = userData.schema;
   const socket = useRef(io('http://localhost:3000')).current;
-
-  console.log(schema);
 
   useEffect(() => {
     socket.on('connect', () => {
@@ -26,16 +24,20 @@ function ChatPage({ theme }) {
 
   useEffect(() => {
     selectedChatRef.current = selectedChat;
-  },[]);
+  }, [selectedChat]);
 
   useEffect(() => {
     axios
-      .get(`http://localhost:3000/chat/getChats/${schema}`)
-      .then((res) => setChats(res.data))
+      .get(`http://localhost:3000/chat/getChat/${userData.id}/${schema}`)
+      .then((res) => {
+        console.log('Resposta da API:', res.data);
+        setChats(res.data.messages || []); // Ajustado para usar o campo `messages`
+        console.log('Estado de chats atualizado:', res.data.messages || []);
+      })
       .catch((err) => console.error('Erro ao carregar chats:', err));
 
     socket.on('message', (newMessage) => {
-      console.log('nova mensagem recebida:', newMessage);
+      console.log('Nova mensagem recebida:', newMessage);
       if (selectedChatRef.current && selectedChatRef.current.chat_id === newMessage.chatId) {
         setSelectedMessages((prevMessages) => [...prevMessages, newMessage]);
       }
@@ -66,29 +68,32 @@ function ChatPage({ theme }) {
       </div>
       <div className={`chat chat-${theme} h-100 w-100 d-flex flex-row`}>
         <div className={`col-3 chat-list-${theme}`} style={{ overflowY: 'auto', height: '100%' }}>
-          {chats.map((chat) => (
-            <div
-              key={chat.id}
-              onClick={() => handleChatClick(chat)}
-              style={{ cursor: 'pointer', padding: '10px', borderBottom: '1px solid #ccc' }}
-            >
-              <strong>{chat.contact || chat.number || 'Sem Nome'}</strong>
+          {Array.isArray(chats) && chats.map((chat) => {
+            console.log('Renderizando chat:', chat);
+            return (
               <div
-                style={{
-                  color: '#666',
-                  fontSize: '0.9rem',
-                  overflow: 'hidden',
-                  whiteSpace: 'nowrap',
-                  textOverflow: 'ellipsis',
-                  maxWidth: '100%',
-                }}
+                key={chat.id}
+                onClick={() => handleChatClick(chat)}
+                style={{ cursor: 'pointer', padding: '10px', borderBottom: '1px solid #ccc' }}
               >
-                {Array.isArray(chat.messages) && chat.messages.length > 0
-                  ? chat.messages[chat.messages.length - 1]
-                  : 'Sem mensagens'}
+                <strong>{chat.contact_name || chat.chat_id || 'Sem Nome'}</strong>
+                <div
+                  style={{
+                    color: '#666',
+                    fontSize: '0.9rem',
+                    overflow: 'hidden',
+                    whiteSpace: 'nowrap',
+                    textOverflow: 'ellipsis',
+                    maxWidth: '100%',
+                  }}
+                >
+                  {Array.isArray(chat.messages) && chat.messages.length > 0
+                    ? chat.messages[chat.messages.length - 1]
+                    : 'Sem mensagens'}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         <div className={`col-9 chat-messages-${theme}`} style={{ height: '100%' }}>
           <div style={{ whiteSpace: 'pre-wrap', display: 'flex', flexDirection: 'column' }}>
@@ -96,13 +101,13 @@ function ChatPage({ theme }) {
               <div
                 key={idx}
                 style={{
-                  backgroundColor: msg.fromMe ? '#dcf8c6' : '#f1f0f0', 
-                  textAlign: msg.fromMe ? 'right' : 'left', 
+                  backgroundColor: msg.fromMe ? '#dcf8c6' : '#f1f0f0',
+                  textAlign: msg.fromMe ? 'right' : 'left',
                   padding: '10px',
                   borderRadius: '10px',
                   margin: '5px 0',
                   maxWidth: '70%',
-                  alignSelf: msg.fromMe ? 'flex-end' : 'flex-start', 
+                  alignSelf: msg.fromMe ? 'flex-end' : 'flex-start',
                 }}
               >
                 {msg.body}

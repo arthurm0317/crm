@@ -93,5 +93,5 @@ const searchUser = async (userMail, userPassword) => {
        DO UPDATE SET user_id = EXCLUDED.user_id`,
       [queue, user_id]
     );
-  };
+};
 module.exports = { createUser, getAllUsers, searchUser, changeOnline, changeOffline, getOnlineUsers, getLastAssignedUser, updateLastAssignedUser};
