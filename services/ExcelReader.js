@@ -4,6 +4,7 @@ const xlsx = require('xlsx');
 const pool = require("../db/queries")
 const { insertValueCustomField } = require('./ContactService');
 const { insertInKanbanStage } = require('./KanbanService');
+const { get } = require('http');
 
 const folderPath = path.join(__dirname, '..', 'uploads');
 
@@ -12,7 +13,7 @@ function processExcelFile() {
 
   if (files.length === 0) {
     console.log('Nenhum arquivo .xlsx encontrado.');
-    return;
+    return [];
   }
 
   const filePath = path.join(folderPath, files[0]); 
@@ -20,7 +21,11 @@ function processExcelFile() {
   const sheetName = workbook.SheetNames[0]; 
   const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-  getInformationFromExcel(data, 'effective_gain')
+  console.log('Dados processados do Excel:', data);
+
+  getInformationFromExcel(data, 'effective_gain') 
+
+  return data;
 
   // fs.unlinkSync(filePath);
   
