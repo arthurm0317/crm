@@ -4,7 +4,6 @@ const xlsx = require('xlsx');
 const pool = require("../db/queries")
 const { insertValueCustomField } = require('./ContactService');
 const { insertInKanbanStage } = require('./KanbanService');
-const { get } = require('http');
 
 const folderPath = path.join(__dirname, '..', 'uploads');
 

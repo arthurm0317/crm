@@ -1,4 +1,3 @@
-const { processExcelFile } = require("./services/ExcelReader");
-const { initiateBlast } = require("./services/MessageBlast");
+const { messageBlast } = require("./services/MessageBlast");
 
-initiateBlast('7abec4e3-0a2a-4618-a9bb-a4488ff1c408', 'effective_gain')
+messageBlast('87681f12-c8d5-4b9d-879c-ad9636355ec3', 'Regua 4', 30, 'effective_gain')

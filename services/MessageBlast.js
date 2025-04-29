@@ -18,47 +18,36 @@ const createMessageForBlast = async (messageValue, sector, schema) => {
 }
 
 
-const messageBlast = async(messageId, chatId, schema)=>{
+const messageBlast = async(messageId, etapa, timer, schema)=>{
     try{
-        const instanceId = await pool.query(
-        `SELECT * FROM ${schema}.chats where chat_id=$1`, [chatId[0].chat_id]
-        )
-        const instance = await pool.query(
-        `SELECT * FROM ${schema}.connections where id=$1`, [instanceId.rows[0].connection_id]
-        )
-        const message = await pool.query(
-        `SELECT * FROM ${schema}.message_blast where id=$1`, [messageId]
-        )
+        const chatId = await getChatsInKanbanStage(etapa, schema)
+        for (let i = 0; i < chatId.length; i++) {
+            const instanceId = await pool.query(
+            `SELECT * FROM ${schema}.chats where chat_id=$1`, [chatId[i].chat_id]
+            )
+            console.log("instanceId", instanceId.rows[0])
+            const instance = await pool.query(
+            `SELECT * FROM ${schema}.connections where id=$1`, [instanceId.rows[0].connection_id]
+            )
+            const message = await pool.query(
+            `SELECT * FROM ${schema}.message_blast where id=$1`, [messageId]
+            )
+            console.log(i)
+            await sendTextMessage(
+                instance.rows[0].name,
+                message.rows[0].value,
+                instanceId.rows[0].contact_phone
+            );
+            await new Promise((resolve) => setTimeout(resolve, timer * 1000));
+        }
         
-        const result = await sendTextMessage(
-            instance.rows[0].name,
-            message.rows[0].value,
-            instanceId.rows[0].contact_phone
-          );
-        console.log("Resultado do envio:", result)
     }catch(error){
         console.error('Erro ao enviar mensagem:', error.message);
         throw error;
     }
 }
 
-const initiateBlast = async (messageId, schema) => {
-  try{
-    const data = await processExcelFile()
-    for (let i = 0; i < data.length; i++) {
-        const chatId = await getChatsInKanbanStage('Regua 4', schema)
-        const blast = await messageBlast(messageId, chatId, schema)
-        return blast
-    }
-  }
-    catch(error){
-        console.error('Erro ao iniciar disparo:', error.message);
-        throw error;
-    }
-};
-
 module.exports = {
   createMessageForBlast,
-  messageBlast,
-  initiateBlast
+  messageBlast
 };
