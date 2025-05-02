@@ -32,7 +32,6 @@ const getChatsController = async(req, res)=>{
 
 const getMessagesController = async(req, res)=>{
     const { chatId, schema } = req.body;
-    console.log("MESSAGE CONTORLLER", chatId, schema)
   try {
     const result = await getMessages(chatId, schema);
     res.json({ messages: result });
@@ -71,7 +70,6 @@ const getChatDataController = async (req, res) => {
 };
 
 const getChatByUserController = async (req, res) => {
-    console.log(req.params)
     const { userId } = req.params;
     const schema = req.params.schema || 'effective_gain';
 

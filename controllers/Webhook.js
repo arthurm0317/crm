@@ -13,65 +13,65 @@ module.exports = (io) => {
   app.post('/chat', async (req, res) => {
     const result = req.body;
     const schema = req.body.schema || 'effective_gain';
-
+  
     let contact = result.data.key.remoteJid.split('@')[0];
-    console.log(result)
     try {
-      if(result.data.key.fromMe === false){
-        contact = result.data.pushName
-    }else{
-        contact=result.data.key.remoteJid.split('@')[0]
-    }
-    const chat = new Chat(
-      uuidv4(),
-      result.data.key.remoteJid,
-      result.data.instanceId,
-      null,
-      result.data.key.fromMe,
-      contact,
-      null,
-      result.data.status,
-      new Date(result.date_time).getTime(),
-      []
-    );
-    console.log("chat", chat) 
-      const createChats = await createChat(chat, 'effective_gain', result.data.message.conversation);
-      const chatDb = await getChatService(createChats, 'effective_gain');
+      if (result.data.key.fromMe === false) {
+        contact = result.data.pushName;
+      } else {
+        contact = result.data.key.remoteJid.split('@')[0];
+      }
+  
+      let audioBase64 = null;
+      if (result.data.messageType === 'audioMessage' && result.data.message.audioMessage) {
+        audioBase64 = result.data.message.audioMessage.base64;
+        console.log("Áudio em base64:", audioBase64);
+      }
+  
+      const chat = new Chat(
+        uuidv4(),
+        result.data.key.remoteJid,
+        result.data.instanceId,
+        null,
+        result.data.key.fromMe,
+        contact,
+        null,
+        result.data.status,
+        new Date(result.date_time).getTime(),
+        []
+      );
+  
+      const createChats = await createChat(chat, result.instance, result.data.message.conversation);
+      const chatDb = await getChatService(createChats.chat, createChats.schema );
+
       await saveMessage(
         chatDb.id,
         new Message(
           uuidv4(),
-          result.data.message.conversation,
+          result.data.message.conversation || audioBase64, 
           result.data.key.fromMe,
           result.data.key.remoteJid,
           result.data.pushName,
           new Date(result.date_time).getTime()
         ),
-        'effective_gain'
+        createChats.schema
       );
-      setChatQueue(schema, chatDb.chat_id);
-
-      console.log('Emitindo mensagem:', {
+  
+      setChatQueue(createChats.schema, chatDb.chat_id);
+  
+      io.emit("message", {
         chatId: chatDb.id,
-        body: result.data.message.conversation,
+        body: result.data.message.conversation || audioBase64, 
         fromMe: result.data.key.fromMe,
         from: result.data.pushName,
         timestamp: new Date(result.date_time).getTime()
       });
-      io.emit("message", {
-        chatId: chatDb.id,
-        body: result.data.message.conversation,
-        fromMe: result.data.key.fromMe, 
-        from: result.data.pushName,
-        timestamp: new Date(result.date_time).getTime()
-      });
-      
+  
       res.status(200).json({ result });
     } catch (err) {
       console.error("Erro no webhook /chat:", err);
       res.status(500).json({ error: err.message });
     }
   });
-
   return app;
 };
