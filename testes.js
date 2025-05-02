@@ -1,3 +1,4 @@
-const { messageBlast } = require("./services/MessageBlast");
+const { createCampaing, startCampaing } = require("./services/CampaingService");
+const { createMessageForBlast } = require("./services/MessageBlast");
 
-messageBlast('87681f12-c8d5-4b9d-879c-ad9636355ec3', 'Regua 4', 30, 'effective_gain')
+startCampaing('78382d8a-db19-4130-a62d-ff52c07b4379', 5, 'effective_gain')
