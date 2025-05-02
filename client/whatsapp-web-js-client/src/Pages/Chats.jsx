@@ -16,6 +16,7 @@ function ChatPage({ theme }) {
   const userData = JSON.parse(localStorage.getItem('user'));
 
   const schema = userData.schema;
+  console.log('userData:', userData);
   const socket = useRef(io('http://localhost:3000')).current;
 
   useEffect(() => {
@@ -33,11 +34,12 @@ function ChatPage({ theme }) {
   }, [selectedChat]);
 
   useEffect(() => {
+    console.log(userData.id, schema);
     axios
       .get(`http://localhost:3000/chat/getChat/${userData.id}/${schema}`)
       .then((res) => {
         console.log('Resposta da API:', res.data);
-        setChats(res.data.messages || []); // Ajustado para usar o campo `messages`
+        setChats(res.data.messages || []);
         console.log('Estado de chats atualizado:', res.data.messages || []);
       })
       .catch((err) => console.error('Erro ao carregar chats:', err));

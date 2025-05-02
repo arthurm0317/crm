@@ -1,9 +1,9 @@
-//ChatService.js
+
 const pool = require('../db/queries');
 const { getOnlineUsers, updateLastAssignedUser, getLastAssignedUser } = require('./UserService');
 
-const createChat = async (chat, schema, message, etapa, io) => {
-const createChat = async (chat, instance, message, etapa) => {
+const createChat = async (chat, instance, message, etapa, io) => {
+  console.log("Valor de io:", io);
   const geralSchema = await pool.query(
   `SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('pg_catalog', 'information_schema', 'pg_toast', 'public')`,
   )
@@ -39,7 +39,6 @@ const createChat = async (chat, instance, message, etapa) => {
         message,
         schema
       });
-      return existingChat.rows[0];
       await updateChatMessages(chat, schema, message);
       return{
         chat:existingChat.rows[0],
@@ -89,13 +88,13 @@ const createChat = async (chat, instance, message, etapa) => {
 
     const result = await pool.query(query, etapa ? chatValues : chatValues.slice(0, -1));
 
-    io.to(schema).emit("chat:new-message", {
-      chatId: chat.getChatId(),
-      message,
-      schema
-    });
-
-    return result.rows[0];
+    if (io) {
+      io.to(schema).emit("chat:new-message", {
+        chatId: chat.getChatId(),
+        message,
+        schema
+      });
+    }
     console.log(`Chat criado com sucesso: ${result.rows[0].id}`);
     console.log("asdasda",result.rows[0], schema)
     return{
@@ -252,4 +251,3 @@ module.exports = {
     getChatData,
     getChatByUser 
   }
-}

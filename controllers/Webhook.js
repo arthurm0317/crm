@@ -5,6 +5,7 @@ const ffmpeg = require('fluent-ffmpeg');
 const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 const multer = require('multer');
+const { saveMessage } = require('../services/MessageService');
 
 module.exports = (io) => {
   const express = require('express');
@@ -12,7 +13,7 @@ module.exports = (io) => {
   const { v4: uuidv4 } = require('uuid');
   const { Chat } = require('../entities/Chat');
   const { Message } = require('../entities/Message');
-  const { createChat, getChatService, saveMessage, setChatQueue } = require('../services/ChatService');
+  const { createChat, getChatService, setChatQueue } = require('../services/ChatService');
 
   app.post('/chat', async (req, res) => {
     const result = req.body;
@@ -73,8 +74,8 @@ module.exports = (io) => {
         }
       }
 
-      const createChats = await createChat(chat, schema, messageBody);
-      const chatDb = await getChatService(createChats, schema);
+      const createChats = await createChat(chat, result.instance, result.data.message.conversation, null, io);
+      const chatDb = await getChatService(createChats.chat, createChats.schema );
 
       await saveMessage(
         chatDb.id,
