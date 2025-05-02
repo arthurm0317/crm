@@ -5,7 +5,6 @@ const { createConnection, fetchInstance, searchConnById } = require('../services
 
 const createInstanceController = async(req, res)=>{
     try{
-        console.log("Corpo da requisição:", req.body);
         const {instanceName, number} = req.body
         const schema = req.body.schema || 'effective_gain'
 
@@ -50,10 +49,8 @@ const fetchInstanceController = async (req, res) => {
 const sendTextMessageController = async(req, res)=>{
   try{
     const body = req.body
-    console.log(req.body)
     const schema = req.body.schema || 'effective_gain'
     const instance = await searchConnById(schema, body.connectionId)
-    console.log(instance)
     const result = await sendTextMessage(instance.name, body.text, body.number)
     res.status(200).json({ result });
   } catch (error) {

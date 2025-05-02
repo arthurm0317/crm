@@ -1,4 +1,5 @@
-const { setUserChat, getChats, getMessages, setQueue, getChatData } = require('../services/ChatService');
+const { get } = require('../routes/UserRoutes');
+const { setUserChat, getChats, getMessages, setQueue, getChatData, getChatByUser, updateQueue } = require('../services/ChatService');
 
 const setUserChatController = async(req, res)=>{
     const {chat} = req.body
@@ -31,7 +32,6 @@ const getChatsController = async(req, res)=>{
 
 const getMessagesController = async(req, res)=>{
     const { chatId, schema } = req.body;
-    console.log("MESSAGE CONTORLLER", chatId, schema)
   try {
     const result = await getMessages(chatId, schema);
     res.json({ messages: result });
@@ -41,12 +41,12 @@ const getMessagesController = async(req, res)=>{
   }
 }
 
-const setQueueController = async(req, res)=>{
+const updateQueueController = async(req, res)=>{
     try{
         const {queueId, chatId} = req.body
         const schema = req.body.schema || 'effective_gain'
 
-        const result = await setQueue(schema, chatId, queueId)
+        const result = await updateQueue(schema, chatId, queueId)
         res.json({ messages: result });
     } catch (err) {
       console.error('Erro ao definir fila do chat:', err);
@@ -69,10 +69,28 @@ const getChatDataController = async (req, res) => {
     }
 };
 
+const getChatByUserController = async (req, res) => {
+    const { userId } = req.params;
+    const schema = req.params.schema || 'effective_gain';
+
+    if (!userId) {
+        return res.status(400).json({ error: 'O parâmetro userId é obrigatório.' });
+    }
+
+    try {
+        const result = await getChatByUser(userId, schema);
+        res.status(200).json({ messages: result });
+    } catch (err) {
+        console.error('Erro ao buscar chats do usuário:', err.message);
+        res.status(500).json({ error: 'Erro ao buscar chats do usuário.' });
+    }
+}
+
 module.exports = {
     setUserChatController,
     getChatsController,
     getMessagesController,
-    setQueueController,
-    getChatDataController
+    updateQueueController,
+    getChatDataController,
+    getChatByUserController
 }

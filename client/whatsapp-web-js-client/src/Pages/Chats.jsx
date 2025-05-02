@@ -3,14 +3,14 @@ import axios from 'axios';
 import io from 'socket.io-client';
 
 function ChatPage({ theme }) {
-  const [chats, setChats] = useState([]);
+  const [chats, setChats] = useState([]); 
   const [selectedMessages, setSelectedMessages] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
   const [newMessage, setNewMessage] = useState('');
   const [replyMessage, setReplyMessage] = useState(null);
-  const [isRecording, setIsRecording] = useState(false); // Estado para controlar a gravação
-  const [mediaRecorder, setMediaRecorder] = useState(null); // MediaRecorder
-  const [audioChunks, setAudioChunks] = useState([]); // Buffer de áudio
+  const [isRecording, setIsRecording] = useState(false); 
+  const [mediaRecorder, setMediaRecorder] = useState(null); 
+  const [audioChunks, setAudioChunks] = useState([]); 
   const selectedChatRef = useRef(null);
   const messagesEndRef = useRef(null);
   const userData = JSON.parse(localStorage.getItem('user'));
@@ -34,12 +34,17 @@ function ChatPage({ theme }) {
 
   useEffect(() => {
     axios
-      .get(`http://localhost:3000/chat/getChats/${schema}`)
-      .then((res) => setChats(res.data))
+      .get(`http://localhost:3000/chat/getChat/${userData.id}/${schema}`)
+      .then((res) => {
+        console.log('Resposta da API:', res.data);
+        setChats(res.data.messages || []); // Ajustado para usar o campo `messages`
+        console.log('Estado de chats atualizado:', res.data.messages || []);
+      })
       .catch((err) => console.error('Erro ao carregar chats:', err));
 
     socket.on('message', (newMessage) => {
-      console.log('Nova mensagem recebida no frontend:', newMessage);
+      console.log('nova mensagem recebida no frontend:', newMessage);
+      console.log('Nova mensagem recebida:', newMessage);
       if (selectedChatRef.current && selectedChatRef.current.chat_id === newMessage.chatId) {
         setSelectedMessages((prevMessages) => [...prevMessages, newMessage]);
         scrollToBottom();
@@ -149,29 +154,32 @@ function ChatPage({ theme }) {
       </div>
       <div className={`chat chat-${theme} h-100 w-100 d-flex flex-row`}>
         <div className={`col-3 chat-list-${theme}`} style={{ overflowY: 'auto', height: '100%' }}>
-          {chats.map((chat) => (
-            <div
-              key={chat.id}
-              onClick={() => handleChatClick(chat)}
-              style={{ cursor: 'pointer', padding: '10px', borderBottom: '1px solid #ccc' }}
-            >
-              <strong>{chat.contact || chat.number || 'Sem Nome'}</strong>
+          {Array.isArray(chats) && chats.map((chat) => {
+            console.log('Renderizando chat:', chat);
+            return (
               <div
-                style={{
-                  color: '#666',
-                  fontSize: '0.9rem',
-                  overflow: 'hidden',
-                  whiteSpace: 'nowrap',
-                  textOverflow: 'ellipsis',
-                  maxWidth: '100%',
-                }}
+                key={chat.id}
+                onClick={() => handleChatClick(chat)}
+                style={{ cursor: 'pointer', padding: '10px', borderBottom: '1px solid #ccc' }}
               >
-                {Array.isArray(chat.messages) && chat.messages.length > 0
-                  ? chat.messages[chat.messages.length - 1]
-                  : 'Sem mensagens'}
+                <strong>{chat.contact_name || chat.chat_id || 'Sem Nome'}</strong>
+                <div
+                  style={{
+                    color: '#666',
+                    fontSize: '0.9rem',
+                    overflow: 'hidden',
+                    whiteSpace: 'nowrap',
+                    textOverflow: 'ellipsis',
+                    maxWidth: '100%',
+                  }}
+                >
+                  {Array.isArray(chat.messages) && chat.messages.length > 0
+                    ? chat.messages[chat.messages.length - 1]
+                    : 'Sem mensagens'}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className={`col-9 chat-messages-${theme}`} style={{ height: '100%' }}>

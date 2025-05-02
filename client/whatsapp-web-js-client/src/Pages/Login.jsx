@@ -24,6 +24,7 @@ function Login() {
       });
       if (response.data.success) {
         const userData = {
+          id: response.data.user.id,
           username: response.data.user.name,
           role: response.data.user.permission,
           empresa: response.data.company.company_name,

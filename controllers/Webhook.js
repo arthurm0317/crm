@@ -20,11 +20,7 @@ module.exports = (io) => {
 
     let contact = result.data.key.remoteJid.split('@')[0];
     try {
-      if (result.data.key.fromMe === false) {
-        contact = result.data.pushName;
-      } else {
-        contact = result.data.key.remoteJid.split('@')[0];
-      }
+      contact = result.data.key.fromMe ? result.data.key.remoteJid.split('@')[0] : result.data.pushName;
 
       const timestamp = new Date(result.date_time).getTime();
       const chat = new Chat(
@@ -77,8 +73,9 @@ module.exports = (io) => {
         }
       }
 
-      const createChats = await createChat(chat, 'effective_gain', messageBody);
-      const chatDb = await getChatService(createChats, 'effective_gain');
+      const createChats = await createChat(chat, schema, messageBody);
+      const chatDb = await getChatService(createChats, schema);
+
       await saveMessage(
         chatDb.id,
         new Message(
@@ -89,7 +86,7 @@ module.exports = (io) => {
           result.data.pushName,
           timestamp
         ),
-        'effective_gain'
+        schema
       );
 
       setChatQueue(schema, chatDb.chat_id);
@@ -101,6 +98,7 @@ module.exports = (io) => {
         from: result.data.pushName,
         timestamp,
       });
+
       console.log('Evento message emitido:', {
         chatId: chatDb.id,
         body: messageBody,
@@ -131,11 +129,10 @@ module.exports = (io) => {
 
       res.status(200).json({ success: true, message: sentMessage });
     } catch (err) {
-      console.error('Erro ao enviar mensagem:', err); 
+      console.error('Erro ao enviar mensagem:', err);
       res.status(500).json({ error: err.message });
     }
   });
-
 
   const storage = multer.diskStorage({
     destination: (req, file, cb) => {
