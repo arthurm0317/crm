@@ -3,7 +3,6 @@ const pool = require('../db/queries');
 const { getOnlineUsers, updateLastAssignedUser, getLastAssignedUser } = require('./UserService');
 
 const createChat = async (chat, instance, message, etapa, io) => {
-  console.log("Valor de io:", io);
   const geralSchema = await pool.query(
   `SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('pg_catalog', 'information_schema', 'pg_toast', 'public')`,
   )
@@ -96,7 +95,6 @@ const createChat = async (chat, instance, message, etapa, io) => {
       });
     }
     console.log(`Chat criado com sucesso: ${result.rows[0].id}`);
-    console.log("asdasda",result.rows[0], schema)
     return{
       result: result.rows[0],
       schema: schema

@@ -36,6 +36,7 @@ module.exports = (io) => {
         timestamp,
         []
       );
+      console.log(await result)
 
       let messageBody = '';
 
@@ -80,7 +81,7 @@ module.exports = (io) => {
       await saveMessage(
         chatDb.id,
         new Message(
-          uuidv4(),
+          result.data.key.id,
           messageBody,
           result.data.key.fromMe,
           result.data.key.remoteJid,
@@ -93,14 +94,6 @@ module.exports = (io) => {
       setChatQueue(schema, chatDb.chat_id);
 
       io.emit('message', {
-        chatId: chatDb.id,
-        body: messageBody,
-        fromMe: result.data.key.fromMe,
-        from: result.data.pushName,
-        timestamp,
-      });
-
-      console.log('Evento message emitido:', {
         chatId: chatDb.id,
         body: messageBody,
         fromMe: result.data.key.fromMe,
