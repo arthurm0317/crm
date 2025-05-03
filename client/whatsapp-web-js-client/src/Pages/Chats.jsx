@@ -182,7 +182,7 @@ function ChatPage({ theme }) {
         </div>
 
         <div className={`col-9 chat-messages-${theme}`} style={{ height: '100%' }}>
-          <div style={{ whiteSpace: 'pre-wrap', display: 'flex', flexDirection: 'column' }}>
+          <div id="corpoTexto" style={{ whiteSpace: 'pre-wrap', display: 'flex', flexDirection: 'column' }}>
             {selectedMessages.map((msg, idx) => (
               <div
                 key={idx}
