@@ -6,6 +6,7 @@ const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 const multer = require('multer');
 const { saveMessage } = require('../services/MessageService');
+const pool = require('../db/queries')
 
 module.exports = (io) => {
   const express = require('express');
@@ -13,7 +14,7 @@ module.exports = (io) => {
   const { v4: uuidv4 } = require('uuid');
   const { Chat } = require('../entities/Chat');
   const { Message } = require('../entities/Message');
-  const { createChat, getChatService, setChatQueue } = require('../services/ChatService');
+  const { createChat, getChatService, setChatQueue, setUserChat } = require('../services/ChatService');
 
   app.post('/chat', async (req, res) => {
     const result = req.body;
@@ -36,8 +37,6 @@ module.exports = (io) => {
         timestamp,
         []
       );
-      console.log(await result)
-
       let messageBody = '';
 
       if (result.data.message?.conversation) {
@@ -78,20 +77,38 @@ module.exports = (io) => {
       const createChats = await createChat(chat, result.instance, result.data.message.conversation, null, io);
       const chatDb = await getChatService(createChats.chat, createChats.schema );
 
-      await saveMessage(
-        chatDb.id,
-        new Message(
-          result.data.key.id,
-          messageBody,
-          result.data.key.fromMe,
-          result.data.key.remoteJid,
-          result.data.pushName,
-          timestamp
-        ),
-        schema
+      const existingMessage = await pool.query(
+        `SELECT id FROM ${schema}.messages WHERE id = $1`,
+        [result.data.key.id]
       );
+      
+      if (existingMessage.rowCount > 0) {
+        console.log('Mensagem já existe, ignorando inserção.');
+      } else {
+        await saveMessage(
+          chatDb.id,
+          new Message(
+            result.data.key.id,
+            messageBody,
+            result.data.key.fromMe,
+            result.data.key.remoteJid,
+            result.data.pushName,
+            timestamp
+          ),
+          schema
+        );
+      }
 
-      setChatQueue(schema, chatDb.chat_id);
+      await setChatQueue(schema, chatDb.chat_id);
+      await setUserChat(chatDb.id, schema)
+
+      console.log('Emitindo mensagem para o socket:', {
+        chatId: chatDb.id,
+        body: messageBody,
+        fromMe: result.data.key.fromMe,
+        from: result.data.pushName,
+        timestamp,
+      });
 
       io.emit('message', {
         chatId: chatDb.id,
@@ -100,6 +117,7 @@ module.exports = (io) => {
         from: result.data.pushName,
         timestamp,
       });
+
 
       res.status(200).json({ result });
     } catch (err) {

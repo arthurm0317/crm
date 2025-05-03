@@ -153,7 +153,7 @@ const setUserChat = async (chatId, schema) => {
       user.permission === 'user' && userIdsInQueue.includes(user.id)
     );
     if (eligibleUsers.length === 0) return;
-    const lastAssigned = await getLastAssignedUser(queueId);
+    const lastAssigned = await getLastAssignedUser(queueId, schema);
     let nextUser;
     if (!lastAssigned) {
       nextUser = eligibleUsers[0];
@@ -161,7 +161,7 @@ const setUserChat = async (chatId, schema) => {
       const lastIndex = eligibleUsers.findIndex(u => u.id === lastAssigned.user_id);
       nextUser = eligibleUsers[(lastIndex + 1) % eligibleUsers.length];
     }
-    await updateLastAssignedUser(queueId, nextUser.id);
+    await updateLastAssignedUser(queueId, nextUser.id, schema);
     await pool.query(
       `UPDATE ${schema}.chats SET assigned_user=$1 WHERE id=$2`,
       [nextUser.id, chatId]

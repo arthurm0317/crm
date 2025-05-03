@@ -30,7 +30,6 @@ function Login() {
           empresa: response.data.company.company_name,
           schema: response.data.company.schema_name,
         };
-        console.log(userData);
         localStorage.setItem('user', JSON.stringify(userData));
         navigate('/painel');
       }

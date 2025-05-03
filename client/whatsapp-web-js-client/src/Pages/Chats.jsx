@@ -16,7 +16,7 @@ function ChatPage({ theme }) {
   const userData = JSON.parse(localStorage.getItem('user'));
 
   const schema = userData.schema;
-  console.log('userData:', userData);
+
   const socket = useRef(io('http://localhost:3000')).current;
 
   useEffect(() => {
@@ -31,16 +31,13 @@ function ChatPage({ theme }) {
 
   useEffect(() => {
     selectedChatRef.current = selectedChat;
-  }, [selectedChat]);
+  });
 
   useEffect(() => {
-    console.log(userData.id, schema);
     axios
       .get(`http://localhost:3000/chat/getChat/${userData.id}/${schema}`)
       .then((res) => {
-        console.log('Resposta da API:', res.data);
         setChats(res.data.messages || []);
-        console.log('Estado de chats atualizado:', res.data.messages || []);
       })
       .catch((err) => console.error('Erro ao carregar chats:', err));
 
@@ -64,6 +61,7 @@ function ChatPage({ theme }) {
         chatId: chat.chat_id,
         schema,
       });
+      console.log('Mensagens recebidas:', res.data.messages);
       setSelectedChat(chat);
       setSelectedMessages(res.data.messages);
       scrollToBottom();
@@ -157,7 +155,6 @@ function ChatPage({ theme }) {
       <div className={`chat chat-${theme} h-100 w-100 d-flex flex-row`}>
         <div className={`col-3 chat-list-${theme}`} style={{ overflowY: 'auto', height: '100%' }}>
           {Array.isArray(chats) && chats.map((chat) => {
-            console.log('Renderizando chat:', chat);
             return (
               <div
                 key={chat.id}

@@ -37,10 +37,7 @@ const io = socketIo(server, {
 });
 
 io.on('connection', (socket) => {
-  console.log('Novo cliente conectado:', socket.id);
-
   socket.on('disconnect', () => {
-    console.log('Cliente desconectado:', socket.id);
   });
 });
 
@@ -113,7 +110,7 @@ app.post('/chat/sendMessage', async (req, res) => {
 
 configureSocket(io, server);
 
-const PORT = 3000;
+const PORT = 3002;
 server.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT} 🚀`);
 });
