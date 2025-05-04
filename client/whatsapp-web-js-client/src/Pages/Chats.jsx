@@ -62,6 +62,8 @@ function ChatPage({ theme }) {
           return updatedMessages;
         });
         scrollToBottom();
+      } else {
+        console.log('Mensagem recebida para outro chat:', newMessage.chatId);
       }
     });
 
@@ -69,6 +71,27 @@ function ChatPage({ theme }) {
       socket.off('message');
     };
   }, [socket]);
+
+  // Atualização periódica do chat selecionado
+  useEffect(() => {
+    if (!selectedChat) return;
+
+    const interval = setInterval(async () => {
+      try {
+        console.log('Atualizando mensagens do chat selecionado...');
+        const res = await axios.post('https://landing-page-teste.8rxpnw.easypanel.host/chat/getMessages', {
+          chatId: selectedChat.chat_id,
+          schema,
+        });
+        console.log('Mensagens atualizadas:', res.data.messages);
+        setSelectedMessages(res.data.messages);
+      } catch (error) {
+        console.error('Erro ao atualizar mensagens do chat selecionado:', error);
+      }
+    }, 1000); // Atualiza a cada 1 segundo
+
+    return () => clearInterval(interval); // Limpa o intervalo ao desmontar ou mudar o chat selecionado
+  }, [selectedChat, schema]);
 
   const handleChatClick = async (chat) => {
     console.log('Chat selecionado (id):', chat.id);
