@@ -1,32 +1,42 @@
 import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
-import io from 'socket.io-client';
 
 function ChatPage({ theme }) {
-  const [chats, setChats] = useState([]); 
+  const [chats, setChats] = useState([]);
   const [selectedMessages, setSelectedMessages] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
   const [newMessage, setNewMessage] = useState('');
   const [replyMessage, setReplyMessage] = useState(null);
-  const [isRecording, setIsRecording] = useState(false); 
-  const [mediaRecorder, setMediaRecorder] = useState(null); 
-  const [audioChunks, setAudioChunks] = useState([]); 
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState(null);
+  const [audioChunks, setAudioChunks] = useState([]);
   const selectedChatRef = useRef(null);
   const messagesEndRef = useRef(null);
-  const userData = JSON.parse(localStorage.getItem('user'));
+  const ws = useRef(null);
 
+  const userData = JSON.parse(localStorage.getItem('user'));
   const schema = userData.schema;
-  const socket = useRef(io('http://localhost:3000')).current;
 
   useEffect(() => {
-    socket.on('connect', () => {
-      console.log('Socket conectado:', socket.id);
-    });
+    ws.current = new WebSocket('ws://localhost:3000');
+
+    ws.current.onopen = () => {
+      console.log('WebSocket conectado');
+    };
+
+    ws.current.onmessage = (event) => {
+      const newMessage = JSON.parse(event.data);
+      console.log('Nova mensagem recebida via WS:', newMessage);
+      if (selectedChatRef.current && selectedChatRef.current.chat_id === newMessage.chatId) {
+        setSelectedMessages((prevMessages) => [...prevMessages, newMessage]);
+        scrollToBottom();
+      }
+    };
 
     return () => {
-      socket.disconnect();
+      ws.current?.close();
     };
-  }, [socket]);
+  }, []);
 
   useEffect(() => {
     selectedChatRef.current = selectedChat;
@@ -36,25 +46,10 @@ function ChatPage({ theme }) {
     axios
       .get(`http://localhost:3000/chat/getChat/${userData.id}/${schema}`)
       .then((res) => {
-        console.log('Resposta da API:', res.data);
-        setChats(res.data.messages || []); // Ajustado para usar o campo `messages`
-        console.log('Estado de chats atualizado:', res.data.messages || []);
+        setChats(res.data.messages || []);
       })
       .catch((err) => console.error('Erro ao carregar chats:', err));
-
-    socket.on('message', (newMessage) => {
-      console.log('nova mensagem recebida no frontend:', newMessage);
-      console.log('Nova mensagem recebida:', newMessage);
-      if (selectedChatRef.current && selectedChatRef.current.chat_id === newMessage.chatId) {
-        setSelectedMessages((prevMessages) => [...prevMessages, newMessage]);
-        scrollToBottom();
-      }
-    });
-
-    return () => {
-      socket.off('message');
-    };
-  }, [schema, socket]);
+  }, [schema]);
 
   const handleChatClick = async (chat) => {
     try {
@@ -103,7 +98,6 @@ function ChatPage({ theme }) {
 
   const handleAudioRecording = async () => {
     if (!isRecording) {
-  
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const recorder = new MediaRecorder(stream);
@@ -119,7 +113,6 @@ function ChatPage({ theme }) {
         console.error('Erro ao acessar o microfone:', error);
       }
     } else {
-      
       mediaRecorder.stop();
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
@@ -154,32 +147,29 @@ function ChatPage({ theme }) {
       </div>
       <div className={`chat chat-${theme} h-100 w-100 d-flex flex-row`}>
         <div className={`col-3 chat-list-${theme}`} style={{ overflowY: 'auto', height: '100%' }}>
-          {Array.isArray(chats) && chats.map((chat) => {
-            console.log('Renderizando chat:', chat);
-            return (
+          {Array.isArray(chats) && chats.map((chat) => (
+            <div
+              key={chat.id}
+              onClick={() => handleChatClick(chat)}
+              style={{ cursor: 'pointer', padding: '10px', borderBottom: '1px solid #ccc' }}
+            >
+              <strong>{chat.contact_name || chat.chat_id || 'Sem Nome'}</strong>
               <div
-                key={chat.id}
-                onClick={() => handleChatClick(chat)}
-                style={{ cursor: 'pointer', padding: '10px', borderBottom: '1px solid #ccc' }}
+                style={{
+                  color: '#666',
+                  fontSize: '0.9rem',
+                  overflow: 'hidden',
+                  whiteSpace: 'nowrap',
+                  textOverflow: 'ellipsis',
+                  maxWidth: '100%',
+                }}
               >
-                <strong>{chat.contact_name || chat.chat_id || 'Sem Nome'}</strong>
-                <div
-                  style={{
-                    color: '#666',
-                    fontSize: '0.9rem',
-                    overflow: 'hidden',
-                    whiteSpace: 'nowrap',
-                    textOverflow: 'ellipsis',
-                    maxWidth: '100%',
-                  }}
-                >
-                  {Array.isArray(chat.messages) && chat.messages.length > 0
-                    ? chat.messages[chat.messages.length - 1]
-                    : 'Sem mensagens'}
-                </div>
+                {Array.isArray(chat.messages) && chat.messages.length > 0
+                  ? chat.messages[chat.messages.length - 1]
+                  : 'Sem mensagens'}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
 
         <div className={`col-9 chat-messages-${theme}`} style={{ height: '100%' }}>
