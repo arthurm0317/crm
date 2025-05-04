@@ -3,18 +3,19 @@ const fs = require('fs');
 const path = require('path');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
-ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 const multer = require('multer');
+const { v4: uuidv4 } = require('uuid');
+const { Chat } = require('../entities/Chat');
+const { Message } = require('../entities/Message');
+const { createChat, getChatService, setChatQueue, setUserChat } = require('../services/ChatService');
 const { saveMessage } = require('../services/MessageService');
-const pool = require('../db/queries')
+const pool = require('../db/queries');
 
-module.exports = (io) => {
+ffmpeg.setFfmpegPath(ffmpegInstaller.path);
+
+module.exports = (broadcastMessage) => {
   const express = require('express');
   const app = express.Router();
-  const { v4: uuidv4 } = require('uuid');
-  const { Chat } = require('../entities/Chat');
-  const { Message } = require('../entities/Message');
-  const { createChat, getChatService, setChatQueue, setUserChat } = require('../services/ChatService');
 
   const ensureAudioFolder = (folderPath) => {
     if (!fs.existsSync(folderPath)) {
@@ -57,7 +58,7 @@ module.exports = (io) => {
       return res.status(400).json({ error: 'Dados incompletos' });
     }
 
-    let contact = result.data.key.fromMe
+    const contact = result.data.key.fromMe
       ? result.data.key.remoteJid.split('@')[0]
       : result.data.pushName || result.data.key.remoteJid.split('@')[0];
 
@@ -76,6 +77,7 @@ module.exports = (io) => {
         timestamp,
         []
       );
+
       let messageBody = '';
       let audioFileName = null;
 
@@ -91,17 +93,15 @@ module.exports = (io) => {
         }
       }
 
-      const createChats = await createChat(chat, result.instance, result.data.message.conversation, null, io);
-      const chatDb = await getChatService(createChats.chat, createChats.schema );
+      const createChats = await createChat(chat, result.instance, result.data.message.conversation, null);
+      const chatDb = await getChatService(createChats.chat, createChats.schema);
 
       const existingMessage = await pool.query(
         `SELECT id FROM ${schema}.messages WHERE id = $1`,
         [result.data.key.id]
       );
-      
-      if (existingMessage.rowCount > 0) {
-        console.log('Mensagem já existe, ignorando inserção.');
-      } else {
+
+      if (existingMessage.rowCount === 0) {
         await saveMessage(
           chatDb.id,
           new Message(
@@ -117,25 +117,18 @@ module.exports = (io) => {
       }
 
       await setChatQueue(schema, chatDb.chat_id);
-      await setUserChat(chatDb.id, schema)
+      await setUserChat(chatDb.id, schema);
 
-      console.log('Emitindo mensagem para o socket:', {
-        chatId: chatDb.id,
-        body: messageBody,
-        fromMe: result.data.key.fromMe,
-        from: result.data.pushName,
-        timestamp,
-      });
-
-      io.emit('message', {
+      const payload = {
         chatId: chatDb.id,
         body: messageBody,
         audioUrl: audioFileName ? `/audios/${audioFileName}` : null,
         fromMe: result.data.key.fromMe,
         from: result.data.pushName,
         timestamp,
-      });
+      };
 
+      broadcastMessage({ type: 'message', payload });
 
       res.status(200).json({ result });
     } catch (err) {
@@ -144,6 +137,7 @@ module.exports = (io) => {
     }
   });
 
+  // Enviar texto
   app.post('/chat/sendMessage', async (req, res) => {
     const { chatId, message, schema } = req.body;
 
@@ -155,7 +149,7 @@ module.exports = (io) => {
         timestamp: Date.now(),
       };
 
-      io.emit('message', sentMessage);
+      broadcastMessage({ type: 'message', payload: sentMessage });
 
       res.status(200).json({ success: true, message: sentMessage });
     } catch (err) {
@@ -164,6 +158,7 @@ module.exports = (io) => {
     }
   });
 
+  // Enviar áudio
   const storage = multer.diskStorage({
     destination: (req, file, cb) => {
       const audioFolder = path.join(__dirname, '..', 'uploads');
@@ -190,7 +185,7 @@ module.exports = (io) => {
         timestamp: Date.now(),
       };
 
-      io.emit('message', sentAudio);
+      broadcastMessage({ type: 'message', payload: sentAudio });
 
       res.status(200).json({ success: true, message: sentAudio });
     } catch (err) {
@@ -200,4 +195,4 @@ module.exports = (io) => {
   });
 
   return app;
-};  
+};
