@@ -246,8 +246,6 @@ module.exports = {
     getChats,
     setChatQueue,
     updateQueue,
-    getChatData
-}
     getChatData,
-    getChatByUser 
+    getChatByUser  
   }
