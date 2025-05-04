@@ -16,15 +16,54 @@ module.exports = (io) => {
   const { Message } = require('../entities/Message');
   const { createChat, getChatService, setChatQueue, setUserChat } = require('../services/ChatService');
 
+  const ensureAudioFolder = (folderPath) => {
+    if (!fs.existsSync(folderPath)) {
+      fs.mkdirSync(folderPath, { recursive: true });
+    }
+  };
+
+  const downloadAndConvertAudio = async (audioUrl, contact, timestamp) => {
+    const audioFolder = path.join(__dirname, '..', 'audios');
+    ensureAudioFolder(audioFolder);
+
+    const oggPath = path.join(audioFolder, `${contact}-${timestamp}.ogg`);
+    const mp3Path = path.join(audioFolder, `${contact}-${timestamp}.mp3`);
+
+    const response = await axios.get(audioUrl, { responseType: 'stream' });
+    const writer = fs.createWriteStream(oggPath);
+    response.data.pipe(writer);
+
+    await new Promise((resolve, reject) => {
+      writer.on('finish', resolve);
+      writer.on('error', reject);
+    });
+
+    await new Promise((resolve, reject) => {
+      ffmpeg(oggPath)
+        .toFormat('mp3')
+        .on('end', resolve)
+        .on('error', reject)
+        .save(mp3Path);
+    });
+
+    return path.basename(mp3Path);
+  };
+
   app.post('/chat', async (req, res) => {
     const result = req.body;
     const schema = req.body.schema || 'effective_gain';
 
-    let contact = result.data.key.remoteJid.split('@')[0];
-    try {
-      contact = result.data.key.fromMe ? result.data.key.remoteJid.split('@')[0] : result.data.pushName;
+    if (!result?.data?.key?.remoteJid) {
+      return res.status(400).json({ error: 'Dados incompletos' });
+    }
 
+    let contact = result.data.key.fromMe
+      ? result.data.key.remoteJid.split('@')[0]
+      : result.data.pushName || result.data.key.remoteJid.split('@')[0];
+
+    try {
       const timestamp = new Date(result.date_time).getTime();
+
       const chat = new Chat(
         uuidv4(),
         result.data.key.remoteJid,
@@ -38,39 +77,17 @@ module.exports = (io) => {
         []
       );
       let messageBody = '';
+      let audioFileName = null;
 
       if (result.data.message?.conversation) {
         messageBody = result.data.message.conversation;
       } else if (result.data.message?.audioMessage?.url) {
-        const audioUrl = result.data.message.audioMessage.url;
-        const audioFolder = path.join(__dirname, '..', 'audios');
-        if (!fs.existsSync(audioFolder)) fs.mkdirSync(audioFolder);
-
-        const oggPath = path.join(audioFolder, `${contact}-${timestamp}.ogg`);
-        const mp3Path = path.join(audioFolder, `${contact}-${timestamp}.mp3`);
-
         try {
-          const response = await axios.get(audioUrl, { responseType: 'stream' });
-          const writer = fs.createWriteStream(oggPath);
-          response.data.pipe(writer);
-
-          await new Promise((resolve, reject) => {
-            writer.on('finish', resolve);
-            writer.on('error', reject);
-          });
-
-          await new Promise((resolve, reject) => {
-            ffmpeg(oggPath)
-              .toFormat('mp3')
-              .on('end', resolve)
-              .on('error', reject)
-              .save(mp3Path);
-          });
-
-          messageBody = `[Áudio recebido: ${path.basename(mp3Path)}]`;
+          audioFileName = await downloadAndConvertAudio(result.data.message.audioMessage.url, contact, timestamp);
+          messageBody = `[áudio recebido: ${audioFileName}]`;
         } catch (err) {
-          console.error('Erro ao baixar/converter áudio:', err);
-          messageBody = '[Erro ao processar áudio]';
+          console.error('erro ao baixar/converter áudio:', err);
+          messageBody = '[erro ao processar áudio]';
         }
       }
 
@@ -113,6 +130,7 @@ module.exports = (io) => {
       io.emit('message', {
         chatId: chatDb.id,
         body: messageBody,
+        audioUrl: audioFileName ? `/audios/${audioFileName}` : null,
         fromMe: result.data.key.fromMe,
         from: result.data.pushName,
         timestamp,
@@ -141,7 +159,7 @@ module.exports = (io) => {
 
       res.status(200).json({ success: true, message: sentMessage });
     } catch (err) {
-      console.error('Erro ao enviar mensagem:', err);
+      console.error('erro ao enviar mensagem:', err);
       res.status(500).json({ error: err.message });
     }
   });
@@ -149,7 +167,7 @@ module.exports = (io) => {
   const storage = multer.diskStorage({
     destination: (req, file, cb) => {
       const audioFolder = path.join(__dirname, '..', 'uploads');
-      if (!fs.existsSync(audioFolder)) fs.mkdirSync(audioFolder);
+      ensureAudioFolder(audioFolder);
       cb(null, audioFolder);
     },
     filename: (req, file, cb) => {
@@ -176,10 +194,10 @@ module.exports = (io) => {
 
       res.status(200).json({ success: true, message: sentAudio });
     } catch (err) {
-      console.error('Erro ao enviar áudio:', err);
+      console.error('erro ao enviar áudio:', err);
       res.status(500).json({ error: err.message });
     }
   });
 
   return app;
-};
+};  
