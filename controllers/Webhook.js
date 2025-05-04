@@ -137,7 +137,7 @@ module.exports = (broadcastMessage) => {
     }
   });
 
-  // Enviar texto
+
   app.post('/chat/sendMessage', async (req, res) => {
     const { chatId, message, schema } = req.body;
 
@@ -158,7 +158,7 @@ module.exports = (broadcastMessage) => {
     }
   });
 
-  // Enviar áudio
+
   const storage = multer.diskStorage({
     destination: (req, file, cb) => {
       const audioFolder = path.join(__dirname, '..', 'uploads');
