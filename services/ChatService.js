@@ -1,11 +1,13 @@
-
 const pool = require('../db/queries');
 const { getOnlineUsers, updateLastAssignedUser, getLastAssignedUser } = require('./UserService');
 
 const createChat = async (chat, instance, message, etapa, io) => {
+  let schema;
+
+  // Obter todos os schemas disponíveis
   const geralSchema = await pool.query(
-  `SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('pg_catalog', 'information_schema', 'pg_toast', 'public')`,
-  )
+    `SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('pg_catalog', 'information_schema', 'pg_toast', 'public')`
+  );
   const schemaNames = geralSchema.rows.map(row => row.schema_name);
 
   for (const schemas of schemaNames) {
@@ -15,36 +17,41 @@ const createChat = async (chat, instance, message, etapa, io) => {
       );
       if (result.rows.length > 0) {
         schema = schemas;
-        break; 
+        break;
       }
     } catch (error) {
-      console.error("Erro ao buscar conexao:", error.message);
+      console.error("Erro ao buscar conexão:", error.message);
     }
   }
 
   if (!schema) {
     throw new Error("Schema não encontrado para a instância fornecida.");
   }
+
   try {
+    // Verificar se o chat já existe
     const existingChat = await pool.query(
       `SELECT * FROM ${schema}.chats WHERE chat_id = $1 AND connection_id = $2`,
       [chat.getChatId(), chat.getConnectionId()]
     );
 
     if (existingChat.rowCount > 0) {
+      console.log("Chat já existe, atualizando mensagens...");
       const updated = await updateChatMessages(chat, schema, message);
-      io.to(schema).emit("chat:new-message", {
-        chatId: chat.getChatId(),
-        message,
-        schema
-      });
-      await updateChatMessages(chat, schema, message);
-      return{
-        chat:existingChat.rows[0],
+      if (io) {
+        io.to(schema).emit("chat:new-message", {
+          chatId: chat.getChatId(),
+          message,
+          schema
+        });
+      }
+      return {
+        chat: existingChat.rows[0],
         schema: schema
-      } 
+      };
     }
 
+    // Obter ou criar contato
     const contactNumber = chat.getChatId().split('@')[0];
     const contactQuery = await pool.query(
       `SELECT * FROM ${schema}.contacts WHERE number = $1`,
@@ -57,11 +64,12 @@ const createChat = async (chat, instance, message, etapa, io) => {
     } else {
       const newContact = await pool.query(
         `INSERT INTO ${schema}.contacts (number, contact_name) VALUES ($1, $2) RETURNING *`,
-        [contactNumber, chat.getContact()] 
+        [contactNumber, chat.getContact()]
       );
       contactName = newContact.rows[0].contact_name;
     }
 
+    // Preparar valores para inserção do chat
     const chatValues = [
       chat.getId(),
       chat.getChatId(),
@@ -85,6 +93,7 @@ const createChat = async (chat, instance, message, etapa, io) => {
           (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages, contact_phone) 
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`;
 
+    // Inserir chat no banco de dados
     const result = await pool.query(query, etapa ? chatValues : chatValues.slice(0, -1));
 
     if (io) {
@@ -94,8 +103,9 @@ const createChat = async (chat, instance, message, etapa, io) => {
         schema
       });
     }
+
     console.log(`Chat criado com sucesso: ${result.rows[0].id}`);
-    return{
+    return {
       result: result.rows[0],
       schema: schema
     };
@@ -103,10 +113,10 @@ const createChat = async (chat, instance, message, etapa, io) => {
     console.error('Erro ao criar chat:', error.message);
     throw new Error('Erro ao criar chat');
   }
-
 };
 
 const updateChatMessages = async (chat, schema, message) => {
+  try {
     const result = await pool.query(
       `UPDATE ${schema}.chats 
        SET messages = messages || $1::jsonb 
@@ -115,6 +125,10 @@ const updateChatMessages = async (chat, schema, message) => {
       [JSON.stringify([message]), chat.getChatId()]
     );
     return result.rows[0];
+  } catch (error) {
+    console.error('Erro ao atualizar mensagens do chat:', error.message);
+    throw new Error('Erro ao atualizar mensagens do chat');
+  }
 };
 
 const getMessages = async(chatId, schema)=>{
@@ -236,16 +250,15 @@ const getChatByUser = async (userId, schema) => {
   }
 };
 
-
 module.exports = {
-    createChat,
-    updateChatMessages,
-    getMessages,
-    getChatService,
-    setUserChat,
-    getChats,
-    setChatQueue,
-    updateQueue,
-    getChatData,
-    getChatByUser  
-  }
+  createChat,
+  updateChatMessages,
+  getMessages,
+  getChatService,
+  setUserChat,
+  getChats,
+  setChatQueue,
+  updateQueue,
+  getChatData,
+  getChatByUser
+};
