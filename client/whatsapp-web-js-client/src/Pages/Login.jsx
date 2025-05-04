@@ -30,7 +30,7 @@ function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post("http://localhost:3000/api/login", {
+      const response = await axios.post("https://landing-page-teste.8rxpnw.easypanel.host/api/login", {
         email: username,
         password,
       });
@@ -113,7 +113,7 @@ function Login() {
               </div>
             </div>
 
-            <div id="senhaIncorreta" class="pb-3 d-flex justify-content-center text-danger d-none">Login e/ou senha incorretos, tente novamente.</div>
+            <div id="senhaIncorreta" className="pb-3 d-flex justify-content-center text-danger d-none">Login e/ou senha incorretos, tente novamente.</div>
 
             <div className="d-flex justify-content-around align-items-center mb-3">
               <div className="form-check">

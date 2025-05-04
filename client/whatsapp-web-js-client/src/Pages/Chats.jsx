@@ -3,25 +3,29 @@ import axios from 'axios';
 import io from 'socket.io-client';
 
 function ChatPage({ theme }) {
-  const [chats, setChats] = useState([]); 
+  const [chats, setChats] = useState([]);
   const [selectedMessages, setSelectedMessages] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
   const [newMessage, setNewMessage] = useState('');
   const [replyMessage, setReplyMessage] = useState(null);
-  const [isRecording, setIsRecording] = useState(false); 
-  const [mediaRecorder, setMediaRecorder] = useState(null); 
-  const [audioChunks, setAudioChunks] = useState([]); 
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState(null);
+  const [audioChunks, setAudioChunks] = useState([]);
   const selectedChatRef = useRef(null);
   const messagesEndRef = useRef(null);
   const userData = JSON.parse(localStorage.getItem('user'));
 
   const schema = userData.schema;
 
-  const socket = useRef(io('http://localhost:3000')).current;
+  const socket = useRef(io('https://landing-page-teste.8rxpnw.easypanel.host')).current;
 
   useEffect(() => {
     socket.on('connect', () => {
       console.log('Socket conectado:', socket.id);
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('Erro ao conectar ao socket:', error);
     });
 
     return () => {
@@ -31,50 +35,61 @@ function ChatPage({ theme }) {
 
   useEffect(() => {
     selectedChatRef.current = selectedChat;
-  });
+    console.log('selectedChatRef atualizado:', selectedChatRef.current);
+  }, [selectedChat]);
 
   useEffect(() => {
     axios
-      .get(`http://localhost:3000/chat/getChat/${userData.id}/${schema}`)
+      .get(`https://landing-page-teste.8rxpnw.easypanel.host/chat/getChat/${userData.id}/${schema}`)
       .then((res) => {
         setChats(res.data.messages || []);
       })
       .catch((err) => console.error('Erro ao carregar chats:', err));
+  }, [schema]);
 
+  useEffect(() => {
     socket.on('message', (newMessage) => {
-      console.log('nova mensagem recebida no frontend:', newMessage);
-      console.log('Nova mensagem recebida:', newMessage);
-      if (selectedChatRef.current && selectedChatRef.current.chat_id === newMessage.chatId) {
+      console.log('Nova mensagem recebida no frontend:', newMessage);
+      console.log('Chat selecionado (id):', selectedChatRef.current?.id);
+      console.log('Chat da mensagem recebida (chatId):', newMessage.chatId);
+  
+      if (!newMessage.chatId) {
+        console.error('Mensagem recebida sem chatId:', newMessage);
+        return;
+      }
+  
+      if (selectedChatRef.current && String(selectedChatRef.current.id) === String(newMessage.chatId)) {
         setSelectedMessages((prevMessages) => [...prevMessages, newMessage]);
         scrollToBottom();
       }
     });
-
+  
     return () => {
       socket.off('message');
     };
-  }, [schema, socket]);
+  }, [socket]);
 
   const handleChatClick = async (chat) => {
-    try {
-      const res = await axios.post('http://localhost:3000/chat/getMessages', {
-        chatId: chat.chat_id,
-        schema,
-      });
-      console.log('Mensagens recebidas:', res.data.messages);
-      setSelectedChat(chat);
-      setSelectedMessages(res.data.messages);
-      scrollToBottom();
-    } catch (error) {
-      console.error('Erro ao buscar mensagens:', error);
-    }
-  };
+  console.log('Chat selecionado (id):', chat.id);
+  try {
+    const res = await axios.post('https://landing-page-teste.8rxpnw.easypanel.host/chat/getMessages', {
+      chatId: chat.chat_id,
+      schema,
+    });
+    console.log('Mensagens recebidas:', res.data.messages);
+    setSelectedChat(chat); 
+    setSelectedMessages(res.data.messages);
+    scrollToBottom();
+  } catch (error) {
+    console.error('Erro ao buscar mensagens:', error);
+  }
+};
 
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
 
     try {
-      await axios.post('http://localhost:3000/chat/sendMessage', {
+      await axios.post('https://landing-page-teste.8rxpnw.easypanel.host/chat/sendMessage', {
         chatId: selectedChat.chat_id,
         message: newMessage,
         schema,
@@ -103,7 +118,6 @@ function ChatPage({ theme }) {
 
   const handleAudioRecording = async () => {
     if (!isRecording) {
-  
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const recorder = new MediaRecorder(stream);
@@ -119,7 +133,6 @@ function ChatPage({ theme }) {
         console.error('Erro ao acessar o microfone:', error);
       }
     } else {
-      
       mediaRecorder.stop();
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
@@ -129,7 +142,7 @@ function ChatPage({ theme }) {
         formData.append('schema', schema);
 
         try {
-          const response = await axios.post('http://localhost:3000/chat/sendAudio', formData, {
+          const response = await axios.post('https://landing-page-teste.8rxpnw.easypanel.host/chat/sendAudio', formData, {
             headers: {
               'Content-Type': 'multipart/form-data',
             },
@@ -154,8 +167,8 @@ function ChatPage({ theme }) {
       </div>
       <div className={`chat chat-${theme} h-100 w-100 d-flex flex-row`}>
         <div className={`col-3 chat-list-${theme}`} style={{ overflowY: 'auto', height: '100%' }}>
-          {Array.isArray(chats) && chats.map((chat) => {
-            return (
+          {Array.isArray(chats) &&
+            chats.map((chat) => (
               <div
                 key={chat.id}
                 onClick={() => handleChatClick(chat)}
@@ -177,8 +190,7 @@ function ChatPage({ theme }) {
                     : 'Sem mensagens'}
                 </div>
               </div>
-            );
-          })}
+            ))}
         </div>
 
         <div className={`col-9 chat-messages-${theme}`} style={{ height: '100%' }}>
