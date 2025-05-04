@@ -8,9 +8,6 @@ function ChatPage({ theme }) {
   const [selectedChat, setSelectedChat] = useState(null);
   const [newMessage, setNewMessage] = useState('');
   const [replyMessage, setReplyMessage] = useState(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const [mediaRecorder, setMediaRecorder] = useState(null);
-  const [audioChunks, setAudioChunks] = useState([]);
   const selectedChatRef = useRef(null);
   const messagesEndRef = useRef(null);
   const userData = JSON.parse(localStorage.getItem('user'));
@@ -58,7 +55,6 @@ function ChatPage({ theme }) {
         return;
       }
 
-      // Verifica se o chat selecionado corresponde ao chat da mensagem recebida
       if (selectedChatRef.current && String(selectedChatRef.current.id) === String(newMessage.chatId)) {
         setSelectedMessages((prevMessages) => {
           const updatedMessages = [...prevMessages, newMessage];
@@ -82,8 +78,8 @@ function ChatPage({ theme }) {
         schema,
       });
       console.log('Mensagens recebidas:', res.data.messages);
-      setSelectedChat(chat);
-      setSelectedMessages(res.data.messages);
+      setSelectedChat(chat); // Atualiza o chat selecionado
+      setSelectedMessages(res.data.messages); // Atualiza as mensagens do chat selecionado
       scrollToBottom();
     } catch (error) {
       console.error('Erro ao buscar mensagens:', error);
