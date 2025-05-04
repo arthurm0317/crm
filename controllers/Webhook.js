@@ -53,20 +53,24 @@ module.exports = (broadcastMessage) => {
   app.post('/chat', async (req, res) => {
     const result = req.body;
     const schema = req.body.schema || 'effective_gain';
-  
+
     if (!result?.data?.key?.remoteJid) {
       return res.status(400).json({ error: 'Dados incompletos' });
     }
-  
+
     console.log('Dados recebidos no webhook:', result);
-  
+
     const contact = result.data.key.fromMe
       ? result.data.key.remoteJid.split('@')[0]
       : result.data.pushName || result.data.key.remoteJid.split('@')[0];
-  
+
     try {
       const timestamp = new Date(result.date_time).getTime();
-  
+
+      if (!result.data.key.remoteJid || !result.data.instanceId) {
+        throw new Error('Dados obrigatórios ausentes: remoteJid ou instanceId');
+      }
+
       const chat = new Chat(
         uuidv4(),
         result.data.key.remoteJid,
@@ -79,10 +83,12 @@ module.exports = (broadcastMessage) => {
         timestamp,
         []
       );
-  
+
+      console.log('Objeto Chat criado:', chat);
+
       let messageBody = '';
       let audioFileName = null;
-  
+
       if (result.data.message?.conversation) {
         messageBody = result.data.message.conversation;
       } else if (result.data.message?.audioMessage?.url) {
@@ -94,21 +100,25 @@ module.exports = (broadcastMessage) => {
           messageBody = '[erro ao processar áudio]';
         }
       }
-  
+
       console.log('Mensagem processada:', messageBody);
-  
+
+      if (!chat || !result.instance) {
+        throw new Error('Dados obrigatórios ausentes para createChat');
+      }
+
       const createChats = await createChat(chat, result.instance, result.data.message.conversation, null);
       const chatDb = await getChatService(createChats.chat, createChats.schema);
-  
+
       console.log('Chat criado ou recuperado do banco:', chatDb);
-  
+
       const existingMessage = await pool.query(
         `SELECT id FROM ${schema}.messages WHERE id = $1`,
         [result.data.key.id]
       );
-  
+
       console.log('Mensagem existente no banco de dados:', existingMessage.rows);
-  
+
       if (existingMessage.rowCount === 0) {
         await saveMessage(
           chatDb.id,
@@ -126,10 +136,10 @@ module.exports = (broadcastMessage) => {
       } else {
         console.log('Mensagem já existe no banco de dados, não será salva novamente');
       }
-  
+
       await setChatQueue(schema, chatDb.chat_id);
       await setUserChat(chatDb.id, schema);
-  
+
       const payload = {
         chatId: chatDb.id,
         body: messageBody,
@@ -138,17 +148,16 @@ module.exports = (broadcastMessage) => {
         from: result.data.pushName,
         timestamp,
       };
-  
+
       console.log('Payload para broadcast:', payload);
       broadcastMessage({ type: 'message', payload });
-  
+
       res.status(200).json({ result });
     } catch (err) {
       console.error('Erro no webhook /chat:', err);
       res.status(500).json({ error: err.message });
     }
   });
-
 
   app.post('/chat/sendMessage', async (req, res) => {
     const { chatId, message, schema } = req.body;
@@ -169,7 +178,6 @@ module.exports = (broadcastMessage) => {
       res.status(500).json({ error: err.message });
     }
   });
-
 
   const storage = multer.diskStorage({
     destination: (req, file, cb) => {
