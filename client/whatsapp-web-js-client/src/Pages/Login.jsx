@@ -3,6 +3,7 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import './assets/style.css';
 import logo from './assets/effective-gain_logo.png';
 import { useTheme } from './assets/js/useTheme';
+import { useEffect } from 'react';
 import React, { use, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -15,6 +16,17 @@ function Login() {
   const [errorMsg, setErrorMsg] = useState('');
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const rememberedCredentials = JSON.parse(localStorage.getItem('rememberedCredentials')) || {};
+    if (rememberedCredentials[username]) {
+      setPassword(rememberedCredentials[username]);
+      setRememberMe(true);
+    } else {
+      setPassword('');
+      setRememberMe(false);
+    }
+  }, [username]);
+  
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
@@ -30,12 +42,23 @@ function Login() {
           empresa: response.data.company.company_name,
           schema: response.data.company.schema_name,
         };
-        console.log(userData);
         localStorage.setItem('user', JSON.stringify(userData));
+
+        const rememberedCredentials = JSON.parse(localStorage.getItem('rememberedCredentials')) || {};
+        if (rememberMe) {
+          rememberedCredentials[username] = password;
+        } else {
+          delete rememberedCredentials[username];
+        }
+        localStorage.setItem('rememberedCredentials', JSON.stringify(rememberedCredentials));
+
         navigate('/painel');
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || "Erro no login");
+      const senhaIncorretaElement = document.     getElementById("senhaIncorreta");
+      if (senhaIncorretaElement) {
+        senhaIncorretaElement.classList.remove("d-none");
+      }
     }
   };
 
@@ -90,6 +113,8 @@ function Login() {
               </div>
             </div>
 
+            <div id="senhaIncorreta" class="pb-3 d-flex justify-content-center text-danger d-none">Login e/ou senha incorretos, tente novamente.</div>
+
             <div className="d-flex justify-content-around align-items-center mb-3">
               <div className="form-check">
                 <input
@@ -113,13 +138,9 @@ function Login() {
             </div>
 
             <div className="d-flex flex-column">
-              <button type="submit" className={`btn btn-primary btn-1-${theme} mb-2`}>
+              <button type="submit" className={`btn btn-primary btn-1-${theme}`}>
                 Entrar
               </button>
-              <a href="./register.html" className={`btn btn-secondary btn-2-${theme}`}>
-                Cadastrar
-              </a>
-              {errorMsg && <small className="text-danger mt-2">{errorMsg}</small>}
             </div>
           </form>
         </div>

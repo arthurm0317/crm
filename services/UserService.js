@@ -78,19 +78,18 @@ const searchUser = async (userMail, userPassword) => {
     return result.rows;
   }
 
-  const getLastAssignedUser = async (queue) => {
+  const getLastAssignedUser = async (queue, schema) => {
     const result = await pool.query(
-      'SELECT user_id FROM last_assigned_user WHERE queue = $1',
+      `SELECT user_id FROM ${schema}.last_assigned_user WHERE queue_id = $1`,
       [queue]
     );
     return result.rows[0] || null;
   };
-  const updateLastAssignedUser = async (queue, user_id) => {
+  const updateLastAssignedUser = async (queue, user_id, schema) => {
     await pool.query(
-      `INSERT INTO last_assigned_user (queue, user_id)
+      `INSERT INTO ${schema}.last_assigned_user (queue_id, user_id)
        VALUES ($1, $2)
-       ON CONFLICT (queue)
-       DO UPDATE SET user_id = EXCLUDED.user_id`,
+       ON CONFLICT (queue_id) DO UPDATE SET user_id = $2`,
       [queue, user_id]
     );
 };

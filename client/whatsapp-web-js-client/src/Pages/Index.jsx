@@ -24,7 +24,6 @@ function Painel() {
 
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user'));
-    console.log(userData);
     if (userData) {
       setUsername(userData.username);
       setRole(userData.role);

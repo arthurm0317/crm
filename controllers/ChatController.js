@@ -1,5 +1,5 @@
 const { get } = require('../routes/UserRoutes');
-const { setUserChat, getChats, getMessages, setQueue, getChatData, getChatByUser, updateQueue } = require('../services/ChatService');
+const { setUserChat, getChats, getMessages, getChatData, getChatByUser, updateQueue } = require('../services/ChatService');
 
 const setUserChatController = async(req, res)=>{
     const {chat} = req.body
@@ -81,7 +81,7 @@ const getChatByUserController = async (req, res) => {
         const result = await getChatByUser(userId, schema);
         res.status(200).json({ messages: result });
     } catch (err) {
-        console.error('Erro ao buscar chats do usuário:', err.message);
+        console.error('Erro ao buscar chats do usuário:', err);
         res.status(500).json({ error: 'Erro ao buscar chats do usuário.' });
     }
 }

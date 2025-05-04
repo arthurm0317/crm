@@ -40,7 +40,7 @@ function ChatPage({ theme }) {
 
   useEffect(() => {
     selectedChatRef.current = selectedChat;
-  }, [selectedChat]);
+  });
 
   useEffect(() => {
     axios
@@ -57,6 +57,7 @@ function ChatPage({ theme }) {
         chatId: chat.chat_id,
         schema,
       });
+      console.log('Mensagens recebidas:', res.data.messages);
       setSelectedChat(chat);
       setSelectedMessages(res.data.messages);
       scrollToBottom();
@@ -173,7 +174,7 @@ function ChatPage({ theme }) {
         </div>
 
         <div className={`col-9 chat-messages-${theme}`} style={{ height: '100%' }}>
-          <div style={{ whiteSpace: 'pre-wrap', display: 'flex', flexDirection: 'column' }}>
+          <div id="corpoTexto" style={{ whiteSpace: 'pre-wrap', display: 'flex', flexDirection: 'column' }}>
             {selectedMessages.map((msg, idx) => (
               <div
                 key={idx}
