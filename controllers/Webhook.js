@@ -23,54 +23,27 @@ module.exports = (broadcastMessage) => {
     }
   };
 
-  const downloadAndConvertAudio = async (audioUrl, contact, timestamp) => {
-    const audioFolder = path.join(__dirname, '..', 'audios');
-    ensureAudioFolder(audioFolder);
-
-    const oggPath = path.join(audioFolder, `${contact}-${timestamp}.ogg`);
-    const mp3Path = path.join(audioFolder, `${contact}-${timestamp}.mp3`);
-
-    const response = await axios.get(audioUrl, { responseType: 'stream' });
-    const writer = fs.createWriteStream(oggPath);
-    response.data.pipe(writer);
-
-    await new Promise((resolve, reject) => {
-      writer.on('finish', resolve);
-      writer.on('error', reject);
-    });
-
-    await new Promise((resolve, reject) => {
-      ffmpeg(oggPath)
-        .toFormat('mp3')
-        .on('end', resolve)
-        .on('error', reject)
-        .save(mp3Path);
-    });
-
-    return path.basename(mp3Path);
-  };
-
   app.post('/chat', async (req, res) => {
     const result = req.body;
     const schema = req.body.schema || 'effective_gain';
-
+  
     if (!result?.data?.key?.remoteJid) {
       return res.status(400).json({ error: 'Dados incompletos' });
     }
-
+  
     console.log('Dados recebidos no webhook:', result);
-
+  
     const contact = result.data.key.fromMe
       ? result.data.key.remoteJid.split('@')[0]
       : result.data.pushName || result.data.key.remoteJid.split('@')[0];
-
+  
     try {
       const timestamp = new Date(result.date_time).getTime();
-
+  
       if (!result.data.key.remoteJid || !result.data.instanceId) {
         throw new Error('Dados obrigatórios ausentes: remoteJid ou instanceId');
       }
-
+  
       const chat = new Chat(
         uuidv4(),
         result.data.key.remoteJid,
@@ -83,43 +56,57 @@ module.exports = (broadcastMessage) => {
         timestamp,
         []
       );
-
+  
       console.log('Objeto Chat criado:', chat);
-
+  
       let messageBody = '';
-      let audioFileName = null;
-
+      let audioBase64 = null;
+  
       if (result.data.message?.conversation) {
         messageBody = result.data.message.conversation;
-      } else if (result.data.message?.audioMessage?.url) {
+      } else if (result.data.message?.audioMessage) {
         try {
-          audioFileName = await downloadAndConvertAudio(result.data.message.audioMessage.url, contact, timestamp);
-          messageBody = `[áudio recebido: ${audioFileName}]`;
+          if (result.data.message.audioMessage.base64) {
+            audioBase64 = result.data.message.audioMessage.base64;
+          } else if (result.data.message.audioMessage.url) {
+            const audioResponse = await axios.get(result.data.message.audioMessage.url, {
+              responseType: 'arraybuffer',
+            });
+            audioBase64 = Buffer.from(audioResponse.data).toString('base64');
+          }
+  
+          if (audioBase64) {
+            await saveAudioMessage(chat.id, audioBase64, schema);
+            console.log('Mensagem de áudio salva com sucesso');
+            messageBody = '[áudio recebido]';
+          } else {
+            throw new Error('Áudio não encontrado ou não processado.');
+          }
         } catch (err) {
-          console.error('Erro ao baixar/converter áudio:', err);
+          console.error('Erro ao processar áudio:', err);
           messageBody = '[erro ao processar áudio]';
         }
       }
-
+  
       console.log('Mensagem processada:', messageBody);
-
+  
       if (!chat || !result.instance) {
         throw new Error('Dados obrigatórios ausentes para createChat');
       }
-
+  
       const createChats = await createChat(chat, result.instance, result.data.message.conversation, null);
       const chatDb = await getChatService(createChats.chat, createChats.schema);
-
+  
       console.log('Chat criado ou recuperado do banco:', chatDb);
-
+  
       const existingMessage = await pool.query(
         `SELECT id FROM ${schema}.messages WHERE id = $1`,
         [result.data.key.id]
       );
-
+  
       console.log('Mensagem existente no banco de dados:', existingMessage.rows);
-
-      if (existingMessage.rowCount === 0) {
+  
+      if (existingMessage.rowCount === 0 && !result.data.message?.audioMessage?.base64) {
         await saveMessage(
           chatDb.id,
           new Message(
@@ -133,25 +120,25 @@ module.exports = (broadcastMessage) => {
           schema
         );
         console.log('Mensagem salva com sucesso');
-      } else {
+      } else if (existingMessage.rowCount > 0) {
         console.log('Mensagem já existe no banco de dados, não será salva novamente');
       }
-
+  
       await setChatQueue(schema, chatDb.chat_id);
       await setUserChat(chatDb.id, schema);
-
+  
       const payload = {
         chatId: chatDb.id,
         body: messageBody,
-        audioUrl: audioFileName ? `/audios/${audioFileName}` : null,
+        audioBase64: audioBase64 || null,
         fromMe: result.data.key.fromMe,
         from: result.data.pushName,
         timestamp,
       };
-
+  
       console.log('Payload para broadcast:', payload);
       broadcastMessage({ type: 'message', payload });
-
+  
       res.status(200).json({ result });
     } catch (err) {
       console.error('Erro no webhook /chat:', err);
@@ -174,7 +161,6 @@ module.exports = (broadcastMessage) => {
 
       res.status(200).json({ success: true, message: sentMessage });
     } catch (err) {
-      console.error('Erro ao enviar mensagem:', err);
       res.status(500).json({ error: err.message });
     }
   });

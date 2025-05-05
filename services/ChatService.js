@@ -245,6 +245,20 @@ const getChatByUser = async (userId, schema) => {
   }
 };
 
+const saveAudioMessage = async (chat_id, audioBase64, schema) => {
+  try {
+    const result = await pool.query(
+      `INSERT INTO ${schema}.messages (chat_id, audio) VALUES ($1, $2) RETURNING *`,
+      [chat_id, audioBase64]
+    );
+    return result.rows[0];
+  } catch (error) {
+    console.error('Erro ao salvar mensagem de áudio:', error.message);
+    throw new Error('Erro ao salvar mensagem de áudio');
+  }
+};
+
+
 module.exports = {
   createChat,
   updateChatMessages,
@@ -255,5 +269,6 @@ module.exports = {
   setChatQueue,
   updateQueue,
   getChatData,
-  getChatByUser
+  getChatByUser,
+  saveAudioMessage
 };

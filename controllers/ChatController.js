@@ -1,4 +1,4 @@
-const { setUserChat, getChats, getMessages, getChatData, getChatByUser, updateQueue } = require('../services/ChatService');
+const { setUserChat, getChats, getMessages, getChatData, getChatByUser, updateQueue, saveAudioMessage } = require('../services/ChatService');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
@@ -20,22 +20,6 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
-
-
-const sendAudioToWhatsApp = async (chatId, audioBase64) => {
-  try {
-    const response = await axios.post('https://api.evolution.com/sendAudio', { 
-      chatId,
-      audio: audioBase64,
-    });
-
-    console.log('Áudio enviado para o WhatsApp com sucesso:', response.data);
-    return response.data;
-  } catch (error) {
-    console.error('Erro ao enviar áudio para o WhatsApp:', error);
-    throw error;
-  }
-};
 
 const setUserChatController = async (req, res) => {
   const { chat } = req.body;
@@ -137,10 +121,7 @@ const sendAudioController = async (req, res) => {
     const audioBuffer = fs.readFileSync(audioPath);
     const audioBase64 = audioBuffer.toString('base64');
 
-    //espaço pra salvar no banco
-    await pool.query(
-      //chatId e audioBase64
-    );
+    saveAudioMessage(chatId, audioBase64, schema)
 
     console.log('Áudio salvo no banco de dados com sucesso');
 

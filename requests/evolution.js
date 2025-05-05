@@ -98,7 +98,20 @@ const searchContact = async (remoteJid, instanceId) => {
     console.error('Erro ao buscar contato:', err);
   }
 };
+const sendAudioToWhatsApp = async (chatId, audioBase64) => {
+  try {
+    const response = await axios.post('https://api.evolution.com/sendAudio', { 
+      chatId,
+      audio: audioBase64,
+    });
+
+    console.log('Áudio enviado para o WhatsApp com sucesso:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao enviar áudio para o WhatsApp:', error);
+    throw error;
+  }
+};
 
 
-
-module.exports = { createInstance, fetchInstanceEvo, sendTextMessage, searchContact};
+module.exports = { createInstance, fetchInstanceEvo, sendTextMessage, searchContact, sendAudioToWhatsApp};
