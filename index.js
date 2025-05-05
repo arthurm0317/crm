@@ -10,6 +10,7 @@ const chatRoutes = require('./routes/ChatRoutes');
 const contactRoutes = require('./routes/ContactRoute');
 const kanbanRoutes = require('./routes/KanbanRoutes');
 const webhook = require('./controllers/Webhook');
+const filesRoutes = require('./routes/FilesRoutes');
 
 const cors = require('cors');
 const configureSocket = require('./config/SocketConfig');
@@ -46,6 +47,7 @@ app.use('/evo', evoRoutes);
 app.use('/chat', chatRoutes);
 app.use('/contact', contactRoutes);
 app.use('/kanban', kanbanRoutes);
+app.use('/files', filesRoutes);
 
 const axios = require('axios');
 const fs = require('fs');
