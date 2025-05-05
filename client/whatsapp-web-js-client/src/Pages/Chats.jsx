@@ -118,7 +118,7 @@ function ChatPage({ theme }) {
 
       setSelectedMessages((prevMessages) => [
         ...prevMessages,
-        { body: newMessage, fromMe: true, replyTo: replyMessage ? replyMessage.body : null },
+        { body: newMessage, from_me: true, replyTo: replyMessage ? replyMessage.body : null },
       ]);
 
       setNewMessage('');
@@ -142,10 +142,13 @@ function ChatPage({ theme }) {
         <button className={`btn btn-1-${theme}`}>Novo</button>
       </div>
       <div className={`chat chat-${theme} h-100 w-100 d-flex flex-row`}>
-        <div className={`col-3 chat-list-${theme}`} style={{ overflowY: 'auto', height: '100%' }}>
+
+        {/*  LISTA DE CONTATOS  */}
+        <div className={`col-3 chat-list-${theme} bg-color-${theme}`} style={{ overflowY: 'auto', height: '100%' }}>
           {Array.isArray(chats) &&
             chats.map((chat) => (
-              <div
+              /*  CONTATO NA LISTA */
+              <div 
                 key={chat.id}
                 onClick={() => handleChatClick(chat)}
                 style={{ cursor: 'pointer', padding: '10px', borderBottom: '1px solid #ccc' }}
@@ -168,21 +171,26 @@ function ChatPage({ theme }) {
               </div>
             ))}
         </div>
-
-        <div className={`col-9 chat-messages-${theme}`} style={{ height: '100%' }}>
-          <div id="corpoTexto" style={{ whiteSpace: 'pre-wrap', display: 'flex', flexDirection: 'column' }}>
+        
+        {/*  MENSAGENS DO CONTATO SELECIONADO */}
+        <div className={`col-9 chat-messages-${theme} d-flex flex-column`} style={{ height: '100%' }}>
+          <div 
+          id="corpoTexto"
+          className= "px-3 pt-3 h-100 d-flex justify-content-end"
+          style={{ whiteSpace: 'pre-wrap', display: 'flex', flexDirection: 'column' }}
+          >
             {selectedMessages.map((msg, idx) => (
               <div
                 key={idx}
                 onClick={() => handleReply(msg)}
                 style={{
-                  backgroundColor: msg.fromMe ? '#dcf8c6' : '#f1f0f0',
-                  textAlign: msg.fromMe ? 'right' : 'left',
+                  backgroundColor: msg.from_me ? '#dcf8c6' : '#f1f0f0',
+                  textAlign: msg.from_me ? 'right' : 'left',
                   padding: '10px',
                   borderRadius: '10px',
                   margin: '5px 0',
                   maxWidth: '70%',
-                  alignSelf: msg.fromMe ? 'flex-end' : 'flex-start',
+                  alignSelf: msg.from_me ? 'flex-end' : 'flex-start',
                   cursor: 'pointer',
                 }}
               >
@@ -205,8 +213,13 @@ function ChatPage({ theme }) {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="message-input" style={{ marginTop: '10px', display: 'flex' }}>
+          {/*  INPUT DE MENSAGEM  */}
+          <div
+          className="p-3 w-100 d-flex justify-content-evenly message-input"
+          style={{ backgroundColor: `var(--bg-color-${theme})` }}
+          >
             <input
+              className={`form-control input-${theme}`}
               type="text"
               placeholder="Digite sua mensagem..."
               value={newMessage}

@@ -30,7 +30,7 @@ function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post("https://landing-page-teste.8rxpnw.easypanel.host/api/login", {
+      const response = await axios.post("http://localhost:3000/api/login", {
         email: username,
         password,
       });
