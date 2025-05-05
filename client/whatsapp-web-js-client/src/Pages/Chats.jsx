@@ -12,9 +12,16 @@ function ChatPage({ theme }) {
   const selectedChatRef = useRef(null);
   const messagesEndRef = useRef(null);
   const userData = JSON.parse(localStorage.getItem('user'));
+<<<<<<< HEAD
   const [isRecording, setIsRecording] = useState(false); 
   const [mediaRecorder, setMediaRecorder] = useState(null); 
   const [audioChunks, setAudioChunks] = useState([]); 
+=======
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const recordingIntervalRef = useRef(null);
+
+>>>>>>> cae2efb6b3dbf923ee4cb1ddea8d347f95354fd7
   const schema = userData.schema;
   const socket = useRef(io('http://localhost:3000')).current;
 
@@ -92,7 +99,13 @@ function ChatPage({ theme }) {
     return () => clearInterval(interval);
   }, [selectedChat, schema]);
 
-
+  useEffect(() => {
+    return () => {
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+    };
+  }, []);
 
   const handleChatClick = async (chat) => {
     console.log('Chat selecionado', chat);
@@ -111,6 +124,25 @@ function ChatPage({ theme }) {
     }
   };
 
+  const handleAudioClick = () => {
+    if (isRecording) {
+      setIsRecording(false);
+      setRecordingTime(0);
+
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+        recordingIntervalRef.current = null;
+      }  
+    } else {
+      setIsRecording(true);
+      setRecordingTime(0);
+
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingTime((prevTime) => prevTime + 1);
+      }, 1000);
+    }
+  };
+  
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
 
@@ -273,17 +305,10 @@ function ChatPage({ theme }) {
           className="p-3 w-100 d-flex justify-content-center message-input gap-2"
           style={{ backgroundColor: `var(--bg-color-${theme})` }}
           >
-            <input
-              className={`form-control input-${theme}`}
-              type="text"
-              placeholder="Digite sua mensagem..."
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              style={{ width: '70%', padding: '10px' }}
-            />
 
-            {/* BOTÃO DE ÁUDIO */}
+            {/* BOTÃO DE IMAGEM */}
             <button
+<<<<<<< HEAD
             className={`btn btn-2-${theme}`}
             onClick={handleAudioRecording}
             style={{
@@ -292,12 +317,75 @@ function ChatPage({ theme }) {
              }}
           >
              <i className={`bi ${isRecording ? 'bi-stop-circle' : 'bi-mic'}`}></i>
+=======
+              id="imagem" 
+              className={`btn btn-2-${theme}`}
+              onClick={() => {}}
+            >
+              <i className="bi bi-image"></i>
+            </button>
+
+            <div style={{ position: 'relative', width: '70%' }}>
+              <input
+                className={`px-3 form-control input-${theme}`}
+                type="text"
+                placeholder={isRecording ? '' : 'Digite sua mensagem...'}
+                value={isRecording ? '' : newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                disabled={isRecording}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  color: isRecording ? 'var(--error-color)' : '',
+                  borderColor: isRecording ? 'var(--error-color)' : '',
+                }}
+              />
+              {isRecording && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '10px',
+                    transform: 'translateY(-50%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                  }}
+                >
+                  <i
+                    className="bi bi-record-circle"
+                    style={{ color: 'var(--error-color)' }}
+                  ></i>
+                  <span>{`${Math.floor(recordingTime / 60)}:${String(
+                    recordingTime % 60
+                  ).padStart(2, '0')}`}</span>
+                </div>
+              )}
+            </div>
+
+            {/* BOTÃO DE ÁUDIO */}
+            <button
+              id="audio" 
+              className={`btn btn-2-${theme}`}
+              onClick={handleAudioClick}
+              style={{
+                color: isRecording ? 'var(--error-color)' : '',
+                borderColor: isRecording ? 'var(--error-color)' : '',
+              }}
+            >
+              <i className={`bi ${isRecording ? 'bi-x' : 'bi-mic'}`}></i>
+>>>>>>> cae2efb6b3dbf923ee4cb1ddea8d347f95354fd7
             </button>
             
             {/* BOTÃO DE ENVIAR MENSAGEM */}
             <button
+              id="enviar" 
               className={`btn btn-2-${theme}`}
-              onClick={handleSendMessage}
+              onClick={() => {
+                handleSendMessage();
+                setIsRecording(false);
+                setRecordingTime(0);
+              }}
             >
               <i className="bi bi-send"></i>
             </button>
