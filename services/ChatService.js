@@ -245,11 +245,11 @@ const getChatByUser = async (userId, schema) => {
   }
 };
 
-const getChatById = async (chatId, schema) => {
+const getChatById = async (chatId, connection_id, schema) => {
   try {
     const result = await pool.query(
-      `SELECT * FROM ${schema}.chats WHERE id = $1`,
-      [chatId]
+      `SELECT * FROM ${schema}.chats WHERE id = $1 and connection_id = $2`,
+      [chatId, connection_id]
     );
 
     return result.rows[0];
