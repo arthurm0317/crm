@@ -17,9 +17,9 @@ const createKanbanStageController = async (req, res) => {
 
 const createMessageForBlastController = async (req, res) => {
     try {
-        const { messageValue, sector } = req.body;
+        const { messageValue, sector, campaingId } = req.body;
         const schema = req.body.schema || 'effective_gain';
-        const result = await createMessageForBlast(messageValue, sector, schema);
+        const result = await createMessageForBlast(messageValue, sector, campaingId, schema);
 
         res.status(201).json(result);
     } catch (err) {
