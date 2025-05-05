@@ -6,9 +6,9 @@ const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 const multer = require('multer');
 const { saveMessage } = require('../services/MessageService');
-const pool = require('../db/queries')
+const pool = require('../db/queries');
 
-module.exports = (io) => {
+module.exports = (wss) => {
   const express = require('express');
   const app = express.Router();
   const { v4: uuidv4 } = require('uuid');
@@ -86,19 +86,19 @@ module.exports = (io) => {
           audioFileName = await downloadAndConvertAudio(result.data.message.audioMessage.url, contact, timestamp);
           messageBody = `[áudio recebido: ${audioFileName}]`;
         } catch (err) {
-          console.error('erro ao baixar/converter áudio:', err);
+          console.error('Erro ao baixar/converter áudio:', err);
           messageBody = '[erro ao processar áudio]';
         }
       }
 
-      const createChats = await createChat(chat, result.instance, result.data.message.conversation, null, io);
-      const chatDb = await getChatService(createChats.chat, createChats.schema );
+      const createChats = await createChat(chat, result.instance, result.data.message.conversation, null, schema);
+      const chatDb = await getChatService(createChats.chat, createChats.schema);
 
       const existingMessage = await pool.query(
         `SELECT id FROM ${schema}.messages WHERE id = $1`,
         [result.data.key.id]
       );
-      
+
       if (existingMessage.rowCount > 0) {
         console.log('Mensagem já existe, ignorando inserção.');
       } else {
@@ -117,9 +117,9 @@ module.exports = (io) => {
       }
 
       await setChatQueue(schema, chatDb.chat_id);
-      await setUserChat(chatDb.id, schema)
+      await setUserChat(chatDb.id, schema);
 
-      console.log('Emitindo mensagem para o socket:', {
+      console.log('Emitindo mensagem para o WebSocket:', {
         chatId: chatDb.id,
         body: messageBody,
         fromMe: result.data.key.fromMe,
@@ -127,15 +127,20 @@ module.exports = (io) => {
         timestamp,
       });
 
-      io.emit('message', {
-        chatId: chatDb.id,
-        body: messageBody,
-        audioUrl: audioFileName ? `/audios/${audioFileName}` : null,
-        fromMe: result.data.key.fromMe,
-        from: result.data.pushName,
-        timestamp,
+      wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(
+            JSON.stringify({
+              chatId: chatDb.id,
+              body: messageBody,
+              audioUrl: audioFileName ? `/audios/${audioFileName}` : null,
+              fromMe: result.data.key.fromMe,
+              from: result.data.pushName,
+              timestamp,
+            })
+          );
+        }
       });
-
 
       res.status(200).json({ result });
     } catch (err) {
@@ -155,11 +160,15 @@ module.exports = (io) => {
         timestamp: Date.now(),
       };
 
-      io.emit('message', sentMessage);
+      wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify(sentMessage));
+        }
+      });
 
       res.status(200).json({ success: true, message: sentMessage });
     } catch (err) {
-      console.error('erro ao enviar mensagem:', err);
+      console.error('Erro ao enviar mensagem:', err);
       res.status(500).json({ error: err.message });
     }
   });
@@ -190,14 +199,18 @@ module.exports = (io) => {
         timestamp: Date.now(),
       };
 
-      io.emit('message', sentAudio);
+      wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify(sentAudio));
+        }
+      });
 
       res.status(200).json({ success: true, message: sentAudio });
     } catch (err) {
-      console.error('erro ao enviar áudio:', err);
+      console.error('Erro ao enviar áudio:', err);
       res.status(500).json({ error: err.message });
     }
   });
 
   return app;
-};  
+};

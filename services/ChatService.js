@@ -238,16 +238,14 @@ const getChatByUser = async (userId, schema) => {
 
 
 module.exports = {
-    createChat,
-    updateChatMessages,
-    getMessages,
-    getChatService,
-    setUserChat,
-    getChats,
-    setChatQueue,
-    updateQueue,
-    getChatData
-}
-    getChatData,
-    getChatByUser 
-  }
+  createChat,
+  updateChatMessages,
+  getMessages,
+  getChatService,
+  setUserChat,
+  getChats,
+  setChatQueue,
+  updateQueue,
+  getChatData,
+  getChatByUser
+};

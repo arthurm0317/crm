@@ -29,21 +29,44 @@ const corsOptions = {
 };
 
 const server = http.createServer(app);
-const io = socketIo(server, {
-  cors: {
-    origin: 'http://localhost:3001',
-    methods: ['GET', 'POST'],
-  },
-});
+const WebSocket = require('ws');
 
-io.on('connection', (socket) => {
-  socket.on('disconnect', () => {
+const wss = new WebSocket.Server({ server });
+
+wss.on('connection', (ws) => {
+  console.log('Cliente conectado via WebSocket');
+
+  ws.on('message', (message) => {
+    console.log('Mensagem recebida do cliente:', message);
+
+    const parsedMessage = JSON.parse(message);
+    const sentMessage = {
+      chatId: parsedMessage.chatId,
+      body: parsedMessage.message,
+      fromMe: true,
+      replyTo: parsedMessage.replyTo,
+      timestamp: Date.now(),
+    };
+
+    console.log('Mensagem processada para envio:', sentMessage);
+
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        console.log('Enviando mensagem para cliente conectado:', JSON.stringify(sentMessage));
+        client.send(JSON.stringify(sentMessage));
+      }
+    });
+  });
+
+  ws.on('close', () => {
+    console.log('Cliente desconectado do WebSocket');
   });
 });
 
 app.use(cors(corsOptions));
-app.use(express.json());
-app.use('/webhook', webhook(io));
+app.use(express.json({ limit: '50mb' })); 
+app.use(express.urlencoded({ limit: '50mb', extended: true })); 
+app.use('/webhook', webhook(wss));
 app.use('/api', userRoutes);
 app.use('/company', companyRoutes);
 app.use('/queue', queueRoutes);
@@ -62,6 +85,7 @@ app.post('/webhook/audio', async (req, res) => {
     const mp3Path = path.join(__dirname, 'audios', `${from}-${timestamp}.mp3`);
 
     try {
+      console.log('Baixando áudio do URL:', body);
       const response = await axios.get(body, { responseType: 'stream' });
       const writer = fs.createWriteStream(oggPath);
       response.data.pipe(writer);
@@ -71,6 +95,7 @@ app.post('/webhook/audio', async (req, res) => {
         writer.on('error', reject);
       });
 
+      console.log('Convertendo áudio para MP3...');
       await new Promise((resolve, reject) => {
         ffmpeg(oggPath)
           .toFormat('mp3')
@@ -79,36 +104,19 @@ app.post('/webhook/audio', async (req, res) => {
           .save(mp3Path);
       });
 
+      console.log('Áudio processado com sucesso:', mp3Path);
       res.sendStatus(200);
     } catch (error) {
+      console.error('Erro ao processar áudio:', error);
       res.sendStatus(500);
     }
   } else {
+    console.log('Requisição de áudio ignorada. Tipo ou URL inválido.');
     res.sendStatus(204);
   }
 });
 
-app.post('/chat/sendMessage', async (req, res) => {
-  const { chatId, message, schema, replyTo } = req.body;
-
-  try {
-    const sentMessage = {
-      chatId,
-      body: message,
-      fromMe: true,
-      replyTo,
-      timestamp: Date.now(),
-    };
-
-    io.emit('message', sentMessage);
-
-    res.status(200).json({ success: true, message: sentMessage });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-configureSocket(io, server);
+configureSocket(wss, server);
 
 const PORT = 3000;
 server.listen(PORT, () => {

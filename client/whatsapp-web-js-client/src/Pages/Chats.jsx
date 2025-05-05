@@ -2,45 +2,72 @@ import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 
 function ChatPage({ theme }) {
-  const [chats, setChats] = useState([]);
-  const [selectedMessages, setSelectedMessages] = useState([]);
-  const [selectedChat, setSelectedChat] = useState(null);
-  const [newMessage, setNewMessage] = useState('');
+  const [chats, setChats] = useState([]); 
+  const [selectedMessages, setSelectedMessages] = useState([]); 
+  const [selectedChat, setSelectedChat] = useState(null); 
+  const [newMessage, setNewMessage] = useState(''); 
   const [replyMessage, setReplyMessage] = useState(null);
-  const [isRecording, setIsRecording] = useState(false);
+  const [isRecording, setIsRecording] = useState(false); 
   const [mediaRecorder, setMediaRecorder] = useState(null);
-  const [audioChunks, setAudioChunks] = useState([]);
-  const selectedChatRef = useRef(null);
+  const [audioChunks, setAudioChunks] = useState([]); 
+  const selectedChatRef = useRef(null); 
   const messagesEndRef = useRef(null);
-  const ws = useRef(null);
+  const ws = useRef(null); 
 
   const userData = JSON.parse(localStorage.getItem('user'));
   const schema = userData.schema;
 
+
   useEffect(() => {
     ws.current = new WebSocket('ws://localhost:3000');
-
+  
     ws.current.onopen = () => {
-      console.log('WebSocket conectado');
+      console.log('WebSocket conectado no frontend');
     };
-
+  
     ws.current.onmessage = (event) => {
       const newMessage = JSON.parse(event.data);
-      console.log('Nova mensagem recebida via WS:', newMessage);
-      if (selectedChatRef.current && selectedChatRef.current.chat_id === newMessage.chatId) {
-        setSelectedMessages((prevMessages) => [...prevMessages, newMessage]);
-        scrollToBottom();
-      }
+      console.log('Mensagem recebida no frontend:', newMessage);
+    
+      // Atualize o estado com a nova mensagem
+      setChats((prevChats) => {
+        const updatedChats = prevChats.map((chat) => {
+          if (chat.chat_id === newMessage.chatId) {
+            return {
+              ...chat,
+              messages: [...(chat.messages || []), newMessage],
+            };
+          }
+          return chat;
+        });
+    
+        console.log('Estado atualizado dos chats:', updatedChats);
+    
+        // Atualize as mensagens do chat selecionado, se aplicável
+        if (selectedChatRef.current && selectedChatRef.current.chat_id === newMessage.chatId) {
+          setSelectedMessages((prevMessages) => [...prevMessages, newMessage]);
+          console.log('Mensagens do chat selecionado atualizadas:', selectedMessages);
+          scrollToBottom();
+        }
+    
+        return updatedChats;
+      });
     };
-
+  
+    ws.current.onclose = () => {
+      console.log('WebSocket desconectado no frontend');
+    };
+  
     return () => {
       ws.current?.close();
     };
   }, []);
 
+
   useEffect(() => {
     selectedChatRef.current = selectedChat;
   });
+
 
   useEffect(() => {
     axios
@@ -50,6 +77,7 @@ function ChatPage({ theme }) {
       })
       .catch((err) => console.error('Erro ao carregar chats:', err));
   }, [schema]);
+
 
   const handleChatClick = async (chat) => {
     try {
@@ -65,6 +93,7 @@ function ChatPage({ theme }) {
       console.error('Erro ao buscar mensagens:', error);
     }
   };
+
 
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
@@ -97,17 +126,18 @@ function ChatPage({ theme }) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+
   const handleAudioRecording = async () => {
     if (!isRecording) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const recorder = new MediaRecorder(stream);
         setMediaRecorder(recorder);
-
+  
         recorder.ondataavailable = (event) => {
           setAudioChunks((prevChunks) => [...prevChunks, event.data]);
         };
-
+  
         recorder.start();
         setIsRecording(true);
       } catch (error) {
@@ -121,22 +151,21 @@ function ChatPage({ theme }) {
         formData.append('audio', audioBlob);
         formData.append('chatId', selectedChat.chat_id);
         formData.append('schema', schema);
-
+  
         try {
           const response = await axios.post('http://localhost:3000/chat/sendAudio', formData, {
             headers: {
               'Content-Type': 'multipart/form-data',
             },
           });
-
-          const sentAudio = response.data.message;
-          setSelectedMessages((prevMessages) => [...prevMessages, sentAudio]);
+  
+          console.log('Áudio enviado com sucesso:', response.data);
           setAudioChunks([]);
         } catch (error) {
           console.error('Erro ao enviar áudio:', error);
         }
       };
-
+  
       setIsRecording(false);
     }
   };
@@ -148,29 +177,30 @@ function ChatPage({ theme }) {
       </div>
       <div className={`chat chat-${theme} h-100 w-100 d-flex flex-row`}>
         <div className={`col-3 chat-list-${theme}`} style={{ overflowY: 'auto', height: '100%' }}>
-          {Array.isArray(chats) && chats.map((chat) => (
-            <div
-              key={chat.id}
-              onClick={() => handleChatClick(chat)}
-              style={{ cursor: 'pointer', padding: '10px', borderBottom: '1px solid #ccc' }}
-            >
-              <strong>{chat.contact_name || chat.chat_id || 'Sem Nome'}</strong>
+          {Array.isArray(chats) &&
+            chats.map((chat) => (
               <div
-                style={{
-                  color: '#666',
-                  fontSize: '0.9rem',
-                  overflow: 'hidden',
-                  whiteSpace: 'nowrap',
-                  textOverflow: 'ellipsis',
-                  maxWidth: '100%',
-                }}
+                key={chat.id}
+                onClick={() => handleChatClick(chat)}
+                style={{ cursor: 'pointer', padding: '10px', borderBottom: '1px solid #ccc' }}
               >
-                {Array.isArray(chat.messages) && chat.messages.length > 0
-                  ? chat.messages[chat.messages.length - 1]
-                  : 'Sem mensagens'}
+                <strong>{chat.contact_name || chat.chat_id || 'Sem Nome'}</strong>
+                <div
+                  style={{
+                    color: '#666',
+                    fontSize: '0.9rem',
+                    overflow: 'hidden',
+                    whiteSpace: 'nowrap',
+                    textOverflow: 'ellipsis',
+                    maxWidth: '100%',
+                  }}
+                >
+                  {Array.isArray(chat.messages) && chat.messages.length > 0
+                    ? chat.messages[chat.messages.length - 1].body
+                    : 'Sem mensagens'}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
 
         <div className={`col-9 chat-messages-${theme}`} style={{ height: '100%' }}>
