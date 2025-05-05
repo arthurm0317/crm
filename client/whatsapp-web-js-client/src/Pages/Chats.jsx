@@ -177,7 +177,7 @@ function ChatPage({ theme }) {
         <div className={`col-9 chat-messages-${theme} d-flex flex-column`} style={{ height: '100%' }}>
           <div 
           id="corpoTexto"
-          className= "px-3 pt-3 h-100 d-flex justify-content-end"
+          className= "px-3 pt-3 pb-2 h-100 d-flex justify-content-end"
           style={{ whiteSpace: 'pre-wrap', display: 'flex', flexDirection: 'column' }}
           >
             {selectedMessages.map((msg, idx) => (
@@ -216,7 +216,7 @@ function ChatPage({ theme }) {
 
           {/*  INPUT DE MENSAGEM  */}
           <div
-          className="p-3 w-100 d-flex justify-content-evenly message-input"
+          className="p-3 w-100 d-flex justify-content-center message-input gap-2"
           style={{ backgroundColor: `var(--bg-color-${theme})` }}
           >
             <input
@@ -225,21 +225,25 @@ function ChatPage({ theme }) {
               placeholder="Digite sua mensagem..."
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              style={{ width: '70%', padding: '10px', marginRight: '10px' }}
+              style={{ width: '70%', padding: '10px' }}
             />
+
+            {/* BOTÃO DE ÁUDIO */}
             <button
-              onClick={handleSendMessage}
-              style={{
-                padding: '10px 20px',
-                backgroundColor: '#007bff',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '5px',
-                marginRight: '10px',
-              }}
+              className={`btn btn-2-${theme}`}
+              onClick={() => {}}
             >
-              Enviar
+              <i className="bi bi-mic"></i>
             </button>
+            
+            {/* BOTÃO DE ENVIAR MENSAGEM */}
+            <button
+              className={`btn btn-2-${theme}`}
+              onClick={handleSendMessage}
+            >
+              <i className="bi bi-send"></i>
+            </button>
+
           </div>
         </div>
       </div>
