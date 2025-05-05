@@ -2,6 +2,8 @@ const { v4: uuidv4 } = require('uuid');
 const { createInstance, fetchInstanceEvo, sendTextMessage } = require('../requests/evolution');
 const Connections = require('../entities/Connection');
 const { createConnection, fetchInstance, searchConnById } = require('../services/ConnectionService');
+const { saveMessage } = require('../services/MessageService');
+const { Message } = require('../entities/Message');
 
 const createInstanceController = async(req, res)=>{
     try{
@@ -47,17 +49,34 @@ const fetchInstanceController = async (req, res) => {
   };
 
   const sendTextMessageController = async (req, res) => {
-    console.log("body", req.body)
     try {
       const body = req.body;
+      chatId = body.chatId || body.chat_id;
       const schema = body.schema || 'effective_gain';
+  
       const instance = await searchConnById(body.instanceId, schema);
   
       if (!instance) {
         return res.status(404).json({ error: 'Conexão não encontrada' });
       }
-  
       const result = await sendTextMessage(instance.name, body.text, body.number);
+  
+      if (!result || !result.key) {
+        return res.status(500).json({ error: 'Erro ao enviar mensagem: resposta inválida do serviço.' });
+      }
+  
+      
+      const message = new Message(
+        result.key.id, 
+        body.text, 
+        result.key.fromMe, 
+        result.key.remoteJid, 
+        new Date().getTime() 
+      );
+      console.log("message", message)
+  
+      await saveMessage(chatId, message, schema);
+  
       res.status(200).json({ result });
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error.message);

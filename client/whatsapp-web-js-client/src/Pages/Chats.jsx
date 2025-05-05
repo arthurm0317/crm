@@ -113,6 +113,7 @@ function ChatPage({ theme }) {
         instanceId: selectedChat.connection_id,
         number: selectedChat.contact_phone,
         text: newMessage,
+        chatId: selectedChat.id,
         schema: schema,
       });
 
