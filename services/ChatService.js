@@ -4,7 +4,6 @@ const { getOnlineUsers, updateLastAssignedUser, getLastAssignedUser } = require(
 const createChat = async (chat, instance, message, etapa, io) => {
   let schema;
 
-  // Obter todos os schemas disponíveis
   const geralSchema = await pool.query(
     `SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('pg_catalog', 'information_schema', 'pg_toast', 'public')`
   );
@@ -29,7 +28,6 @@ const createChat = async (chat, instance, message, etapa, io) => {
   }
 
   try {
-    // Verificar se o chat já existe
     const existingChat = await pool.query(
       `SELECT * FROM ${schema}.chats WHERE chat_id = $1 AND connection_id = $2`,
       [chat.getChatId(), chat.getConnectionId()]
@@ -51,7 +49,6 @@ const createChat = async (chat, instance, message, etapa, io) => {
       };
     }
 
-    // Obter ou criar contato
     const contactNumber = chat.getChatId().split('@')[0];
     const contactQuery = await pool.query(
       `SELECT * FROM ${schema}.contacts WHERE number = $1`,
@@ -69,7 +66,6 @@ const createChat = async (chat, instance, message, etapa, io) => {
       contactName = newContact.rows[0].contact_name;
     }
 
-    // Preparar valores para inserção do chat
     const chatValues = [
       chat.getId(),
       chat.getChatId(),
@@ -93,7 +89,6 @@ const createChat = async (chat, instance, message, etapa, io) => {
           (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages, contact_phone) 
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`;
 
-    // Inserir chat no banco de dados
     const result = await pool.query(query, etapa ? chatValues : chatValues.slice(0, -1));
 
     if (io) {

@@ -72,7 +72,7 @@ function ChatPage({ theme }) {
     };
   }, [socket]);
 
-  // Atualização periódica do chat selecionado
+
   useEffect(() => {
     if (!selectedChat) return;
 
@@ -88,9 +88,9 @@ function ChatPage({ theme }) {
       } catch (error) {
         console.error('Erro ao atualizar mensagens do chat selecionado:', error);
       }
-    }, 1000); // Atualiza a cada 1 segundo
+    }, 1000); 
 
-    return () => clearInterval(interval); // Limpa o intervalo ao desmontar ou mudar o chat selecionado
+    return () => clearInterval(interval); 
   }, [selectedChat, schema]);
 
   const handleChatClick = async (chat) => {
@@ -101,8 +101,8 @@ function ChatPage({ theme }) {
         schema,
       });
       console.log('Mensagens recebidas:', res.data.messages);
-      setSelectedChat(chat); // Atualiza o chat selecionado
-      setSelectedMessages(res.data.messages); // Atualiza as mensagens do chat selecionado
+      setSelectedChat(chat);
+      setSelectedMessages(res.data.messages);
       scrollToBottom();
     } catch (error) {
       console.error('Erro ao buscar mensagens:', error);
@@ -110,12 +110,13 @@ function ChatPage({ theme }) {
   };
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim()) return;
-
+    if (!newMessage.trim()) return; 
+  
     try {
-      await axios.post('https://landing-page-teste.8rxpnw.easypanel.host/chat/sendMessage', {
-        chatId: selectedChat.id, // Usando o ID do chat selecionado
-        message: newMessage,
+      
+      await axios.post('https://landing-page-teste.8rxpnw.easypanel.host/evo/sendText', {
+        chatId: selectedChat.id, 
+        message: newMessage, 
         schema,
         replyTo: replyMessage ? replyMessage.body : null,
       });
@@ -124,14 +125,13 @@ function ChatPage({ theme }) {
         ...prevMessages,
         { body: newMessage, fromMe: true, replyTo: replyMessage ? replyMessage.body : null },
       ]);
-
+  
       setNewMessage('');
       setReplyMessage(null);
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error);
     }
   };
-
   const handleReply = (message) => {
     setReplyMessage(message);
   };
@@ -210,13 +210,13 @@ function ChatPage({ theme }) {
           </div>
 
           <div className="message-input" style={{ marginTop: '10px', display: 'flex' }}>
-            <input
-              type="text"
-              placeholder="Digite sua mensagem..."
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              style={{ width: '70%', padding: '10px', marginRight: '10px' }}
-            />
+          <input
+            type="text"
+            placeholder="Digite sua mensagem..."
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            style={{ width: '70%', padding: '10px', marginRight: '10px' }}
+          />
             <button
               onClick={handleSendMessage}
               style={{
