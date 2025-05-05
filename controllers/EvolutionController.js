@@ -49,15 +49,8 @@ const fetchInstanceController = async (req, res) => {
   const sendTextMessageController = async (req, res) => {
     try {
       const body = req.body;
-      const schema = req.body.schema || 'effective_gain';
-  
-      if (!schema) {
-        throw new Error('Schema não definido');
-      }
-  
-      console.log('Schema utilizado:', schema);
-  
-      const instance = await searchConnById(schema, body.connectionId);
+
+      const instance = await searchConnById(schema, body.instanceId);
   
       if (!instance) {
         return res.status(404).json({ error: 'Conexão não encontrada' });

@@ -13,7 +13,6 @@ function ChatPage({ theme }) {
   const userData = JSON.parse(localStorage.getItem('user'));
 
   const schema = userData.schema;
-
   const socket = useRef(io('https://landing-page-teste.8rxpnw.easypanel.host')).current;
 
   useEffect(() => {
@@ -94,7 +93,7 @@ function ChatPage({ theme }) {
   }, [selectedChat, schema]);
 
   const handleChatClick = async (chat) => {
-    console.log('Chat selecionado (id):', chat.id);
+    console.log('Chat selecionado', chat);
     try {
       const res = await axios.post('https://landing-page-teste.8rxpnw.easypanel.host/chat/getMessages', {
         chatId: chat.chat_id,
@@ -115,10 +114,10 @@ function ChatPage({ theme }) {
     try {
       
       await axios.post('https://landing-page-teste.8rxpnw.easypanel.host/evo/sendText', {
-        chatId: selectedChat.id, 
-        message: newMessage, 
-        schema,
-        replyTo: replyMessage ? replyMessage.body : null,
+        instanceId: selectedChat.connection_id,
+        number: selectedChat.contact_number, 
+        text: newMessage, 
+        schema: schema
       });
 
       setSelectedMessages((prevMessages) => [
