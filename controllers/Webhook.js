@@ -174,7 +174,7 @@ module.exports = (broadcastMessage) => {
 
       res.status(200).json({ success: true, message: sentMessage });
     } catch (err) {
-      console.error('erro ao enviar mensagem:', err);
+      console.error('Erro ao enviar mensagem:', err);
       res.status(500).json({ error: err.message });
     }
   });
@@ -209,7 +209,7 @@ module.exports = (broadcastMessage) => {
 
       res.status(200).json({ success: true, message: sentAudio });
     } catch (err) {
-      console.error('erro ao enviar áudio:', err);
+      console.error('Erro ao enviar áudio:', err);
       res.status(500).json({ error: err.message });
     }
   });

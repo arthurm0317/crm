@@ -63,6 +63,7 @@ app.post('/webhook/audio', async (req, res) => {
     const mp3Path = path.join(__dirname, 'audios', `${from}-${timestamp}.mp3`);
 
     try {
+      console.log('Baixando áudio do URL:', body);
       const response = await axios.get(body, { responseType: 'stream' });
       const writer = fs.createWriteStream(oggPath);
       response.data.pipe(writer);
@@ -72,6 +73,7 @@ app.post('/webhook/audio', async (req, res) => {
         writer.on('error', reject);
       });
 
+      console.log('Convertendo áudio para MP3...');
       await new Promise((resolve, reject) => {
         ffmpeg(oggPath)
           .toFormat('mp3')
@@ -80,11 +82,14 @@ app.post('/webhook/audio', async (req, res) => {
           .save(mp3Path);
       });
 
+      console.log('Áudio processado com sucesso:', mp3Path);
       res.sendStatus(200);
     } catch (error) {
+      console.error('Erro ao processar áudio:', error);
       res.sendStatus(500);
     }
   } else {
+    console.log('Requisição de áudio ignorada. Tipo ou URL inválido.');
     res.sendStatus(204);
   }
 });

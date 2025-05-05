@@ -71,7 +71,6 @@ function ChatPage({ theme }) {
     };
   }, [socket]);
 
-
   useEffect(() => {
     if (!selectedChat) return;
 
@@ -85,9 +84,9 @@ function ChatPage({ theme }) {
       } catch (error) {
         console.error('Erro ao atualizar mensagens do chat selecionado:', error);
       }
-    }, 1000); 
+    }, 1000);
 
-    return () => clearInterval(interval); 
+    return () => clearInterval(interval);
   }, [selectedChat, schema]);
 
   const handleChatClick = async (chat) => {
@@ -107,27 +106,28 @@ function ChatPage({ theme }) {
   };
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim()) return; 
-  
+    if (!newMessage.trim()) return;
+
     try {
       await axios.post('http://localhost:3000/evo/sendText', {
         instanceId: selectedChat.connection_id,
-        number: selectedChat.contact_phone, 
-        text: newMessage, 
-        schema: schema
+        number: selectedChat.contact_phone,
+        text: newMessage,
+        schema: schema,
       });
 
       setSelectedMessages((prevMessages) => [
         ...prevMessages,
         { body: newMessage, fromMe: true, replyTo: replyMessage ? replyMessage.body : null },
       ]);
-  
+
       setNewMessage('');
       setReplyMessage(null);
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error);
     }
   };
+
   const handleReply = (message) => {
     setReplyMessage(message);
   };
@@ -206,13 +206,13 @@ function ChatPage({ theme }) {
           </div>
 
           <div className="message-input" style={{ marginTop: '10px', display: 'flex' }}>
-          <input
-            type="text"
-            placeholder="Digite sua mensagem..."
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            style={{ width: '70%', padding: '10px', marginRight: '10px' }}
-          />
+            <input
+              type="text"
+              placeholder="Digite sua mensagem..."
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              style={{ width: '70%', padding: '10px', marginRight: '10px' }}
+            />
             <button
               onClick={handleSendMessage}
               style={{
