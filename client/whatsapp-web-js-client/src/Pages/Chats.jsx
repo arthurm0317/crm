@@ -181,7 +181,7 @@ function ChatPage({ theme }) {
         data-bs-toggle="modal"
         data-bs-target="#NewContactModal"
         >
-          Novo
+          Novo Contato
         </button>
       </div>
       <div className={`chat chat-${theme} h-100 w-100 d-flex flex-row`}>
