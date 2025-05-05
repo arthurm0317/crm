@@ -12,18 +12,13 @@ function ChatPage({ theme }) {
   const selectedChatRef = useRef(null);
   const messagesEndRef = useRef(null);
   const userData = JSON.parse(localStorage.getItem('user'));
-<<<<<<< HEAD
   const [isRecording, setIsRecording] = useState(false); 
   const [mediaRecorder, setMediaRecorder] = useState(null); 
   const [audioChunks, setAudioChunks] = useState([]); 
-=======
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
-  const recordingIntervalRef = useRef(null);
-
->>>>>>> cae2efb6b3dbf923ee4cb1ddea8d347f95354fd7
   const schema = userData.schema;
   const socket = useRef(io('http://localhost:3000')).current;
+  const [recordingTime, setRecordingTime] = useState(0);
+  const recordingIntervalRef = useRef(null); 
 
   useEffect(() => {
     socket.on('connect', () => {
@@ -147,7 +142,7 @@ function ChatPage({ theme }) {
     if (!newMessage.trim()) return;
 
     try {
-      await axios.post('http://localhost:3000/evo/sendText', {
+      await axios.post('process.env.EVOLUTION_SERVER_URL}/chat/findContacts/', {
         instanceId: selectedChat.connection_id,
         number: selectedChat.contact_phone,
         text: newMessage,
@@ -228,35 +223,36 @@ function ChatPage({ theme }) {
         className={`col-3 chat-list-${theme} bg-color-${theme}`} style={{ overflowY: 'auto', height: '100%', backgroundColor: `var(--bg-color-${theme})`}}>
           
           {Array.isArray(chats) &&
-            chats.map((chat) => (
-              /*  CONTATO NA LISTA */
-              <div className='d-flex flex-row'>
-                <div 
-                className={`selectedBar ${selectedChatId === chat.id ? '' : 'd-none'}`} style={{ width: '2.5%', maxWidth: '5px', backgroundColor: 'var(--primary-color)' }}></div>
-                <div 
-                  className={`h-100 w-100 input-${theme}`}
-                  key={chat.id}
-                  onClick={() => handleChatClick(chat)}
-                  style={{ cursor: 'pointer', padding: '10px', borderBottom: `1px solid var(--border-color-${theme})` }}
-                >
-                  <strong>{chat.contact_name || chat.chat_id || 'Sem Nome'}</strong>
-                  <div
-                    style={{
-                      color: '#666',
-                      fontSize: '0.9rem',
-                      overflow: 'hidden',
-                      whiteSpace: 'nowrap',
-                      textOverflow: 'ellipsis',
-                      maxWidth: '100%',
-                    }}
-                  >
-                    {Array.isArray(chat.messages) && chat.messages.length > 0
-                      ? chat.messages[chat.messages.length - 1]
-                      : 'Sem mensagens'}
-                  </div>
-                </div>
-              </div>
-            ))}
+  chats.map((chat, index) => (
+    /* CONTATO NA LISTA */
+    <div className="d-flex flex-row" key={chat.id || chat.chat_id || index}>
+      <div
+        className={`selectedBar ${selectedChatId === chat.id ? '' : 'd-none'}`}
+        style={{ width: '2.5%', maxWidth: '5px', backgroundColor: 'var(--primary-color)' }}
+      ></div>
+      <div
+        className={`h-100 w-100 input-${theme}`}
+        onClick={() => handleChatClick(chat)}
+        style={{ cursor: 'pointer', padding: '10px', borderBottom: `1px solid var(--border-color-${theme})` }}
+      >
+        <strong>{chat.contact_name || chat.chat_id || 'Sem Nome'}</strong>
+        <div
+          style={{
+            color: '#666',
+            fontSize: '0.9rem',
+            overflow: 'hidden',
+            whiteSpace: 'nowrap',
+            textOverflow: 'ellipsis',
+            maxWidth: '100%',
+          }}
+        >
+          {Array.isArray(chat.messages) && chat.messages.length > 0
+            ? chat.messages[chat.messages.length - 1]
+            : 'Sem mensagens'}
+        </div>
+      </div>
+    </div>
+  ))}
         </div>
         
         {/*  MENSAGENS DO CONTATO SELECIONADO */}
@@ -308,16 +304,6 @@ function ChatPage({ theme }) {
 
             {/* BOTÃO DE IMAGEM */}
             <button
-<<<<<<< HEAD
-            className={`btn btn-2-${theme}`}
-            onClick={handleAudioRecording}
-            style={{
-            backgroundColor: isRecording ? '#dc3545' : 'var(--primary-color)',
-            color: '#fff',
-             }}
-          >
-             <i className={`bi ${isRecording ? 'bi-stop-circle' : 'bi-mic'}`}></i>
-=======
               id="imagem" 
               className={`btn btn-2-${theme}`}
               onClick={() => {}}
@@ -374,7 +360,6 @@ function ChatPage({ theme }) {
               }}
             >
               <i className={`bi ${isRecording ? 'bi-x' : 'bi-mic'}`}></i>
->>>>>>> cae2efb6b3dbf923ee4cb1ddea8d347f95354fd7
             </button>
             
             {/* BOTÃO DE ENVIAR MENSAGEM */}

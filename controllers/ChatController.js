@@ -3,12 +3,13 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const pool = require('../db/queries');
-const axios = require('axios'); 
+const axios = require('axios');
+const { sendAudioToWhatsApp } = require('../requests/evolution');
 
-
+// Configuração do multer para salvar os arquivos de áudio
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const audioFolder = path.join(__dirname, '..', 'uploads');
+    const audioFolder = path.join(__dirname, '..', 'uploads', 'audios');
     if (!fs.existsSync(audioFolder)) {
       fs.mkdirSync(audioFolder, { recursive: true });
     }
@@ -116,25 +117,23 @@ const sendAudioController = async (req, res) => {
   }
 
   try {
-
-    const audioPath = path.join(__dirname, '..', 'uploads', audioFile.filename);
+    const audioPath = path.join(__dirname, '..', 'uploads', 'audios', audioFile.filename);
     const audioBuffer = fs.readFileSync(audioPath);
     const audioBase64 = audioBuffer.toString('base64');
-
-    saveAudioMessage(chatId, audioBase64, schema)
-
-    console.log('Áudio salvo no banco de dados com sucesso');
-
+  
+    await saveAudioMessage(chatId, audioBase64, schema);
+  
+    console.log('audio salvo');
+  
     const evolutionResponse = await sendAudioToWhatsApp(chatId, audioBase64);
-
-    res.status(200).json({ success: true, message: 'Áudio processado e enviado com sucesso', evolutionResponse });
-  } catch (error) {
-    console.error('Erro ao processar áudio:', error);
-    res.status(500).json({ error: 'Erro ao processar áudio' });
-  } finally {
-    const audioPath = path.join(__dirname, '..', 'uploads', audioFile.filename);
+  
+    res.status(200).json({ success: true, message: 'audio processado', evolutionResponse });
+  
     fs.unlinkSync(audioPath);
-  }
+  } catch (error) {
+    console.error('erro no processamento', error);
+    res.status(500).json({ error: 'erro em processar' });
+    }
 };
 
 module.exports = {
