@@ -3,18 +3,19 @@ const fs = require('fs');
 const path = require('path');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
-ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 const multer = require('multer');
+const { v4: uuidv4 } = require('uuid');
+const { Chat } = require('../entities/Chat');
+const { Message } = require('../entities/Message');
+const { createChat, getChatService, setChatQueue, setUserChat } = require('../services/ChatService');
 const { saveMessage } = require('../services/MessageService');
 const pool = require('../db/queries');
 
-module.exports = (wss) => {
+ffmpeg.setFfmpegPath(ffmpegInstaller.path);
+
+module.exports = (broadcastMessage) => {
   const express = require('express');
   const app = express.Router();
-  const { v4: uuidv4 } = require('uuid');
-  const { Chat } = require('../entities/Chat');
-  const { Message } = require('../entities/Message');
-  const { createChat, getChatService, setChatQueue, setUserChat } = require('../services/ChatService');
 
   const ensureAudioFolder = (folderPath) => {
     if (!fs.existsSync(folderPath)) {
@@ -57,12 +58,18 @@ module.exports = (wss) => {
       return res.status(400).json({ error: 'Dados incompletos' });
     }
 
-    let contact = result.data.key.fromMe
+    console.log('Dados recebidos no webhook:', result);
+
+    const contact = result.data.key.fromMe
       ? result.data.key.remoteJid.split('@')[0]
       : result.data.pushName || result.data.key.remoteJid.split('@')[0];
 
     try {
       const timestamp = new Date(result.date_time).getTime();
+
+      if (!result.data.key.remoteJid || !result.data.instanceId) {
+        throw new Error('Dados obrigatórios ausentes: remoteJid ou instanceId');
+      }
 
       const chat = new Chat(
         uuidv4(),
@@ -76,6 +83,9 @@ module.exports = (wss) => {
         timestamp,
         []
       );
+
+      console.log('Objeto Chat criado:', chat);
+
       let messageBody = '';
       let audioFileName = null;
 
@@ -91,17 +101,25 @@ module.exports = (wss) => {
         }
       }
 
-      const createChats = await createChat(chat, result.instance, result.data.message.conversation, null, schema);
+      console.log('Mensagem processada:', messageBody);
+
+      if (!chat || !result.instance) {
+        throw new Error('Dados obrigatórios ausentes para createChat');
+      }
+
+      const createChats = await createChat(chat, result.instance, result.data.message.conversation, null);
       const chatDb = await getChatService(createChats.chat, createChats.schema);
+
+      console.log('Chat criado ou recuperado do banco:', chatDb);
 
       const existingMessage = await pool.query(
         `SELECT id FROM ${schema}.messages WHERE id = $1`,
         [result.data.key.id]
       );
 
-      if (existingMessage.rowCount > 0) {
-        console.log('Mensagem já existe, ignorando inserção.');
-      } else {
+      console.log('Mensagem existente no banco de dados:', existingMessage.rows);
+
+      if (existingMessage.rowCount === 0) {
         await saveMessage(
           chatDb.id,
           new Message(
@@ -114,33 +132,25 @@ module.exports = (wss) => {
           ),
           schema
         );
+        console.log('Mensagem salva com sucesso');
+      } else {
+        console.log('Mensagem já existe no banco de dados, não será salva novamente');
       }
 
       await setChatQueue(schema, chatDb.chat_id);
       await setUserChat(chatDb.id, schema);
 
-      console.log('Emitindo mensagem para o WebSocket:', {
+      const payload = {
         chatId: chatDb.id,
         body: messageBody,
+        audioUrl: audioFileName ? `/audios/${audioFileName}` : null,
         fromMe: result.data.key.fromMe,
         from: result.data.pushName,
         timestamp,
-      });
+      };
 
-      wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(
-            JSON.stringify({
-              chatId: chatDb.id,
-              body: messageBody,
-              audioUrl: audioFileName ? `/audios/${audioFileName}` : null,
-              fromMe: result.data.key.fromMe,
-              from: result.data.pushName,
-              timestamp,
-            })
-          );
-        }
-      });
+      console.log('Payload para broadcast:', payload);
+      broadcastMessage({ type: 'message', payload });
 
       res.status(200).json({ result });
     } catch (err) {
@@ -160,11 +170,7 @@ module.exports = (wss) => {
         timestamp: Date.now(),
       };
 
-      wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify(sentMessage));
-        }
-      });
+      broadcastMessage({ type: 'message', payload: sentMessage });
 
       res.status(200).json({ success: true, message: sentMessage });
     } catch (err) {
@@ -199,11 +205,7 @@ module.exports = (wss) => {
         timestamp: Date.now(),
       };
 
-      wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify(sentAudio));
-        }
-      });
+      broadcastMessage({ type: 'message', payload: sentAudio });
 
       res.status(200).json({ success: true, message: sentAudio });
     } catch (err) {

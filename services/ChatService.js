@@ -1,11 +1,12 @@
-
 const pool = require('../db/queries');
 const { getOnlineUsers, updateLastAssignedUser, getLastAssignedUser } = require('./UserService');
 
 const createChat = async (chat, instance, message, etapa, io) => {
+  let schema;
+
   const geralSchema = await pool.query(
-  `SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('pg_catalog', 'information_schema', 'pg_toast', 'public')`,
-  )
+    `SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('pg_catalog', 'information_schema', 'pg_toast', 'public')`
+  );
   const schemaNames = geralSchema.rows.map(row => row.schema_name);
 
   for (const schemas of schemaNames) {
@@ -15,16 +16,17 @@ const createChat = async (chat, instance, message, etapa, io) => {
       );
       if (result.rows.length > 0) {
         schema = schemas;
-        break; 
+        break;
       }
     } catch (error) {
-      console.error("Erro ao buscar conexao:", error.message);
+      console.error("Erro ao buscar conexão:", error.message);
     }
   }
 
   if (!schema) {
     throw new Error("Schema não encontrado para a instância fornecida.");
   }
+
   try {
     const existingChat = await pool.query(
       `SELECT * FROM ${schema}.chats WHERE chat_id = $1 AND connection_id = $2`,
@@ -32,17 +34,19 @@ const createChat = async (chat, instance, message, etapa, io) => {
     );
 
     if (existingChat.rowCount > 0) {
+      console.log("Chat já existe, atualizando mensagens...");
       const updated = await updateChatMessages(chat, schema, message);
-      io.to(schema).emit("chat:new-message", {
-        chatId: chat.getChatId(),
-        message,
-        schema
-      });
-      await updateChatMessages(chat, schema, message);
-      return{
-        chat:existingChat.rows[0],
+      if (io) {
+        io.to(schema).emit("chat:new-message", {
+          chatId: chat.getChatId(),
+          message,
+          schema
+        });
+      }
+      return {
+        chat: existingChat.rows[0],
         schema: schema
-      } 
+      };
     }
 
     const contactNumber = chat.getChatId().split('@')[0];
@@ -57,7 +61,7 @@ const createChat = async (chat, instance, message, etapa, io) => {
     } else {
       const newContact = await pool.query(
         `INSERT INTO ${schema}.contacts (number, contact_name) VALUES ($1, $2) RETURNING *`,
-        [contactNumber, chat.getContact()] 
+        [contactNumber, chat.getContact()]
       );
       contactName = newContact.rows[0].contact_name;
     }
@@ -94,8 +98,9 @@ const createChat = async (chat, instance, message, etapa, io) => {
         schema
       });
     }
+
     console.log(`Chat criado com sucesso: ${result.rows[0].id}`);
-    return{
+    return {
       result: result.rows[0],
       schema: schema
     };
@@ -103,10 +108,10 @@ const createChat = async (chat, instance, message, etapa, io) => {
     console.error('Erro ao criar chat:', error.message);
     throw new Error('Erro ao criar chat');
   }
-
 };
 
 const updateChatMessages = async (chat, schema, message) => {
+  try {
     const result = await pool.query(
       `UPDATE ${schema}.chats 
        SET messages = messages || $1::jsonb 
@@ -115,6 +120,10 @@ const updateChatMessages = async (chat, schema, message) => {
       [JSON.stringify([message]), chat.getChatId()]
     );
     return result.rows[0];
+  } catch (error) {
+    console.error('Erro ao atualizar mensagens do chat:', error.message);
+    throw new Error('Erro ao atualizar mensagens do chat');
+  }
 };
 
 const getMessages = async(chatId, schema)=>{
@@ -235,7 +244,6 @@ const getChatByUser = async (userId, schema) => {
     throw new Error('Erro ao buscar chats do usuário');
   }
 };
-
 
 module.exports = {
   createChat,

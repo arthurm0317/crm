@@ -46,18 +46,24 @@ const fetchInstanceController = async (req, res) => {
     }
   };
 
-const sendTextMessageController = async(req, res)=>{
-  try{
-    const body = req.body
-    const schema = req.body.schema || 'effective_gain'
-    const instance = await searchConnById(schema, body.connectionId)
-    const result = await sendTextMessage(instance.name, body.text, body.number)
-    res.status(200).json({ result });
-  } catch (error) {
-    console.error('Erro ao enviar mensagem:', error.message);
-    res.status(500).json({ error: 'Erro ao enviar mensagem' });
-  }
-}
+  const sendTextMessageController = async (req, res) => {
+    console.log("body", req.body)
+    try {
+      const body = req.body;
+      const schema = body.schema || 'effective_gain';
+      const instance = await searchConnById(body.instanceId, schema);
+  
+      if (!instance) {
+        return res.status(404).json({ error: 'Conexão não encontrada' });
+      }
+  
+      const result = await sendTextMessage(instance.name, body.text, body.number);
+      res.status(200).json({ result });
+    } catch (error) {
+      console.error('Erro ao enviar mensagem:', error.message);
+      res.status(500).json({ error: 'Erro ao enviar mensagem' });
+    }
+  };
 
 module.exports = {
     createInstanceController, fetchInstanceController, sendTextMessageController

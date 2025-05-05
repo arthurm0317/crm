@@ -30,38 +30,44 @@ function processExcelFile() {
   
 }
 
-const getInformationFromExcel = async (data, schema) => {
+const getInformationFromExcel = async (data, connection, schema) => {
   for (const row of data) {
     let numero = row.numero?.toString();
     const nomeSeparado = row.nome.split(' ');
     const etapa = row.etapa;
-    for (let i = 0; i < nomeSeparado.length; i++) {
-      const nome = nomeSeparado.map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()) .join(' ');
-      if (!numero || !nome) {
-        continue;
-      }
-      if (!numero.startsWith('55')) {
-        numero = `55${numero}`;
-      }
-      try {
-        await pool.query(
-          `INSERT INTO ${schema}.contacts (number, contact_name) VALUES ($1, $2)
-          ON CONFLICT (number) DO NOTHING`,
-          [numero, nome]
-        );
-        
-        for (const [key, value] of Object.entries(row)) {
-          if (key !== 'numero' && key !== 'nome' && key !== 'etapa') {
-            await insertValueCustomField(key, numero, value, schema)
-          }
-        }
-      } catch (error) {
-        console.error(`Erro ao inserir contato ou campo personalizado:`, error);
-      }
+
+    const nome = nomeSeparado
+      .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+      .join(' ');
+
+    if (!numero || !nome) {
+      console.warn('Linha ignorada: número ou nome ausente.', row);
+      continue;
     }
-    insertInKanbanStage(etapa, 'b409eb0f-94e9-41cb-8f0d-429351960a85', numero, 'effective_gain')
+    if (!numero.startsWith('55')) {
+      numero = `55${numero}`;
     }
 
+    try {
+      await pool.query(
+        `INSERT INTO ${schema}.contacts (number, contact_name) VALUES ($1, $2)
+         ON CONFLICT (number) DO NOTHING`,
+        [numero, nome]
+      );
+      console.log(`Contato inserido ou já existente: ${numero} - ${nome}`);
+      for (const [key, value] of Object.entries(row)) {
+        if (key !== 'numero' && key !== 'nome' && key !== 'etapa') {
+          await insertValueCustomField(key, numero, value, schema);
+        }
+      }
+      if (etapa) {
+        await insertInKanbanStage(etapa, connection, numero, schema);
+        console.log(`Contato ${numero} inserido na etapa ${etapa}`);
+      }
+    } catch (error) {
+      console.error(`Erro ao processar linha: ${JSON.stringify(row)}`, error);
+    }
+  }
 };
 
 module.exports = {

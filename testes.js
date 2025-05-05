@@ -1,4 +1,5 @@
 const { createCampaing, startCampaing } = require("./services/CampaingService");
+const { getInformationFromExcel, processExcelFile } = require("./services/ExcelReader");
 const { createMessageForBlast } = require("./services/MessageBlast");
 
-startCampaing('78382d8a-db19-4130-a62d-ff52c07b4379', 5, 'effective_gain')
+getInformationFromExcel(processExcelFile(), '4acfe063-d640-47aa-81d6-1970615ccb96', 'effective_gain')
