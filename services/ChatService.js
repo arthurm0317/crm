@@ -1,4 +1,5 @@
 const pool = require('../db/queries');
+const { v4: uuid4 } = require('uuid');
 const { getOnlineUsers, updateLastAssignedUser, getLastAssignedUser } = require('./UserService');
 
 const createChat = async (chat, instance, message, etapa, io) => {
@@ -261,8 +262,8 @@ const getChatById = async (chatId, connection_id, schema) => {
 const saveAudioMessage = async (chat_id, audioBase64, schema) => {
   try {
     const result = await pool.query(
-      `INSERT INTO ${schema}.messages (chat_id, audio) VALUES ($1, $2) RETURNING *`,
-      [chat_id, audioBase64]
+      `INSERT INTO ${schema}.messages (id, chat_id, audio) VALUES ($1, $2, $3) RETURNING *`,
+      [uuid4(),chat_id, audioBase64]
     );
     return result.rows[0];
   } catch (error) {

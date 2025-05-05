@@ -4,11 +4,11 @@ const fs = require('fs');
 const path = require('path');
 const pool = require('../db/queries');
 const axios = require('axios'); 
+
 const { sendAudioToWhatsApp } = require('../requests/evolution');
 const { searchConnById } = require('../services/ConnectionService');
 
 
-// Configuração do multer para salvar os arquivos de áudio
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const audioFolder = path.join(__dirname, '..', 'uploads', 'audios');
@@ -111,7 +111,6 @@ const getChatByUserController = async (req, res) => {
 };
 
 const sendAudioController = async (req, res) => {
-    console.log('Entrou no controller de envio de áudio');
     const { chatId, connectionId, schema } = req.body;
     const audioFile = req.file;
   
@@ -124,13 +123,12 @@ const sendAudioController = async (req, res) => {
       const audioBuffer = fs.readFileSync(audioPath);
       const audioBase64 = audioBuffer.toString('base64');
   
-      saveAudioMessage(chatId, audioBase64, schema);
-  
+      await saveAudioMessage(chatId, audioBase64, schema);
       const chat_id = await getChatById(chatId, connectionId, schema);
-      const instanceId = searchConnById(connectionId, schema);
-      console.log('Áudio salvo no banco de dados com sucesso');
+      const instanceId = await searchConnById(connectionId, schema);
+      console.log('instanceId', instanceId);
   
-      const evolutionResponse = await sendAudioToWhatsApp(chat_id.rows[0].contact_phone, audioBase64, instanceId.rows[0].name);
+      const evolutionResponse = await sendAudioToWhatsApp(chat_id.contact_phone, audioBase64, instanceId.name);
   
       res.status(200).json({ success: true, message: 'Áudio processado e enviado com sucesso', evolutionResponse });
     } catch (error) {

@@ -97,7 +97,6 @@ function ChatPage({ theme }) {
   }, []);
 
   const handleChatClick = async (chat) => {
-    console.log('Chat selecionado', chat);
     setSelectedChatId(chat.id);
     try {
       const res = await axios.post('http://localhost:3000/chat/getMessages', {
@@ -181,10 +180,14 @@ function ChatPage({ theme }) {
         const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
         const formData = new FormData();
         formData.append('audio', audioBlob);
-        formData.append('chatId', selectedChat.chat_id);
+        formData.append('chatId', selectedChat.id);
+        formData.append('connectionId', selectedChat.connection_id);
         formData.append('schema', schema);
   
         try {
+          console.log("chat",selectedChat.id)
+          console.log("connection_id",selectedChat.connection_id)
+          console.log("schema",schema)
           const response = await axios.post('http://localhost:3000/chat/sendAudio', formData, {
             headers: {
               'Content-Type': 'multipart/form-data',
