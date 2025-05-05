@@ -113,5 +113,4 @@ const sendAudioToWhatsApp = async (number, audioBase64, instanceId) => {
   }
 };
 
-
 module.exports = { createInstance, fetchInstanceEvo, sendTextMessage, searchContact, sendAudioToWhatsApp};

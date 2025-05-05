@@ -17,12 +17,11 @@ function ChatPage({ theme }) {
   const [audioChunks, setAudioChunks] = useState([]); 
   const schema = userData.schema;
   const socket = useRef(io('http://localhost:3000')).current;
-  const [recordingTime, setRecordingTime] = useState(0);
-  const recordingIntervalRef = useRef(null); 
+  const [recordingTime, setRecordingTime] = useState(0); // Estado para controlar o tempo de gravação
+  const recordingIntervalRef = useRef(null); // Referência para o intervalo de gravação
 
   useEffect(() => {
-    socket.on('connect', () => {
-      console.log('Socket conectado:', socket.id);
+      socket.on('connect', () => {
     });
 
     socket.on('connect_error', (error) => {
@@ -36,7 +35,6 @@ function ChatPage({ theme }) {
 
   useEffect(() => {
     selectedChatRef.current = selectedChat;
-    console.log('selectedChatRef atualizado:', selectedChatRef.current);
   }, [selectedChat]);
 
   useEffect(() => {
@@ -50,9 +48,6 @@ function ChatPage({ theme }) {
 
   useEffect(() => {
     socket.on('message', (newMessage) => {
-      console.log('Nova mensagem recebida no frontend:', newMessage);
-      console.log('Chat selecionado (id):', selectedChatRef.current?.id);
-      console.log('Chat da mensagem recebida (chatId):', newMessage.chatId);
 
       if (!newMessage.chatId) {
         console.error('Mensagem recebida sem chatId:', newMessage);
@@ -62,12 +57,11 @@ function ChatPage({ theme }) {
       if (selectedChatRef.current && String(selectedChatRef.current.id) === String(newMessage.chatId)) {
         setSelectedMessages((prevMessages) => {
           const updatedMessages = [...prevMessages, newMessage];
-          console.log('Mensagens atualizadas:', updatedMessages);
           return updatedMessages;
         });
         scrollToBottom();
       } else {
-        console.log('Mensagem recebida para outro chat:', newMessage.chatId);
+
       }
     });
 
@@ -142,7 +136,7 @@ function ChatPage({ theme }) {
     if (!newMessage.trim()) return;
 
     try {
-      await axios.post('process.env.EVOLUTION_SERVER_URL}/chat/findContacts/', {
+      await axios.post('http://localhost:3000/evo/sendText', {
         instanceId: selectedChat.connection_id,
         number: selectedChat.contact_phone,
         text: newMessage,
@@ -223,36 +217,35 @@ function ChatPage({ theme }) {
         className={`col-3 chat-list-${theme} bg-color-${theme}`} style={{ overflowY: 'auto', height: '100%', backgroundColor: `var(--bg-color-${theme})`}}>
           
           {Array.isArray(chats) &&
-  chats.map((chat, index) => (
-    /* CONTATO NA LISTA */
-    <div className="d-flex flex-row" key={chat.id || chat.chat_id || index}>
-      <div
-        className={`selectedBar ${selectedChatId === chat.id ? '' : 'd-none'}`}
-        style={{ width: '2.5%', maxWidth: '5px', backgroundColor: 'var(--primary-color)' }}
-      ></div>
-      <div
-        className={`h-100 w-100 input-${theme}`}
-        onClick={() => handleChatClick(chat)}
-        style={{ cursor: 'pointer', padding: '10px', borderBottom: `1px solid var(--border-color-${theme})` }}
-      >
-        <strong>{chat.contact_name || chat.chat_id || 'Sem Nome'}</strong>
-        <div
-          style={{
-            color: '#666',
-            fontSize: '0.9rem',
-            overflow: 'hidden',
-            whiteSpace: 'nowrap',
-            textOverflow: 'ellipsis',
-            maxWidth: '100%',
-          }}
-        >
-          {Array.isArray(chat.messages) && chat.messages.length > 0
-            ? chat.messages[chat.messages.length - 1]
-            : 'Sem mensagens'}
-        </div>
-      </div>
-    </div>
-  ))}
+            chats.map((chat) => (
+              /*  CONTATO NA LISTA */
+              <div className='d-flex flex-row'>
+                <div 
+                className={`selectedBar ${selectedChatId === chat.id ? '' : 'd-none'}`} style={{ width: '2.5%', maxWidth: '5px', backgroundColor: 'var(--primary-color)' }}></div>
+                <div 
+                  className={`h-100 w-100 input-${theme}`}
+                  key={chat.id}
+                  onClick={() => handleChatClick(chat)}
+                  style={{ cursor: 'pointer', padding: '10px', borderBottom: `1px solid var(--border-color-${theme})` }}
+                >
+                  <strong>{chat.contact_name || chat.chat_id || 'Sem Nome'}</strong>
+                  <div
+                    style={{
+                      color: '#666',
+                      fontSize: '0.9rem',
+                      overflow: 'hidden',
+                      whiteSpace: 'nowrap',
+                      textOverflow: 'ellipsis',
+                      maxWidth: '100%',
+                    }}
+                  >
+                    {Array.isArray(chat.messages) && chat.messages.length > 0
+                      ? chat.messages[chat.messages.length - 1]
+                      : 'Sem mensagens'}
+                  </div>
+                </div>
+              </div>
+            ))}
         </div>
         
         {/*  MENSAGENS DO CONTATO SELECIONADO */}
@@ -353,7 +346,7 @@ function ChatPage({ theme }) {
             <button
               id="audio" 
               className={`btn btn-2-${theme}`}
-              onClick={handleAudioClick}
+              onClick={handleAudioRecording}
               style={{
                 color: isRecording ? 'var(--error-color)' : '',
                 borderColor: isRecording ? 'var(--error-color)' : '',

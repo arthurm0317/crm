@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const xlsx = require('xlsx');
 const pool = require("../db/queries")
+const multer = require('multer');
 const { insertValueCustomField } = require('./ContactService');
 const { insertInKanbanStage } = require('./KanbanService');
 

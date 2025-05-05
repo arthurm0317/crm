@@ -245,6 +245,19 @@ const getChatByUser = async (userId, schema) => {
   }
 };
 
+const getChatById = async (chatId, connection_id, schema) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM ${schema}.chats WHERE id = $1 and connection_id = $2`,
+      [chatId, connection_id]
+    );
+
+    return result.rows[0];
+  } catch (error) {
+    console.error('Erro ao buscar chat pelo ID:', error.message);
+    throw new Error('Erro ao buscar chat pelo ID');
+  }
+}
 const saveAudioMessage = async (chat_id, audioBase64, schema) => {
   try {
     const result = await pool.query(
@@ -270,5 +283,6 @@ module.exports = {
   updateQueue,
   getChatData,
   getChatByUser,
-  saveAudioMessage
+  saveAudioMessage,
+  getChatById
 };
