@@ -45,6 +45,9 @@ const fetchInstanceEvo = async(instanceName)=>{
 
 }
 const sendTextMessage = async(instanceId, text, number)=>{
+  console.log("instanceId", instanceId)
+  console.log("text", text)
+  console.log("number", number)
   const payload = {
     text,
     number

@@ -47,10 +47,11 @@ const fetchInstanceController = async (req, res) => {
   };
 
   const sendTextMessageController = async (req, res) => {
+    console.log("body", req.body)
     try {
       const body = req.body;
-
-      const instance = await searchConnById(schema, body.instanceId);
+      const schema = body.schema || 'effective_gain';
+      const instance = await searchConnById(body.instanceId, schema);
   
       if (!instance) {
         return res.status(404).json({ error: 'Conexão não encontrada' });

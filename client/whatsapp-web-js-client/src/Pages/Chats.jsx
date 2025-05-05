@@ -13,7 +13,7 @@ function ChatPage({ theme }) {
   const userData = JSON.parse(localStorage.getItem('user'));
 
   const schema = userData.schema;
-  const socket = useRef(io('https://landing-page-teste.8rxpnw.easypanel.host')).current;
+  const socket = useRef(io('http://localhost:3000')).current;
 
   useEffect(() => {
     socket.on('connect', () => {
@@ -36,7 +36,7 @@ function ChatPage({ theme }) {
 
   useEffect(() => {
     axios
-      .get(`https://landing-page-teste.8rxpnw.easypanel.host/chat/getChat/${userData.id}/${schema}`)
+      .get(`http://localhost:3000/chat/getChat/${userData.id}/${schema}`)
       .then((res) => {
         setChats(res.data.messages || []);
       })
@@ -77,12 +77,10 @@ function ChatPage({ theme }) {
 
     const interval = setInterval(async () => {
       try {
-        console.log('Atualizando mensagens do chat selecionado...');
         const res = await axios.post('https://landing-page-teste.8rxpnw.easypanel.host/chat/getMessages', {
           chatId: selectedChat.chat_id,
           schema,
         });
-        console.log('Mensagens atualizadas:', res.data.messages);
         setSelectedMessages(res.data.messages);
       } catch (error) {
         console.error('Erro ao atualizar mensagens do chat selecionado:', error);
@@ -95,7 +93,7 @@ function ChatPage({ theme }) {
   const handleChatClick = async (chat) => {
     console.log('Chat selecionado', chat);
     try {
-      const res = await axios.post('https://landing-page-teste.8rxpnw.easypanel.host/chat/getMessages', {
+      const res = await axios.post('http://localhost:3000/chat/getMessages', {
         chatId: chat.chat_id,
         schema,
       });
@@ -112,10 +110,9 @@ function ChatPage({ theme }) {
     if (!newMessage.trim()) return; 
   
     try {
-      
-      await axios.post('https://landing-page-teste.8rxpnw.easypanel.host/evo/sendText', {
+      await axios.post('http://localhost:3000/evo/sendText', {
         instanceId: selectedChat.connection_id,
-        number: selectedChat.contact_number, 
+        number: selectedChat.contact_phone, 
         text: newMessage, 
         schema: schema
       });
