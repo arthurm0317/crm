@@ -122,6 +122,7 @@ const sendAudioController = async (req, res) => {
     const audioBase64 = audioBuffer.toString('base64');
 
     saveAudioMessage(chatId, audioBase64, schema)
+    
 
     console.log('Áudio salvo no banco de dados com sucesso');
 
