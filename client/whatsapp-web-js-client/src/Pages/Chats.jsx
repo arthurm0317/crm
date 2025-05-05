@@ -1,6 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
+import NewContactModal from './modalPages/Chats_novoContato';
+
+import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
 function ChatPage({ theme }) {
   const [chats, setChats] = useState([]);
@@ -172,7 +176,13 @@ function ChatPage({ theme }) {
   return (
     <div className={`d-flex flex-column h-100 w-100 ms-2`}>
       <div className="mb-3">
-        <button className={`btn btn-1-${theme}`}>Novo</button>
+        <button 
+        className={`btn btn-1-${theme}`}
+        data-bs-toggle="modal"
+        data-bs-target="#NewContactModal"
+        >
+          Novo
+        </button>
       </div>
       <div className={`chat chat-${theme} h-100 w-100 d-flex flex-row`}>
 
@@ -335,6 +345,7 @@ function ChatPage({ theme }) {
           </div>
         </div>
       </div>
+      <NewContactModal theme={theme}/>
     </div>
   );
 }
