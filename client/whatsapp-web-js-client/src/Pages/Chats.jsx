@@ -6,6 +6,7 @@ function ChatPage({ theme }) {
   const [chats, setChats] = useState([]);
   const [selectedMessages, setSelectedMessages] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
+  const [selectedChatId, setSelectedChatId] = useState(null);
   const [newMessage, setNewMessage] = useState('');
   const [replyMessage, setReplyMessage] = useState(null);
   const selectedChatRef = useRef(null);
@@ -76,7 +77,7 @@ function ChatPage({ theme }) {
 
     const interval = setInterval(async () => {
       try {
-        const res = await axios.post('https://landing-page-teste.8rxpnw.easypanel.host/chat/getMessages', {
+        const res = await axios.post('http://localhost:3000/chat/getMessages', {
           chatId: selectedChat.chat_id,
           schema,
         });
@@ -89,8 +90,11 @@ function ChatPage({ theme }) {
     return () => clearInterval(interval);
   }, [selectedChat, schema]);
 
+
+
   const handleChatClick = async (chat) => {
     console.log('Chat selecionado', chat);
+    setSelectedChatId(chat.id);
     try {
       const res = await axios.post('http://localhost:3000/chat/getMessages', {
         chatId: chat.chat_id,
@@ -145,29 +149,36 @@ function ChatPage({ theme }) {
       <div className={`chat chat-${theme} h-100 w-100 d-flex flex-row`}>
 
         {/*  LISTA DE CONTATOS  */}
-        <div className={`col-3 chat-list-${theme} bg-color-${theme}`} style={{ overflowY: 'auto', height: '100%' }}>
+        <div 
+        className={`col-3 chat-list-${theme} bg-color-${theme}`} style={{ overflowY: 'auto', height: '100%', backgroundColor: `var(--bg-color-${theme})`}}>
+          
           {Array.isArray(chats) &&
             chats.map((chat) => (
               /*  CONTATO NA LISTA */
-              <div 
-                key={chat.id}
-                onClick={() => handleChatClick(chat)}
-                style={{ cursor: 'pointer', padding: '10px', borderBottom: '1px solid #ccc' }}
-              >
-                <strong>{chat.contact_name || chat.chat_id || 'Sem Nome'}</strong>
-                <div
-                  style={{
-                    color: '#666',
-                    fontSize: '0.9rem',
-                    overflow: 'hidden',
-                    whiteSpace: 'nowrap',
-                    textOverflow: 'ellipsis',
-                    maxWidth: '100%',
-                  }}
+              <div className='d-flex flex-row'>
+                <div 
+                className={`selectedBar ${selectedChatId === chat.id ? '' : 'd-none'}`} style={{ width: '2.5%', maxWidth: '5px', backgroundColor: 'var(--primary-color)' }}></div>
+                <div 
+                  className={`h-100 w-100 input-${theme}`}
+                  key={chat.id}
+                  onClick={() => handleChatClick(chat)}
+                  style={{ cursor: 'pointer', padding: '10px', borderBottom: `1px solid var(--border-color-${theme})` }}
                 >
-                  {Array.isArray(chat.messages) && chat.messages.length > 0
-                    ? chat.messages[chat.messages.length - 1]
-                    : 'Sem mensagens'}
+                  <strong>{chat.contact_name || chat.chat_id || 'Sem Nome'}</strong>
+                  <div
+                    style={{
+                      color: '#666',
+                      fontSize: '0.9rem',
+                      overflow: 'hidden',
+                      whiteSpace: 'nowrap',
+                      textOverflow: 'ellipsis',
+                      maxWidth: '100%',
+                    }}
+                  >
+                    {Array.isArray(chat.messages) && chat.messages.length > 0
+                      ? chat.messages[chat.messages.length - 1]
+                      : 'Sem mensagens'}
+                  </div>
                 </div>
               </div>
             ))}
@@ -185,7 +196,7 @@ function ChatPage({ theme }) {
                 key={idx}
                 onClick={() => handleReply(msg)}
                 style={{
-                  backgroundColor: msg.from_me ? '#dcf8c6' : '#f1f0f0',
+                  backgroundColor: msg.from_me ? 'var(--hover)' : '#f1f0f0',
                   textAlign: msg.from_me ? 'right' : 'left',
                   padding: '10px',
                   borderRadius: '10px',
