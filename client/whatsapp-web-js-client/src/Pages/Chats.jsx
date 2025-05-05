@@ -12,7 +12,9 @@ function ChatPage({ theme }) {
   const selectedChatRef = useRef(null);
   const messagesEndRef = useRef(null);
   const userData = JSON.parse(localStorage.getItem('user'));
-
+  const [isRecording, setIsRecording] = useState(false); 
+  const [mediaRecorder, setMediaRecorder] = useState(null); 
+  const [audioChunks, setAudioChunks] = useState([]); 
   const schema = userData.schema;
   const socket = useRef(io('http://localhost:3000')).current;
 
@@ -136,7 +138,48 @@ function ChatPage({ theme }) {
   const handleReply = (message) => {
     setReplyMessage(message);
   };
-
+  const handleAudioRecording = async () => {
+    if (!isRecording) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const recorder = new MediaRecorder(stream);
+        setMediaRecorder(recorder);
+  
+        recorder.ondataavailable = (event) => {
+          setAudioChunks((prevChunks) => [...prevChunks, event.data]);
+        };
+  
+        recorder.start();
+        setIsRecording(true); 
+      } catch (error) {
+        console.error('Erro ao acessar o microfone:', error);
+      }
+    } else {
+      mediaRecorder.stop();
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const formData = new FormData();
+        formData.append('audio', audioBlob);
+        formData.append('chatId', selectedChat.chat_id);
+        formData.append('schema', schema);
+  
+        try {
+          const response = await axios.post('http://localhost:3000/chat/sendAudio', formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+  
+          console.log('Áudio enviado com sucesso:', response.data);
+          setAudioChunks([]); 
+        } catch (error) {
+          console.error('Erro ao enviar áudio:', error);
+        }
+      };
+  
+      setIsRecording(false); 
+    }
+  };
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -241,10 +284,14 @@ function ChatPage({ theme }) {
 
             {/* BOTÃO DE ÁUDIO */}
             <button
-              className={`btn btn-2-${theme}`}
-              onClick={() => {}}
-            >
-              <i className="bi bi-mic"></i>
+            className={`btn btn-2-${theme}`}
+            onClick={handleAudioRecording}
+            style={{
+            backgroundColor: isRecording ? '#dc3545' : 'var(--primary-color)',
+            color: '#fff',
+             }}
+          >
+             <i className={`bi ${isRecording ? 'bi-stop-circle' : 'bi-mic'}`}></i>
             </button>
             
             {/* BOTÃO DE ENVIAR MENSAGEM */}
