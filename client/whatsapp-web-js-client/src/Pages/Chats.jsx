@@ -208,7 +208,13 @@ function ChatPage({ theme }) {
   return (
     <div className={`d-flex flex-column h-100 w-100 ms-2`}>
       <div className="mb-3">
-        <button className={`btn btn-1-${theme}`}>Novo</button>
+        <button 
+        className={`btn btn-1-${theme}`}
+        data-bs-toggle="modal"
+        data-bs-target="#NewContactModal"
+        >
+          Novo Contato
+        </button>
       </div>
       <div className={`chat chat-${theme} h-100 w-100 d-flex flex-row`}>
 

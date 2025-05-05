@@ -66,6 +66,11 @@ function Painel() {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    navigate('/');
+  };
+
   return (
     <div className={`bg-screen-${theme}`} style={{ height: '100vh', overflow: 'hidden' }}>
       <div className="d-flex h-100">
@@ -144,9 +149,11 @@ function Painel() {
               <button type="button" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Mudar Tema" className={`btn btn-2-${theme} toggle-${theme}`} onClick={toggleTheme}>
                 <i className="bi bi-sun"></i>
               </button>
-              <button type="button" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Sair" className={`btn btn-2-${theme} toggle-${theme}`}>
+
+              <button id="sair" type="button" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Sair" className={`btn btn-2-${theme} toggle-${theme}`} onClick={handleLogout}>
                 <i className="bi bi-door-open"></i>
               </button>
+
             </div>
           </div>
           <div className={`main-${theme} pe-3 pb-3`} style={{ flexGrow: 1 }} id="main">
