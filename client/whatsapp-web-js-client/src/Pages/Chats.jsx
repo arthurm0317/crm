@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
+import EmojiPicker from 'emoji-picker-react';
+import NewContactModal from './modalPages/Chats_novoContato';
 
 function ChatPage({ theme }) {
   const [chats, setChats] = useState([]);
@@ -17,8 +19,9 @@ function ChatPage({ theme }) {
   const [audioChunks, setAudioChunks] = useState([]); 
   const schema = userData.schema;
   const socket = useRef(io('http://localhost:3000')).current;
-  const [recordingTime, setRecordingTime] = useState(0); // Estado para controlar o tempo de gravação
-  const recordingIntervalRef = useRef(null); // Referência para o intervalo de gravação
+  const [recordingTime, setRecordingTime] = useState(0);
+  const recordingIntervalRef = useRef(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   useEffect(() => {
       socket.on('connect', () => {
@@ -95,6 +98,10 @@ function ChatPage({ theme }) {
       }
     };
   }, []);
+
+  const handleEmojiClick = (emojiObject) => {
+    setNewMessage((prevMessage) => prevMessage + emojiObject.emoji);
+  };
 
   const handleChatClick = async (chat) => {
     setSelectedChatId(chat.id);
@@ -313,9 +320,35 @@ function ChatPage({ theme }) {
               <i className="bi bi-image"></i>
             </button>
 
-            <div style={{ position: 'relative', width: '70%' }}>
+            <div 
+            id="campoEscrever" 
+            className={`py-0 px-2 form-control input-${theme} d-flex flex-row gap-2`}
+            style={{ position: 'relative', width: '70%' }}>
+
+              {/* BOTÃO DE EMOJI */}
+              <div style={{ position: 'relative' }}>
+              <button 
+                id="emoji" 
+                className={`btn d-flex justify-content-center align-items-center btn-2-${theme}`}
+                style={{ 
+                  width: '35px',
+                  height: '35px',
+                  border: 'none'
+                }}
+                onClick={() => setShowEmojiPicker((prev) => !prev)}
+              >
+                <i className="bi bi-emoji-smile"></i>
+              </button>
+
+              {/* EMOJI PICKER */}
+              {showEmojiPicker && (
+                <div style={{ position: 'absolute', bottom: '40px', left: '0', zIndex: 1000 }}>
+                  <EmojiPicker onEmojiClick={handleEmojiClick} theme={theme === 'light' ? 'light' : 'dark'}/>
+                </div>
+              )}
+              </div>
+
               <input
-                className={`px-3 form-control input-${theme}`}
                 type="text"
                 placeholder={isRecording ? '' : 'Digite sua mensagem...'}
                 value={isRecording ? '' : newMessage}
@@ -323,9 +356,14 @@ function ChatPage({ theme }) {
                 disabled={isRecording}
                 style={{
                   width: '100%',
-                  padding: '10px',
-                  color: isRecording ? 'var(--error-color)' : '',
+                  color: isRecording 
+                  ? 'var(--error-color)' 
+                  : theme === 'light'
+                    ? 'var(--color-light)'
+                    : 'var(--color-dark)',
                   borderColor: isRecording ? 'var(--error-color)' : '',
+                  backgroundColor: 'transparent',
+                  border: 'none',
                 }}
               />
               {isRecording && (
@@ -380,6 +418,7 @@ function ChatPage({ theme }) {
           </div>
         </div>
       </div>
+      <NewContactModal theme={theme}/>
     </div>
   );
 }
