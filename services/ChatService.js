@@ -127,12 +127,10 @@ const updateChatMessages = async (chat, schema, message) => {
   }
 };
 
-const getMessages = async(chatId, schema)=>{
-    const chat_id = await pool.query(
-      `SELECT id FROM ${schema}.chats WHERE chat_id=$1`, [chatId])
+const getMessages = async(chat_Id, schema)=>{
     const result = await pool.query(
       `SELECT * FROM ${schema}.messages WHERE chat_id=$1 ORDER BY created_at ASC`,
-      [chat_id.rows[0].id]
+      [chat_Id]
     );
     return result.rows
 }
@@ -259,11 +257,11 @@ const getChatById = async (chatId, connection_id, schema) => {
     throw new Error('Erro ao buscar chat pelo ID');
   }
 }
-const saveAudioMessage = async (chat_id, audioBase64, schema) => {
+const saveMediaMessage = async (fromMe, chat_id, createdAt, message_type, audioBase64, schema) => {
   try {
     const result = await pool.query(
-      `INSERT INTO ${schema}.messages (id, chat_id, audio) VALUES ($1, $2, $3) RETURNING *`,
-      [uuid4(),chat_id, audioBase64]
+      `INSERT INTO ${schema}.messages (id, from_me, chat_id, created_at, message_type, base64) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [uuid4(), fromMe, chat_id, createdAt, message_type, audioBase64]
     );
     return result.rows[0];
   } catch (error) {
@@ -271,6 +269,7 @@ const saveAudioMessage = async (chat_id, audioBase64, schema) => {
     throw new Error('Erro ao salvar mensagem de áudio');
   }
 };
+
 
 
 module.exports = {
@@ -284,6 +283,6 @@ module.exports = {
   updateQueue,
   getChatData,
   getChatByUser,
-  saveAudioMessage,
+  saveMediaMessage,
   getChatById
 };

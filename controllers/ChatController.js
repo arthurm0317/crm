@@ -1,4 +1,4 @@
-const { setUserChat, getChats, getMessages, getChatData, getChatByUser, updateQueue, saveAudioMessage, getChatById } = require('../services/ChatService');
+const { setUserChat, getChats, getMessages, getChatData, getChatByUser, updateQueue, getChatById, saveMediaMessage } = require('../services/ChatService');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
@@ -55,9 +55,9 @@ const getChatsController = async (req, res) => {
 };
 
 const getMessagesController = async (req, res) => {
-  const { chatId, schema } = req.body;
+  const { chat_id, schema } = req.body;
   try {
-    const result = await getMessages(chatId, schema);
+    const result = await getMessages(chat_id, schema);
     res.json({ messages: result });
   } catch (err) {
     console.error('Erro ao buscar mensagens:', err);
@@ -141,7 +141,7 @@ const sendAudioController = async (req, res) => {
       throw new Error('Falha ao converter o áudio para base64.');
     }
 
-    await saveAudioMessage(chatId, audioBase64, schema);
+    await saveMediaMessage('true', chatId, new Date().getTime(), 'audio', audioBase64, schema);
 
     const chat_id = await getChatById(chatId, connectionId, schema);
     const instanceId = await searchConnById(connectionId, schema);

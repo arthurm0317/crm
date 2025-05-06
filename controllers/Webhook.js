@@ -7,7 +7,7 @@ const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const { Chat } = require('../entities/Chat');
 const { Message } = require('../entities/Message');
-const { createChat, getChatService, setChatQueue, setUserChat } = require('../services/ChatService');
+const { createChat, getChatService, setChatQueue, setUserChat, saveMediaMessage } = require('../services/ChatService');
 const { saveMessage } = require('../services/MessageService');
 const pool = require('../db/queries');
 
@@ -26,13 +26,10 @@ module.exports = (broadcastMessage) => {
   app.post('/chat', async (req, res) => {
     const result = req.body;
     const schema = req.body.schema || 'effective_gain';
-  
+    
     if (!result?.data?.key?.remoteJid) {
       return res.status(400).json({ error: 'Dados incompletos' });
     }
-  
-    console.log('Dados recebidos no webhook:', result);
-  
     const contact = result.data.key.fromMe
       ? result.data.key.remoteJid.split('@')[0]
       : result.data.pushName || result.data.key.remoteJid.split('@')[0];
@@ -57,8 +54,6 @@ module.exports = (broadcastMessage) => {
         []
       );
   
-      console.log('Objeto Chat criado:', chat);
-  
       let messageBody = '';
       let audioBase64 = null;
   
@@ -76,19 +71,32 @@ module.exports = (broadcastMessage) => {
           }
   
           if (audioBase64) {
-            await saveAudioMessage(chat.id, audioBase64, schema);
-            console.log('Mensagem de áudio salva com sucesso');
+            await saveMediaMessage(result.data.key.fromMe, chat.id, result.data.messageTimestamp, 'audio', audioBase64, schema);
             messageBody = '[áudio recebido]';
           } else {
             throw new Error('Áudio não encontrado ou não processado.');
           }
+
+          if(result.data.message.imageMessage.base64){
+            console.log('entro')
+            imageBase64 = result.data.message.imageMessage.base64;
+          }else if(result.data.message.imageMessage.url){
+            const imageResponse = await axios.get(result.data.message.imageMessage.url, {
+              responseType: 'arraybuffer',
+            });
+            imageBase64 = Buffer.from(imageResponse.data).toString('base64');
+          }
+          if(imageBase64){
+            await saveMediaMessage(result.data.key.fromMe, chat.id, result.data.messageTimestamp, 'image', imageBase64, schema);
+            messageBody = '[imagem recebida]';
+          }
+          
         } catch (err) {
           console.error('Erro ao processar áudio:', err);
           messageBody = '[erro ao processar áudio]';
         }
       }
   
-      console.log('Mensagem processada:', messageBody);
   
       if (!chat || !result.instance) {
         throw new Error('Dados obrigatórios ausentes para createChat');
@@ -97,14 +105,12 @@ module.exports = (broadcastMessage) => {
       const createChats = await createChat(chat, result.instance, result.data.message.conversation, null);
       const chatDb = await getChatService(createChats.chat, createChats.schema);
   
-      console.log('Chat criado ou recuperado do banco:', chatDb);
   
       const existingMessage = await pool.query(
         `SELECT id FROM ${schema}.messages WHERE id = $1`,
         [result.data.key.id]
       );
   
-      console.log('Mensagem existente no banco de dados:', existingMessage.rows);
   
       if (existingMessage.rowCount === 0 && !result.data.message?.audioMessage?.base64) {
         await saveMessage(
@@ -119,9 +125,7 @@ module.exports = (broadcastMessage) => {
           ),
           schema
         );
-        console.log('Mensagem salva com sucesso');
       } else if (existingMessage.rowCount > 0) {
-        console.log('Mensagem já existe no banco de dados, não será salva novamente');
       }
   
       await setChatQueue(schema, chatDb.chat_id);

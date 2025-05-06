@@ -39,9 +39,10 @@ function ChatPage({ theme }) {
     const interval = setInterval(async () => {
       try {
         const res = await axios.post('http://localhost:3000/chat/getMessages', {
-          chatId: selectedChat.chat_id,
+          chat_id: selectedChat.id,
           schema,
         });
+        
         setSelectedMessages(res.data.messages);
       } catch (error) {
         console.error('Erro ao atualizar mensagens do chat selecionado:', error);
@@ -63,7 +64,7 @@ function ChatPage({ theme }) {
     setSelectedChatId(chat.id);
     try {
       const res = await axios.post('http://localhost:3000/chat/getMessages', {
-        chatId: chat.chat_id,
+        chat_id: chat.id,
         schema,
       });
       setSelectedChat(chat);
@@ -200,7 +201,7 @@ function ChatPage({ theme }) {
                   onClick={() => handleChatClick(chat)}
                   style={{ cursor: 'pointer', padding: '10px', borderBottom: `1px solid var(--border-color-${theme})` }}
                 >
-                  <strong>{chat.contact_name || chat.chat_id || 'Sem Nome'}</strong>
+                  <strong>{chat.contact_name || chat.id || 'Sem Nome'}</strong>
                   <div
                     style={{
                       color: '#666',
