@@ -52,10 +52,21 @@ const setQueue = async(connectionNumber, queueName, schema)=>{
     }
 }
 
+const getAllConnections = async (schema) => {
+    try {
+        const result = await pool.query(`SELECT * FROM ${schema}.connections`);
+        return result.rows;
+    } catch (error) {
+        console.error('Erro ao buscar todas as conexões:', error.message);
+        throw new Error('Erro ao buscar todas as conexões');
+    }
+};
+
 
 module.exports = {
     createConnection,
     fetchInstance,
     searchConnById,
-    setQueue
+    setQueue,
+    getAllConnections
 }

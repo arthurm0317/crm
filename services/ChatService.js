@@ -270,6 +270,19 @@ const saveMediaMessage = async (fromMe, chat_id, createdAt, message_type, audioB
   }
 };
 
+const createNewChat = async(name, number, connectionId, queueId, user_id, schema) => {
+  try {
+    const result = await pool.query(
+      `INSERT INTO ${schema}.chats (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+      [uuid4(), number + '@c.us', connectionId, queueId, false, name, user_id, 'open', new Date().getTime(), JSON.stringify([])]
+    );
+    return result.rows[0];
+  } catch (error) {
+    console.error('Erro ao criar novo chat:', error.message);
+    throw new Error('Erro ao criar novo chat');
+  }
+}
+
 
 
 module.exports = {
@@ -284,5 +297,6 @@ module.exports = {
   getChatData,
   getChatByUser,
   saveMediaMessage,
-  getChatById
+  getChatById,
+  createNewChat
 };

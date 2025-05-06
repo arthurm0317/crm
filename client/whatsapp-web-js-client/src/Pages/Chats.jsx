@@ -76,6 +76,7 @@ function ChatPage({ theme }) {
       setSelectedMessages(res.data.messages);
       scrollToBottom();
     } catch (error) {
+      console.error('Erro ao carregar mensagens do chat:', error);
     }
   };
 
@@ -118,12 +119,14 @@ function ChatPage({ theme }) {
       setNewMessage('');
       setReplyMessage(null);
     } catch (error) {
+      console.error('Erro ao enviar mensagem:', error);
     }
   };
 
   const handleReply = (message) => {
     setReplyMessage(message);
   };
+
   const handleAudioRecording = async () => {
     if (!isRecording) {
       try {
@@ -151,13 +154,13 @@ function ChatPage({ theme }) {
           formData.append('schema', schema);
   
           try {
-            const response = await axios.post('http://localhost:3000/chat/sendAudio', formData, {
+            await axios.post('http://localhost:3000/chat/sendAudio', formData, {
               headers: {
                 'Content-Type': 'multipart/form-data',
               },
             });
-  
           } catch (error) {
+            console.error('Erro ao enviar áudio:', error);
           } finally {
             setAudioChunks([]);
           }
@@ -169,10 +172,13 @@ function ChatPage({ theme }) {
         console.error('Erro ao acessar o microfone:', error);
       }
     } else {
-      mediaRecorder.stop();
-      setIsRecording(false);
+      if (mediaRecorder) {
+        mediaRecorder.stop();
+        setIsRecording(false);
+      }
     }
   };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -190,19 +196,16 @@ function ChatPage({ theme }) {
       </div>
       <div className={`chat chat-${theme} h-100 w-100 d-flex flex-row`}>
 
-        {/*  LISTA DE CONTATOS  */}
+        {/* LISTA DE CONTATOS */}
         <div 
         className={`col-3 chat-list-${theme} bg-color-${theme}`} style={{ overflowY: 'auto', height: '100%', backgroundColor: `var(--bg-color-${theme})`}}>
-          
           {Array.isArray(chats) &&
             chats.map((chat) => (
-              /*  CONTATO NA LISTA */
-              <div className='d-flex flex-row'>
+              <div className='d-flex flex-row' key={chat.id}>
                 <div 
                 className={`selectedBar ${selectedChatId === chat.id ? '' : 'd-none'}`} style={{ width: '2.5%', maxWidth: '5px', backgroundColor: 'var(--primary-color)' }}></div>
                 <div 
                   className={`h-100 w-100 input-${theme}`}
-                  key={chat.id}
                   onClick={() => handleChatClick(chat)}
                   style={{ cursor: 'pointer', padding: '10px', borderBottom: `1px solid var(--border-color-${theme})` }}
                 >
@@ -226,159 +229,155 @@ function ChatPage({ theme }) {
             ))}
         </div>
         
-        {/*  MENSAGENS DO CONTATO SELECIONADO */}
-        <div className={`col-9 chat-messages-${theme} d-flex flex-column`} style={{ height: '100%' }}>
-          <div 
-          id="corpoTexto"
-          className= "px-3 pt-3 pb-2 h-100 d-flex justify-content-end"
-          style={{ whiteSpace: 'pre-wrap', display: 'flex', flexDirection: 'column' }}
-          >
-            {selectedMessages.map((msg, idx) => (
-              <div
-                key={idx}
-                onClick={() => handleReply(msg)}
-                style={{
-                  backgroundColor: msg.from_me ? 'var(--hover)' : '#f1f0f0',
-                  textAlign: msg.from_me ? 'right' : 'left',
-                  padding: '10px',
-                  borderRadius: '10px',
-                  margin: '5px 0',
-                  maxWidth: '70%',
-                  alignSelf: msg.from_me ? 'flex-end' : 'flex-start',
-                  cursor: 'pointer',
-                }}
-              >
-                {msg.replyTo && (
-                  <div
-                    style={{
-                      fontSize: '0.8rem',
-                      color: '#555',
-                      marginBottom: '5px',
-                      borderLeft: '2px solid #ccc',
-                      paddingLeft: '5px',
-                    }}
-                  >
-                    Resposta: {msg.replyTo}
-                  </div>
-                )}
-                {msg.body}
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
+        {/* MENSAGENS DO CONTATO SELECIONADO */}
+<div
+  className={`col-9 chat-messages-${theme} d-flex flex-column`}
+  style={{
+    height: 'calc(100% - 60px)', // Deixa espaço para a barra de envio
+    overflowY: 'auto',
+    border: '1px solid var(--border-color)',
+  }}
+>
+  <div
+    id="corpoTexto"
+    className="px-3 pt-3 pb-2 h-100 d-flex flex-column"
+    style={{
+      whiteSpace: 'pre-wrap',
+      flex: 1,
+    }}
+  >
+    {selectedMessages.map((msg, idx) => (
+      <div
+        key={idx}
+        style={{
+          backgroundColor: msg.from_me ? 'var(--hover)' : '#f1f0f0',
+          textAlign: msg.from_me ? 'right' : 'left',
+          padding: '10px',
+          borderRadius: '10px',
+          margin: '5px 0',
+          maxWidth: '70%',
+          alignSelf: msg.from_me ? 'flex-end' : 'flex-start',
+        }}
+      >
+        {msg.body}
+      </div>
+    ))}
+    <div ref={messagesEndRef} />
+  </div>
+</div>
 
-          {/*  INPUT DE MENSAGEM  */}
-          <div
-          className="p-3 w-100 d-flex justify-content-center message-input gap-2"
-          style={{ backgroundColor: `var(--bg-color-${theme})` }}
-          >
+{/* INPUT DE MENSAGEM */}
+<div
+  className="p-3 w-100 d-flex justify-content-center message-input gap-2"
+  style={{
+    position: 'fixed', // Fixa a barra no final da tela
+    bottom: '0', // Posiciona no final
+    left: '0', // Garante que a barra ocupe toda a largura
+    backgroundColor: `var(--bg-color-${theme})`,
+    borderTop: '1px solid var(--border-color)',
+    height: '60px', // Define a altura fixa da barra
+    zIndex: 10, // Garante que a barra fique acima do conteúdo
+  }}
+>
+  <button
+    id="imagem"
+    className={`btn btn-2-${theme}`}
+    onClick={() => {}}
+  >
+    <i className="bi bi-image"></i>
+  </button>
 
-            {/* BOTÃO DE IMAGEM */}
-            <button
-              id="imagem" 
-              className={`btn btn-2-${theme}`}
-              onClick={() => {}}
-            >
-              <i className="bi bi-image"></i>
-            </button>
+  <div
+    id="campoEscrever"
+    className={`py-0 px-2 form-control input-${theme} d-flex flex-row gap-2`}
+    style={{ position: 'relative', width: '70%' }}
+  >
+    <div style={{ position: 'relative' }}>
+      <button
+        id="emoji"
+        className={`btn d-flex justify-content-center align-items-center btn-2-${theme}`}
+        style={{
+          width: '35px',
+          height: '35px',
+          border: 'none',
+        }}
+        onClick={() => setShowEmojiPicker((prev) => !prev)}
+      >
+        <i className="bi bi-emoji-smile"></i>
+      </button>
 
-            <div 
-            id="campoEscrever" 
-            className={`py-0 px-2 form-control input-${theme} d-flex flex-row gap-2`}
-            style={{ position: 'relative', width: '70%' }}>
-
-              {/* BOTÃO DE EMOJI */}
-              <div style={{ position: 'relative' }}>
-              <button 
-                id="emoji" 
-                className={`btn d-flex justify-content-center align-items-center btn-2-${theme}`}
-                style={{ 
-                  width: '35px',
-                  height: '35px',
-                  border: 'none'
-                }}
-                onClick={() => setShowEmojiPicker((prev) => !prev)}
-              >
-                <i className="bi bi-emoji-smile"></i>
-              </button>
-
-              {/* EMOJI PICKER */}
-              {showEmojiPicker && (
-                <div style={{ position: 'absolute', bottom: '40px', left: '0', zIndex: 1000 }}>
-                  <EmojiPicker onEmojiClick={handleEmojiClick} theme={theme === 'light' ? 'light' : 'dark'}/>
-                </div>
-              )}
-              </div>
-
-              <input
-                type="text"
-                placeholder={isRecording ? '' : 'Digite sua mensagem...'}
-                value={isRecording ? '' : newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                disabled={isRecording}
-                style={{
-                  width: '100%',
-                  color: isRecording 
-                  ? 'var(--error-color)' 
-                  : theme === 'light'
-                    ? 'var(--color-light)'
-                    : 'var(--color-dark)',
-                  borderColor: isRecording ? 'var(--error-color)' : '',
-                  backgroundColor: 'transparent',
-                  border: 'none',
-                }}
-              />
-              {isRecording && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '10px',
-                    transform: 'translateY(-50%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                  }}
-                >
-                  <i
-                    className="bi bi-record-circle"
-                    style={{ color: 'var(--error-color)' }}
-                  ></i>
-                  <span>{`${Math.floor(recordingTime / 60)}:${String(
-                    recordingTime % 60
-                  ).padStart(2, '0')}`}</span>
-                </div>
-              )}
-            </div>
-
-            {/* BOTÃO DE ÁUDIO */}
-            <button
-              id="audio" 
-              className={`btn btn-2-${theme}`}
-              onClick={handleAudioRecording}
-              style={{
-                color: isRecording ? 'var(--error-color)' : '',
-                borderColor: isRecording ? 'var(--error-color)' : '',
-              }}
-            >
-              <i className={`bi ${isRecording ? 'bi-x' : 'bi-mic'}`}></i>
-            </button>
-            
-            {/* BOTÃO DE ENVIAR MENSAGEM */}
-            <button
-              id="enviar" 
-              className={`btn btn-2-${theme}`}
-              onClick={() => {
-                handleSendMessage();
-                setIsRecording(false);
-                setRecordingTime(0);
-              }}
-            >
-              <i className="bi bi-send"></i>
-            </button>
-
-          </div>
+      {showEmojiPicker && (
+        <div style={{ position: 'absolute', bottom: '40px', left: '0', zIndex: 1000 }}>
+          <EmojiPicker onEmojiClick={handleEmojiClick} theme={theme === 'light' ? 'light' : 'dark'} />
         </div>
+      )}
+    </div>
+
+    <input
+      type="text"
+      placeholder={isRecording ? '' : 'Digite sua mensagem...'}
+      value={isRecording ? '' : newMessage}
+      onChange={(e) => setNewMessage(e.target.value)}
+      disabled={isRecording}
+      style={{
+        width: '100%',
+        color: isRecording
+          ? 'var(--error-color)'
+          : theme === 'light'
+          ? 'var(--color-light)'
+          : 'var(--color-dark)',
+        borderColor: isRecording ? 'var(--error-color)' : '',
+        backgroundColor: 'transparent',
+        border: 'none',
+      }}
+    />
+    {isRecording && (
+      <div
+        style={{
+          position: 'absolute',
+          top: '50%',
+          left: '10px',
+          transform: 'translateY(-50%)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '5px',
+        }}
+      >
+        <i
+          className="bi bi-record-circle"
+          style={{ color: 'var(--error-color)' }}
+        ></i>
+        <span>{`${Math.floor(recordingTime / 60)}:${String(
+          recordingTime % 60
+        ).padStart(2, '0')}`}</span>
+      </div>
+    )}
+  </div>
+
+  <button
+    id="audio"
+    className={`btn btn-2-${theme}`}
+    onClick={handleAudioRecording}
+    style={{
+      color: isRecording ? 'var(--error-color)' : '',
+      borderColor: isRecording ? 'var(--error-color)' : '',
+    }}
+  >
+    <i className={`bi ${isRecording ? 'bi-x' : 'bi-mic'}`}></i>
+  </button>
+
+  <button
+    id="enviar"
+    className={`btn btn-2-${theme}`}
+    onClick={() => {
+      handleSendMessage();
+      setIsRecording(false);
+      setRecordingTime(0);
+    }}
+  >
+    <i className="bi bi-send"></i>
+  </button>
+</div>
       </div>
       <NewContactModal theme={theme}/>
     </div>

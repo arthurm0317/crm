@@ -156,7 +156,7 @@ function Painel() {
 
             </div>
           </div>
-          <div className={`main-${theme} pe-3 pb-3`} style={{ flexGrow: 1 }} id="main">
+          <div className={`main-${theme} pe-3 pb-3`} style={{ flexGrow: 1, overflow: 'hidden' }} id="main">
             {renderPage()}
           </div>
         </div>

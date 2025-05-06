@@ -1,5 +1,6 @@
 const pool = require('../db/queries');
 const { v4: uuidv4 } = require('uuid');
+const { createNewChat } = require('./ChatService');
 
 const createCustomField = async(fieldName, schema)=>{
     const result = await pool.query(
@@ -25,4 +26,23 @@ const insertValueCustomField = async(fieldName, contactNumber, value, schema)=>{
     return result.rows[0];
 }
 
-module.exports = { createCustomField, insertValueCustomField };
+const createContact = async(contactNumber, contactName, connection, user_id, schema)=>{
+    console.log(user_id, 'userid')
+    const result = await pool.query(
+        `INSERT INTO ${schema}.contacts (number, contact_name) VALUES ($1, $2) RETURNING *`,
+        [contactNumber, contactName]
+    );
+    const connectionId = await pool.query(
+        `SELECT * FROM ${schema}.connections WHERE name = $1`,
+        [connection]
+    );
+    const chat = await createNewChat(contactName, contactNumber, connectionId.rows[0].id,connectionId.rows[0].queue_id, user_id, schema)
+    
+    return result.rows[0];
+}
+
+module.exports = { 
+    createCustomField, 
+    insertValueCustomField,
+    createContact
+};

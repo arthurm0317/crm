@@ -1,16 +1,62 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import InputMask from 'react-input-mask';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 function NewContactModal({ theme }) {
   const [contactName, setContactName] = useState('');
   const [contactNumber, setContactNumber] = useState('');
   const [attendant, setAttendant] = useState('');
+  const [connections, setConnections] = useState([]);
+  const userData = JSON.parse(localStorage.getItem('user'));
+  const navigate = useNavigate();
 
-  const handleSave = () => {
-    console.log('Nome do Contato:', contactName);
-    console.log('Número do Contato:', contactNumber);
-    console.log('Conexão:', attendant);
-    // Aqui você pode adicionar a lógica para salvar os dados
+  useEffect(() => {
+
+    const fetchConnections = async () => {
+      console.log(userData.id)
+      try {
+        const response = await axios.post('http://localhost:3000/connection/getAllConnections',{
+          schema: userData.schema
+        });
+        setConnections(response.data);
+      } catch (error) {
+        console.error('Erro ao buscar conexões:', error);
+      }
+    };
+
+    fetchConnections();
+  }, []); 
+
+  
+if (!userData || !userData.id) {
+  navigate('/')  
+  return;
+}
+
+  const handleSave = async () => {
+    if (!contactName || !contactNumber || !attendant) {
+      console.error('Preencha todos os campos obrigatórios.');
+      return;
+    }
+  
+    try {
+      const newContact = await axios.post('http://localhost:3000/contact/create-contact', {
+        name: contactName,
+        number: contactNumber,
+        connection: attendant, 
+        user_id: userData.id,
+        schema: userData.schema,
+      });
+  
+      console.log('Contato criado com sucesso:', newContact.data);
+  
+      setContactName('');
+      setContactNumber('');
+      setAttendant('');
+    } catch (error) {
+      console.error('Erro ao criar contato:', error);
+    }
   };
 
   return (
@@ -77,14 +123,15 @@ function NewContactModal({ theme }) {
                 <option value="" disabled>
                   Selecione uma conexão
                 </option>
-                <option value="suporte">Suporte</option>
-                <option value="vendas">Vendas</option>
-                <option value="financeiro">Financeiro</option>
+                {connections.map((connection) => (
+                  <option key={connection.id} value={connection.name}>
+                    {connection.name}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
           <div className="modal-footer">
-
             <button
               type="button"
               className={`btn btn-2-${theme}`}
@@ -100,7 +147,6 @@ function NewContactModal({ theme }) {
             >
               Entrar em Contato
             </button>
-
           </div>
         </div>
       </div>

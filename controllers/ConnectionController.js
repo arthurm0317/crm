@@ -1,6 +1,6 @@
 const Connection = require("../entities/Connection")
 const { v4: uuidv4 } = require('uuid');
-const { createConnection, setQueue } = require("../services/ConnectionService");
+const { createConnection, setQueue, getAllConnections } = require("../services/ConnectionService");
 
 const createConnectionController = async(req, res)=>{
     try{
@@ -34,7 +34,19 @@ const setQueueController = async(req, res)=>{
       }
 }
 
+const getAllConnectionsController = async (req, res) => {
+    try {
+        const schema = req.body.schema || 'effective_gain';
+        const result = await getAllConnections(schema);
+        res.status(200).json(result);
+    } catch (error) {
+        console.error('Erro ao buscar todas as conexões:', error.message);
+        res.status(500).json({ error: 'Erro ao buscar todas as conexões' });
+    }
+};
+
 module.exports = {
     createConnectionController, 
-    setQueueController
+    setQueueController,
+    getAllConnectionsController
 }

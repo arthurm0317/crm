@@ -1,4 +1,4 @@
-const { createCustomField, insertValueCustomField } = require('../services/ContactService');
+const { createCustomField, insertValueCustomField, createContact } = require('../services/ContactService');
 
 const createCustomFieldController = async (req, res) => {
     const { fieldName } = req.body;
@@ -26,4 +26,21 @@ const insertValueCustomFieldController = async (req, res) => {
     }
 };
 
-module.exports = { createCustomFieldController, insertValueCustomFieldController };
+const createContactController = async (req, res) => {
+    const { name, number, connection, user_id } = req.body;
+    const schema = req.body.schema || 'effective_gain';
+    try {
+        const result = await createContact(number, name, connection, user_id, schema);
+        res.status(201).json(result);
+    }
+    catch (error) {
+        console.error("Erro ao criar contato:", error.message);
+        res.status(500).json({ error: 'Erro ao criar contato' });
+    }
+}
+module.exports = {
+    createCustomFieldController,
+    insertValueCustomFieldController,
+    createContactController
+
+ };
