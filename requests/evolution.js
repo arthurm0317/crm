@@ -110,7 +110,6 @@ const sendAudioToWhatsApp = async (number, audioBase64, instanceId) => {
     }
 
     const url = `${process.env.EVOLUTION_SERVER_URL}/message/sendWhatsAppAudio/${instanceId}`;
-    console.log('URL para envio de áudio:', url);
 
     const response = await axios.post(url, {
       number: number,

@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
-import io from 'socket.io-client';
 import EmojiPicker from 'emoji-picker-react';
 import NewContactModal from './modalPages/Chats_novoContato';
 
@@ -18,23 +17,9 @@ function ChatPage({ theme }) {
   const [mediaRecorder, setMediaRecorder] = useState(null); 
   const [audioChunks, setAudioChunks] = useState([]); 
   const schema = userData.schema;
-  const socket = useRef(io('http://localhost:3000')).current;
   const [recordingTime, setRecordingTime] = useState(0);
   const recordingIntervalRef = useRef(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-
-  useEffect(() => {
-      socket.on('connect', () => {
-    });
-
-    socket.on('connect_error', (error) => {
-      console.error('Erro ao conectar ao socket:', error);
-    });
-
-    return () => {
-      socket.disconnect();
-    };
-  }, [socket]);
 
   useEffect(() => {
     selectedChatRef.current = selectedChat;
@@ -50,38 +35,15 @@ function ChatPage({ theme }) {
   }, [schema]);
 
   useEffect(() => {
-    socket.on('message', (newMessage) => {
-
-      if (!newMessage.chatId) {
-        console.error('Mensagem recebida sem chatId:', newMessage);
-        return;
-      }
-
-      if (selectedChatRef.current && String(selectedChatRef.current.id) === String(newMessage.chatId)) {
-        setSelectedMessages((prevMessages) => {
-          const updatedMessages = [...prevMessages, newMessage];
-          return updatedMessages;
-        });
-        scrollToBottom();
-      } else {
-
-      }
-    });
-
-    return () => {
-      socket.off('message');
-    };
-  }, [socket]);
-
-  useEffect(() => {
     if (!selectedChat) return;
 
     const interval = setInterval(async () => {
       try {
         const res = await axios.post('http://localhost:3000/chat/getMessages', {
-          chatId: selectedChat.chat_id,
+          chat_id: selectedChat.id,
           schema,
         });
+        
         setSelectedMessages(res.data.messages);
       } catch (error) {
         console.error('Erro ao atualizar mensagens do chat selecionado:', error);
@@ -107,15 +69,13 @@ function ChatPage({ theme }) {
     setSelectedChatId(chat.id);
     try {
       const res = await axios.post('http://localhost:3000/chat/getMessages', {
-        chatId: chat.chat_id,
+        chat_id: chat.id,
         schema,
       });
-      console.log('Mensagens recebidas:', res.data.messages);
       setSelectedChat(chat);
       setSelectedMessages(res.data.messages);
       scrollToBottom();
     } catch (error) {
-      console.error('Erro ao buscar mensagens:', error);
     }
   };
 
@@ -158,7 +118,6 @@ function ChatPage({ theme }) {
       setNewMessage('');
       setReplyMessage(null);
     } catch (error) {
-      console.error('Erro ao enviar mensagem:', error);
     }
   };
 
@@ -172,43 +131,46 @@ function ChatPage({ theme }) {
         const recorder = new MediaRecorder(stream);
         setMediaRecorder(recorder);
   
+        const chunks = [];
         recorder.ondataavailable = (event) => {
-          setAudioChunks((prevChunks) => [...prevChunks, event.data]);
+          if (event.data.size > 0) {
+            chunks.push(event.data);
+          }
+        };
+  
+        recorder.onstop = async () => {
+          const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+          if (audioBlob.size === 0) {
+            return;
+          }
+  
+          const formData = new FormData();
+          formData.append('audio', audioBlob);
+          formData.append('chatId', selectedChat.id);
+          formData.append('connectionId', selectedChat.connection_id);
+          formData.append('schema', schema);
+  
+          try {
+            const response = await axios.post('http://localhost:3000/chat/sendAudio', formData, {
+              headers: {
+                'Content-Type': 'multipart/form-data',
+              },
+            });
+  
+          } catch (error) {
+          } finally {
+            setAudioChunks([]);
+          }
         };
   
         recorder.start();
-        setIsRecording(true); 
+        setIsRecording(true);
       } catch (error) {
         console.error('Erro ao acessar o microfone:', error);
       }
     } else {
       mediaRecorder.stop();
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        const formData = new FormData();
-        formData.append('audio', audioBlob);
-        formData.append('chatId', selectedChat.id);
-        formData.append('connectionId', selectedChat.connection_id);
-        formData.append('schema', schema);
-  
-        try {
-          console.log("chat",selectedChat.id)
-          console.log("connection_id",selectedChat.connection_id)
-          console.log("schema",schema)
-          const response = await axios.post('http://localhost:3000/chat/sendAudio', formData, {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            },
-          });
-  
-          console.log('Áudio enviado com sucesso:', response.data);
-          setAudioChunks([]); 
-        } catch (error) {
-          console.error('Erro ao enviar áudio:', error);
-        }
-      };
-  
-      setIsRecording(false); 
+      setIsRecording(false);
     }
   };
   const scrollToBottom = () => {
@@ -244,7 +206,7 @@ function ChatPage({ theme }) {
                   onClick={() => handleChatClick(chat)}
                   style={{ cursor: 'pointer', padding: '10px', borderBottom: `1px solid var(--border-color-${theme})` }}
                 >
-                  <strong>{chat.contact_name || chat.chat_id || 'Sem Nome'}</strong>
+                  <strong>{chat.contact_name || chat.id || 'Sem Nome'}</strong>
                   <div
                     style={{
                       color: '#666',
