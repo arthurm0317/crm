@@ -62,6 +62,75 @@ function ChatPage({ theme }) {
     };
   }, []);
 
+  const AudioPlayer = ({ base64Audio }) => {
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [duration, setDuration] = useState(0);
+    const audioRef = useRef(null);
+    const intervalRef = useRef(null);
+    
+    const audioUrl = `data:audio/ogg;base64,${base64Audio}`;
+  
+    const updateProgress = () => {
+      if (audioRef.current) {
+        setProgress(audioRef.current.currentTime);
+      }
+    };
+  
+    const togglePlay = () => {
+      if (isPlaying) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        audioRef.current.play();
+        setIsPlaying(true);
+        intervalRef.current = setInterval(updateProgress, 1000);
+      }
+    };
+  
+    const handleProgressChange = (e) => {
+      const newProgress = e.target.value;
+      audioRef.current.currentTime = newProgress;
+      setProgress(newProgress);
+    };
+  
+    const handleLoadedMetadata = () => {
+      setDuration(audioRef.current.duration);
+    };
+  
+    const handleEnded = () => {
+      setIsPlaying(false);
+      clearInterval(intervalRef.current);
+    };
+  
+    return (
+      <div className="audio-player">
+        <audio
+          ref={audioRef}
+          src={audioUrl}
+          onLoadedMetadata={handleLoadedMetadata}
+          onEnded={handleEnded}
+        />
+        
+        <button onClick={togglePlay}>
+          {isPlaying ? 'Pause' : 'Play'}
+        </button>
+        
+        <div className="progress-container">
+          <input
+            type="range"
+            min="0"
+            max={duration}
+            value={progress}
+            onChange={handleProgressChange}
+          />
+          <span>{`${Math.floor(progress / 60)}:${String(progress % 60).padStart(2, '0')}`}</span> / 
+          <span>{`${Math.floor(duration / 60)}:${String(duration % 60).padStart(2, '0')}`}</span>
+        </div>
+      </div>
+    );
+  };  
+
   const handleEmojiClick = (emojiObject) => {
     setNewMessage((prevMessage) => prevMessage + emojiObject.emoji);
   };
@@ -73,6 +142,7 @@ function ChatPage({ theme }) {
         chat_id: chat.id,
         schema,
       });
+      console.log(res.data.messages);
       setSelectedChat(chat);
       setSelectedMessages(res.data.messages);
       scrollToBottom();
@@ -287,7 +357,13 @@ function ChatPage({ theme }) {
             alignSelf: msg.from_me ? 'flex-end' : 'flex-start',
           }}
         >
-          {msg.body}
+          
+          {msg.message_type === 'audio' ? (
+            <AudioPlayer base64Audio={msg.base64} />
+          ) : (
+            msg.body
+          )}
+
         </div>
       ))}
       <div ref={messagesEndRef} />
