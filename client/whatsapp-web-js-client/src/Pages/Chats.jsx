@@ -11,6 +11,7 @@ function ChatPage({ theme }) {
   const [newMessage, setNewMessage] = useState('');
   const [replyMessage, setReplyMessage] = useState(null);
   const selectedChatRef = useRef(null);
+  const mediaStreamRef = useRef(null);
   const messagesEndRef = useRef(null);
   const userData = JSON.parse(localStorage.getItem('user'));
   const [isRecording, setIsRecording] = useState(false); 
@@ -84,15 +85,15 @@ function ChatPage({ theme }) {
     if (isRecording) {
       setIsRecording(false);
       setRecordingTime(0);
-
+  
       if (recordingIntervalRef.current) {
         clearInterval(recordingIntervalRef.current);
         recordingIntervalRef.current = null;
-      }  
+      }
     } else {
       setIsRecording(true);
       setRecordingTime(0);
-
+  
       recordingIntervalRef.current = setInterval(() => {
         setRecordingTime((prevTime) => prevTime + 1);
       }, 1000);
@@ -127,11 +128,19 @@ function ChatPage({ theme }) {
     setReplyMessage(message);
   };
 
+  const stopMediaStream = () => {
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      mediaStreamRef.current = null;
+    }
+  };
+  
   const handleAudioRecording = async () => {
     if (!isRecording) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const recorder = new MediaRecorder(stream);
+        mediaStreamRef.current = stream;
         setMediaRecorder(recorder);
   
         const chunks = [];
@@ -142,9 +151,14 @@ function ChatPage({ theme }) {
         };
   
         recorder.onstop = async () => {
+          stopMediaStream();
           const audioBlob = new Blob(chunks, { type: 'audio/webm' });
           if (audioBlob.size === 0) {
             return;
+          }
+          if (recordingIntervalRef.current) {
+            clearInterval(recordingIntervalRef.current);
+            recordingIntervalRef.current = null;
           }
   
           const formData = new FormData();
@@ -165,9 +179,20 @@ function ChatPage({ theme }) {
             setAudioChunks([]);
           }
         };
-  
+        
+        if (recordingIntervalRef.current) {
+          clearInterval(recordingIntervalRef.current);
+          recordingIntervalRef.current = null;
+        }
+        
         recorder.start();
         setIsRecording(true);
+        setRecordingTime(0);
+
+        recordingIntervalRef.current = setInterval(() => {
+          setRecordingTime((prevTime) => prevTime + 1);
+        }, 1000);
+
       } catch (error) {
         console.error('Erro ao acessar o microfone:', error);
       }
@@ -229,154 +254,177 @@ function ChatPage({ theme }) {
             ))}
         </div>
         
-        {/* MENSAGENS DO CONTATO SELECIONADO */}
+{/* MENSAGENS DO CONTATO SELECIONADO */}
 <div
   className={`col-9 chat-messages-${theme} d-flex flex-column`}
-  style={{
-    height: 'calc(100% - 60px)', 
-    overflowY: 'auto',
-    border: '1px solid var(--border-color)',
-  }}
 >
   <div
-    id="corpoTexto"
-    className="px-3 pt-3 pb-2 h-100 d-flex flex-column"
     style={{
-      whiteSpace: 'pre-wrap',
-      flex: 1,
+      height: '100%',
+      maxHeight: '707.61px',
+      overflowY: 'auto',
+      border: '1px solid var(--border-color)',
     }}
   >
-    {selectedMessages.map((msg, idx) => (
-      <div
-        key={idx}
-        style={{
-          backgroundColor: msg.from_me ? 'var(--hover)' : '#f1f0f0',
-          textAlign: msg.from_me ? 'right' : 'left',
-          padding: '10px',
-          borderRadius: '10px',
-          margin: '5px 0',
-          maxWidth: '70%',
-          alignSelf: msg.from_me ? 'flex-end' : 'flex-start',
-        }}
-      >
-        {msg.body}
-      </div>
-    ))}
-    <div ref={messagesEndRef} />
+    <div
+      id="corpoTexto"
+      className="px-3 pt-3 pb-2 h-100 d-flex flex-column"
+      style={{
+        whiteSpace: 'pre-wrap',
+        flex: 1,
+      }}
+    >
+      {selectedMessages.map((msg, idx) => (
+        <div
+          key={idx}
+          style={{
+            backgroundColor: msg.from_me ? 'var(--hover)' : '#f1f0f0',
+            textAlign: msg.from_me ? 'right' : 'left',
+            padding: '10px',
+            borderRadius: '10px',
+            margin: '5px 0',
+            maxWidth: '70%',
+            alignSelf: msg.from_me ? 'flex-end' : 'flex-start',
+          }}
+        >
+          {msg.body}
+        </div>
+      ))}
+      <div ref={messagesEndRef} />
+    </div>
   </div>
-</div>
 
-{/* INPUT DE MENSAGEM */}
-<div
-  className="p-3 w-100 d-flex justify-content-center message-input gap-2"
-  style={{
-    position: 'fixed', // Fixa a barra no final da tela
-    bottom: '0', // Posiciona no final
-    left: '0', // Garante que a barra ocupe toda a largura
-    backgroundColor: `var(--bg-color-${theme})`,
-    borderTop: '1px solid var(--border-color)',
-    height: '60px', // Define a altura fixa da barra
-    zIndex: 10, // Garante que a barra fique acima do conteúdo
-  }}
->
-  <button
-    id="imagem"
-    className={`btn btn-2-${theme}`}
-    onClick={() => {}}
-  >
-    <i className="bi bi-image"></i>
-  </button>
-
+  {/* INPUT DE MENSAGEM */}
   <div
-    id="campoEscrever"
-    className={`py-0 px-2 form-control input-${theme} d-flex flex-row gap-2`}
-    style={{ position: 'relative', width: '70%' }}
+    className="p-3 w-100 d-flex justify-content-center message-input gap-2"
+    style={{
+      backgroundColor: `var(--bg-color-${theme})`,
+      borderTop: '1px solid var(--border-color)',
+      height: '70px',
+    }}
   >
-    <div style={{ position: 'relative' }}>
-      <button
-        id="emoji"
-        className={`btn d-flex justify-content-center align-items-center btn-2-${theme}`}
+    <button
+      id="imagem"
+      className={`btn btn-2-${theme}`}
+      onClick={() => {}}
+    >
+      <i className="bi bi-image"></i>
+    </button>
+
+    <div
+      id="campoEscrever"
+      className={`py-0 px-2 form-control input-${theme} d-flex flex-row gap-2`}
+      style={{ position: 'relative', width: '70%' }}
+    >
+      <div style={{ position: 'relative' }}>
+        {!isRecording && (
+        <button
+          id="emoji"
+          className={`btn d-flex justify-content-center align-items-center btn-2-${theme}`}
+          style={{
+            width: '35px',
+            height: '35px',
+            border: 'none',
+          }}
+          onClick={() => setShowEmojiPicker((prev) => !prev)}
+        >
+          <i className="bi bi-emoji-smile"></i>
+        </button>
+        )}
+        
+        {showEmojiPicker && !isRecording && (
+          <div style={{ position: 'absolute', bottom: '40px', left: '0', zIndex: 1000 }}>
+            <EmojiPicker onEmojiClick={handleEmojiClick} theme={theme === 'light' ? 'light' : 'dark'} />
+          </div>
+        )}
+      </div>
+
+            <input
+        type="text"
+        placeholder={isRecording ? '' : 'Digite sua mensagem...'}
+        value={isRecording ? '' : newMessage}
+        onChange={(e) => setNewMessage(e.target.value)}
+        disabled={isRecording}
         style={{
-          width: '35px',
-          height: '35px',
+          width: '100%',
+          color: isRecording
+            ? 'var(--error-color)'
+            : theme === 'light'
+            ? 'var(--color-light)'
+            : 'var(--color-dark)',
+          borderColor: isRecording ? 'var(--error-color)' : '',
+          backgroundColor: 'transparent',
           border: 'none',
         }}
-        onClick={() => setShowEmojiPicker((prev) => !prev)}
-      >
-        <i className="bi bi-emoji-smile"></i>
-      </button>
-
-      {showEmojiPicker && (
-        <div style={{ position: 'absolute', bottom: '40px', left: '0', zIndex: 1000 }}>
-          <EmojiPicker onEmojiClick={handleEmojiClick} theme={theme === 'light' ? 'light' : 'dark'} />
+      />
+      {isRecording && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '10px',
+            transform: 'translateY(-50%)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+          }}
+        >
+          <i
+            className="bi bi-record-circle"
+            style={{ color: 'var(--error-color)' }}
+          ></i>
+          <span>{`${Math.floor(recordingTime / 60)}:${String(
+            recordingTime % 60
+          ).padStart(2, '0')}`}</span>
         </div>
       )}
     </div>
 
-    <input
-      type="text"
-      placeholder={isRecording ? '' : 'Digite sua mensagem...'}
-      value={isRecording ? '' : newMessage}
-      onChange={(e) => setNewMessage(e.target.value)}
-      disabled={isRecording}
-      style={{
-        width: '100%',
-        color: isRecording
-          ? 'var(--error-color)'
-          : theme === 'light'
-          ? 'var(--color-light)'
-          : 'var(--color-dark)',
-        borderColor: isRecording ? 'var(--error-color)' : '',
-        backgroundColor: 'transparent',
-        border: 'none',
+    <button
+      id="audio"
+      className={`btn btn-2-${theme}`}
+      onClick={() => {
+        if (isRecording) {
+          // Cancelar gravação
+          if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.onstop = null; // Evita envio
+            mediaRecorder.stop();
+            stopMediaStream();
+          }
+          setIsRecording(false);
+          setRecordingTime(0);
+          setAudioChunks([]);
+        } else {
+          handleAudioRecording(); // Iniciar gravação
+        }
       }}
-    />
-    {isRecording && (
-      <div
-        style={{
-          position: 'absolute',
-          top: '50%',
-          left: '10px',
-          transform: 'translateY(-50%)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '5px',
-        }}
-      >
-        <i
-          className="bi bi-record-circle"
-          style={{ color: 'var(--error-color)' }}
-        ></i>
-        <span>{`${Math.floor(recordingTime / 60)}:${String(
-          recordingTime % 60
-        ).padStart(2, '0')}`}</span>
-      </div>
-    )}
+      style={{
+        color: isRecording ? 'var(--error-color)' : '',
+        borderColor: isRecording ? 'var(--error-color)' : '',
+      }}
+    >
+      <i className={`bi ${isRecording ? 'bi-x' : 'bi-mic'}`}></i>
+    </button>
+
+    <button
+      id="enviar"
+      className={`btn btn-2-${theme}`}
+      onClick={() => {
+        if (isRecording) {
+          if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+          }
+          setIsRecording(false);
+          setRecordingTime(0);
+        } else {
+          handleSendMessage();
+        }
+      }}
+    >
+      <i className="bi bi-send"></i>
+    </button>
+
   </div>
-
-  <button
-    id="audio"
-    className={`btn btn-2-${theme}`}
-    onClick={handleAudioRecording}
-    style={{
-      color: isRecording ? 'var(--error-color)' : '',
-      borderColor: isRecording ? 'var(--error-color)' : '',
-    }}
-  >
-    <i className={`bi ${isRecording ? 'bi-x' : 'bi-mic'}`}></i>
-  </button>
-
-  <button
-    id="enviar"
-    className={`btn btn-2-${theme}`}
-    onClick={() => {
-      handleSendMessage();
-      setIsRecording(false);
-      setRecordingTime(0);
-    }}
-  >
-    <i className="bi bi-send"></i>
-  </button>
 </div>
       </div>
       <NewContactModal theme={theme}/>
