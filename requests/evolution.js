@@ -71,7 +71,36 @@ const sendTextMessage = async(instanceId, text, number)=>{
     console.error('Erro ao enviar mensagem:', err);
   }
 }
+const getBase64FromMediaMessage = async (instanceId, mediaKey) => {
+  try {
+    if (!process.env.EVOLUTION_SERVER_URL) {
+      throw new Error('EVOLUTION_SERVER_URL não está configurado no arquivo .env');
+    }
 
+    if (!instanceId || !mediaKey) {
+      throw new Error('instanceId ou mediaKey não foram fornecidos ou estão inválidos');
+    }
+
+    const url = `${process.env.EVOLUTION_SERVER_URL}/chat/getBase64FromMediaMessage/${instanceId}`;
+
+    const response = await axios.post(
+      url,
+      { mediaKey }, 
+      {
+        headers: {
+          apikey: process.env.EVOLUTION_API_KEY,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    console.log('Base64 decodificado com sucesso:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao decodificar mídia:', error.message);
+    throw error;
+  }
+};
 const searchContact = async (remoteJid, instanceId) => {
   const payload = {
     where: {
@@ -127,6 +156,9 @@ const sendAudioToWhatsApp = async (number, audioBase64, instanceId) => {
     console.error('Erro ao enviar áudio para o WhatsApp:', error.message);
     throw error;
   }
+  
 };
 
-module.exports = { createInstance, fetchInstanceEvo, sendTextMessage, searchContact, sendAudioToWhatsApp};
+module.exports = { createInstance, fetchInstanceEvo, sendTextMessage, searchContact, sendAudioToWhatsApp, getBase64FromMediaMessage};
+
+

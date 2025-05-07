@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const pool = require('../db/queries');
 const axios = require('axios'); 
-
+const { getBase64FromMediaMessage } = require('../requests/evolution');
 const { sendAudioToWhatsApp } = require('../requests/evolution');
 const { searchConnById } = require('../services/ConnectionService');
 const { getCurrentTimestamp } = require('../services/getCurrentTimestamp');
@@ -38,6 +38,31 @@ const setUserChatController = async (req, res) => {
     res.status(500).json({
       erro: 'Não foi distribuir o chat',
     });
+  }
+};
+const processReceivedAudio = async (req, res) => {
+  const { instanceId, mediaKey, chatId, schema } = req.body;
+
+  if (!instanceId || !mediaKey || !chatId) {
+    return res.status(400).json({ error: 'Os parâmetros instanceId, mediaKey e chatId são obrigatórios.' });
+  }
+
+  try {
+    const decodedBase64 = await getBase64FromMediaMessage(instanceId, mediaKey);
+
+    if (!decodedBase64 || !decodedBase64.base64) {
+      throw new Error('Falha ao decodificar o áudio recebido.');
+    }
+
+    console.log('Áudio decodificado com sucesso:', decodedBase64.base64);
+
+
+    await saveMediaMessage('false', chatId, new Date().getTime(), 'audio', decodedBase64.base64, schema);
+
+    res.status(200).json({ success: true, message: 'Áudio recebido e processado com sucesso' });
+  } catch (error) {
+    console.error('Erro ao processar áudio recebido:', error.message);
+    res.status(500).json({ error: 'Erro ao processar áudio recebido' });
   }
 };
 
@@ -166,5 +191,6 @@ module.exports = {
   getChatDataController,
   getChatByUserController,
   sendAudioController,
+  processReceivedAudio,
   upload,
 };
