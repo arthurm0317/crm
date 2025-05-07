@@ -11,6 +11,7 @@ function ChatPage({ theme }) {
   const [newMessage, setNewMessage] = useState('');
   const [replyMessage, setReplyMessage] = useState(null);
   const selectedChatRef = useRef(null);
+  const mediaStreamRef = useRef(null);
   const messagesEndRef = useRef(null);
   const userData = JSON.parse(localStorage.getItem('user'));
   const [isRecording, setIsRecording] = useState(false); 
@@ -127,11 +128,19 @@ function ChatPage({ theme }) {
     setReplyMessage(message);
   };
 
+  const stopMediaStream = () => {
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      mediaStreamRef.current = null;
+    }
+  };
+  
   const handleAudioRecording = async () => {
     if (!isRecording) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const recorder = new MediaRecorder(stream);
+        mediaStreamRef.current = stream;
         setMediaRecorder(recorder);
   
         const chunks = [];
@@ -142,6 +151,7 @@ function ChatPage({ theme }) {
         };
   
         recorder.onstop = async () => {
+          stopMediaStream();
           const audioBlob = new Blob(chunks, { type: 'audio/webm' });
           if (audioBlob.size === 0) {
             return;
@@ -379,6 +389,7 @@ function ChatPage({ theme }) {
           if (mediaRecorder && mediaRecorder.state !== 'inactive') {
             mediaRecorder.onstop = null; // Evita envio
             mediaRecorder.stop();
+            stopMediaStream();
           }
           setIsRecording(false);
           setRecordingTime(0);
