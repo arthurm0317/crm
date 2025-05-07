@@ -146,6 +146,10 @@ function ChatPage({ theme }) {
           if (audioBlob.size === 0) {
             return;
           }
+          if (recordingIntervalRef.current) {
+            clearInterval(recordingIntervalRef.current);
+            recordingIntervalRef.current = null;
+          }
   
           const formData = new FormData();
           formData.append('audio', audioBlob);
@@ -165,9 +169,20 @@ function ChatPage({ theme }) {
             setAudioChunks([]);
           }
         };
-  
+        
+        if (recordingIntervalRef.current) {
+          clearInterval(recordingIntervalRef.current);
+          recordingIntervalRef.current = null;
+        }
+        
         recorder.start();
         setIsRecording(true);
+        setRecordingTime(0);
+
+        recordingIntervalRef.current = setInterval(() => {
+          setRecordingTime((prevTime) => prevTime + 1);
+        }, 1000);
+
       } catch (error) {
         console.error('Erro ao acessar o microfone:', error);
       }
@@ -341,7 +356,7 @@ function ChatPage({ theme }) {
             transform: 'translateY(-50%)',
             display: 'flex',
             alignItems: 'center',
-            gap: '5px',
+            gap: '10px',
           }}
         >
           <i
@@ -358,7 +373,20 @@ function ChatPage({ theme }) {
     <button
       id="audio"
       className={`btn btn-2-${theme}`}
-      onClick={handleAudioRecording}
+      onClick={() => {
+        if (isRecording) {
+          // Cancelar gravação
+          if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.onstop = null; // Evita envio
+            mediaRecorder.stop();
+          }
+          setIsRecording(false);
+          setRecordingTime(0);
+          setAudioChunks([]);
+        } else {
+          handleAudioRecording(); // Iniciar gravação
+        }
+      }}
       style={{
         color: isRecording ? 'var(--error-color)' : '',
         borderColor: isRecording ? 'var(--error-color)' : '',
@@ -371,13 +399,20 @@ function ChatPage({ theme }) {
       id="enviar"
       className={`btn btn-2-${theme}`}
       onClick={() => {
-        handleSendMessage();
-        setIsRecording(false);
-        setRecordingTime(0);
+        if (isRecording) {
+          if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+          }
+          setIsRecording(false);
+          setRecordingTime(0);
+        } else {
+          handleSendMessage();
+        }
       }}
     >
       <i className="bi bi-send"></i>
     </button>
+
   </div>
 </div>
       </div>
