@@ -6,6 +6,7 @@ import NewContactModal from './modalPages/Chats_novoContato';
 function ChatPage({ theme }) {
   const [chats, setChats] = useState([]);
   const [selectedMessages, setSelectedMessages] = useState([]);
+  const previousMessagesRef = useRef(selectedMessages);
   const [selectedChat, setSelectedChat] = useState(null);
   const [selectedChatId, setSelectedChatId] = useState(null);
   const [newMessage, setNewMessage] = useState('');
@@ -14,13 +15,15 @@ function ChatPage({ theme }) {
   const mediaStreamRef = useRef(null);
   const messagesEndRef = useRef(null);
   const userData = JSON.parse(localStorage.getItem('user'));
-  const [isRecording, setIsRecording] = useState(false); 
-  const [mediaRecorder, setMediaRecorder] = useState(null); 
-  const [audioChunks, setAudioChunks] = useState([]); 
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState(null);
+  const [audioChunks, setAudioChunks] = useState([]);
   const schema = userData.schema;
   const [recordingTime, setRecordingTime] = useState(0);
   const recordingIntervalRef = useRef(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [activeAudio, setActiveAudio] = useState(null); 
+const [audioProgress, setAudioProgress] = useState({}); 
 
   useEffect(() => {
     selectedChatRef.current = selectedChat;
@@ -44,8 +47,18 @@ function ChatPage({ theme }) {
           chat_id: selectedChat.id,
           schema,
         });
-        
-        setSelectedMessages(res.data.messages);
+
+        const newMessages = res.data.messages.filter(
+          (msg) => !previousMessagesRef.current.some((prevMsg) => prevMsg.id === msg.id)
+        );
+
+        if (newMessages.length > 0) {
+          setSelectedMessages((prevMessages) => {
+            const updatedMessages = [...prevMessages, ...newMessages];
+            previousMessagesRef.current = updatedMessages; 
+            return updatedMessages;
+          });
+        }
       } catch (error) {
         console.error('Erro ao atualizar mensagens do chat selecionado:', error);
       }
@@ -62,74 +75,31 @@ function ChatPage({ theme }) {
     };
   }, []);
 
-  const AudioPlayer = ({ base64Audio }) => {
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [progress, setProgress] = useState(0);
-    const [duration, setDuration] = useState(0);
-    const audioRef = useRef(null);
-    const intervalRef = useRef(null);
-    
-    const audioUrl = `data:audio/ogg;base64,${base64Audio}`;
+  const AudioPlayer = ({ base64Audio, audioId }) => {
+  const audioRef = useRef(null);
+
+  const togglePlay = () => {
+    if (audioRef.current.paused) {
+      audioRef.current.play().catch((err) => {
+        console.error('Erro ao reproduzir áudio:', err);
+      });
+    } else {
+      audioRef.current.pause();
+    }
+  };
+
+  return (
+    <div className="audio-player">
+      <audio
+        ref={audioRef}
+        src={`data:audio/ogg;base64,${base64Audio}`}
+        preload="auto"
+      />
+      <button onClick={togglePlay}>Play/Pause</button>
+    </div>
+  );
+};
   
-    const updateProgress = () => {
-      if (audioRef.current) {
-        setProgress(audioRef.current.currentTime);
-      }
-    };
-  
-    const togglePlay = () => {
-      if (isPlaying) {
-        audioRef.current.pause();
-        setIsPlaying(false);
-      } else {
-        audioRef.current.play();
-        setIsPlaying(true);
-        intervalRef.current = setInterval(updateProgress, 1000);
-      }
-    };
-  
-    const handleProgressChange = (e) => {
-      const newProgress = e.target.value;
-      audioRef.current.currentTime = newProgress;
-      setProgress(newProgress);
-    };
-  
-    const handleLoadedMetadata = () => {
-      setDuration(audioRef.current.duration);
-    };
-  
-    const handleEnded = () => {
-      setIsPlaying(false);
-      clearInterval(intervalRef.current);
-    };
-  
-    return (
-      <div className="audio-player">
-        <audio
-          ref={audioRef}
-          src={audioUrl}
-          onLoadedMetadata={handleLoadedMetadata}
-          onEnded={handleEnded}
-        />
-        
-        <button onClick={togglePlay}>
-          {isPlaying ? 'Pause' : 'Play'}
-        </button>
-        
-        <div className="progress-container">
-          <input
-            type="range"
-            min="0"
-            max={duration}
-            value={progress}
-            onChange={handleProgressChange}
-          />
-          <span>{`${Math.floor(progress / 60)}:${String(progress % 60).padStart(2, '0')}`}</span> / 
-          <span>{`${Math.floor(duration / 60)}:${String(duration % 60).padStart(2, '0')}`}</span>
-        </div>
-      </div>
-    );
-  };  
 
   const handleEmojiClick = (emojiObject) => {
     setNewMessage((prevMessage) => prevMessage + emojiObject.emoji);
@@ -171,9 +141,8 @@ function ChatPage({ theme }) {
   };
   
   const handleSendMessage = async () => {
-    if (!newMessage.trim()) return;
-
     try {
+      // Envia a mensagem para o backend
       await axios.post('http://localhost:3000/evo/sendText', {
         instanceId: selectedChat.connection_id,
         number: selectedChat.contact_phone,
@@ -181,19 +150,13 @@ function ChatPage({ theme }) {
         chatId: selectedChat.id,
         schema: schema,
       });
-
-      setSelectedMessages((prevMessages) => [
-        ...prevMessages,
-        { body: newMessage, from_me: true, replyTo: replyMessage ? replyMessage.body : null },
-      ]);
-
+  
+      // Limpa o campo de texto após o envio
       setNewMessage('');
-      setReplyMessage(null);
     } catch (error) {
-      console.error('Erro ao enviar mensagem:', error);
+      console.error('Erro ao enviar a mensagem:', error);
     }
   };
-
   const handleReply = (message) => {
     setReplyMessage(message);
   };
@@ -238,6 +201,7 @@ function ChatPage({ theme }) {
           formData.append('schema', schema);
   
           try {
+            console.log(formData)
             await axios.post('http://localhost:3000/chat/sendAudio', formData, {
               headers: {
                 'Content-Type': 'multipart/form-data',
@@ -344,28 +308,26 @@ function ChatPage({ theme }) {
         flex: 1,
       }}
     >
-      {selectedMessages.map((msg, idx) => (
-        <div
-          key={idx}
-          style={{
-            backgroundColor: msg.from_me ? 'var(--hover)' : '#f1f0f0',
-            textAlign: msg.from_me ? 'right' : 'left',
-            padding: '10px',
-            borderRadius: '10px',
-            margin: '5px 0',
-            maxWidth: '70%',
-            alignSelf: msg.from_me ? 'flex-end' : 'flex-start',
-          }}
-        >
-          
-          {msg.message_type === 'audio' ? (
-            <AudioPlayer base64Audio={msg.base64} />
-          ) : (
-            msg.body
-          )}
-
-        </div>
-      ))}
+            {selectedMessages.map((msg) => (
+  <div
+    key={msg.id} // Use o ID da mensagem como chave
+    style={{
+      backgroundColor: msg.from_me ? 'var(--hover)' : '#f1f0f0',
+      textAlign: msg.from_me ? 'right' : 'left',
+      padding: '10px',
+      borderRadius: '10px',
+      margin: '5px 0',
+      maxWidth: '70%',
+      alignSelf: msg.from_me ? 'flex-end' : 'flex-start',
+    }}
+  >
+    {msg.message_type === 'audio' ? (
+      <AudioPlayer base64Audio={msg.base64} audioId={msg.id} />
+    ) : (
+      msg.body
+    )}
+  </div>
+))}
       <div ref={messagesEndRef} />
     </div>
   </div>

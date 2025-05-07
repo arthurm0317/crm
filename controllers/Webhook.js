@@ -59,13 +59,16 @@ module.exports = (broadcastMessage) => {
       let messageBody = '';
       let audioBase64 = null;
       let imageBase64 = null;
+      
+      const createChats = await createChat(chat, result.instance, result.data.message.conversation, null);
+      const chatDb = await getChatService(createChats.chat, createChats.schema);
 
       if (result.data.message?.conversation) {
         messageBody = result.data.message.conversation;
       } else if (result.data.message?.audioMessage) {
         try {
           if (result.data.message.audioMessage.base64) {
-            audioBase64 = result.data.message.audioMessage.base64;
+            audioBase64 = result.data.message.base64;
           } else if (result.data.message.audioMessage.url) {
             const audioResponse = await axios.get(result.data.message.audioMessage.url, {
               responseType: 'arraybuffer',
@@ -74,7 +77,7 @@ module.exports = (broadcastMessage) => {
           }
 
           if (audioBase64) {
-            await saveMediaMessage(result.data.key.id, result.data.key.fromMe, chat.id, timestamp, 'audio', audioBase64, schema);
+            await saveMediaMessage(result.data.key.id, result.data.key.fromMe, chatDb.id, timestamp, 'audio', audioBase64, schema);
             messageBody = '[áudio recebido]';
           } else {
             throw new Error('Áudio não encontrado ou não processado.');
@@ -97,7 +100,7 @@ module.exports = (broadcastMessage) => {
           }
           
           if (imageBase64) {
-            await saveMediaMessage(result.data.key.id,result.data.key.fromMe, chat.id, timestamp, 'image', imageBase64, schema);
+            await saveMediaMessage(result.data.key.id,result.data.key.fromMe, chatDb.id, timestamp, 'image', imageBase64, schema);
             messageBody = '[imagem recebida]';
           } else {
             throw new Error('Imagem não encontrada ou não processada.');
@@ -111,9 +114,6 @@ module.exports = (broadcastMessage) => {
       if (!chat || !result.instance) {
         throw new Error('Dados obrigatórios ausentes para createChat');
       }
-
-      const createChats = await createChat(chat, result.instance, result.data.message.conversation, null);
-      const chatDb = await getChatService(createChats.chat, createChats.schema);
 
       const existingMessage = await pool.query(
         `SELECT id FROM ${schema}.messages WHERE id = $1`,

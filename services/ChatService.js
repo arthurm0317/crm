@@ -133,6 +133,7 @@ const getMessages = async(chat_Id, schema)=>{
 }
 
 const getChatService = async(chat, schema)=>{
+    console.log("----entrou CS-------")
     const result = await pool.query(
       `SELECT * FROM ${schema}.chats WHERE chat_id=$1 AND connection_id=$2`,
       [chat.chat_id, chat.connection_id]
