@@ -27,7 +27,6 @@ const insertValueCustomField = async(fieldName, contactNumber, value, schema)=>{
 }
 
 const createContact = async(contactNumber, contactName, connection, user_id, schema)=>{
-    console.log(user_id, 'userid')
     const result = await pool.query(
         `INSERT INTO ${schema}.contacts (number, contact_name) VALUES ($1, $2) RETURNING *`,
         [contactNumber, contactName]

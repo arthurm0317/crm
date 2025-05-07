@@ -10,6 +10,9 @@ const { Message } = require('../entities/Message');
 const { createChat, getChatService, setChatQueue, setUserChat, saveMediaMessage } = require('../services/ChatService');
 const { saveMessage } = require('../services/MessageService');
 const pool = require('../db/queries');
+const { getCurrentTimestamp } = require('../services/getCurrentTimestamp');
+
+
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
@@ -35,7 +38,7 @@ module.exports = (broadcastMessage) => {
       : result.data.pushName || result.data.key.remoteJid.split('@')[0];
 
     try {
-      const timestamp = new Date(result.data.messageTimestamp).getTime();
+      const timestamp = getCurrentTimestamp()
       if (!result.data.key.remoteJid || !result.data.instanceId) {
         throw new Error('Dados obrigatórios ausentes: remoteJid ou instanceId');
       }
@@ -71,7 +74,7 @@ module.exports = (broadcastMessage) => {
           }
 
           if (audioBase64) {
-            await saveMediaMessage(result.data.key.fromMe, chat.id, timestamp, 'audio', audioBase64, schema);
+            await saveMediaMessage(result.data.key.id, result.data.key.fromMe, chat.id, timestamp, 'audio', audioBase64, schema);
             messageBody = '[áudio recebido]';
           } else {
             throw new Error('Áudio não encontrado ou não processado.');
@@ -92,9 +95,9 @@ module.exports = (broadcastMessage) => {
             });
             imageBase64 = Buffer.from(imageResponse.data).toString('base64');
           }
-
+          
           if (imageBase64) {
-            await saveMediaMessage(result.data.key.fromMe, chat.id, timestamp, 'image', imageBase64, schema);
+            await saveMediaMessage(result.data.key.id,result.data.key.fromMe, chat.id, timestamp, 'image', imageBase64, schema);
             messageBody = '[imagem recebida]';
           } else {
             throw new Error('Imagem não encontrada ou não processada.');
@@ -125,7 +128,6 @@ module.exports = (broadcastMessage) => {
             messageBody,
             result.data.key.fromMe,
             result.data.key.remoteJid,
-            result.data.pushName,
             timestamp
           ),
           schema

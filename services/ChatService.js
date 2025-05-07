@@ -35,7 +35,6 @@ const createChat = async (chat, instance, message, etapa, io) => {
     );
 
     if (existingChat.rowCount > 0) {
-      console.log("Chat já existe, atualizando mensagens...");
       const updated = await updateChatMessages(chat, schema, message);
       if (io) {
         io.to(schema).emit("chat:new-message", {
@@ -99,8 +98,6 @@ const createChat = async (chat, instance, message, etapa, io) => {
         schema
       });
     }
-
-    console.log(`Chat criado com sucesso: ${result.rows[0].id}`);
     return {
       result: result.rows[0],
       schema: schema
@@ -178,7 +175,7 @@ const setUserChat = async (chatId, schema) => {
 
 const getChats = async (schema) => {
     const { rows } = await pool.query(
-      `SELECT * FROM ${schema}.chats ORDER BY created_at DESC`
+      `SELECT * FROM ${schema}.chats ORDER BY created_at ASC`
     );
     return rows;
 };

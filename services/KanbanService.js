@@ -18,8 +18,6 @@ const createKanbanStage = async (name, schema) => {
 };
 
 const insertInKanbanStage = async (stageName, connection_id, number, schema) => {
-  console.log("Inserindo na etapa:", stageName);
-
   const stageId = await pool.query(
     `SELECT id FROM ${schema}.kanban_vendas WHERE etapa=$1`,
     [stageName]
@@ -66,7 +64,6 @@ const insertInKanbanStage = async (stageName, connection_id, number, schema) => 
           stageId.rows[0].id
         ]
       );
-    console.log("Novo chat criado:", newChat.rows[0]);
     return newChat.rows[0];
     }
   } else {

@@ -28,7 +28,6 @@ const startCampaing = async (campaing_id, timer, schema) => {
       const kanban = await pool.query(
         `SELECT * FROM ${schema}.kanban_vendas WHERE id=$1`, [campaing.rows[0].kanban_stage]
       );
-      console.log("kanban", kanban.rows[0]);
   
       const chatId = await getChatsInKanbanStage(kanban.rows[0].etapa, schema);
   
@@ -48,7 +47,6 @@ const startCampaing = async (campaing_id, timer, schema) => {
         const instanceId = await pool.query(
           `SELECT * FROM ${schema}.chats WHERE chat_id=$1`, [chatId[i].chat_id]
         );
-        console.log("instanceId", instanceId.rows[0]);
   
         const instance = await pool.query(
           `SELECT * FROM ${schema}.connections WHERE id=$1`, [instanceId.rows[0].connection_id]
@@ -57,8 +55,6 @@ const startCampaing = async (campaing_id, timer, schema) => {
         const message = messageList[messageIndex];
 
         messageIndex = (messageIndex + 1) % messageList.length; 
-  
-        console.log(`Enviando mensagem: ${message.value} para ${instanceId.rows[0].contact_phone}`);
         
         await sendBlastMessage(
             instance.rows[0].name,

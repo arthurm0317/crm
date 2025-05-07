@@ -7,6 +7,7 @@ const axios = require('axios');
 
 const { sendAudioToWhatsApp } = require('../requests/evolution');
 const { searchConnById } = require('../services/ConnectionService');
+const { getCurrentTimestamp } = require('../services/getCurrentTimestamp');
 
 
 const storage = multer.diskStorage({
@@ -18,7 +19,6 @@ const storage = multer.diskStorage({
     cb(null, audioFolder);
   },
   filename: (req, file, cb) => {
-    console.log('Recebendo arquivo:', file.originalname);
     cb(null, `${Date.now()}-${file.originalname}`);
   },
 });
@@ -142,7 +142,7 @@ const sendAudioController = async (req, res) => {
 
     const evolutionResponse = await sendAudioToWhatsApp(chat_id.contact_phone, audioBase64, instanceId.name);
 
-    await saveMediaMessage(evolutionResponse.key.id, 'true', chatId, new Date(evolutionResponse.messageTimestamp).getTime(), 'audio', audioBase64, schema);
+    await saveMediaMessage(evolutionResponse.key.id, 'true', chatId, getCurrentTimestamp(), 'audio', audioBase64, schema);
 
 
 
@@ -154,7 +154,6 @@ const sendAudioController = async (req, res) => {
     setTimeout(() => {
       if (fs.existsSync(audioPath)) {
         fs.unlinkSync(audioPath);
-        console.log('Arquivo de áudio excluído:', audioPath);
       }
     }, 500);
   }

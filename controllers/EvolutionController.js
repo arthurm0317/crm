@@ -4,6 +4,7 @@ const Connections = require('../entities/Connection');
 const { createConnection, fetchInstance, searchConnById } = require('../services/ConnectionService');
 const { saveMessage } = require('../services/MessageService');
 const { Message } = require('../entities/Message');
+const { getCurrentTimestamp } = require('../services/getCurrentTimestamp');
 
 const createInstanceController = async(req, res)=>{
     try{
@@ -15,7 +16,7 @@ const createInstanceController = async(req, res)=>{
             number:number
           });
           
-          const conn = new Connections(result.instance.instanceId, instanceName, number)
+          const conn = new Connection(result.instance.instanceId, instanceName, number)
           await createConnection(conn, schema)
           
 
@@ -65,7 +66,7 @@ const fetchInstanceController = async (req, res) => {
         return res.status(500).json({ error: 'Erro ao enviar mensagem: resposta inválida do serviço.' });
       }
   
-      const timestamp = result.messageTimestamp || Date.now();
+      const timestamp = getCurrentTimestamp(); 
   
       const message = new Message(
         result.key.id,
@@ -74,8 +75,6 @@ const fetchInstanceController = async (req, res) => {
         result.key.remoteJid,
         timestamp 
       );
-  
-      console.log('Mensagem criada:', message);
   
       await saveMessage(chatId, message, schema);
   

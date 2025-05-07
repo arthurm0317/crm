@@ -42,8 +42,7 @@ const searchUser = async (userMail, userPassword) => {
             `SELECT * FROM effective_gain.companies WHERE schema_name = $1`,
             [schema]
           );
-          console.log("schema",schema)
-          console.log("company:", companyName.rows[0])
+
           return {
             company: companyName.rows[0],
             user: result.rows[0]
