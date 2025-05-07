@@ -11,6 +11,7 @@ const { createChat, getChatService, setChatQueue, setUserChat, saveMediaMessage 
 const { saveMessage } = require('../services/MessageService');
 const pool = require('../db/queries');
 const { getCurrentTimestamp } = require('../services/getCurrentTimestamp');
+const { getBase64FromMediaMessage } = require('../requests/evolution');
 
 
 
@@ -66,6 +67,10 @@ module.exports = (broadcastMessage) => {
       if (result.data.message?.conversation) {
         messageBody = result.data.message.conversation;
       } else if (result.data.message?.audioMessage) {
+        console.log('-----------audio---------------')
+        console.log(result.data.message.audioMessage)
+        console.log('--------------result------------')
+        console.log(result)
         try {
           if (result.data.message.audioMessage.base64) {
             audioBase64 = result.data.message.base64;
@@ -77,7 +82,8 @@ module.exports = (broadcastMessage) => {
           }
 
           if (audioBase64) {
-            await saveMediaMessage(result.data.key.id, result.data.key.fromMe, chatDb.id, timestamp, 'audio', audioBase64, schema);
+            const base64Formatado = await getBase64FromMediaMessage(result.instance, result.data.key.id)
+            await saveMediaMessage(result.data.key.id, result.data.key.fromMe, chatDb.id, timestamp, 'audio', base64Formatado, schema);
             messageBody = '[áudio recebido]';
           } else {
             throw new Error('Áudio não encontrado ou não processado.');
@@ -100,7 +106,8 @@ module.exports = (broadcastMessage) => {
           }
           
           if (imageBase64) {
-            await saveMediaMessage(result.data.key.id,result.data.key.fromMe, chatDb.id, timestamp, 'image', imageBase64, schema);
+            const base64Formatado = await getBase64FromMediaMessage(result.instance, result.data.key.id)
+            await saveMediaMessage(result.data.key.id,result.data.key.fromMe, chatDb.id, timestamp, 'image', base64Formatado.base64, schema);
             messageBody = '[imagem recebida]';
           } else {
             throw new Error('Imagem não encontrada ou não processada.');

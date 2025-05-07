@@ -85,7 +85,7 @@ const getBase64FromMediaMessage = async (instanceId, mediaKey) => {
 
     const response = await axios.post(
       url,
-      { mediaKey }, 
+      { message:{key:{id:mediaKey}}}, 
       {
         headers: {
           apikey: process.env.EVOLUTION_API_KEY,
