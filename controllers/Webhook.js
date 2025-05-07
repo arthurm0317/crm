@@ -83,7 +83,7 @@ module.exports = (broadcastMessage) => {
 
           if (audioBase64) {
             const base64Formatado = await getBase64FromMediaMessage(result.instance, result.data.key.id)
-            await saveMediaMessage(result.data.key.id, result.data.key.fromMe, chatDb.id, timestamp, 'audio', base64Formatado, schema);
+            await saveMediaMessage(result.data.key.id, result.data.key.fromMe, chatDb.id, timestamp, 'audio', base64Formatado.base64, schema);
             messageBody = '[áudio recebido]';
           } else {
             throw new Error('Áudio não encontrado ou não processado.');
