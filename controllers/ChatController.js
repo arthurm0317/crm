@@ -106,7 +106,6 @@ const getChatByUserController = async (req, res) => {
     const result = await getChatByUser(userId, schema);
     res.status(200).json({ messages: result });
   } catch (err) {
-    console.error('Erro ao buscar chats do usuário:', err);
     res.status(500).json({ error: 'Erro ao buscar chats do usuário.' });
   }
 };
@@ -127,7 +126,6 @@ const sendAudioController = async (req, res) => {
     }
 
     const stats = fs.statSync(audioPath);
-    console.log('Tamanho do arquivo recebido:', stats.size);
 
     if (stats.size === 0) {
       throw new Error('O arquivo de áudio está vazio.');
@@ -135,19 +133,18 @@ const sendAudioController = async (req, res) => {
 
     const audioBuffer = fs.readFileSync(audioPath);
     const audioBase64 = audioBuffer.toString('base64');
-    console.log('Tamanho do áudio base64:', audioBase64.length);
 
     if (audioBase64.length === 0) {
       throw new Error('Falha ao converter o áudio para base64.');
     }
-
-    await saveMediaMessage('true', chatId, new Date().getTime(), 'audio', audioBase64, schema);
-
     const chat_id = await getChatById(chatId, connectionId, schema);
     const instanceId = await searchConnById(connectionId, schema);
-    console.log('instanceId:', instanceId);
 
     const evolutionResponse = await sendAudioToWhatsApp(chat_id.contact_phone, audioBase64, instanceId.name);
+
+    await saveMediaMessage(evolutionResponse.key.id, 'true', chatId, new Date(evolutionResponse.messageTimestamp).getTime(), 'audio', audioBase64, schema);
+
+
 
     res.status(200).json({ success: true, message: 'Áudio processado e enviado com sucesso', evolutionResponse });
   } catch (error) {

@@ -257,11 +257,11 @@ const getChatById = async (chatId, connection_id, schema) => {
     throw new Error('Erro ao buscar chat pelo ID');
   }
 }
-const saveMediaMessage = async (fromMe, chat_id, createdAt, message_type, audioBase64, schema) => {
+const saveMediaMessage = async (id,fromMe, chat_id, createdAt, message_type, audioBase64, schema) => {
   try {
     const result = await pool.query(
       `INSERT INTO ${schema}.messages (id, from_me, chat_id, created_at, message_type, base64) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [uuid4(), fromMe, chat_id, createdAt, message_type, audioBase64]
+      [id, fromMe, chat_id, createdAt, message_type, audioBase64]
     );
     return result.rows[0];
   } catch (error) {

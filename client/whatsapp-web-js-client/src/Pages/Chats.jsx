@@ -233,7 +233,7 @@ function ChatPage({ theme }) {
 <div
   className={`col-9 chat-messages-${theme} d-flex flex-column`}
   style={{
-    height: 'calc(100% - 60px)', // Deixa espaço para a barra de envio
+    height: 'calc(100% - 60px)', 
     overflowY: 'auto',
     border: '1px solid var(--border-color)',
   }}

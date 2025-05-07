@@ -51,7 +51,7 @@ const fetchInstanceController = async (req, res) => {
   const sendTextMessageController = async (req, res) => {
     try {
       const body = req.body;
-      chatId = body.chatId || body.chat_id;
+      const chatId = body.chatId || body.chat_id;
       const schema = body.schema || 'effective_gain';
   
       const instance = await searchConnById(body.instanceId, schema);
@@ -59,21 +59,23 @@ const fetchInstanceController = async (req, res) => {
       if (!instance) {
         return res.status(404).json({ error: 'Conexão não encontrada' });
       }
-      const result = await sendTextMessage(instance.name, body.text, body.number);
   
+      const result = await sendTextMessage(instance.name, body.text, body.number);
       if (!result || !result.key) {
         return res.status(500).json({ error: 'Erro ao enviar mensagem: resposta inválida do serviço.' });
       }
   
-      
+      const timestamp = result.messageTimestamp || Date.now();
+  
       const message = new Message(
-        result.key.id, 
-        body.text, 
-        result.key.fromMe, 
-        result.key.remoteJid, 
-        new Date().getTime() 
+        result.key.id,
+        body.text,
+        result.key.fromMe,
+        result.key.remoteJid,
+        timestamp 
       );
-      console.log("message", message)
+  
+      console.log('Mensagem criada:', message);
   
       await saveMessage(chatId, message, schema);
   

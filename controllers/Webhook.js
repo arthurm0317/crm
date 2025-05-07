@@ -26,21 +26,20 @@ module.exports = (broadcastMessage) => {
   app.post('/chat', async (req, res) => {
     const result = req.body;
     const schema = req.body.schema || 'effective_gain';
-    
+
     if (!result?.data?.key?.remoteJid) {
       return res.status(400).json({ error: 'Dados incompletos' });
     }
     const contact = result.data.key.fromMe
       ? result.data.key.remoteJid.split('@')[0]
       : result.data.pushName || result.data.key.remoteJid.split('@')[0];
-  
+
     try {
-      const timestamp = new Date(result.date_time).getTime();
-  
+      const timestamp = new Date(result.data.messageTimestamp).getTime();
       if (!result.data.key.remoteJid || !result.data.instanceId) {
         throw new Error('Dados obrigatórios ausentes: remoteJid ou instanceId');
       }
-  
+
       const chat = new Chat(
         uuidv4(),
         result.data.key.remoteJid,
@@ -53,10 +52,11 @@ module.exports = (broadcastMessage) => {
         timestamp,
         []
       );
-  
+
       let messageBody = '';
       let audioBase64 = null;
-  
+      let imageBase64 = null;
+
       if (result.data.message?.conversation) {
         messageBody = result.data.message.conversation;
       } else if (result.data.message?.audioMessage) {
@@ -69,49 +69,54 @@ module.exports = (broadcastMessage) => {
             });
             audioBase64 = Buffer.from(audioResponse.data).toString('base64');
           }
-  
+
           if (audioBase64) {
-            await saveMediaMessage(result.data.key.fromMe, chat.id, result.data.messageTimestamp, 'audio', audioBase64, schema);
+            await saveMediaMessage(result.data.key.fromMe, chat.id, timestamp, 'audio', audioBase64, schema);
             messageBody = '[áudio recebido]';
           } else {
             throw new Error('Áudio não encontrado ou não processado.');
           }
-
-          if(result.data.message.imageMessage.base64){
-            console.log('entro')
-            imageBase64 = result.data.message.imageMessage.base64;
-          }else if(result.data.message.imageMessage.url){
-            const imageResponse = await axios.get(result.data.message.imageMessage.url, {
-              responseType: 'arraybuffer',
-            });
-            imageBase64 = Buffer.from(imageResponse.data).toString('base64');
-          }
-          if(imageBase64){
-            await saveMediaMessage(result.data.key.fromMe, chat.id, result.data.messageTimestamp, 'image', imageBase64, schema);
-            messageBody = '[imagem recebida]';
-          }
-          
         } catch (err) {
           console.error('Erro ao processar áudio:', err);
           messageBody = '[erro ao processar áudio]';
         }
       }
-  
-  
+
+      if (result.data.message?.imageMessage) {
+        try {
+          if (result.data.message.imageMessage.base64) {
+            imageBase64 = result.data.message.imageMessage.base64;
+          } else if (result.data.message.imageMessage.url) {
+            const imageResponse = await axios.get(result.data.message.imageMessage.url, {
+              responseType: 'arraybuffer',
+            });
+            imageBase64 = Buffer.from(imageResponse.data).toString('base64');
+          }
+
+          if (imageBase64) {
+            await saveMediaMessage(result.data.key.fromMe, chat.id, timestamp, 'image', imageBase64, schema);
+            messageBody = '[imagem recebida]';
+          } else {
+            throw new Error('Imagem não encontrada ou não processada.');
+          }
+        } catch (err) {
+          console.error('Erro ao processar imagem:', err);
+          messageBody = '[erro ao processar imagem]';
+        }
+      }
+
       if (!chat || !result.instance) {
         throw new Error('Dados obrigatórios ausentes para createChat');
       }
-  
+
       const createChats = await createChat(chat, result.instance, result.data.message.conversation, null);
       const chatDb = await getChatService(createChats.chat, createChats.schema);
-  
-  
+
       const existingMessage = await pool.query(
         `SELECT id FROM ${schema}.messages WHERE id = $1`,
         [result.data.key.id]
       );
-  
-  
+
       if (existingMessage.rowCount === 0 && !result.data.message?.audioMessage?.base64) {
         await saveMessage(
           chatDb.id,
@@ -125,12 +130,11 @@ module.exports = (broadcastMessage) => {
           ),
           schema
         );
-      } else if (existingMessage.rowCount > 0) {
       }
-  
+
       await setChatQueue(schema, chatDb.chat_id);
       await setUserChat(chatDb.id, schema);
-  
+
       const payload = {
         chatId: chatDb.id,
         body: messageBody,
@@ -139,10 +143,9 @@ module.exports = (broadcastMessage) => {
         from: result.data.pushName,
         timestamp,
       };
-  
-      console.log('Payload para broadcast:', payload);
+
       broadcastMessage({ type: 'message', payload });
-  
+
       res.status(200).json({ result });
     } catch (err) {
       console.error('Erro no webhook /chat:', err);
