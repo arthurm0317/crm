@@ -85,7 +85,7 @@ const getBase64FromMediaMessage = async (instanceId, mediaKey) => {
 
     const response = await axios.post(
       url,
-      { mediaKey }, 
+      { message:{key:{id:mediaKey}}}, 
       {
         headers: {
           apikey: process.env.EVOLUTION_API_KEY,
@@ -143,7 +143,8 @@ const sendImageToWhatsApp = async (number, imageBase64, instanceId) => {
 
     const response = await axios.post(url, {
       number: number,
-      image: imageBase64,
+      media: imageBase64,
+      mediaType: 'image',
     }, {
       headers: {
         apikey: process.env.EVOLUTION_API_KEY,
@@ -155,7 +156,7 @@ const sendImageToWhatsApp = async (number, imageBase64, instanceId) => {
     console.log('Imagem enviada para o WhatsApp com sucesso:', response.data);
     return response.data;
   } catch (error) {
-    console.error('Erro ao enviar imagem para o WhatsApp:', error.message);
+    console.error('Erro ao enviar imagem para o WhatsApp:', error);
     throw error;
   }
 };

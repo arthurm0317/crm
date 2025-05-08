@@ -42,46 +42,46 @@ const uploadImage = multer({ storage: imageStorage });
 const sendImageController = async (req, res) => {
   const { chatId, connectionId, schema } = req.body;
   const imageFile = req.file;
-
+  
   if (!imageFile) {
     return res.status(400).json({ error: 'Nenhum arquivo enviado' });
   }
-
+  
   const imagePath = path.join(__dirname, '..', 'uploads', 'images', imageFile.filename);
 
   try {
     console.log('Caminho do arquivo:', imagePath);
-
+    
     if (!fs.existsSync(imagePath)) {
       throw new Error('O arquivo de imagem não foi salvo corretamente.');
     }
 
     const stats = fs.statSync(imagePath);
-
+    
     if (stats.size === 0) {
       throw new Error('O arquivo de imagem está vazio.');
     }
-
+    
     const imageBuffer = fs.readFileSync(imagePath);
     const imageBase64 = imageBuffer.toString('base64');
-
+    
     if (imageBase64.length === 0) {
       throw new Error('Falha ao converter a imagem para base64.');
     }
-
+    
     const chat_id = await getChatById(chatId, connectionId, schema);
     console.log('Resultado de getChatById:', chat_id);
-
+    
     if (!chat_id || !chat_id.contact_phone) {
       throw new Error('O chat_id ou contact_phone não foi encontrado.');
     }
-
+    
     const instanceId = await searchConnById(connectionId, schema);
-
+    
     const evolutionResponse = await sendImageToWhatsApp(chat_id.contact_phone, imageBase64, instanceId.name);
-
+    
     await saveMediaMessage(evolutionResponse.key.id, 'true', chatId, getCurrentTimestamp(), 'image', imageBase64, schema);
-
+    
     res.status(200).json({ success: true, message: 'Imagem processada e enviada com sucesso', evolutionResponse });
   } catch (error) {
     console.error('Erro ao processar imagem:', error.message);

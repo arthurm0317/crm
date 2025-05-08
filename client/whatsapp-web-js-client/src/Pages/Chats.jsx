@@ -23,7 +23,7 @@ function ChatPage({ theme }) {
   const recordingIntervalRef = useRef(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [activeAudio, setActiveAudio] = useState(null); 
-const [audioProgress, setAudioProgress] = useState({}); 
+  const [audioProgress, setAudioProgress] = useState({}); 
 
   useEffect(() => {
     selectedChatRef.current = selectedChat;
@@ -76,30 +76,96 @@ const [audioProgress, setAudioProgress] = useState({});
   }, []);
 
   const AudioPlayer = ({ base64Audio, audioId }) => {
-  const audioRef = useRef(null);
-
-  const togglePlay = () => {
-    if (audioRef.current.paused) {
-      audioRef.current.play().catch((err) => {
-        console.error('Erro ao reproduzir áudio:', err);
-      });
-    } else {
-      audioRef.current.pause();
-    }
-  };
-
-  return (
-    <div className="audio-player">
-      <audio
-        ref={audioRef}
-        src={`data:audio/ogg;base64,${base64Audio}`}
-        preload="auto"
-      />
-      <button onClick={togglePlay}>Play/Pause</button>
-    </div>
-  );
-};
+    const audioRef = useRef(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [duration, setDuration] = useState(0);
   
+    const togglePlay = () => {
+      if (audioRef.current.paused) {
+        audioRef.current.play().catch((err) => {
+          console.error('Erro ao reproduzir áudio:', err);
+        });
+        setIsPlaying(true);
+      } else {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      }
+    };
+  
+    const handleTimeUpdate = () => {
+      setCurrentTime(audioRef.current.currentTime);
+    };
+  
+    const handleLoadedMetadata = () => {
+      const audioDuration = audioRef.current.duration;
+    
+      if (isNaN(audioDuration) || !isFinite(audioDuration)) {
+        console.error('Erro ao carregar a duração do áudio. Verifique o formato do arquivo.');
+        setDuration(0); // Define a duração como 0 em caso de erro
+      } else {
+        setDuration(audioDuration); // Define a duração corretamente
+      }
+    };
+  
+    const formatTime = (time) => {
+      const minutes = Math.floor(time / 60);
+      const seconds = Math.floor(time % 60).toString().padStart(2, '0');
+      return `${minutes}:${seconds}`;
+    };
+  
+    const handleSeek = (e) => {
+      const seekTime = (e.target.value / 100) * duration;
+      audioRef.current.currentTime = seekTime;
+      setCurrentTime(seekTime);
+    };
+  
+    return (
+      <div className="audio-player d-flex align-items-center gap-3">
+        {/* Botão Play/Pause */}
+        <button
+          className={`btn btn-sm btn-${isPlaying ? 'pause' : 'play'}`}
+          onClick={togglePlay}
+          style={{ 
+            width: '30px', 
+            height: '30px', 
+            borderRadius: '50%' 
+          }}
+        >
+          <i className={`bi ${isPlaying ? 'bi-pause-fill' : 'bi-play-fill'}`}></i>
+        </button>
+  
+        {/* Barra de Progresso */}
+        <div className="d-flex mt-2 flex-column flex-grow-1">
+        <input
+          type="range"
+          className="form-range"
+          min="0"
+          max="100"
+          value={(currentTime / duration) * 100 || 0}
+          onChange={handleSeek}
+          style={{
+            cursor: 'pointer',
+            }}
+          />
+          <div className="mt-2 d-flex justify-content-between">
+            <small>{formatTime(currentTime)}</small>
+            <small>{formatTime(duration)}</small>
+          </div>
+        </div>
+  
+        {/* Áudio */}
+        <audio
+          ref={audioRef}
+          src={`data:audio/ogg;base64,${base64Audio}`}
+          preload="auto"
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleLoadedMetadata}
+          onEnded={() => setIsPlaying(false)}
+        />
+      </div>
+    );
+  };
 
   const handleEmojiClick = (emojiObject) => {
     setNewMessage((prevMessage) => prevMessage + emojiObject.emoji);
@@ -108,13 +174,7 @@ const [audioProgress, setAudioProgress] = useState({});
   const handleChatClick = async (chat) => {
     setSelectedChatId(chat.id);
     try {
-      const res = await axios.post('http://localhost:3000/chat/getMessages', {
-        chat_id: chat.id,
-        schema,
-      });
-      console.log(res.data.messages);
       setSelectedChat(chat);
-      setSelectedMessages(res.data.messages);
       scrollToBottom();
     } catch (error) {
       console.error('Erro ao carregar mensagens do chat:', error);
@@ -305,7 +365,9 @@ const [audioProgress, setAudioProgress] = useState({});
                     }}
                   >
                     {Array.isArray(chat.messages) && chat.messages.length > 0
-                      ? chat.messages[chat.messages.length - 1]
+                      ? typeof chat.messages[chat.messages.length - 1] === 'string'
+                        ? chat.messages[chat.messages.length - 1].slice(0, 40) + (chat.messages[chat.messages.length - 1].length > 50 ? '...' : '')
+                        : 'Mensagem inválida'
                       : 'Sem mensagens'}
                   </div>
                 </div>
@@ -321,36 +383,54 @@ const [audioProgress, setAudioProgress] = useState({});
     style={{
       height: '100%',
       maxHeight: '707.61px',
-      overflowY: 'auto',
+      overflow: 'hidden auto',
       border: '1px solid var(--border-color)',
     }}
   >
-    <div
-      id="corpoTexto"
-      className="px-3 pt-3 pb-2 h-100 d-flex flex-column"
-      style={{
-        whiteSpace: 'pre-wrap',
-        flex: 1,
-      }}
-    >
-            {selectedMessages.map((msg) => (
+  
   <div
-    key={msg.id} // Use o ID da mensagem como chave
+    id="corpoTexto"
+    className="px-3 d-flex flex-column flex-grow-1"
+    style={{
+      whiteSpace: 'pre-wrap',
+      wordBreak: 'break-word',
+      paddingTop: '5px',
+      paddingBottom: '5px',
+    }}
+  >
+
+  {selectedMessages.map((msg) => (
+  <div
+    key={msg.id}
     style={{
       backgroundColor: msg.from_me ? 'var(--hover)' : '#f1f0f0',
       textAlign: msg.from_me ? 'right' : 'left',
-      padding: '10px',
+      padding: '5px 10px',
       borderRadius: '10px',
       margin: '5px 0',
-      maxWidth: '70%',
       alignSelf: msg.from_me ? 'flex-end' : 'flex-start',
+      display: 'inline-block',
+      maxWidth: '60%',
     }}
   >
     {msg.message_type === 'audio' ? (
       <AudioPlayer base64Audio={msg.base64} audioId={msg.id} />
+    ) : msg.message_type === 'image' ? (
+      <img
+        src={`data:image/jpeg;base64,${msg.base64}`}
+        alt="imagem"
+        style={{ 
+          maxWidth: '300px',
+          width: '100%',
+          height: 'auto',
+          borderRadius: '8px',
+          display: 'block'
+        }}
+      />
     ) : (
       msg.body
     )}
+
   </div>
 ))}
       <div ref={messagesEndRef} />
