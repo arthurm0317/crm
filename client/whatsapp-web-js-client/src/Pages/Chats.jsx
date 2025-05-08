@@ -62,7 +62,7 @@ function ChatPage({ theme }) {
       } catch (error) {
         console.error('Erro ao atualizar mensagens do chat selecionado:', error);
       }
-    }, 1000);
+    }, 500);
 
     return () => clearInterval(interval);
   }, [selectedChat, schema]);
@@ -173,6 +173,10 @@ function ChatPage({ theme }) {
 
   const handleChatClick = async (chat) => {
     setSelectedChatId(chat.id);
+    
+    // Limpa as mensagens antes de carregar o novo chat
+    setSelectedMessages([]);
+    
     try {
       setSelectedChat(chat);
       scrollToBottom();
