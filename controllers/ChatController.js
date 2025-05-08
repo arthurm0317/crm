@@ -50,7 +50,6 @@ const sendImageController = async (req, res) => {
   const imagePath = path.join(__dirname, '..', 'uploads', 'images', imageFile.filename);
 
   try {
-    console.log('Caminho do arquivo:', imagePath);
     
     if (!fs.existsSync(imagePath)) {
       throw new Error('O arquivo de imagem não foi salvo corretamente.');
@@ -70,13 +69,15 @@ const sendImageController = async (req, res) => {
     }
     
     const chat_id = await getChatById(chatId, connectionId, schema);
-    console.log('Resultado de getChatById:', chat_id);
     
     if (!chat_id || !chat_id.contact_phone) {
       throw new Error('O chat_id ou contact_phone não foi encontrado.');
     }
     
     const instanceId = await searchConnById(connectionId, schema);
+
+    console.log('-------- chat ---------')
+    console.log(chat_id)
     
     const evolutionResponse = await sendImageToWhatsApp(chat_id.contact_phone, imageBase64, instanceId.name);
     

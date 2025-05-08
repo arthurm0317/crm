@@ -138,28 +138,38 @@ const sendImageToWhatsApp = async (number, imageBase64, instanceId) => {
       throw new Error('instanceId não foi fornecido ou está inválido');
     }
 
+    if (!/^\d+$/.test(number)) {
+      throw new Error('O número fornecido não está no formato correto');
+    }
+
     const url = `${process.env.EVOLUTION_SERVER_URL}/message/sendMedia/${instanceId}`;
     console.log('URL gerada:', url);
 
     const response = await axios.post(url, {
       number: number,
-      media: imageBase64,
-      mediaType: 'image',
+      mediatype: 'image',
+      media: imageBase64
     }, {
       headers: {
         apikey: process.env.EVOLUTION_API_KEY,
         'Content-Type': 'application/json',
       },
     });
+
     console.log('Número:', number);
-    console.log('Imagem Base64:', imageBase64);
     console.log('Imagem enviada para o WhatsApp com sucesso:', response.data);
     return response.data;
   } catch (error) {
-    console.error('Erro ao enviar imagem para o WhatsApp:', error);
+    if (error.response) {
+      console.error('Erro ao enviar imagem para o WhatsApp:', error.response.data);
+      console.error('Detalhes do erro:', JSON.stringify(error.response.data, null, 2));
+    } else {
+      console.error('Erro ao enviar imagem para o WhatsApp:', error.message);
+    }
     throw error;
   }
 };
+
 const sendAudioToWhatsApp = async (number, audioBase64, instanceId) => {
   try {
     if (!process.env.EVOLUTION_SERVER_URL) {
