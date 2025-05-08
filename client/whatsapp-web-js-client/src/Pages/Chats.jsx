@@ -174,13 +174,7 @@ function ChatPage({ theme }) {
   const handleChatClick = async (chat) => {
     setSelectedChatId(chat.id);
     try {
-      const res = await axios.post('http://localhost:3000/chat/getMessages', {
-        chat_id: chat.id,
-        schema,
-      });
-      console.log(res.data.messages);
       setSelectedChat(chat);
-      setSelectedMessages(res.data.messages);
       scrollToBottom();
     } catch (error) {
       console.error('Erro ao carregar mensagens do chat:', error);
