@@ -532,3 +532,59 @@ a {
 .text-muted {
     color: var(--placeholder-color);
 }
+
+.btn-play {
+    border-color: var(--primary-color);
+    background-color: transparent;
+    color: var(--primary-color);
+}
+.btn-pause {
+    border-color: var(--error-color);
+    background-color: transparent;
+    color: var(--error-color);
+}
+.btn-play:hover {
+    border-color: var(--primary-color);
+    background-color: transparent;
+    color: var(--primary-color);
+}
+.btn-pause:hover {
+    border-color: var(--error-color);
+    background-color: transparent;
+    color: var(--error-color);
+}
+
+:root {
+    --cor-bolinha: var(--primary-color);
+    --barra-background: white;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 13px;
+    height: 13px;
+    background: var(--cor-bolinha);
+    border-radius: 50%;
+    border: 2px solid var(--secondary-color);
+    cursor: pointer;
+}
+input[type="range"]::-moz-range-thumb {
+    width: 13px;
+    height: 13px;
+    background: var(--cor-bolinha);
+    border-radius: 50%;
+    border: 2px solid var(--secondary-color);
+    cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+    background: var(--barra-background);
+    border-radius: 5px;
+    height: 5px;
+}
+
+input[type="range"]::-moz-range-progress {
+    background: var(--primary-color);
+    border-radius: 5px;
+    height: 5px;
+}
