@@ -15,7 +15,8 @@ const createCompany = async (company, schema) => {
             email TEXT NOT NULL,
             password TEXT NOT NULL,
             permission TEXT,
-            online BOOLEAN DEFAULT false
+            online BOOLEAN DEFAULT false,
+            sector text
         );`);
         await pool.query(`
             CREATE TABLE IF NOT EXISTS ${schema}.chats (
@@ -28,7 +29,9 @@ const createCompany = async (company, schema) => {
               assigned_user TEXT,
               status TEXT,
               created_at BIGINT,
-              messages JSONB
+              messages JSONB,
+              contact_phone text,
+              etapa_id uuid
             );
           `);
         await pool.query(`CREATE TABLE IF NOT EXISTS ${schema}.queues(
@@ -41,18 +44,29 @@ const createCompany = async (company, schema) => {
             CREATE TABLE IF NOT EXISTS ${schema}.connections (
               id UUID PRIMARY KEY,
               name TEXT NOT NULL,
-              number TEXT NOT NULL
+              number TEXT NOT NULL,
+              queue_id uuid
             );
           `);
         await pool.query(`
         CREATE TABLE IF NOT EXISTS ${schema}.messages (
-            id UUID PRIMARY KEY,
+            id text PRIMARY KEY,
             body TEXT,
             from_me BOOLEAN,
             chat_id UUID,
-            created_at BIGINT
+            created_at BIGINT,
+            message_type text,
+            base64 text,
+            isquoted boolean,
+            quote_id text
         );
         `);
+        await pool.query(`
+             CREATE TABLE IF NOT EXISTS ${schema}.contacts (
+             number text not null primary key,
+             contact_name text
+             )
+            `)
         await pool.query(`
         CREATE TABLE IF NOT EXISTS ${schema}.last_assigned_user (
             queue_id UUID REFERENCES ${schema}.queues(id) ON DELETE CASCADE,
@@ -69,6 +83,40 @@ const createCompany = async (company, schema) => {
             PRIMARY KEY (user_id, queue_id)
         );
         `);
+        await pool.query(`
+            CREATE TABLE ${schema}.custom_fields (
+            id UUID PRIMARY KEY,
+            field_name TEXT NOT NULL,
+            label TEXT NOT NULL,
+            UNIQUE(field_name)
+            );
+            `)
+        await pool.query(`
+            CREATE TABLE ${schema}.contact_custom_values (id UUID PRIMARY KEY,
+            contact_number TEXT NOT NULL REFERENCES ${schema}.contacts(number) ON DELETE CASCADE,
+            field_id UUID NOT NULL REFERENCES ${schema}.custom_fields(id) ON DELETE CASCADE,
+            value TEXT,
+            UNIQUE(contact_number, field_id)
+            );
+        `)
+        await pool.query(`
+            create table ${schema}.message_blast(
+            id uuid primary key not null,
+            value text not null,
+            sector text not null,
+            kanban_id uuid
+            )
+        `)
+        await pool.query(`
+            create table ${schema}.campaing(
+            id UUID primary key,
+            campaing_name text not null,
+            sector text not null,
+            kanban_stage UUID not null,
+            connection_id UUID not null
+            )
+            `)
+
     const superAdmin = new Users(
         superAdminId,
         superAdminData.name,
@@ -91,7 +139,7 @@ const getAllCompanies = async () => {
     const result = await pool.query(`
         SELECT schema_name 
         FROM information_schema.schemata
-        WHERE schema_name NOT IN ('pg_catalog', 'information_schema', 'pg_toast')
+        WHERE schema_name NOT IN ('pg_catalog', 'information_schema', 'pg_toast', 'public')
     `);
     return result.rows;
 };

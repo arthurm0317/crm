@@ -90,6 +90,9 @@ const createChat = async (chat, instance, message, etapa, io) => {
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`;
 
     const result = await pool.query(query, etapa ? chatValues : chatValues.slice(0, -1));
+         if(result.rows[0].queue_id===null){
+            await setChatQueue(schema, result.rows[0].id)
+          }
 
     if (io) {
       io.to(schema).emit("chat:new-message", {
@@ -99,7 +102,7 @@ const createChat = async (chat, instance, message, etapa, io) => {
       });
     }
     return {
-      result: result.rows[0],
+      chat: result.rows[0],
       schema: schema
     };
   } catch (error) {
@@ -132,11 +135,10 @@ const getMessages = async(chat_Id, schema)=>{
     return result.rows
 }
 
-const getChatService = async(chat, schema)=>{
-    console.log("----entrou CS-------")
+const getChatService = async(chat_id, connection_id, schema)=>{
     const result = await pool.query(
-      `SELECT * FROM ${schema}.chats WHERE chat_id=$1 AND connection_id=$2`,
-      [chat.chat_id, chat.connection_id]
+      `SELECT * FROM ${schema}.chats WHERE id=$1 AND connection_id=$2`,
+      [chat_id, connection_id]
     );
     if (result.rows.length > 0) {
       return result.rows[0];
@@ -148,18 +150,21 @@ const setUserChat = async (chatId, schema) => {
       `SELECT * FROM ${schema}.chats WHERE id=$1`,
       [chatId]
     );
+    console.log("chatDB", chatDb)
     const queueId = chatDb.rows[0].queue_id;
     const onlineUsers = await getOnlineUsers(schema);
     const queueUsersQuery = await pool.query(
       `SELECT user_id FROM ${schema}.queue_users WHERE queue_id=$1`,
       [queueId]
     );
+    console.log('queue user', queueUsersQuery)
     const userIdsInQueue = queueUsersQuery.rows.map(row => row.user_id);
     const eligibleUsers = onlineUsers.filter(user =>
       user.permission === 'user' && userIdsInQueue.includes(user.id)
     );
     if (eligibleUsers.length === 0) return;
     const lastAssigned = await getLastAssignedUser(queueId, schema);
+    console.log(lastAssigned)
     let nextUser;
     if (!lastAssigned) {
       nextUser = eligibleUsers[0];
@@ -183,14 +188,14 @@ const getChats = async (schema) => {
 
 const setChatQueue = async(schema, chatId)=>{
   const chatConn = await pool.query(
-    `SELECT * FROM ${schema}.chats WHERE chat_id=$1`, [chatId]
+    `SELECT * FROM ${schema}.chats WHERE id=$1`, [chatId]
   )
   const connQueue = await pool.query(
     `SELECT * FROM ${schema}.connections WHERE id=$1`, [chatConn.rows[0].connection_id]
   )
   if(chatConn.rows[0].queue_id === null){
     const firstQueue = await pool.query(
-      `UPDATE ${schema}.chats SET queue_id=$1 WHERE chat_id=$2`,[connQueue.rows[0].queue_id, chatId]
+      `UPDATE ${schema}.chats SET queue_id=$1 WHERE id=$2`,[connQueue.rows[0].queue_id, chatId]
     )
     return firstQueue.rows[0]
   }
