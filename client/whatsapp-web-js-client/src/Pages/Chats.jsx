@@ -346,7 +346,9 @@ function ChatPage({ theme }) {
                     }}
                   >
                     {Array.isArray(chat.messages) && chat.messages.length > 0
-                      ? chat.messages[chat.messages.length - 1].slice(0, 40) + (chat.messages[chat.messages.length - 1].length > 50 ? '...' : '')
+                      ? typeof chat.messages[chat.messages.length - 1] === 'string'
+                        ? chat.messages[chat.messages.length - 1].slice(0, 40) + (chat.messages[chat.messages.length - 1].length > 50 ? '...' : '')
+                        : 'Mensagem inválida'
                       : 'Sem mensagens'}
                   </div>
                 </div>
@@ -384,19 +386,32 @@ function ChatPage({ theme }) {
     style={{
       backgroundColor: msg.from_me ? 'var(--hover)' : '#f1f0f0',
       textAlign: msg.from_me ? 'right' : 'left',
-      padding: '0 10px 5px 10px',
+      padding: '5px 10px',
       borderRadius: '10px',
       margin: '5px 0',
-      maxWidth: '70%',
-      height: 'auto',
       alignSelf: msg.from_me ? 'flex-end' : 'flex-start',
+      display: 'inline-block',
+      maxWidth: '60%',
     }}
   >
     {msg.message_type === 'audio' ? (
       <AudioPlayer base64Audio={msg.base64} audioId={msg.id} />
+    ) : msg.message_type === 'image' ? (
+      <img
+        src={`data:image/jpeg;base64,${msg.base64}`}
+        alt="imagem"
+        style={{ 
+          maxWidth: '300px',
+          width: '100%',
+          height: 'auto',
+          borderRadius: '8px',
+          display: 'block'
+        }}
+      />
     ) : (
       msg.body
     )}
+
   </div>
 ))}
       <div ref={messagesEndRef} />
