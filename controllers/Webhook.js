@@ -12,24 +12,20 @@ const { saveMessage } = require('../services/MessageService');
 const pool = require('../db/queries');
 const { getCurrentTimestamp } = require('../services/getCurrentTimestamp');
 const { getBase64FromMediaMessage } = require('../requests/evolution');
+const express = require('express');
 
 
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
 module.exports = (broadcastMessage) => {
-  const express = require('express');
   const app = express.Router();
 
-  const ensureAudioFolder = (folderPath) => {
-    if (!fs.existsSync(folderPath)) {
-      fs.mkdirSync(folderPath, { recursive: true });
-    }
-  };
+  app.use(express.json({ limit: '100mb' }));
+  app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
   app.post('/chat', async (req, res) => {
     const result = req.body;
-    const schema = req.body.schema || 'effective_gain';
 
     if (!result?.data?.key?.remoteJid) {
       return res.status(400).json({ error: 'Dados incompletos' });
@@ -63,6 +59,9 @@ module.exports = (broadcastMessage) => {
       
       const createChats = await createChat(chat, result.instance, result.data.message.conversation, null, null);
       const chatDb = await getChatService(createChats.chat.id, createChats.chat.connection_id, createChats.schema);
+      const schema = createChats.schema
+      console.log(schema)
+
       await setUserChat(chatDb.id, schema)
 
       if (result.data.message?.conversation) {
@@ -92,18 +91,16 @@ module.exports = (broadcastMessage) => {
       }
 
       if (result.data.message?.imageMessage) {
+        console.log('entrou image')
+        console.log(result.data.message?.imageMessage)
         try {
-          if (result.data.message.imageMessage.base64) {
-            imageBase64 = result.data.message.imageMessage.base64;
-          } else if (result.data.message.imageMessage.url) {
-            const imageResponse = await axios.get(result.data.message.imageMessage.url, {
-              responseType: 'arraybuffer',
-            });
-            imageBase64 = Buffer.from(imageResponse.data).toString('base64');
-          }
-          
+          if (result.data.message.base64) {
+            imageBase64 = result.data.message.base64
+          } 
           if (imageBase64) {
+            console.log('entro 64')
             const base64Formatado = await getBase64FromMediaMessage(result.instance, result.data.key.id)
+            console.log(base64Formatado)
             await saveMediaMessage(result.data.key.id,result.data.key.fromMe, chatDb.id, timestamp, 'image', base64Formatado.base64, schema);
             messageBody = '[imagem recebida]';
           } else {

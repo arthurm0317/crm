@@ -11,6 +11,7 @@ const contactRoutes = require('./routes/ContactRoute');
 const kanbanRoutes = require('./routes/KanbanRoutes');
 const webhook = require('./controllers/Webhook');
 const filesRoutes = require('./routes/FilesRoutes');
+const bodyParser = require('body-parser');
 
 const cors = require('cors');
 const configureSocket = require('./config/SocketConfig');
@@ -35,10 +36,10 @@ io.on('connection', (socket) => {
 });
 
 app.use(cors(corsOptions));
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 app.use('/webhook', webhook((msg) => io.emit('message', msg)));
-
 app.use('/api', userRoutes);
 app.use('/company', companyRoutes);
 app.use('/queue', queueRoutes);

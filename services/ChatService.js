@@ -150,21 +150,18 @@ const setUserChat = async (chatId, schema) => {
       `SELECT * FROM ${schema}.chats WHERE id=$1`,
       [chatId]
     );
-    console.log("chatDB", chatDb)
     const queueId = chatDb.rows[0].queue_id;
     const onlineUsers = await getOnlineUsers(schema);
     const queueUsersQuery = await pool.query(
       `SELECT user_id FROM ${schema}.queue_users WHERE queue_id=$1`,
       [queueId]
     );
-    console.log('queue user', queueUsersQuery)
     const userIdsInQueue = queueUsersQuery.rows.map(row => row.user_id);
     const eligibleUsers = onlineUsers.filter(user =>
       user.permission === 'user' && userIdsInQueue.includes(user.id)
     );
     if (eligibleUsers.length === 0) return;
     const lastAssigned = await getLastAssignedUser(queueId, schema);
-    console.log(lastAssigned)
     let nextUser;
     if (!lastAssigned) {
       nextUser = eligibleUsers[0];
