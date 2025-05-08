@@ -128,6 +128,37 @@ const searchContact = async (remoteJid, instanceId) => {
     console.error('Erro ao buscar contato:', err);
   }
 };
+const sendImageToWhatsApp = async (number, imageBase64, instanceId) => {
+  try {
+    if (!process.env.EVOLUTION_SERVER_URL) {
+      throw new Error('EVOLUTION_SERVER_URL não está configurado no arquivo .env');
+    }
+
+    if (!instanceId) {
+      throw new Error('instanceId não foi fornecido ou está inválido');
+    }
+
+    const url = `${process.env.EVOLUTION_SERVER_URL}/message/sendMedia/${instanceId}`;
+    console.log('URL gerada:', url);
+
+    const response = await axios.post(url, {
+      number: number,
+      image: imageBase64,
+    }, {
+      headers: {
+        apikey: process.env.EVOLUTION_API_KEY,
+        'Content-Type': 'application/json',
+      },
+    });
+    console.log('Número:', number);
+    console.log('Imagem Base64:', imageBase64);
+    console.log('Imagem enviada para o WhatsApp com sucesso:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Erro ao enviar imagem para o WhatsApp:', error.message);
+    throw error;
+  }
+};
 const sendAudioToWhatsApp = async (number, audioBase64, instanceId) => {
   try {
     if (!process.env.EVOLUTION_SERVER_URL) {
@@ -156,9 +187,8 @@ const sendAudioToWhatsApp = async (number, audioBase64, instanceId) => {
     console.error('Erro ao enviar áudio para o WhatsApp:', error.message);
     throw error;
   }
-  
 };
 
-module.exports = { createInstance, fetchInstanceEvo, sendTextMessage, searchContact, sendAudioToWhatsApp, getBase64FromMediaMessage};
+module.exports = { createInstance, fetchInstanceEvo, sendTextMessage, searchContact, sendAudioToWhatsApp, getBase64FromMediaMessage, sendImageToWhatsApp};
 
 

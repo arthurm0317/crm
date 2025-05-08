@@ -4,13 +4,13 @@ const fs = require('fs');
 const path = require('path');
 const pool = require('../db/queries');
 const axios = require('axios'); 
-const { getBase64FromMediaMessage } = require('../requests/evolution');
+const { getBase64FromMediaMessage, sendImageToWhatsApp } = require('../requests/evolution');
 const { sendAudioToWhatsApp } = require('../requests/evolution');
 const { searchConnById } = require('../services/ConnectionService');
 const { getCurrentTimestamp } = require('../services/getCurrentTimestamp');
 
 
-const storage = multer.diskStorage({
+const audioStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     const audioFolder = path.join(__dirname, '..', 'uploads', 'audios');
     if (!fs.existsSync(audioFolder)) {
@@ -23,7 +23,77 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage });
+const imageStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadFolder = path.join(__dirname, '..', 'uploads', 'images');
+    if (!fs.existsSync(uploadFolder)) {
+      fs.mkdirSync(uploadFolder, { recursive: true });
+    }
+    cb(null, uploadFolder);
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  },
+});
+
+const uploadAudio = multer({ storage: audioStorage });
+const uploadImage = multer({ storage: imageStorage });
+
+const sendImageController = async (req, res) => {
+  const { chatId, connectionId, schema } = req.body;
+  const imageFile = req.file;
+
+  if (!imageFile) {
+    return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+  }
+
+  const imagePath = path.join(__dirname, '..', 'uploads', 'images', imageFile.filename);
+
+  try {
+    console.log('Caminho do arquivo:', imagePath);
+
+    if (!fs.existsSync(imagePath)) {
+      throw new Error('O arquivo de imagem não foi salvo corretamente.');
+    }
+
+    const stats = fs.statSync(imagePath);
+
+    if (stats.size === 0) {
+      throw new Error('O arquivo de imagem está vazio.');
+    }
+
+    const imageBuffer = fs.readFileSync(imagePath);
+    const imageBase64 = imageBuffer.toString('base64');
+
+    if (imageBase64.length === 0) {
+      throw new Error('Falha ao converter a imagem para base64.');
+    }
+
+    const chat_id = await getChatById(chatId, connectionId, schema);
+    console.log('Resultado de getChatById:', chat_id);
+
+    if (!chat_id || !chat_id.contact_phone) {
+      throw new Error('O chat_id ou contact_phone não foi encontrado.');
+    }
+
+    const instanceId = await searchConnById(connectionId, schema);
+
+    const evolutionResponse = await sendImageToWhatsApp(chat_id.contact_phone, imageBase64, instanceId.name);
+
+    await saveMediaMessage(evolutionResponse.key.id, 'true', chatId, getCurrentTimestamp(), 'image', imageBase64, schema);
+
+    res.status(200).json({ success: true, message: 'Imagem processada e enviada com sucesso', evolutionResponse });
+  } catch (error) {
+    console.error('Erro ao processar imagem:', error.message);
+    res.status(500).json({ error: 'Erro ao processar imagem' });
+  } finally {
+    setTimeout(() => {
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+      }
+    }, 500);
+  }
+};
 
 const setUserChatController = async (req, res) => {
   const { chat } = req.body;
@@ -162,14 +232,19 @@ const sendAudioController = async (req, res) => {
     if (audioBase64.length === 0) {
       throw new Error('Falha ao converter o áudio para base64.');
     }
+
     const chat_id = await getChatById(chatId, connectionId, schema);
+    console.log('Resultado de getChatById:', chat_id);
+
+    if (!chat_id || !chat_id.contact_phone) {
+      throw new Error('O chat_id ou contact_phone não foi encontrado.');
+    }
+
     const instanceId = await searchConnById(connectionId, schema);
 
     const evolutionResponse = await sendAudioToWhatsApp(chat_id.contact_phone, audioBase64, instanceId.name);
 
     await saveMediaMessage(evolutionResponse.key.id, 'true', chatId, getCurrentTimestamp(), 'audio', audioBase64, schema);
-
-
 
     res.status(200).json({ success: true, message: 'Áudio processado e enviado com sucesso', evolutionResponse });
   } catch (error) {
@@ -182,15 +257,20 @@ const sendAudioController = async (req, res) => {
       }
     }, 500);
   }
-}
-module.exports = {
-  setUserChatController,
-  getChatsController,
-  getMessagesController,
-  updateQueueController,
-  getChatDataController,
-  getChatByUserController,
-  sendAudioController,
-  processReceivedAudio,
-  upload,
-};
+
+
+  };
+  module.exports = {
+    setUserChatController,
+    getChatsController,
+    getMessagesController,
+    updateQueueController,
+    getChatDataController,
+    getChatByUserController,
+    sendAudioController,
+    processReceivedAudio,
+    sendImageController,
+    uploadAudio,
+    uploadImage,
+  };
+

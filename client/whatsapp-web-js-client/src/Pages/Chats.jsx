@@ -167,7 +167,32 @@ const [audioProgress, setAudioProgress] = useState({});
       mediaStreamRef.current = null;
     }
   };
+  const handleImageUpload = async (event) => {
+    const file = event.target.files[0];
   
+    if (!file) {
+      return;
+    }
+  
+    const formData = new FormData();
+    formData.append('image', file); 
+    formData.append('chatId', selectedChat.id);
+    formData.append('connectionId', selectedChat.connection_id);
+    formData.append('schema', schema);
+  
+    try {
+
+      await axios.post('http://localhost:3000/chat/sendImage', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+  
+      console.log('Imagem enviada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao enviar a imagem:', error);
+    }
+  };
   const handleAudioRecording = async () => {
     if (!isRecording) {
       try {
@@ -341,14 +366,20 @@ const [audioProgress, setAudioProgress] = useState({});
       height: '70px',
     }}
   >
-    <button
-      id="imagem"
-      className={`btn btn-2-${theme}`}
-      onClick={() => {}}
-    >
-      <i className="bi bi-image"></i>
-    </button>
-
+<button
+  id="imagem"
+  className={`btn btn-2-${theme}`}
+  onClick={() => document.getElementById('imageInput').click()} 
+>
+  <i className="bi bi-image"></i>
+</button>
+<input
+  id="imageInput"
+  type="file"
+  accept="image/*"
+  style={{ display: 'none' }} 
+  onChange={handleImageUpload}
+/>
     <div
       id="campoEscrever"
       className={`py-0 px-2 form-control input-${theme} d-flex flex-row gap-2`}
