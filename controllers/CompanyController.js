@@ -16,7 +16,7 @@ const createCompanyController = async (req, res) => {
             message: 'Empresa criada'
         });
     } catch (error) {
-        console.error("Erro ao criar empresa:", error.message);
+        console.error("Erro ao criar empresa:", error);
         res.status(500).json({
             message: 'Erro ao criar empresa'
         });

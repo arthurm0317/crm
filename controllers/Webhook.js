@@ -61,16 +61,13 @@ module.exports = (broadcastMessage) => {
       let audioBase64 = null;
       let imageBase64 = null;
       
-      const createChats = await createChat(chat, result.instance, result.data.message.conversation, null);
-      const chatDb = await getChatService(createChats.chat, createChats.schema);
+      const createChats = await createChat(chat, result.instance, result.data.message.conversation, null, null);
+      const chatDb = await getChatService(createChats.chat.id, createChats.chat.connection_id, createChats.schema);
+      await setUserChat(chatDb.id, schema)
 
       if (result.data.message?.conversation) {
         messageBody = result.data.message.conversation;
       } else if (result.data.message?.audioMessage) {
-        console.log('-----------audio---------------')
-        console.log(result.data.message.audioMessage)
-        console.log('--------------result------------')
-        console.log(result)
         try {
           if (result.data.message.audioMessage.base64) {
             audioBase64 = result.data.message.base64;
@@ -140,9 +137,6 @@ module.exports = (broadcastMessage) => {
           schema
         );
       }
-
-      await setChatQueue(schema, chatDb.chat_id);
-      await setUserChat(chatDb.id, schema);
 
       const payload = {
         chatId: chatDb.id,
