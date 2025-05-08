@@ -246,6 +246,9 @@ const getChatByUser = async (userId, schema) => {
 
 const getChatById = async (chatId, connection_id, schema) => {
   try {
+    console.log("chatId", chatId)
+    console.log("connection_id", connection_id) 
+      
     const result = await pool.query(
       `SELECT * FROM ${schema}.chats WHERE id = $1 and connection_id = $2`,
       [chatId, connection_id]

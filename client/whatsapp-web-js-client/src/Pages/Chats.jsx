@@ -62,7 +62,7 @@ function ChatPage({ theme }) {
       } catch (error) {
         console.error('Erro ao atualizar mensagens do chat selecionado:', error);
       }
-    }, 1000);
+    }, 500);
 
     return () => clearInterval(interval);
   }, [selectedChat, schema]);
@@ -173,14 +173,12 @@ function ChatPage({ theme }) {
 
   const handleChatClick = async (chat) => {
     setSelectedChatId(chat.id);
+    
+    // Limpa as mensagens antes de carregar o novo chat
+    setSelectedMessages([]);
+    
     try {
-      const res = await axios.post('http://localhost:3000/chat/getMessages', {
-        chat_id: chat.id,
-        schema,
-      });
-      console.log(res.data.messages);
       setSelectedChat(chat);
-      setSelectedMessages(res.data.messages);
       scrollToBottom();
     } catch (error) {
       console.error('Erro ao carregar mensagens do chat:', error);
@@ -233,7 +231,32 @@ function ChatPage({ theme }) {
       mediaStreamRef.current = null;
     }
   };
+  const handleImageUpload = async (event) => {
+    const file = event.target.files[0];
   
+    if (!file) {
+      return;
+    }
+  
+    const formData = new FormData();
+    formData.append('image', file); 
+    formData.append('chatId', selectedChat.id);
+    formData.append('connectionId', selectedChat.connection_id);
+    formData.append('schema', schema);
+  
+    try {
+
+      await axios.post('http://localhost:3000/chat/sendImage', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+  
+      console.log('Imagem enviada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao enviar a imagem:', error);
+    }
+  };
   const handleAudioRecording = async () => {
     if (!isRecording) {
       try {
@@ -429,14 +452,20 @@ function ChatPage({ theme }) {
       height: '70px',
     }}
   >
-    <button
-      id="imagem"
-      className={`btn btn-2-${theme}`}
-      onClick={() => {}}
-    >
-      <i className="bi bi-image"></i>
-    </button>
-
+<button
+  id="imagem"
+  className={`btn btn-2-${theme}`}
+  onClick={() => document.getElementById('imageInput').click()} 
+>
+  <i className="bi bi-image"></i>
+</button>
+<input
+  id="imageInput"
+  type="file"
+  accept="image/*"
+  style={{ display: 'none' }} 
+  onChange={handleImageUpload}
+/>
     <div
       id="campoEscrever"
       className={`py-0 px-2 form-control input-${theme} d-flex flex-row gap-2`}
