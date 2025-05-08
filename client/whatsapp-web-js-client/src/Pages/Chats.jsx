@@ -345,11 +345,13 @@ function ChatPage({ theme }) {
                       maxWidth: '100%',
                     }}
                   >
+
                     {Array.isArray(chat.messages) && chat.messages.length > 0
                       ? typeof chat.messages[chat.messages.length - 1] === 'string'
                         ? chat.messages[chat.messages.length - 1].slice(0, 40) + (chat.messages[chat.messages.length - 1].length > 50 ? '...' : '')
                         : 'Mensagem inválida'
                       : 'Sem mensagens'}
+                      
                   </div>
                 </div>
               </div>
