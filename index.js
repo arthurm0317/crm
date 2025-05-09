@@ -20,7 +20,8 @@ const app = express();
 
 const corsOptions = {
   origin: ['http://localhost:3001',
-    'https://landing-page-front.8rxpnw.easypanel.host'
+    'https://landing-page-front.8rxpnw.easypanel.host',
+    'https://eg-crm.effectivegain.com'
   ],
   methods: ['GET', 'POST'],
 };
@@ -29,7 +30,8 @@ const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
     origin: ['http://localhost:3001',
-      'https://landing-page-front.8rxpnw.easypanel.host'
+      'https://landing-page-front.8rxpnw.easypanel.host',
+      'https://eg-crm.effectivegain.com'
     ], 
     methods: ['GET', 'POST'],
   },
