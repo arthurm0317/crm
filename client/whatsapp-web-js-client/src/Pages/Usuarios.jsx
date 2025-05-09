@@ -6,6 +6,7 @@ function UsuariosPage({ theme }) {
   const userData = JSON.parse(localStorage.getItem('user')); 
   const schema = userData?.schema
   const [usuarios, setUsuarios] = useState([]);
+  const url = 'https://landing-page-teste.8rxpnw.easypanel.host'
 
   useEffect(() => {
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
@@ -19,7 +20,7 @@ function UsuariosPage({ theme }) {
   useEffect(() => {
     const fetchUsuarios = async () => {
       try {
-        const response = await axios.get(`http://localhost:3000/api/users/${schema}`);
+        const response = await axios.get(`${url}/api/users/${schema}`);
 
         setUsuarios(response.data.users || []);
         console.log(response.data.users)
