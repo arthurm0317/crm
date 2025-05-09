@@ -103,9 +103,9 @@ function ChatPage({ theme }) {
     
       if (isNaN(audioDuration) || !isFinite(audioDuration)) {
         console.error('Erro ao carregar a duração do áudio. Verifique o formato do arquivo.');
-        setDuration(0); // Define a duração como 0 em caso de erro
+        setDuration(0); 
       } else {
-        setDuration(audioDuration); // Define a duração corretamente
+        setDuration(audioDuration); 
       }
     };
   
