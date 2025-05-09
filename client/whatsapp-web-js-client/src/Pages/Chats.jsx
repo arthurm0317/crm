@@ -23,7 +23,8 @@ function ChatPage({ theme }) {
   const recordingIntervalRef = useRef(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [activeAudio, setActiveAudio] = useState(null); 
-  const [audioProgress, setAudioProgress] = useState({}); 
+  const [audioProgress, setAudioProgress] = useState({});
+  const [selectedImage, setSelectedImage] = useState(null);
 
   useEffect(() => {
     selectedChatRef.current = selectedChat;
@@ -331,6 +332,14 @@ function ChatPage({ theme }) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const handleImageClick = (imageBase64) => {
+    setSelectedImage(imageBase64);
+  };
+
+  const closeImageModal = () => {
+    setSelectedImage(null);
+  };
+
   return (
     <div className={`d-flex flex-column h-100 w-100 ms-2`}>
       <div className="mb-3">
@@ -430,11 +439,41 @@ function ChatPage({ theme }) {
           width: '100%',
           height: 'auto',
           borderRadius: '8px',
-          display: 'block'
+          display: 'block',
+          cursor: 'pointer',
         }}
+        onClick={() => handleImageClick(msg.base64)}
       />
     ) : (
       msg.body
+    )}
+
+    {selectedImage && (
+      <div
+        className="image-modal"
+        onClick={closeImageModal}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0, 0, 0, 0.25)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000,
+        }}
+      >
+        <img
+          src={`data:image/jpeg;base64,${selectedImage}`}
+          alt="imagem ampliada"
+          style={{
+            maxWidth: '90%',
+            maxHeight: '90%',
+          }}
+        />
+      </div>
     )}
 
   </div>
