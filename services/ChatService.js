@@ -90,6 +90,8 @@ const createChat = async (chat, instance, message, etapa, io) => {
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`;
 
     const result = await pool.query(query, etapa ? chatValues : chatValues.slice(0, -1));
+    console.log('Resultado da inserção:', result.rows[0]);
+    console.log('Queue ID:', result.rows[0].queue_id, typeof result.rows[0].queue_id);
          if(result.rows[0].queue_id===null){
             await setChatQueue(schema, result.rows[0].id)
           }
