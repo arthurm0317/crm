@@ -23,7 +23,10 @@ function ChatPage({ theme }) {
   const recordingIntervalRef = useRef(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [activeAudio, setActiveAudio] = useState(null); 
-  const [audioProgress, setAudioProgress] = useState({}); 
+  const [audioProgress, setAudioProgress] = useState({});
+  const [selectedImage, setSelectedImage] = useState(null);
+  const url = 'https://landing-page-teste.8rxpnw.easypanel.host'
+
 
   useEffect(() => {
     selectedChatRef.current = selectedChat;
@@ -31,19 +34,20 @@ function ChatPage({ theme }) {
 
   useEffect(() => {
     axios
-      .get(`http://localhost:3000/chat/getChat/${userData.id}/${schema}`)
+      .get(`${url}/chat/getChat/${userData.id}/${schema}`)
       .then((res) => {
         setChats(res.data.messages || []);
       })
       .catch((err) => console.error('Erro ao carregar chats:', err));
   }, [schema]);
+  
 
-  useEffect(() => {
+   useEffect(() => {
     if (!selectedChat) return;
 
     const interval = setInterval(async () => {
       try {
-        const res = await axios.post('http://localhost:3000/chat/getMessages', {
+        const res = await axios.post(`${url}/chat/getMessages`, {
           chat_id: selectedChat.id,
           schema,
         });
@@ -66,6 +70,7 @@ function ChatPage({ theme }) {
 
     return () => clearInterval(interval);
   }, [selectedChat, schema]);
+  
 
   useEffect(() => {
     return () => {
@@ -100,11 +105,11 @@ function ChatPage({ theme }) {
     const handleLoadedMetadata = () => {
       const audioDuration = audioRef.current.duration;
     
-      if (isNaN(audioDuration) || !isFinite(audioDuration)) {
+      if (isNaN(audioDuration)) {
         console.error('Erro ao carregar a duração do áudio. Verifique o formato do arquivo.');
-        setDuration(0); // Define a duração como 0 em caso de erro
+        setDuration(0); 
       } else {
-        setDuration(audioDuration); // Define a duração corretamente
+        setDuration(audioDuration); 
       }
     };
   
@@ -172,18 +177,31 @@ function ChatPage({ theme }) {
   };
 
   const handleChatClick = async (chat) => {
-    setSelectedChatId(chat.id);
-    
-    // Limpa as mensagens antes de carregar o novo chat
-    setSelectedMessages([]);
-    
     try {
-      setSelectedChat(chat);
-      scrollToBottom();
+      // Limpa as mensagens antigas antes de atualizar o chat selecionado
+      setSelectedMessages([]);  // Limpa as mensagens
+      previousMessagesRef.current = [];  // Limpa a referência
+  
+      setSelectedChatId(chat.id); // Atualiza o id do chat selecionado
+      setSelectedChat(chat); // Atualiza o chat selecionado
+  
+      // Aguarda a atualização do estado antes de carregar as mensagens
+      const res = await axios.post(`${url}/chat/getMessages`, {
+        chat_id: chat.id,
+        schema,
+      });
+  
+      if (res.data.messages) {
+        setSelectedMessages(res.data.messages);  // Define as mensagens do novo chat
+        previousMessagesRef.current = res.data.messages;  // Atualiza a referência
+      }
+  
+      scrollToBottom(); // Faz o scroll para o fundo após carregar as mensagens
     } catch (error) {
       console.error('Erro ao carregar mensagens do chat:', error);
     }
   };
+  
 
   const handleAudioClick = () => {
     if (isRecording) {
@@ -207,7 +225,7 @@ function ChatPage({ theme }) {
   const handleSendMessage = async () => {
     try {
       // Envia a mensagem para o backend
-      await axios.post('http://localhost:3000/evo/sendText', {
+      await axios.post(`${url}/evo/sendText`, {
         instanceId: selectedChat.connection_id,
         number: selectedChat.contact_phone,
         text: newMessage,
@@ -246,7 +264,7 @@ function ChatPage({ theme }) {
   
     try {
 
-      await axios.post('http://localhost:3000/chat/sendImage', formData, {
+      await axios.post(`${url}/chat/sendImage`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -291,7 +309,7 @@ function ChatPage({ theme }) {
   
           try {
             console.log(formData)
-            await axios.post('http://localhost:3000/chat/sendAudio', formData, {
+            await axios.post(`${url}/chat/sendAudio`, formData, {
               headers: {
                 'Content-Type': 'multipart/form-data',
               },
@@ -329,6 +347,14 @@ function ChatPage({ theme }) {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleImageClick = (imageBase64) => {
+    setSelectedImage(imageBase64);
+  };
+
+  const closeImageModal = () => {
+    setSelectedImage(null);
   };
 
   return (
@@ -430,11 +456,41 @@ function ChatPage({ theme }) {
           width: '100%',
           height: 'auto',
           borderRadius: '8px',
-          display: 'block'
+          display: 'block',
+          cursor: 'pointer',
         }}
+        onClick={() => handleImageClick(msg.base64)}
       />
     ) : (
       msg.body
+    )}
+
+    {selectedImage && (
+      <div
+        className="image-modal"
+        onClick={closeImageModal}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0, 0, 0, 0.25)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000,
+        }}
+      >
+        <img
+          src={`data:image/jpeg;base64,${selectedImage}`}
+          alt="imagem ampliada"
+          style={{
+            maxWidth: '90%',
+            maxHeight: '90%',
+          }}
+        />
+      </div>
     )}
 
   </div>

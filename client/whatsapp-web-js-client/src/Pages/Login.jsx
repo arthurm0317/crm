@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import React, { use, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+const url = 'https://landing-page-teste.8rxpnw.easypanel.host/'
 
 function Login() {
   const [theme, setTheme] = useTheme();
@@ -30,7 +31,7 @@ function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post("http://localhost:3000/api/login", {
+      const response = await axios.post('https://landing-page-teste.8rxpnw.easypanel.host/api/login', {
         email: username,
         password,
       });

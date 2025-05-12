@@ -10,13 +10,13 @@ function NewContactModal({ theme }) {
   const [connections, setConnections] = useState([]);
   const userData = JSON.parse(localStorage.getItem('user'));
   const navigate = useNavigate();
-
+  const url = 'https://landing-page-teste.8rxpnw.easypanel.host'
   useEffect(() => {
 
     const fetchConnections = async () => {
       console.log(userData.id)
       try {
-        const response = await axios.post('http://localhost:3000/connection/getAllConnections',{
+        const response = await axios.post(`${url}/connection/getAllConnections`,{
           schema: userData.schema
         });
         setConnections(response.data);

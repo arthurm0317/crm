@@ -26,6 +26,7 @@ module.exports = (broadcastMessage) => {
 
   app.post('/chat', async (req, res) => {
     const result = req.body;
+    console.log(result)
 
     if (!result?.data?.key?.remoteJid) {
       return res.status(400).json({ error: 'Dados incompletos' });
@@ -60,7 +61,6 @@ module.exports = (broadcastMessage) => {
       const createChats = await createChat(chat, result.instance, result.data.message.conversation, null, null);
       const chatDb = await getChatService(createChats.chat.id, createChats.chat.connection_id, createChats.schema);
       const schema = createChats.schema
-      console.log(schema)
 
       await setUserChat(chatDb.id, schema)
 
@@ -147,10 +147,11 @@ module.exports = (broadcastMessage) => {
       broadcastMessage({ type: 'message', payload });
 
       res.status(200).json({ result });
-    } catch (err) {
-      console.error('Erro no webhook /chat:', err);
-      res.status(500).json({ error: err.message });
-    }
+    //   await axios.post(`https://n8n-n8n-start.8rxpnw.easypanel.host/${result.instance}`, data);
+    // console.log('Dados enviados para o Webhook 2');
+  } catch (error) {
+    console.error('Erro ao enviar para o próximo webhook:', error);
+  }
   });
 
   // ENVIO DE MENSAGEM DE TEXTO

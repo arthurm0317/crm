@@ -4,6 +4,7 @@ const { getOnlineUsers, updateLastAssignedUser, getLastAssignedUser } = require(
 
 const createChat = async (chat, instance, message, etapa, io) => {
   let schema;
+  console.log(instance)
 
   const geralSchema = await pool.query(
     `SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('pg_catalog', 'information_schema', 'pg_toast', 'public')`
@@ -36,6 +37,10 @@ const createChat = async (chat, instance, message, etapa, io) => {
 
     if (existingChat.rowCount > 0) {
       const updated = await updateChatMessages(chat, schema, message);
+      console.log(existingChat.rows[0])
+      if(existingChat.rows[0].queue_id===null){
+            await setChatQueue(schema, existingChat.rows[0].id)
+          }
       if (io) {
         io.to(schema).emit("chat:new-message", {
           chatId: chat.getChatId(),
@@ -48,6 +53,7 @@ const createChat = async (chat, instance, message, etapa, io) => {
         schema: schema
       };
     }
+
 
     const contactNumber = chat.getChatId().split('@')[0];
     const contactQuery = await pool.query(
@@ -89,7 +95,9 @@ const createChat = async (chat, instance, message, etapa, io) => {
           (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages, contact_phone) 
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`;
 
+
     const result = await pool.query(query, etapa ? chatValues : chatValues.slice(0, -1));
+    console.log(result)
          if(result.rows[0].queue_id===null){
             await setChatQueue(schema, result.rows[0].id)
           }
@@ -106,7 +114,7 @@ const createChat = async (chat, instance, message, etapa, io) => {
       schema: schema
     };
   } catch (error) {
-    console.error('Erro ao criar chat:', error.message);
+    console.error('Erro ao criar chat:', error);
     throw new Error('Erro ao criar chat');
   }
 };
