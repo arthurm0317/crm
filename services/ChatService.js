@@ -36,6 +36,9 @@ const createChat = async (chat, instance, message, etapa, io) => {
 
     if (existingChat.rowCount > 0) {
       const updated = await updateChatMessages(chat, schema, message);
+      if(existingChat.rows[0].queue_id===null){
+            await setChatQueue(schema, result.rows[0].id)
+          }
       if (io) {
         io.to(schema).emit("chat:new-message", {
           chatId: chat.getChatId(),
