@@ -26,6 +26,7 @@ module.exports = (broadcastMessage) => {
 
   app.post('/chat', async (req, res) => {
     const result = req.body;
+    console.log(result)
 
     if (!result?.data?.key?.remoteJid) {
       return res.status(400).json({ error: 'Dados incompletos' });
@@ -149,7 +150,7 @@ module.exports = (broadcastMessage) => {
     //   await axios.post(`https://n8n-n8n-start.8rxpnw.easypanel.host/${result.instance}`, data);
     // console.log('Dados enviados para o Webhook 2');
   } catch (error) {
-    console.error('Erro ao enviar para o próximo webhook:', error.message);
+    console.error('Erro ao enviar para o próximo webhook:', error);
   }
   });
 

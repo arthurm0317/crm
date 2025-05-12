@@ -40,23 +40,37 @@ function ChatPage({ theme }) {
       })
       .catch((err) => console.error('Erro ao carregar chats:', err));
   }, [schema]);
+  
 
-  useEffect(() => {
-    if (selectedChat) {
-      const fetchMessages = async () => {
+   useEffect(() => {
+    if (!selectedChat) return;
+
+    const interval = setInterval(async () => {
+      try {
         const res = await axios.post(`${url}/chat/getMessages`, {
           chat_id: selectedChat.id,
           schema,
         });
-        
-        if (res.data.messages) {
-          setSelectedMessages(res.data.messages);
+
+        const newMessages = res.data.messages.filter(
+          (msg) => !previousMessagesRef.current.some((prevMsg) => prevMsg.id === msg.id)
+        );
+
+        if (newMessages.length > 0) {
+          setSelectedMessages((prevMessages) => {
+            const updatedMessages = [...prevMessages, ...newMessages];
+            previousMessagesRef.current = updatedMessages; 
+            return updatedMessages;
+          });
         }
-      };
+      } catch (error) {
+        console.error('Erro ao atualizar mensagens do chat selecionado:', error);
+      }
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [selectedChat, schema]);
   
-      fetchMessages();
-    }
-  }, [selectedChat], schema);
 
   useEffect(() => {
     return () => {
