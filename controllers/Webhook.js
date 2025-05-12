@@ -59,6 +59,7 @@ module.exports = (broadcastMessage) => {
       
       const createChats = await createChat(chat, result.instance, result.data.message.conversation, null, null);
       const chatDb = await getChatService(createChats.chat.id, createChats.chat.connection_id, createChats.schema);
+      console.log(chatDb)
       const schema = createChats.schema
       console.log(schema)
 
