@@ -147,8 +147,8 @@ module.exports = (broadcastMessage) => {
       broadcastMessage({ type: 'message', payload });
 
       res.status(200).json({ result });
-      await axios.post(`https://n8n-n8n-start.8rxpnw.easypanel.host/webhook/${result.instance}`, data);
-    console.log('Dados enviados para o Webhook 2');
+    //   await axios.post(`https://n8n-n8n-start.8rxpnw.easypanel.host/${result.instance}`, data);
+    // console.log('Dados enviados para o Webhook 2');
   } catch (error) {
     console.error('Erro ao enviar para o próximo webhook:', error.message);
   }
