@@ -1,4 +1,5 @@
 import NewUserModal from './modalPages/Usuarios_modal';
+import DeleteUserModal from './modalPages/Usuarios_delete';
 import { useEffect, useState } from 'react';
 import * as bootstrap from 'bootstrap';
 import axios from 'axios';
@@ -11,12 +12,10 @@ function UsuariosPage({ theme }) {
 
   useEffect(() => {
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    const tooltipList = [...tooltipTriggerList].map(
-      (tooltipTriggerEl) => new bootstrap.Tooltip(tooltipTriggerEl)
-    );
+    const tooltipList = [...tooltipTriggerList].map(el => new bootstrap.Tooltip(el));
 
-    return () => tooltipList.forEach((tooltip) => tooltip.dispose());
-  }, []);
+    return () => tooltipList.forEach(tooltip => tooltip.dispose());
+  }, [usuarios]);
 
   useEffect(() => {
     const fetchUsuarios = async () => {
@@ -64,10 +63,26 @@ function UsuariosPage({ theme }) {
                 <td>{usuario.email}</td>
                 <td>{usuario.permission}</td>
                 <td>
-                  <button className="icon-btn text-primary" data-bs-toggle="tooltip" title="Editar">
+                  <button
+                    className={`icon-btn btn-2-${theme} btn-user`}
+                    data-bs-toggle="tooltip"
+                    title="Editar"
+                    onClick={() => {
+                      const modal = new bootstrap.Modal(document.getElementById('NewUserModal'));
+                      modal.show();
+                    }}
+                  >
                     <i className="bi bi-pencil-fill"></i>
                   </button>
-                  <button className="icon-btn text-danger" data-bs-toggle="tooltip" title="Excluir">
+                  <button
+                    className="icon-btn text-danger"
+                    data-bs-toggle="tooltip"
+                    title="Excluir"
+                    onClick={() => {
+                      const modal = new bootstrap.Modal(document.getElementById('DeleteUserModal'));
+                      modal.show();
+                    }}
+                  >
                     <i className="bi bi-trash-fill"></i>
                   </button>
                 </td>
@@ -77,6 +92,7 @@ function UsuariosPage({ theme }) {
         </table>
       </div>
       <NewUserModal theme={theme}/>
+      <DeleteUserModal theme={theme}/>
     </div>
   );
 }
