@@ -11,9 +11,22 @@ function FilaPage({ theme }) {
 
   useEffect(() => {
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    const tooltipList = [...tooltipTriggerList].map(el => new bootstrap.Tooltip(el));
-    return () => tooltipList.forEach(t => t.dispose());
-  }, [filas]);
+    const tooltipList = [...tooltipTriggerList].map(el => {
+        if (el) {
+        return new bootstrap.Tooltip(el);
+        }
+        return null;
+    });
+
+    return () => {
+        tooltipList.forEach(t => {
+        if (t) {
+            t.dispose();
+        }
+        });
+    };
+    }, [filas]);
+
 
   useEffect(() => {
   const fetchFilas = async () => {
