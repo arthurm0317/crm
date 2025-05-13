@@ -588,3 +588,7 @@ input[type="range"]::-moz-range-progress {
     border-radius: 5px;
     height: 5px;
 }
+
+.btn-user:hover {
+    box-shadow: none;
+}

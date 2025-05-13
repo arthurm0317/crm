@@ -12,6 +12,7 @@ import ChatPage from './Chats';
 import AgendaPage from './Lembretes';
 import RelatorioPage from './Relatorios';
 import UsuariosPage from './Usuarios';
+import FilaPage from './Filas';
 
 function Painel() {
   const [username, setUsername] = useState('');
@@ -59,6 +60,7 @@ function Painel() {
     switch (page) {
       case 'dashboard': return <Dashboard theme={theme} />;
       case 'chats': return <ChatPage theme={theme} />;
+      case 'filas': return <FilaPage theme={theme} />;
       case 'usuarios': return <UsuariosPage theme={theme} />;
       case 'agenda': return <AgendaPage theme={theme} />;
       case 'relatorios': return <RelatorioPage theme={theme} />;
@@ -100,6 +102,17 @@ function Painel() {
             >
               <i className="bi bi-chat-dots"></i>
               <span className="sidebar-label d-none">Chats</span>
+            </button>
+            <button
+              id="filas"
+              onClick={() => setPage('filas')}
+              data-bs-toggle="tooltip"
+              data-bs-placement="right"
+              data-bs-title="Filas"
+              className={`btn ${page === 'filas' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-start gap-2`}
+            >
+              <i className="bi bi-diagram-3"></i>
+              <span className="sidebar-label d-none">Filas</span>
             </button>
             <button
               id="usuarios"
