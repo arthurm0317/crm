@@ -118,6 +118,7 @@ function NewUserModal({ theme, type }) {
                   data-bs-placement="right"
                   title="Envia um email para alteração da senha."
                   onClick={() => console.log('Verificar senha')}
+                  disabled
                 >
                   <i className='bi bi-envelope'></i>
                   <span className='ms-2'>Alterar senha</span>

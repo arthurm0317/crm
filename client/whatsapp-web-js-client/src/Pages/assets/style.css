@@ -592,3 +592,10 @@ input[type="range"]::-moz-range-progress {
 .btn-user:hover {
     box-shadow: none;
 }
+
+.btn:disabled {
+  opacity: 1 !important;
+  pointer-events: none;
+  color: var(--placeholder-color);
+  border-color: var(--placeholder-color) !important;
+}
