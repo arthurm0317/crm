@@ -19,9 +19,7 @@ const configureSocket = require('./config/SocketConfig');
 const app = express();
 
 const corsOptions = {
-  origin: ['http://localhost:3001',
-    'https://landing-page-front.8rxpnw.easypanel.host',
-    'https://eg-crm.effectivegain.com'
+  origin: ['http://localhost:3000'
   ],
   methods: ['GET', 'POST'],
 };
@@ -29,9 +27,7 @@ const corsOptions = {
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: ['http://localhost:3001',
-      'https://landing-page-front.8rxpnw.easypanel.host',
-      'https://eg-crm.effectivegain.com'
+    origin: ['http://localhost:3000'
     ], 
     methods: ['GET', 'POST'],
   },
@@ -105,7 +101,7 @@ app.post('/webhook/audio', async (req, res) => {
 
 configureSocket(io, server);
 
-const PORT = 3002;
+const PORT = 3000;
 
 server.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT} 🚀`);

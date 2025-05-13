@@ -25,7 +25,7 @@ function ChatPage({ theme }) {
   const [activeAudio, setActiveAudio] = useState(null); 
   const [audioProgress, setAudioProgress] = useState({});
   const [selectedImage, setSelectedImage] = useState(null);
-  const url = 'https://landing-page-teste.8rxpnw.easypanel.host'
+  const url = 'http://localhost:3000'
 
 
   useEffect(() => {
