@@ -13,12 +13,16 @@ const pool = require('../db/queries');
 const { getCurrentTimestamp } = require('../services/getCurrentTimestamp');
 const { getBase64FromMediaMessage } = require('../requests/evolution');
 const express = require('express');
+const SocketServer = require('../server')
 
 
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
 module.exports = (broadcastMessage) => {
+  const serverTest = new SocketServer()
+  serverTest.start()
+
   const app = express.Router();
 
   app.use(express.json({ limit: '100mb' }));
@@ -26,6 +30,7 @@ module.exports = (broadcastMessage) => {
 
   app.post('/chat', async (req, res) => {
     const result = req.body;
+    console.log('------------- resultado -----------------')
     console.log(result)
 
     if (!result?.data?.key?.remoteJid) {
@@ -138,13 +143,15 @@ module.exports = (broadcastMessage) => {
       const payload = {
         chatId: chatDb.id,
         body: messageBody,
-        audioBase64: audioBase64 || null,
+        midiaBase64: audioBase64 || imageBase64 || null,
         fromMe: result.data.key.fromMe,
         from: result.data.pushName,
         timestamp,
+        message_type: result.data.messageType
       };
-
-      broadcastMessage({ type: 'message', payload });
+      serverTest.io.emit('message', payload);
+      console.log('Mensagem recebida via webhook:', payload);
+      
 
       res.status(200).json({ result });
     //   await axios.post(`https://n8n-n8n-start.8rxpnw.easypanel.host/${result.instance}`, data);

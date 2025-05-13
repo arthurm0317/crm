@@ -1,26 +1,63 @@
-const express = require('express')
-const path = require('path')
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 
-const app = express()
-const server = require('http').createServer(app)
+class SocketServer {
+    constructor(port = 3002) {
+        this.app = express();
+        this.port = port;
 
-const io = require('socket.io')(server, {
-    cors:{
-        origin:[
-            "http://localhost:3001",
-        ],
-        methods: ["GET", "POST"]
+        this.server = http.createServer(this.app);
+
+       this.io = new Server(this.server, {
+        cors: {
+            origin: [
+            "http://localhost:3001", 
+            "chrome-extension://ophmdkgfcjapomjdpfobjfbihojchbko"  
+            ],
+        methods: ["GET", "POST"],
+        allowedHeaders: ["Content-Type"],
+        credentials: true
     }
-})
-
-app.get('/api/test', (req, res) => {
-    res.json({ message: 'Hello from server!' });
-});
-io.on('connection', (socket) => {
-    console.log('Novo cliente conectado');
-    socket.on('disconnect', () => {
-        console.log('Cliente desconectado');
-    });
 });
 
-server.listen(3000)
+        this.middlewares();
+        this.routes();
+        this.sockets();
+    }
+
+    middlewares() {
+        this.app.use(express.json());
+    }
+
+    routes() {
+        this.app.get('/api/test', (req, res) => {
+            res.json({ message: 'Hello from server!' });
+        });
+    }
+
+    sockets() {
+        this.io.on('connection', (socket) => {
+            console.log('Novo cliente conectado');
+           
+
+            socket.on('disconnect', () => {
+                console.log('Cliente desconectado');
+            });
+
+            socket.on('message',(message)=>{
+                socket.broadcast.emit('message', message)
+                console.log(message)
+            }
+            )
+        });
+    }
+
+    start() {
+        this.server.listen(this.port, () => {
+            console.log(`Servidor rodando na porta ${this.port}`);
+        });
+    }
+}
+
+module.exports = SocketServer;
