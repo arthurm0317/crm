@@ -1,6 +1,6 @@
 const Queue = require("../entities/Queue");
 const { v4: uuidv4 } = require('uuid');
-const { createQueue, addUserinQueue, getUserQueues } = require("../services/QueueService");
+const { createQueue, addUserinQueue, getUserQueues, getAllQueues } = require("../services/QueueService");
 
 const createQueueController = async(req, res)=>{
     try{
@@ -52,9 +52,25 @@ const getUserQueuesController=async(req,res)=>{
     
 }
 
+const getAllQueuesControllers = async(req, res)=>{
+    try{
+        const {schema} = req.params
+
+        const result = await getAllQueues(schema)
+
+        res.status(201).json({
+            result
+        })
+    }catch(error){
+        console.log(error)
+    }
+
+}
+
 
 module.exports = {
     createQueueController,
     addUserinQueueController,
-    getUserQueuesController
+    getUserQueuesController,
+    getAllQueuesControllers
 }

@@ -72,9 +72,17 @@ const getChatsInQueue = async(QueueId, schema)=>{
     return result.rows
 }
 
+const getAllQueues = async(schema)=>{
+    const result = await pool.query(
+        `SELECT * FROM ${schema}.queues`
+    )
+    return result.rows
+}
+
 module.exports = {
     createQueue,
     addUserinQueue,
     getUserQueues, 
-    getChatsInQueue
+    getChatsInQueue,
+    getAllQueues
 }
