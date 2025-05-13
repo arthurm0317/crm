@@ -2,9 +2,12 @@ import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import EmojiPicker from 'emoji-picker-react';
 import NewContactModal from './modalPages/Chats_novoContato';
+import {socket} from '../socket'
+
 
 function ChatPage({ theme }) {
-  const [chats, setChats] = useState([]);
+  const [chatList, setChats] = useState([]);
+  const [chat] = useState([])
   const [selectedMessages, setSelectedMessages] = useState([]);
   const previousMessagesRef = useRef(selectedMessages);
   const [selectedChat, setSelectedChat] = useState(null);
@@ -26,53 +29,121 @@ function ChatPage({ theme }) {
   const [audioProgress, setAudioProgress] = useState({});
   const [selectedImage, setSelectedImage] = useState(null);
   const url = 'http://localhost:3000'
+  const [messages, setMessages] = useState([])
 
 
-  useEffect(() => {
-    selectedChatRef.current = selectedChat;
-  }, [selectedChat]);
+  const [socketInstance] = useState(socket)
 
-  useEffect(() => {
-    axios
-      .get(`${url}/chat/getChat/${userData.id}/${schema}`)
-      .then((res) => {
-        setChats(res.data.messages || []);
-      })
-      .catch((err) => console.error('Erro ao carregar chats:', err));
-  }, [schema]);
-  
 
-   useEffect(() => {
-    if (!selectedChat) return;
+ useEffect(() => {
+  if (socketInstance) {
+    socketInstance.on('connect', () => {
+      console.log('Conectado ao servidor WebSocket');
+    });
 
-    const interval = setInterval(async () => {
-      try {
-        const res = await axios.post(`${url}/chat/getMessages`, {
-          chat_id: selectedChat.id,
-          schema,
-        });
+     socketInstance.on('message', (msg) => {
+  if (msg.chatId === selectedChat?.id) {
+    const formattedMessage = formatMessage(msg);
+    setSelectedMessages((prev) => [...prev, formattedMessage]);
+  } else {
+    console.log(`Mensagem recebida para outro chat: ${msg.chatId}`);
+  }
+});
 
-        const newMessages = res.data.messages.filter(
-          (msg) => !previousMessagesRef.current.some((prevMsg) => prevMsg.id === msg.id)
-        );
+    return () => {
+      socketInstance.off('message'); 
+    };
+  }
+}, [socketInstance]); 
 
-        if (newMessages.length > 0) {
-          setSelectedMessages((prevMessages) => {
-            const updatedMessages = [...prevMessages, ...newMessages];
-            previousMessagesRef.current = updatedMessages; 
-            return updatedMessages;
-          });
-        }
-      } catch (error) {
-        console.error('Erro ao atualizar mensagens do chat selecionado:', error);
-      }
-    }, 500);
+const handleSubmit = (data) => {
+  if (!selectedChat) {
+    console.warn('Nenhum chat selecionado!');
+    return;
+  }
+  const newMessage = {
+    instanceId: selectedChat.connection_id,
+    number: selectedChat.contact_phone,
+    text: data,
+    chatId: selectedChat.id,
+    from_me: true,
+    schema: schema
+  };
 
-    return () => clearInterval(interval);
-  }, [selectedChat, schema]);
-  
+  if (socketInstance) {
+    socketInstance.emit('message', newMessage);
+    const formattedMessage = formatMessage(newMessage);
+    setSelectedMessages((prev) => [...prev, formattedMessage]);
+  } else {
+    console.log('Sem socket');
+  }
+};
 
-  useEffect(() => {
+useEffect(() => {
+  selectedChatRef.current = selectedChat;
+}, [selectedChat]);
+
+useEffect(() => {
+  const loadChats = async () => {
+  try {
+    const res = await axios.get(`${url}/chat/getChat/${userData.id}/${schema}`);
+    console.log('Resposta da API:', res.data); 
+    setChats(res.data.messages); 
+  } catch (err) {
+    console.error('Erro ao carregar chats:', err);
+  }
+};
+  loadChats();
+}, [schema, userData.id, url]);
+
+const formatMessage = (msg) => ({
+  id: msg.id,
+  name: msg.contact_name || msg.senderName,
+  text: msg.text || msg.body,
+  from_me: msg.from_me || false,
+  timestamp: msg.timestamp || new Date().toISOString(),
+  message_type: msg.message_type,
+  base64: msg.midiaBase64 || msg.base64
+
+});
+
+const loadMessages = async (chatId) => {
+  try {
+    const res = await axios.post(`${url}/chat/getMessages`, {
+      chat_id: chatId.id,
+      schema,
+    });
+
+
+    const formattedMessages = res.data.messages.map(formatMessage);
+
+
+    const newMessages = formattedMessages.filter(
+      (msg) => !previousMessagesRef.current.some((prevMsg) => prevMsg.id === msg.id)
+    );
+
+    if (newMessages.length > 0) {
+      setSelectedMessages((prevMessages) => {
+        const updatedMessages = [...prevMessages, ...newMessages];
+        previousMessagesRef.current = updatedMessages;
+        return updatedMessages;
+      });
+    }
+  } catch (error) {
+    console.error('Erro ao carregar mensagens:', error);
+  }
+};
+
+const handleChatClick = (chat) => {
+  setSelectedChat(chat); // Atualiza o chat selecionado
+  setSelectedChatId(chat.id); // Atualiza o id do chat selecionado
+  setSelectedMessages([]); // Limpa as mensagens antigas
+  previousMessagesRef.current = []; // Limpa a referência
+  loadMessages(chat);
+};
+
+
+useEffect(() => {
     return () => {
       if (recordingIntervalRef.current) {
         clearInterval(recordingIntervalRef.current);
@@ -176,31 +247,31 @@ function ChatPage({ theme }) {
     setNewMessage((prevMessage) => prevMessage + emojiObject.emoji);
   };
 
-  const handleChatClick = async (chat) => {
-    try {
-      // Limpa as mensagens antigas antes de atualizar o chat selecionado
-      setSelectedMessages([]);  // Limpa as mensagens
-      previousMessagesRef.current = [];  // Limpa a referência
+  // const handleChatClick = async (chat) => {
+  //   try {
+  //     // Limpa as mensagens antigas antes de atualizar o chat selecionado
+  //     setSelectedMessages([]);  // Limpa as mensagens
+  //     previousMessagesRef.current = [];  // Limpa a referência
   
-      setSelectedChatId(chat.id); // Atualiza o id do chat selecionado
-      setSelectedChat(chat); // Atualiza o chat selecionado
+  //     setSelectedChatId(chat.id); // Atualiza o id do chat selecionado
+  //     setSelectedChat(chat); // Atualiza o chat selecionado
   
-      // Aguarda a atualização do estado antes de carregar as mensagens
-      const res = await axios.post(`${url}/chat/getMessages`, {
-        chat_id: chat.id,
-        schema,
-      });
+  //     // Aguarda a atualização do estado antes de carregar as mensagens
+  //     const res = await axios.post(`${url}/chat/getMessages`, {
+  //       chat_id: chat.id,
+  //       schema,
+  //     });
   
-      if (res.data.messages) {
-        setSelectedMessages(res.data.messages);  // Define as mensagens do novo chat
-        previousMessagesRef.current = res.data.messages;  // Atualiza a referência
-      }
+  //     if (res.data.messages) {
+  //       setSelectedMessages(res.data.messages);  // Define as mensagens do novo chat
+  //       previousMessagesRef.current = res.data.messages;  // Atualiza a referência
+  //     }
   
-      scrollToBottom(); // Faz o scroll para o fundo após carregar as mensagens
-    } catch (error) {
-      console.error('Erro ao carregar mensagens do chat:', error);
-    }
-  };
+  //     scrollToBottom(); // Faz o scroll para o fundo após carregar as mensagens
+  //   } catch (error) {
+  //     console.error('Erro ao carregar mensagens do chat:', error);
+  //   }
+  // };
   
 
   const handleAudioClick = () => {
@@ -224,7 +295,6 @@ function ChatPage({ theme }) {
   
   const handleSendMessage = async () => {
     try {
-      // Envia a mensagem para o backend
       await axios.post(`${url}/evo/sendText`, {
         instanceId: selectedChat.connection_id,
         number: selectedChat.contact_phone,
@@ -233,7 +303,6 @@ function ChatPage({ theme }) {
         schema: schema,
       });
   
-      // Limpa o campo de texto após o envio
       setNewMessage('');
     } catch (error) {
       console.error('Erro ao enviar a mensagem:', error);
@@ -249,19 +318,20 @@ function ChatPage({ theme }) {
       mediaStreamRef.current = null;
     }
   };
-  const handleImageUpload = async (event) => {
+
+
+const handleImageUpload = async (event) => {
     const file = event.target.files[0];
-  
+    
     if (!file) {
       return;
-    }
-  
+    }    
     const formData = new FormData();
     formData.append('image', file); 
     formData.append('chatId', selectedChat.id);
     formData.append('connectionId', selectedChat.connection_id);
     formData.append('schema', schema);
-  
+    
     try {
 
       await axios.post(`${url}/chat/sendImage`, formData, {
@@ -269,12 +339,34 @@ function ChatPage({ theme }) {
           'Content-Type': 'multipart/form-data',
         },
       });
-  
+      
+
+      const newMessage = {
+        instanceId: selectedChat.connection_id,
+        number: selectedChat.contact_phone,
+        chatId: selectedChat.id,
+        from_me: true,
+        base64: file, 
+        schema: schema,
+      };
+
+      console.log('Imagem carregada e preparada para o socket:', newMessage);
+
+      if (socketInstance) {
+        socketInstance.emit('message', newMessage);
+
+        setSelectedMessages((prev) => [...prev, newMessage]);
+      } else {
+        console.log('Sem socket');
+      }
+
       console.log('Imagem enviada com sucesso!');
     } catch (error) {
       console.error('Erro ao enviar a imagem:', error);
     }
   };
+
+
   const handleAudioRecording = async () => {
     if (!isRecording) {
       try {
@@ -373,9 +465,8 @@ function ChatPage({ theme }) {
         {/* LISTA DE CONTATOS */}
         <div 
         className={`col-3 chat-list-${theme} bg-color-${theme}`} style={{ overflowY: 'auto', height: '100%', backgroundColor: `var(--bg-color-${theme})`}}>
-          {Array.isArray(chats) &&
-            chats.map((chat) => (
-              <div className='d-flex flex-row' key={chat.id}>
+          {chatList.map((chat) => (
+          <div className='d-flex flex-row' key={chat.id}>
                 <div 
                 className={`selectedBar ${selectedChatId === chat.id ? '' : 'd-none'}`} style={{ width: '2.5%', maxWidth: '5px', backgroundColor: 'var(--primary-color)' }}></div>
                 <div 
@@ -394,19 +485,18 @@ function ChatPage({ theme }) {
                       maxWidth: '100%',
                     }}
                   >
-
                     {Array.isArray(chat.messages) && chat.messages.length > 0
-                      ? typeof chat.messages[chat.messages.length - 1] === 'string'
-                        ? chat.messages[chat.messages.length - 1].slice(0, 40) + (chat.messages[chat.messages.length - 1].length > 50 ? '...' : '')
-                        : 'Mensagem inválida'
-                      : 'Sem mensagens'}
-                      
+                  ? (typeof chat.messages[chat.messages.length - 1] === 'string'
+                      ? chat.messages[chat.messages.length - 1].slice(0, 40) + 
+                        (chat.messages[chat.messages.length - 1].length > 50 ? '...' : '')
+                      : 'Mensagem inválida')
+                  : 'Sem mensagens'}
                   </div>
                 </div>
               </div>
             ))}
-        </div>
-        
+            </div>
+
 {/* MENSAGENS DO CONTATO SELECIONADO */}
 <div
   className={`col-9 chat-messages-${theme} d-flex flex-column`}
@@ -431,9 +521,9 @@ function ChatPage({ theme }) {
     }}
   >
 
-  {selectedMessages.map((msg) => (
+  {selectedMessages.map((msg, index) => (
   <div
-    key={msg.id}
+    key={msg.id || index}
     style={{
       backgroundColor: msg.from_me ? 'var(--hover)' : '#f1f0f0',
       textAlign: msg.from_me ? 'right' : 'left',
@@ -447,11 +537,16 @@ function ChatPage({ theme }) {
   >
     {msg.message_type === 'audio' ? (
       <AudioPlayer base64Audio={msg.base64} audioId={msg.id} />
-    ) : msg.message_type === 'image' ? (
-      <img
-        src={`data:image/jpeg;base64,${msg.base64}`}
+    ) : msg.message_type === 'imageMessage' || msg.message_type === 'image' ? (
+      
+     <img
+  src={
+    typeof msg.base64 === 'string'
+      ? `data:image/jpeg;base64,${msg.base64}`  
+      : msg.base64  
+        }
         alt="imagem"
-        style={{ 
+        style={{
           maxWidth: '300px',
           width: '100%',
           height: 'auto',
@@ -461,9 +556,9 @@ function ChatPage({ theme }) {
         }}
         onClick={() => handleImageClick(msg.base64)}
       />
-    ) : (
-      msg.body
-    )}
+) : (
+  msg.text
+)}
 
     {selectedImage && (
       <div
@@ -628,6 +723,7 @@ function ChatPage({ theme }) {
           setIsRecording(false);
           setRecordingTime(0);
         } else {
+          handleSubmit(newMessage)
           handleSendMessage();
         }
       }}

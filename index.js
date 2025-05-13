@@ -19,7 +19,9 @@ const configureSocket = require('./config/SocketConfig');
 const app = express();
 
 const corsOptions = {
-  origin: ['http://localhost:3000'
+  origin: ['http://localhost:3001',
+    'https://landing-page-front.8rxpnw.easypanel.host',
+    'https://eg-crm.effectivegain.com'
   ],
   methods: ['GET', 'POST'],
 };
@@ -27,7 +29,9 @@ const corsOptions = {
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: ['http://localhost:3000'
+    origin: ['http://localhost:3001',
+      'https://landing-page-front.8rxpnw.easypanel.host',
+      'https://eg-crm.effectivegain.com'
     ], 
     methods: ['GET', 'POST'],
   },
@@ -63,9 +67,6 @@ app.post('/webhook/audio', async (req, res) => {
   const { type, body, from } = req.body;
 
   if (type === 'audio' && body.startsWith('http')) {
-    const timestamp = Date.now();
-    const oggPath = path.join(__dirname, 'audios', `${from}-${timestamp}.ogg`);
-    const mp3Path = path.join(__dirname, 'audios', `${from}-${timestamp}.mp3`);
 
     try {
       console.log('Baixando áudio do URL:', body);
@@ -104,5 +105,5 @@ configureSocket(io, server);
 const PORT = 3000;
 
 server.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT} 🚀`);
+console.log(`Servidor rodando na porta ${PORT} 🚀`);
 });

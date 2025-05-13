@@ -7,7 +7,7 @@ function FilaPage({ theme }) {
   const [searchTerm, setSearchTerm] = useState('');
   const userData = JSON.parse(localStorage.getItem('user'));
   const schema = userData?.schema;
-  const url = 'https://landing-page-teste.8rxpnw.easypanel.host';
+  const url = 'http://localhost:3000';
 
   useEffect(() => {
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
@@ -16,20 +16,21 @@ function FilaPage({ theme }) {
   }, [filas]);
 
   useEffect(() => {
-    const fetchFilas = async () => {
-      try {
-        const response = await axios.get(`${url}/api/filas/${schema}`);
-        setFilas(response.data.filas || []);
-      } catch (error) {
-        console.error('Erro ao buscar filas:', error);
-      }
-    };
-    fetchFilas();
-  }, []);
+  const fetchFilas = async () => {
+    try {
+      const response = await axios.get(`${url}/queue/get-all-queues/${schema}`);
+      setFilas(response.data.result || []);
+    } catch (error) {
+      console.error('Erro ao buscar filas:', error);
+    }
+  };
+  fetchFilas();
+}, [url, schema]);
 
-  const filasFiltradas = filas.filter(fila =>
-    fila.nome.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+const filasFiltradas = filas.filter(fila => {
+  const nome = fila?.nome || '';
+  return nome.toLowerCase().includes(searchTerm.toLowerCase());
+});
 
   return (
     <div className="h-100 w-100 mx-2">
@@ -64,7 +65,7 @@ function FilaPage({ theme }) {
           <tbody>
             {filasFiltradas.map((fila) => (
               <tr key={fila.id}>
-                <td>{fila.nome}</td>
+                <td>{fila.name}</td>
                 <td>
                   <span
                     style={{
@@ -74,7 +75,7 @@ function FilaPage({ theme }) {
                       color: '#fff'
                     }}
                   >
-                    {fila.cor}
+                    {fila.color}
                   </span>
                 </td>
                 <td>
