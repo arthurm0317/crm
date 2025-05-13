@@ -1,3 +1,4 @@
+import NewUserModal from './modalPages/Usuarios_modal';
 import { useEffect, useState } from 'react';
 import * as bootstrap from 'bootstrap';
 import axios from 'axios';
@@ -37,7 +38,12 @@ function UsuariosPage({ theme }) {
       <div className="d-flex justify-content-end align-items-center mb-3">
         <div className="input-group w-25">
           <input type="text" className={`form-control input-${theme}`} placeholder="Pesquisar..."/>
-          <button className={`btn btn-1-${theme}`}>Adicionar Usuário</button>
+          <button 
+          className={`btn btn-1-${theme}`} 
+          data-bs-toggle="modal" 
+          data-bs-target="#NewUserModal">
+            Adicionar Usuário
+          </button>
         </div>
       </div>
 
@@ -70,6 +76,7 @@ function UsuariosPage({ theme }) {
           </tbody>
         </table>
       </div>
+      <NewUserModal theme={theme}/>
     </div>
   );
 }
