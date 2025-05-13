@@ -14,6 +14,23 @@ import RelatorioPage from './Relatorios';
 import UsuariosPage from './Usuarios';
 import FilaPage from './Filas';
 
+window.addEventListener('error', function (event) {
+  if (
+    event.message &&
+    event.message.includes('Cannot convert undefined or null to object') &&
+    event.filename?.includes('bundle.js')
+  ) {
+    event.preventDefault();
+  }
+});
+
+window.addEventListener('unhandledrejection', function (event) {
+  const message = event.reason?.message || '';
+  if (message.includes('Cannot convert undefined or null to object')) {
+    event.preventDefault();
+  }
+});
+
 function Painel() {
   const [username, setUsername] = useState('');
   const [role, setRole] = useState('');
