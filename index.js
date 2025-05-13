@@ -67,9 +67,6 @@ app.post('/webhook/audio', async (req, res) => {
   const { type, body, from } = req.body;
 
   if (type === 'audio' && body.startsWith('http')) {
-    const timestamp = Date.now();
-    const oggPath = path.join(__dirname, 'audios', `${from}-${timestamp}.ogg`);
-    const mp3Path = path.join(__dirname, 'audios', `${from}-${timestamp}.mp3`);
 
     try {
       console.log('Baixando áudio do URL:', body);
@@ -108,5 +105,5 @@ configureSocket(io, server);
 const PORT = 3000;
 
 server.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT} 🚀`);
+console.log(`Servidor rodando na porta ${PORT} 🚀`);
 });

@@ -206,61 +206,42 @@ const getChatByUserController = async (req, res) => {
   }
 };
 
-const sendAudioController = async (req, res) => {
-  const { chatId, connectionId, schema } = req.body;
-  const audioFile = req.file;
-
-  if (!audioFile) {
-    return res.status(400).json({ error: 'Nenhum arquivo enviado' });
-  }
-
-  const audioPath = path.join(__dirname, '..', 'uploads', 'audios', audioFile.filename);
-
-  try {
-    if (!fs.existsSync(audioPath)) {
-      throw new Error('O arquivo de áudio não foi salvo corretamente.');
+  const sendAudioController = async (req, res) => {
+    const { chatId, connectionId, schema } = req.body;
+    const audioFile = req.file;
+  
+    if (!audioFile) {
+      return res.status(400).json({ error: 'Nenhum arquivo enviado' });
     }
-
-    const stats = fs.statSync(audioPath);
-
-    if (stats.size === 0) {
-      throw new Error('O arquivo de áudio está vazio.');
-    }
-
-    const audioBuffer = fs.readFileSync(audioPath);
-    const audioBase64 = audioBuffer.toString('base64');
-
-    if (audioBase64.length === 0) {
-      throw new Error('Falha ao converter o áudio para base64.');
-    }
-
-    const chat_id = await getChatById(chatId, connectionId, schema);
-    console.log('Resultado de getChatById:', chat_id);
-
-    if (!chat_id || !chat_id.contact_phone) {
-      throw new Error('O chat_id ou contact_phone não foi encontrado.');
-    }
-
-    const instanceId = await searchConnById(connectionId, schema);
-
-    const evolutionResponse = await sendAudioToWhatsApp(chat_id.contact_phone, audioBase64, instanceId.name);
-
-    await saveMediaMessage(evolutionResponse.key.id, 'true', chatId, getCurrentTimestamp(), 'audio', audioBase64, schema);
-
-    res.status(200).json({ success: true, message: 'Áudio processado e enviado com sucesso', evolutionResponse });
-  } catch (error) {
-    console.error('Erro ao processar áudio:', error.message);
-    res.status(500).json({ error: 'Erro ao processar áudio' });
-  } finally {
-    setTimeout(() => {
-      if (fs.existsSync(audioPath)) {
-        fs.unlinkSync(audioPath);
+  
+    try {
+      // Converte o buffer do arquivo diretamente para base64
+      const audioBase64 = audioFile.buffer.toString('base64');
+  
+      if (audioBase64.length === 0) {
+        throw new Error('Falha ao converter o áudio para base64.');
       }
-    }, 500);
-  }
-
-
+  
+      const chat_id = await getChatById(chatId, connectionId, schema);
+      console.log('Resultado de getChatById:', chat_id);
+  
+      if (!chat_id || !chat_id.contact_phone) {
+        throw new Error('O chat_id ou contact_phone não foi encontrado.');
+      }
+  
+      const instanceId = await searchConnById(connectionId, schema);
+  
+      const evolutionResponse = await sendAudioToWhatsApp(chat_id.contact_phone, audioBase64, instanceId.name);
+  
+      await saveMediaMessage(evolutionResponse.key.id, 'true', chatId, getCurrentTimestamp(), 'audio', audioBase64, schema);
+  
+      res.status(200).json({ success: true, message: 'Áudio processado e enviado com sucesso', evolutionResponse });
+    } catch (error) {
+      console.error('Erro ao processar áudio:', error.message);
+      res.status(500).json({ error: 'Erro ao processar áudio' });
+    }
   };
+
   module.exports = {
     setUserChatController,
     getChatsController,

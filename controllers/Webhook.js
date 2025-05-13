@@ -161,6 +161,7 @@ module.exports = (broadcastMessage) => {
   }
   });
 
+  // ENVIO DE MENSAGEM DE TEXTO
 
   app.post('/chat/sendMessage', async (req, res) => {
     const { chatId, message, schema } = req.body;
@@ -193,6 +194,8 @@ module.exports = (broadcastMessage) => {
   });
 
   const upload = multer({ storage });
+
+// FUNÇÃO PRA GARANTIR QUE A PASTA DE AUDIO EXISTE
 
   app.post('/chat/sendAudio', upload.single('audio'), async (req, res) => {
     const { chatId, schema } = req.body;
