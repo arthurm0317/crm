@@ -1,18 +1,24 @@
 import axios from 'axios';
 import React, { useState } from 'react';
 
-function DeleteUserModal({ theme, userToDelete }) {
+function DeleteUserModal({ theme, usuario }) {
   const [password, setPassword] = useState('');
   const [showError, setShowError] = useState(false);
+  const userData = JSON.parse(localStorage.getItem('user')); 
   const url = 'http://localhost:3000'
 
-  // const handleDelete=async()=>{
-  //   try{
-  //     const deletion = await axios.delete(`${url}/api/delete-uset`,{
-  //       id: userId
-  //     })
-  //   }
-  // }
+  console.log(usuario)
+
+  const handleDelete=async()=>{
+    try{
+      const deletion = await axios.delete(`${url}/api/delete-user`, {
+    data: { user_id: usuario.id, schema:userData },
+    });
+      console.log(deletion)
+    }catch(error){
+      console.log('não foi possivel excluir o usuario')
+    }
+  }
     
   return (
     <div className="modal fade" id="DeleteUserModal" tabIndex="-1" aria-labelledby="DeleteUserModalLabel" aria-hidden="true">
@@ -26,20 +32,30 @@ function DeleteUserModal({ theme, userToDelete }) {
           </div>
 
           <div className="modal-body">
-            <p className={`card-subtitle-${theme} mb-1`}>Tem certeza que deseja excluir este usuário?</p>
+            {
+              usuario?(
+                <>
+                <p className={`card-subtitle-${theme} mb-1`}>Tem certeza que deseja excluir este usuário?</p>
+                
+                <p className="text-danger-true fw-bold mb-1">Nome: 
+                    <span className={`fw-bold header-text-${theme} ms-1`}>
+                    {usuario.name}
+                    </span>
+                </p>
+                <p className="text-danger-true fw-bold mb-3">Email: 
+                    <span className={`fw-bold header-text-${theme} ms-1`}>
+                        {usuario.email}
+                    </span>
+                </p>
+    
+                <p className={`card-subtitle-${theme}`}>Essa será uma ação irreversível. Para confirmar, preencha sua senha abaixo.</p>
+                </>
+              ):(
+                <p>Carregando...</p>
+              )
 
-            <p className="text-danger-true fw-bold mb-1">Nome: 
-                <span className={`fw-bold header-text-${theme} ms-1`}>
-                Vitor Bitencourt
-                </span>
-            </p>
-            <p className="text-danger-true fw-bold mb-3">Email: 
-                <span className={`fw-bold header-text-${theme} ms-1`}>
-                    vitormbaraujo1306@gmail.com
-                </span>
-            </p>
+            }
 
-            <p className={`card-subtitle-${theme}`}>Essa será uma ação irreversível. Para confirmar, preencha sua senha abaixo.</p>
 
             <input
               type="password"
@@ -60,7 +76,10 @@ function DeleteUserModal({ theme, userToDelete }) {
             <button type="button" className={`btn btn-2-${theme}`} data-bs-dismiss="modal">
               Cancelar
             </button>
-            <button type="button" className={`btn btn-1-${theme}`}>
+            <button type="button" className={`btn btn-1-${theme}`}
+            onClick={()=>
+              handleDelete()
+            }>
               Excluir
             </button>
           </div>

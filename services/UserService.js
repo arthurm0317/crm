@@ -97,8 +97,14 @@ const deleteUser = async(user_id, schema)=>{
   const result = await pool.query(
     `DELETE FROM ${schema}.users where id=$1`,[user_id]
   )
+  if(result.rowCount>0){
+    console.log('excluiu')
+  }else{
+    console.log('nao')
+  }
   return result.rows[0]
 }
+
 module.exports = { createUser, getAllUsers, searchUser, changeOnline, changeOffline, getOnlineUsers, getLastAssignedUser, updateLastAssignedUser,
   deleteUser
 };

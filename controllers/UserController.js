@@ -100,6 +100,7 @@ const deleteUserController = async(req, res)=>{
   const {user_id} = req.body
   const schema = req.body.schema
 
+  console.log(user_id)
   try{
     const result = await deleteUser(user_id, schema)
     res.status(204).json({

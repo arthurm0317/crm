@@ -8,6 +8,8 @@ function UsuariosPage({ theme }) {
   const userData = JSON.parse(localStorage.getItem('user')); 
   const schema = userData?.schema
   const [usuarios, setUsuarios] = useState([]);
+  const [usuarioSelecionado, setUsuarioSelecionado] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const url = 'https://landing-page-teste.8rxpnw.easypanel.host'
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -91,6 +93,7 @@ function UsuariosPage({ theme }) {
                       data-bs-toggle="tooltip"
                       title="Excluir"
                       onClick={() => {
+                        setUsuarioSelecionado(usuario);
                         const modal = new bootstrap.Modal(document.getElementById('DeleteUserModal'));
                         modal.show();
                       }}
@@ -104,7 +107,7 @@ function UsuariosPage({ theme }) {
         </table>
       </div>
       <NewUserModal theme={theme}/>
-      <DeleteUserModal theme={theme}/>
+      <DeleteUserModal theme={theme} usuario={usuarioSelecionado}/>
     </div>
   );
 }

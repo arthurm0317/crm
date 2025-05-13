@@ -18,6 +18,7 @@ const configureSocket = require('./config/SocketConfig');
 
 const app = express();
 
+
 const corsOptions = {
   origin: ['http://localhost:3001',
     'https://landing-page-front.8rxpnw.easypanel.host',
