@@ -92,4 +92,13 @@ const searchUser = async (userMail, userPassword) => {
       [queue, user_id]
     );
 };
-module.exports = { createUser, getAllUsers, searchUser, changeOnline, changeOffline, getOnlineUsers, getLastAssignedUser, updateLastAssignedUser};
+
+const deleteUser = async(user_id, schema)=>{
+  const result = await pool.query(
+    `DELETE FROM ${schema}.users where id=$1`,[user_id]
+  )
+  return result.rows[0]
+}
+module.exports = { createUser, getAllUsers, searchUser, changeOnline, changeOffline, getOnlineUsers, getLastAssignedUser, updateLastAssignedUser,
+  deleteUser
+};

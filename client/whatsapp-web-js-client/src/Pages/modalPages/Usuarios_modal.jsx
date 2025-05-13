@@ -13,7 +13,7 @@ function NewUserModal({ theme }) {
     }
 
     try {
-      const response = await axios.post('http://localhost:3000/user/create', {
+      const response = await axios.post('http://localhost:3000/api/users', {
         name: userName,
         email: userEmail,
         role: userRole,

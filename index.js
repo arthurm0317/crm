@@ -23,7 +23,7 @@ const corsOptions = {
     'https://landing-page-front.8rxpnw.easypanel.host',
     'https://eg-crm.effectivegain.com'
   ],
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'DELETE'],
 };
 
 const server = http.createServer(app);

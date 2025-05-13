@@ -1,8 +1,18 @@
+import axios from 'axios';
 import React, { useState } from 'react';
 
 function DeleteUserModal({ theme, userToDelete }) {
   const [password, setPassword] = useState('');
   const [showError, setShowError] = useState(false);
+  const url = 'http://localhost:3000'
+
+  // const handleDelete=async()=>{
+  //   try{
+  //     const deletion = await axios.delete(`${url}/api/delete-uset`,{
+  //       id: userId
+  //     })
+  //   }
+  // }
     
   return (
     <div className="modal fade" id="DeleteUserModal" tabIndex="-1" aria-labelledby="DeleteUserModalLabel" aria-hidden="true">
