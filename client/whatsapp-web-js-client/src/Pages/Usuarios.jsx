@@ -9,6 +9,7 @@ function UsuariosPage({ theme }) {
   const schema = userData?.schema
   const [usuarios, setUsuarios] = useState([]);
   const url = 'https://landing-page-teste.8rxpnw.easypanel.host'
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
@@ -36,7 +37,13 @@ function UsuariosPage({ theme }) {
     <div className="h-100 w-100 mx-2">
       <div className="d-flex justify-content-end align-items-center mb-3">
         <div className="input-group w-25">
-          <input type="text" className={`form-control input-${theme}`} placeholder="Pesquisar..."/>
+          <input
+            type="text"
+            className={`form-control input-${theme}`}
+            placeholder="Pesquisar..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
           <button 
           className={`btn btn-1-${theme}`} 
           data-bs-toggle="modal" 
@@ -57,36 +64,41 @@ function UsuariosPage({ theme }) {
             </tr>
           </thead>
           <tbody>
-            {usuarios.map((usuario) => (
-              <tr key={usuario.id}>
-                <td>{usuario.name}</td>
-                <td>{usuario.email}</td>
-                <td>{usuario.permission}</td>
-                <td>
-                  <button
-                    className={`icon-btn btn-2-${theme} btn-user`}
-                    data-bs-toggle="tooltip"
-                    title="Editar"
-                    onClick={() => {
-                      const modal = new bootstrap.Modal(document.getElementById('NewUserModal'));
-                      modal.show();
-                    }}
-                  >
-                    <i className="bi bi-pencil-fill"></i>
-                  </button>
-                  <button
-                    className="icon-btn text-danger"
-                    data-bs-toggle="tooltip"
-                    title="Excluir"
-                    onClick={() => {
-                      const modal = new bootstrap.Modal(document.getElementById('DeleteUserModal'));
-                      modal.show();
-                    }}
-                  >
-                    <i className="bi bi-trash-fill"></i>
-                  </button>
-                </td>
-              </tr>
+            {usuarios
+              .filter((usuario) =>
+                usuario.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                usuario.email.toLowerCase().includes(searchTerm.toLowerCase())
+              )
+              .map((usuario) => (
+                <tr key={usuario.id}>
+                  <td>{usuario.name}</td>
+                  <td>{usuario.email}</td>
+                  <td>{usuario.permission}</td>
+                  <td>
+                    <button
+                      className={`icon-btn btn-2-${theme} btn-user`}
+                      data-bs-toggle="tooltip"
+                      title="Editar"
+                      onClick={() => {
+                        const modal = new bootstrap.Modal(document.getElementById('NewUserModal'));
+                        modal.show();
+                      }}
+                    >
+                      <i className="bi bi-pencil-fill"></i>
+                    </button>
+                    <button
+                      className="icon-btn text-danger"
+                      data-bs-toggle="tooltip"
+                      title="Excluir"
+                      onClick={() => {
+                        const modal = new bootstrap.Modal(document.getElementById('DeleteUserModal'));
+                        modal.show();
+                      }}
+                    >
+                      <i className="bi bi-trash-fill"></i>
+                    </button>
+                  </td>
+                </tr>
             ))}
           </tbody>
         </table>
