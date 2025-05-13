@@ -36,7 +36,7 @@ function UsuariosPage({ theme }) {
   return (
     <div className="h-100 w-100 mx-2">
       <div className="d-flex justify-content-end align-items-center mb-3">
-        <div className="input-group w-25">
+        <div className="input-group" style={{width: '40%'}}>
           <input
             type="text"
             className={`form-control input-${theme}`}
