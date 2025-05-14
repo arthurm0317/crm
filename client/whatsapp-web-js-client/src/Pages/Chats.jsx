@@ -30,31 +30,47 @@ function ChatPage({ theme }) {
   const [selectedImage, setSelectedImage] = useState(null);
   const url = 'http://localhost:3000'
   const [messages, setMessages] = useState([])
-
+  const [audioUrl, setAudioUrl] = useState('');
+  const [imageUrl, setImageUrl] = useState('')
+  const selectedChatIdRef = useRef(null);
 
   const [socketInstance] = useState(socket)
 
+  const handleChatClick = (chat) => {
+  setSelectedChat(chat);
+  setSelectedChatId(chat.id);
+  setSelectedMessages([]);
+  previousMessagesRef.current = [];
+  selectedChatIdRef.current = chat.id; // Atualiza a referência do chat atual
+  loadMessages(chat);
+};
+
+useEffect(() => {
+  const handleMessage = (msg) => {
+    if (msg.chatId === selectedChatIdRef.current) {
+      const formattedMessage = formatMessage(msg);
+      setSelectedMessages((prev) => [...prev, formattedMessage]);
+      loadChats()
+    }
+  };
+
+  socketInstance.on('message', handleMessage);
+
+  return () => {
+    socketInstance.off('message', handleMessage);
+  };
+}, []);
 
  useEffect(() => {
   if (socketInstance) {
     socketInstance.on('connect', () => {
       console.log('Conectado ao servidor WebSocket');
     });
-
-     socketInstance.on('message', (msg) => {
-  if (msg.chatId === selectedChat?.id) {
-    const formattedMessage = formatMessage(msg);
-    setSelectedMessages((prev) => [...prev, formattedMessage]);
-  } else {
-    console.log(`Mensagem recebida para outro chat: ${msg.chatId}`);
-  }
-});
-
-    return () => {
-      socketInstance.off('message'); 
-    };
-  }
-}, [socketInstance]); 
+    socketInstance.on('chats_updated', (updatedChats) => {
+    setChats(Array.isArray(updatedChats) ? updatedChats : []); 
+  });
+  } 
+}); 
 
 const handleSubmit = (data) => {
   if (!selectedChat) {
@@ -83,24 +99,24 @@ useEffect(() => {
   selectedChatRef.current = selectedChat;
 }, [selectedChat]);
 
+const loadChats = async () => {
+    try {
+      const res = await axios.get(`${url}/chat/getChat/${userData.id}/${schema}`);
+      setChats(res.data.messages);
+    } catch (err) {
+      console.error('Erro ao carregar chats:', err);
+    }
+  };
+
 useEffect(() => {
-  const loadChats = async () => {
-  try {
-    const res = await axios.get(`${url}/chat/getChat/${userData.id}/${schema}`);
-    console.log('Resposta da API:', res.data); 
-    setChats(res.data.messages); 
-  } catch (err) {
-    console.error('Erro ao carregar chats:', err);
-  }
-};
-  loadChats();
-}, [schema, userData.id, url]);
+    loadChats();
+  }, [schema, userData.id, url]);
 
 const formatMessage = (msg) => ({
   id: msg.id,
   name: msg.contact_name || msg.senderName,
   text: msg.text || msg.body,
-  from_me: msg.from_me || false,
+  from_me: msg.from_me|| msg.fromMe,
   timestamp: msg.timestamp || new Date().toISOString(),
   message_type: msg.message_type,
   base64: msg.midiaBase64 || msg.base64
@@ -133,15 +149,6 @@ const loadMessages = async (chatId) => {
     console.error('Erro ao carregar mensagens:', error);
   }
 };
-
-const handleChatClick = (chat) => {
-  setSelectedChat(chat); // Atualiza o chat selecionado
-  setSelectedChatId(chat.id); // Atualiza o id do chat selecionado
-  setSelectedMessages([]); // Limpa as mensagens antigas
-  previousMessagesRef.current = []; // Limpa a referência
-  loadMessages(chat);
-};
-
 
 useEffect(() => {
     return () => {
@@ -195,6 +202,9 @@ useEffect(() => {
       audioRef.current.currentTime = seekTime;
       setCurrentTime(seekTime);
     };
+     const audioSrc = base64Audio && base64Audio.startsWith('blob:')
+        ? base64Audio
+        : `data:audio/ogg;base64,${base64Audio}`;
   
     return (
       <div className="audio-player d-flex align-items-center gap-3">
@@ -233,7 +243,7 @@ useEffect(() => {
         {/* Áudio */}
         <audio
           ref={audioRef}
-          src={`data:audio/ogg;base64,${base64Audio}`}
+          src={audioSrc}
           preload="auto"
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
@@ -245,34 +255,7 @@ useEffect(() => {
 
   const handleEmojiClick = (emojiObject) => {
     setNewMessage((prevMessage) => prevMessage + emojiObject.emoji);
-  };
-
-  // const handleChatClick = async (chat) => {
-  //   try {
-  //     // Limpa as mensagens antigas antes de atualizar o chat selecionado
-  //     setSelectedMessages([]);  // Limpa as mensagens
-  //     previousMessagesRef.current = [];  // Limpa a referência
-  
-  //     setSelectedChatId(chat.id); // Atualiza o id do chat selecionado
-  //     setSelectedChat(chat); // Atualiza o chat selecionado
-  
-  //     // Aguarda a atualização do estado antes de carregar as mensagens
-  //     const res = await axios.post(`${url}/chat/getMessages`, {
-  //       chat_id: chat.id,
-  //       schema,
-  //     });
-  
-  //     if (res.data.messages) {
-  //       setSelectedMessages(res.data.messages);  // Define as mensagens do novo chat
-  //       previousMessagesRef.current = res.data.messages;  // Atualiza a referência
-  //     }
-  
-  //     scrollToBottom(); // Faz o scroll para o fundo após carregar as mensagens
-  //   } catch (error) {
-  //     console.error('Erro ao carregar mensagens do chat:', error);
-  //   }
-  // };
-  
+  };  
 
   const handleAudioClick = () => {
     if (isRecording) {
@@ -333,6 +316,8 @@ const handleImageUpload = async (event) => {
     formData.append('schema', schema);
     
     try {
+      const newImageUrl = URL.createObjectURL(file); 
+        setImageUrl(newImageUrl);
 
       await axios.post(`${url}/chat/sendImage`, formData, {
         headers: {
@@ -341,26 +326,25 @@ const handleImageUpload = async (event) => {
       });
       
 
-      const newMessage = {
-        instanceId: selectedChat.connection_id,
-        number: selectedChat.contact_phone,
-        chatId: selectedChat.id,
-        from_me: true,
-        base64: file, 
-        schema: schema,
-      };
+      const message = {
+          id: newImageUrl,
+          text: null,
+          from_me: true,
+          timestamp:  new Date().toISOString(),
+          message_type: 'image',
+          base64:newImageUrl
+          }
 
-      console.log('Imagem carregada e preparada para o socket:', newMessage);
+      console.log('Imagem carregada e preparada para o socket:', message);
 
       if (socketInstance) {
-        socketInstance.emit('message', newMessage);
+        socketInstance.emit('message', message);
 
-        setSelectedMessages((prev) => [...prev, newMessage]);
+        setSelectedMessages((prev) => [...prev, message]);
       } else {
         console.log('Sem socket');
       }
 
-      console.log('Imagem enviada com sucesso!');
     } catch (error) {
       console.error('Erro ao enviar a imagem:', error);
     }
@@ -374,45 +358,61 @@ const handleImageUpload = async (event) => {
         const recorder = new MediaRecorder(stream);
         mediaStreamRef.current = stream;
         setMediaRecorder(recorder);
-  
+
         const chunks = [];
         recorder.ondataavailable = (event) => {
           if (event.data.size > 0) {
             chunks.push(event.data);
           }
         };
-  
+
         recorder.onstop = async () => {
-          stopMediaStream();
-          const audioBlob = new Blob(chunks, { type: 'audio/webm' });
-          if (audioBlob.size === 0) {
+        stopMediaStream();
+        const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+        if (audioBlob.size === 0) {
             return;
-          }
+        }
+
+        const newAudioUrl = URL.createObjectURL(audioBlob); 
+        setAudioUrl(newAudioUrl); 
+
           if (recordingIntervalRef.current) {
             clearInterval(recordingIntervalRef.current);
             recordingIntervalRef.current = null;
           }
-  
+
           const formData = new FormData();
           formData.append('audio', audioBlob);
           formData.append('chatId', selectedChat.id);
           formData.append('connectionId', selectedChat.connection_id);
           formData.append('schema', schema);
-  
+          
           try {
-            console.log(formData)
             await axios.post(`${url}/chat/sendAudio`, formData, {
               headers: {
                 'Content-Type': 'multipart/form-data',
               },
             });
-          } catch (error) {
+            const message = {
+              id: audioBlob,
+              text: null,
+              from_me: true,
+              timestamp:  new Date().toISOString(),
+              message_type: 'audio',
+              base64:newAudioUrl
+            }
+            if (socketInstance) {
+            socketInstance.emit('message', message);
+            const formattedMessage = formatMessage(message);
+            setSelectedMessages((prev) => [...prev, formattedMessage]);
+          } else {
+            console.log('Sem socket');
+          }
+          }catch (error) {
             console.error('Erro ao enviar áudio:', error);
-          } finally {
-            setAudioChunks([]);
           }
         };
-        
+
         if (recordingIntervalRef.current) {
           clearInterval(recordingIntervalRef.current);
           recordingIntervalRef.current = null;
@@ -535,26 +535,28 @@ const handleImageUpload = async (event) => {
       maxWidth: '60%',
     }}
   >
-    {msg.message_type === 'audio' ? (
+    {msg.message_type === 'audio' || msg.message_type === 'audioMessage' ? (
       <AudioPlayer base64Audio={msg.base64} audioId={msg.id} />
     ) : msg.message_type === 'imageMessage' || msg.message_type === 'image' ? (
       
      <img
   src={
-    typeof msg.base64 === 'string'
-      ? `data:image/jpeg;base64,${msg.base64}`  
-      : msg.base64  
-        }
-        alt="imagem"
-        style={{
-          maxWidth: '300px',
-          width: '100%',
-          height: 'auto',
-          borderRadius: '8px',
-          display: 'block',
-          cursor: 'pointer',
-        }}
-        onClick={() => handleImageClick(msg.base64)}
+  typeof msg.base64 === 'string' 
+    ? msg.base64.startsWith('blob:') 
+      ? msg.base64 // Se for blob, usa diretamente
+      : `data:image/jpeg;base64,${msg.base64}` // Se for Base64, adiciona o prefixo
+    : msg.base64 // Se não for string (ex: URL normal), usa como está
+    }
+    alt="imagem"
+    style={{
+      maxWidth: '300px',
+      width: '100%',
+      height: 'auto',
+      borderRadius: '8px',
+      display: 'block',
+      cursor: 'pointer',
+    }}
+    onClick={() => handleImageClick(msg.base64)}
       />
 ) : (
   msg.text

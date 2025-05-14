@@ -4,7 +4,6 @@ const { getOnlineUsers, updateLastAssignedUser, getLastAssignedUser } = require(
 
 const createChat = async (chat, instance, message, etapa, io) => {
   let schema;
-  console.log(instance)
 
   const geralSchema = await pool.query(
     `SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('pg_catalog', 'information_schema', 'pg_toast', 'public')`
@@ -37,24 +36,14 @@ const createChat = async (chat, instance, message, etapa, io) => {
 
     if (existingChat.rowCount > 0) {
       const updated = await updateChatMessages(chat, schema, message);
-      console.log(existingChat.rows[0])
       if(existingChat.rows[0].queue_id===null){
             await setChatQueue(schema, existingChat.rows[0].id)
           }
-      if (io) {
-        io.to(schema).emit("chat:new-message", {
-          chatId: chat.getChatId(),
-          message,
-          schema
-        });
-      }
       return {
         chat: existingChat.rows[0],
         schema: schema
       };
     }
-
-
     const contactNumber = chat.getChatId().split('@')[0];
     const contactQuery = await pool.query(
       `SELECT * FROM ${schema}.contacts WHERE number = $1`,
@@ -97,7 +86,7 @@ const createChat = async (chat, instance, message, etapa, io) => {
 
 
     const result = await pool.query(query, etapa ? chatValues : chatValues.slice(0, -1));
-    console.log(result)
+    console.log('TESTE',result.rows[0])
          if(result.rows[0].queue_id===null){
             await setChatQueue(schema, result.rows[0].id)
           }
@@ -178,10 +167,11 @@ const setUserChat = async (chatId, schema) => {
       nextUser = eligibleUsers[(lastIndex + 1) % eligibleUsers.length];
     }
     await updateLastAssignedUser(queueId, nextUser.id, schema);
-    await pool.query(
+   const result =  await pool.query(
       `UPDATE ${schema}.chats SET assigned_user=$1 WHERE id=$2`,
       [nextUser.id, chatId]
     );
+    return result
 };
 
 const getChats = async (schema) => {
@@ -293,6 +283,8 @@ const createNewChat = async(name, number, connectionId, queueId, user_id, schema
     throw new Error('Erro ao criar novo chat');
   }
 }
+
+
 
 
 

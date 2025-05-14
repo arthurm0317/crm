@@ -34,7 +34,7 @@ const createContactController = async (req, res) => {
         res.status(201).json(result);
     }
     catch (error) {
-        console.error("Erro ao criar contato:", error.message);
+        console.error("Erro ao criar contato:", error);
         res.status(500).json({ error: 'Erro ao criar contato' });
     }
 }

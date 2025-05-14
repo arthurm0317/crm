@@ -3,7 +3,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 
 class SocketServer {
-    constructor(port = 3002) {
+    constructor(port = 3333) {
         this.app = express();
         this.port = port;
 
@@ -13,9 +13,12 @@ class SocketServer {
         cors: {
             origin: [
             "http://localhost:3001", 
-            "chrome-extension://ophmdkgfcjapomjdpfobjfbihojchbko"  
+            "chrome-extension://ophmdkgfcjapomjdpfobjfbihojchbko"  ,
+            "https://landing-page-teste.8rxpnw.easypanel.host/",
+            "https://landing-page-front.8rxpnw.easypanel.host/",
+            "https://eg-crm.effectivegain.com/"
             ],
-        methods: ["GET", "POST"],
+        methods: ["GET", "POST", "DELETE"],
         allowedHeaders: ["Content-Type"],
         credentials: true
     }

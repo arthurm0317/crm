@@ -7,7 +7,7 @@ const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const { Chat } = require('../entities/Chat');
 const { Message } = require('../entities/Message');
-const { createChat, getChatService, setChatQueue, setUserChat, saveMediaMessage } = require('../services/ChatService');
+const { createChat, getChatService, setChatQueue, setUserChat, saveMediaMessage, getChatByUser } = require('../services/ChatService');
 const { saveMessage } = require('../services/MessageService');
 const pool = require('../db/queries');
 const { getCurrentTimestamp } = require('../services/getCurrentTimestamp');
@@ -69,8 +69,15 @@ module.exports = (broadcastMessage) => {
 
       await setUserChat(chatDb.id, schema)
 
+      const baseChat = await getChatService(createChats.chat.id, createChats.chat.connection_id, createChats.schema)
+
+      const userChat = await getChatByUser(baseChat.assigned_user, schema)
+
+      serverTest.io.emit('chats_updated', userChat)
+      console.log('chat emitido', userChat)
+
+
       if (result.data.message?.conversation) {
-        messageBody = result.data.message.conversation;
       } else if (result.data.message?.audioMessage) {
         try {
           if (result.data.message.audioMessage.base64) {
@@ -85,7 +92,19 @@ module.exports = (broadcastMessage) => {
           if (audioBase64) {
             const base64Formatado = await getBase64FromMediaMessage(result.instance, result.data.key.id)
             await saveMediaMessage(result.data.key.id, result.data.key.fromMe, chatDb.id, timestamp, 'audio', base64Formatado.base64, schema);
-            messageBody = '[áudio recebido]';
+
+           messageBody = '[áudio recebido]';
+           const payload = {
+            chatId: chatDb.id,
+            body: messageBody,
+            midiaBase64: base64Formatado.base64,
+            fromMe: result.data.key.fromMe,
+            from: result.data.pushName,
+            timestamp,
+            message_type: result.data.messageType
+          };
+
+          serverTest.io.emit('message', payload);
           } else {
             throw new Error('Áudio não encontrado ou não processado.');
           }
@@ -96,18 +115,25 @@ module.exports = (broadcastMessage) => {
       }
 
       if (result.data.message?.imageMessage) {
-        console.log('entrou image')
-        console.log(result.data.message?.imageMessage)
         try {
           if (result.data.message.base64) {
             imageBase64 = result.data.message.base64
           } 
           if (imageBase64) {
-            console.log('entro 64')
             const base64Formatado = await getBase64FromMediaMessage(result.instance, result.data.key.id)
-            console.log(base64Formatado)
             await saveMediaMessage(result.data.key.id,result.data.key.fromMe, chatDb.id, timestamp, 'image', base64Formatado.base64, schema);
             messageBody = '[imagem recebida]';
+            const payload = {
+            chatId: chatDb.id,
+            body: messageBody,
+            midiaBase64: base64Formatado.base64,
+            fromMe: result.data.key.fromMe,
+            from: result.data.pushName,
+            timestamp,
+            message_type: result.data.messageType
+          };
+
+          serverTest.io.emit('message', payload);
           } else {
             throw new Error('Imagem não encontrada ou não processada.');
           }
@@ -116,7 +142,21 @@ module.exports = (broadcastMessage) => {
           messageBody = '[erro ao processar imagem]';
         }
       }
+      if(result.data.messageType==='conversation'){
+        messageBody = result.data.message.conversation;
+        const payload = {
+            chatId: chatDb.id,
+            body: messageBody,
+            fromMe: result.data.key.fromMe,
+            from: result.data.pushName,
+            timestamp,
+            message_type: result.data.messageType
+          };
+        serverTest.io.emit('message', payload);
+      
 
+      console.log('Mensagem recebida via webhook:', payload);
+      }
       if (!chat || !result.instance) {
         throw new Error('Dados obrigatórios ausentes para createChat');
       }
@@ -139,18 +179,6 @@ module.exports = (broadcastMessage) => {
           schema
         );
       }
-
-      const payload = {
-        chatId: chatDb.id,
-        body: messageBody,
-        midiaBase64: audioBase64 || imageBase64 || null,
-        fromMe: result.data.key.fromMe,
-        from: result.data.pushName,
-        timestamp,
-        message_type: result.data.messageType
-      };
-      serverTest.io.emit('message', payload);
-      console.log('Mensagem recebida via webhook:', payload);
       
 
       res.status(200).json({ result });
@@ -202,22 +230,28 @@ module.exports = (broadcastMessage) => {
     const audioFile = req.file;
 
     try {
-      const sentAudio = {
-        chatId,
-        body: null,
-        audioUrl: `/uploads/${audioFile.filename}`,
-        fromMe: true,
-        timestamp: Date.now(),
-      };
+        if (!audioFile) {
+            return res.status(400).json({ error: 'Áudio não encontrado' });
+        }
 
-      broadcastMessage({ type: 'message', payload: sentAudio });
+        const audioBase64 = audioFile.buffer.toString('base64');
 
-      res.status(200).json({ success: true, message: sentAudio });
+        const sentAudio = {
+            chatId,
+            body: audioBase64,
+            audioUrl: null,
+            fromMe: true,
+            timestamp: Date.now(),
+        };
+
+        broadcastMessage({ type: 'message', payload: sentAudio });
+
+        res.status(200).json({ success: true, message: sentAudio });
     } catch (err) {
-      console.error('Erro ao enviar áudio:', err);
-      res.status(500).json({ error: err.message });
+        console.error('Erro ao enviar áudio:', err);
+        res.status(500).json({ error: err.message });
     }
-  });
+});
 
   return app;
 };

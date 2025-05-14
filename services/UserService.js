@@ -98,10 +98,9 @@ const deleteUser = async(user_id, schema)=>{
     `DELETE FROM ${schema}.users where id=$1`,[user_id]
   )
   if(result.rowCount>0){
-    console.log('excluiu')
-  }else{
-    console.log('nao')
+    console.log("Excluido com sucesso")
   }
+  
   return result.rows[0]
 }
 

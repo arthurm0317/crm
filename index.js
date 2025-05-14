@@ -32,9 +32,10 @@ const io = socketIo(server, {
   cors: {
     origin: ['http://localhost:3001',
       'https://landing-page-front.8rxpnw.easypanel.host',
-      'https://eg-crm.effectivegain.com'
+      'https://eg-crm.effectivegain.com',
+      'https://landing-page-teste.8rxpnw.easypanel.host/'
     ], 
-    methods: ['GET', 'POST'],
+    methods: ['GET', 'POST', 'DELETE'],
   },
 });
 
