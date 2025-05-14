@@ -11,9 +11,22 @@ function FilaPage({ theme }) {
 
   useEffect(() => {
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    const tooltipList = [...tooltipTriggerList].map(el => new bootstrap.Tooltip(el));
-    return () => tooltipList.forEach(t => t.dispose());
-  }, [filas]);
+    const tooltipList = [...tooltipTriggerList].map(el => {
+        if (el) {
+        return new bootstrap.Tooltip(el);
+        }
+        return null;
+    });
+
+    return () => {
+        tooltipList.forEach(t => {
+        if (t) {
+            t.dispose();
+        }
+        });
+    };
+    }, [filas]);
+
 
   useEffect(() => {
   const fetchFilas = async () => {
@@ -65,35 +78,30 @@ const filasFiltradas = filas.filter(fila => {
           <tbody>
             {filasFiltradas.map((fila) => (
               <tr key={fila.id}>
+
                 <td>{fila.name}</td>
+
                 <td>
-                  <span
-                    style={{
-                      backgroundColor: fila.cor,
-                      padding: '5px 10px',
-                      borderRadius: '5px',
-                      color: '#fff'
-                    }}
-                  >
-                    {fila.color}
-                  </span>
+                <i className="bi bi-square-fill me-2" style={{ color: fila.color }}></i>
+                <span>{fila.color}</span>
                 </td>
+
                 <td>
                   <button
-                    className={`icon-btn btn-2-${theme} me-1`}
+                    className={`icon-btn header-text-${theme} me-1`}
                     data-bs-toggle="tooltip"
                     title="Gerenciar"
                     onClick={() => {}}
                   >
-                    <i className="bi bi-people-gear"></i>
+                    <i className="bi bi-gear"></i>
                   </button>
                   <button
-                    className={`icon-btn btn-2-${theme} me-1`}
+                    className={`icon-btn btn-2-${theme} me-1 btn-user`}
                     data-bs-toggle="tooltip"
                     title="Editar"
                     onClick={() => {}}
                   >
-                    <i className="bi bi-pencil-square"></i>
+                    <i className="bi bi-pencil-fill"></i>
                   </button>
                   <button
                     className="icon-btn text-danger"
@@ -104,6 +112,7 @@ const filasFiltradas = filas.filter(fila => {
                     <i className="bi bi-trash-fill"></i>
                   </button>
                 </td>
+
               </tr>
             ))}
           </tbody>

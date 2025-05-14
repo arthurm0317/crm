@@ -12,12 +12,24 @@ function UsuariosPage({ theme }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const url = 'https://landing-page-teste.8rxpnw.easypanel.host'
   const [searchTerm, setSearchTerm] = useState('');
+  const [modalType, setModalType] = useState('new');
 
   useEffect(() => {
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    const tooltipList = [...tooltipTriggerList].map(el => new bootstrap.Tooltip(el));
+    tooltipTriggerList.forEach((el) => {
+      if (el) {
+        new bootstrap.Tooltip(el);
+      }
+    });
 
-    return () => tooltipList.forEach(tooltip => tooltip.dispose());
+    return () => {
+      tooltipTriggerList.forEach((el) => {
+        if (el) {
+          const tooltip = bootstrap.Tooltip.getInstance(el);
+          if (tooltip) tooltip.dispose();
+        }
+      });
+    };
   }, [usuarios]);
 
   useEffect(() => {
@@ -47,9 +59,18 @@ function UsuariosPage({ theme }) {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
           <button 
-          className={`btn btn-1-${theme}`} 
-          data-bs-toggle="modal" 
-          data-bs-target="#NewUserModal">
+            className={`btn btn-1-${theme}`} 
+            onClick={() => {
+              setModalType('new');
+              setTimeout(() => {
+                const modalElement = document.getElementById('NewUserModal');
+                if (modalElement) {
+                  const modal = new bootstrap.Modal(modalElement);
+                  modal.show();
+                }
+              }, 0);
+            }}
+          >
             Adicionar Usuário
           </button>
         </div>
@@ -77,17 +98,20 @@ function UsuariosPage({ theme }) {
                   <td>{usuario.email}</td>
                   <td>{usuario.permission}</td>
                   <td>
+
                     <button
                       className={`icon-btn btn-2-${theme} btn-user`}
                       data-bs-toggle="tooltip"
                       title="Editar"
                       onClick={() => {
+                        setModalType('edit');
                         const modal = new bootstrap.Modal(document.getElementById('NewUserModal'));
                         modal.show();
                       }}
                     >
                       <i className="bi bi-pencil-fill"></i>
                     </button>
+
                     <button
                       className="icon-btn text-danger"
                       data-bs-toggle="tooltip"
@@ -100,13 +124,14 @@ function UsuariosPage({ theme }) {
                     >
                       <i className="bi bi-trash-fill"></i>
                     </button>
+
                   </td>
                 </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <NewUserModal theme={theme}/>
+      <NewUserModal theme={theme} type={modalType}/>
       <DeleteUserModal theme={theme} usuario={usuarioSelecionado}/>
     </div>
   );
