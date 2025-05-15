@@ -5,7 +5,7 @@ function DeleteUserModal({ theme, usuario }) {
   const [password, setPassword] = useState('');
   const [showError, setShowError] = useState(false);
   const userData = JSON.parse(localStorage.getItem('user')); 
-  const url = 'http://localhost:3000'
+  const url = 'https://landing-page-teste.8rxpnw.easypanel.host'
 
   console.log(usuario)
 

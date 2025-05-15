@@ -7,7 +7,7 @@ function FilaPage({ theme }) {
   const [searchTerm, setSearchTerm] = useState('');
   const userData = JSON.parse(localStorage.getItem('user'));
   const schema = userData?.schema;
-  const url = 'http://localhost:3000';
+  const url = 'https://landing-page-teste.8rxpnw.easypanel.host';
 
   useEffect(() => {
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
