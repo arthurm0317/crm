@@ -190,6 +190,8 @@ module.exports = (broadcastMessage) => {
   });
 
   // ENVIO DE MENSAGEM DE TEXTO
+  //atualizando aqui
+  
 
   app.post('/chat/sendMessage', async (req, res) => {
     const { chatId, message, schema } = req.body;
