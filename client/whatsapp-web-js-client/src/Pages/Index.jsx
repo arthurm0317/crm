@@ -62,16 +62,27 @@ function Painel() {
   };
 
   useEffect(() => {
-    try {
-      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-      if (tooltipTriggerList.length > 0) {
-        const tooltipList = [...tooltipTriggerList].map(el => new bootstrap.Tooltip(el));
-        return () => tooltipList.forEach(t => t.dispose());
-      }
-    } catch (error) {
-      console.error('Erro ao inicializar tooltips:', error);
+  let tooltipList = [];
+
+  try {
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    if (tooltipTriggerList.length > 0) {
+      tooltipList = [...tooltipTriggerList].map(el => new bootstrap.Tooltip(el));
     }
-  }, [page]);
+  } catch (error) {
+    console.error('Erro ao inicializar tooltips:', error);
+  }
+
+  return () => {
+    if (tooltipList.length > 0) {
+      tooltipList.forEach(t => {
+        if (t && t._element) {
+          t.dispose();
+        }
+      });
+    }
+  };
+}, [page]);
 
   const renderPage = () => {
     switch (page) {
