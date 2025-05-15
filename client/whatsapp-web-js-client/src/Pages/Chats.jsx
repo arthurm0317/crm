@@ -69,8 +69,13 @@ useEffect(() => {
       console.log('Conectado ao servidor WebSocket');
     });
     socketInstance.on('chats_updated', (updatedChats) => {
-    setChats(Array.isArray(updatedChats) ? updatedChats : []); 
-  });
+      if (Array.isArray(updatedChats)) {
+      const myChats = updatedChats.filter(chat => chat.assigned_user === userData.id);
+      setChats(myChats);
+    } else {
+      setChats([]);
+    }
+});
   } 
 }); 
 
