@@ -465,7 +465,8 @@ const handleImageUpload = async (event) => {
 
         {/* LISTA DE CONTATOS */}
         <div 
-        className={`col-3 chat-list-${theme} bg-color-${theme}`} style={{ overflowY: 'auto', height: '100%', backgroundColor: `var(--bg-color-${theme})`}}>
+        className={`col-3 chat-list-${theme} bg-color-${theme}`} 
+        style={{ overflowY: 'auto', height: '100%', maxHeight: '777.61px', backgroundColor: `var(--bg-color-${theme})`}}>
           {chatList.map((chat) => (
           <div className='d-flex flex-row' key={chat.id}>
                 <div 

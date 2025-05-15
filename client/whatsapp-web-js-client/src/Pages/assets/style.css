@@ -599,3 +599,8 @@ input[type="range"]::-moz-range-progress {
   color: var(--placeholder-color);
   border-color: var(--placeholder-color) !important;
 }
+
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
