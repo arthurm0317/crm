@@ -14,9 +14,9 @@ class SocketServer {
             origin: [
             "http://localhost:3001", 
             "chrome-extension://ophmdkgfcjapomjdpfobjfbihojchbko"  ,
-            "https://landing-page-teste.8rxpnw.easypanel.host/",
-            "https://landing-page-front.8rxpnw.easypanel.host/",
-            "https://eg-crm.effectivegain.com/"
+            "https://landing-page-teste.8rxpnw.easypanel.host",
+            "https://landing-page-front.8rxpnw.easypanel.host",
+            "https://eg-crm.effectivegain.com"
             ],
         methods: ["GET", "POST", "DELETE"],
         allowedHeaders: ["Content-Type"],

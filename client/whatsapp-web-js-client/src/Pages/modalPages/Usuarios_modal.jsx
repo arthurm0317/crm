@@ -29,7 +29,7 @@ function NewUserModal({ theme, type }) {
     }
 
     try {
-      const response = await axios.post('http://localhost:3000/api/users', {
+      const response = await axios.post('https://landing-page-teste.8rxpnw.easypanel.host/api/users', {
         name: userName,
         email: userEmail,
         role: userRole,

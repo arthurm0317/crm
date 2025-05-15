@@ -28,20 +28,21 @@ function ChatPage({ theme }) {
   const [activeAudio, setActiveAudio] = useState(null); 
   const [audioProgress, setAudioProgress] = useState({});
   const [selectedImage, setSelectedImage] = useState(null);
-  const url = 'http://localhost:3000'
   const [messages, setMessages] = useState([])
   const [audioUrl, setAudioUrl] = useState('');
   const [imageUrl, setImageUrl] = useState('')
   const selectedChatIdRef = useRef(null);
-
+  
   const [socketInstance] = useState(socket)
+  
+  const url = 'https://landing-page-teste.8rxpnw.easypanel.host'
 
   const handleChatClick = (chat) => {
   setSelectedChat(chat);
   setSelectedChatId(chat.id);
   setSelectedMessages([]);
   previousMessagesRef.current = [];
-  selectedChatIdRef.current = chat.id; // Atualiza a referência do chat atual
+  selectedChatIdRef.current = chat.id; 
   loadMessages(chat);
 };
 
@@ -68,8 +69,13 @@ useEffect(() => {
       console.log('Conectado ao servidor WebSocket');
     });
     socketInstance.on('chats_updated', (updatedChats) => {
-    setChats(Array.isArray(updatedChats) ? updatedChats : []); 
-  });
+      if (Array.isArray(updatedChats)) {
+      const myChats = updatedChats.filter(chat => chat.assigned_user === userData.id);
+      setChats(myChats);
+    } else {
+      setChats([]);
+    }
+});
   } 
 }); 
 
