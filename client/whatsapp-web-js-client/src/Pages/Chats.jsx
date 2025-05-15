@@ -661,6 +661,12 @@ const handleImageUpload = async (event) => {
         value={isRecording ? '' : newMessage}
         onChange={(e) => setNewMessage(e.target.value)}
         disabled={isRecording}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !isRecording) {
+            handleSubmit(newMessage);
+            handleSendMessage();
+          }
+        }}
         style={{
           width: '100%',
           color: isRecording
