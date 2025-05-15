@@ -51,6 +51,7 @@ useEffect(() => {
       const formattedMessage = formatMessage(msg);
       setSelectedMessages((prev) => [...prev, formattedMessage]);
       loadChats()
+      scrollToBottom()
     }
   };
 
