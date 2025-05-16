@@ -25,16 +25,19 @@ const createUserController = async (req, res) => {
     }
   };
 const getAllUsersController = async(req, res)=>{
-  const schema = req.query.schema
+  const schema = req.params.schema
     try{
         const result = await getAllUsers(schema)
         res.status(201).json({
             users:result
+          
         })
     }catch(error){
         res.status(500).json({
             message:'Não foi possivel exibir os usuários'
+
         })
+        console.log(error)
     }
 }
 const searchUserController = async (req, res) => {
