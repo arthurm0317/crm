@@ -14,7 +14,7 @@ const createUserController = async (req, res) => {
         permission
       );
   
-        const schema = req.body.schema || 'effective_gain';
+        const schema = req.body.schema;
         const result = await createUser(user, schema);
 
       res.status(201).json(result);
@@ -25,7 +25,7 @@ const createUserController = async (req, res) => {
     }
   };
 const getAllUsersController = async(req, res)=>{
-  const schema = req.query.schema || 'effective_gain'
+  const schema = req.query.schema
     try{
         const result = await getAllUsers(schema)
         res.status(201).json({
@@ -66,7 +66,7 @@ const searchUserController = async (req, res) => {
 
 }
 const getOnlineUsersController = async (req, res) => {
-  const { schema } = req.query || { schema: 'effective_gain' };
+  const { schema } = req.query 
   try {
     const result = await getOnlineUsers(schema);
     res.status(201).json({
