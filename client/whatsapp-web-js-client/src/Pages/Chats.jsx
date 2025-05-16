@@ -471,7 +471,8 @@ const handleImageUpload = async (event) => {
 
         {/* LISTA DE CONTATOS */}
         <div 
-        className={`col-3 chat-list-${theme} bg-color-${theme}`} style={{ overflowY: 'auto', height: '100%', backgroundColor: `var(--bg-color-${theme})`}}>
+        className={`col-3 chat-list-${theme} bg-color-${theme}`} 
+        style={{ overflowY: 'auto', height: '100%', maxHeight: '777.61px', backgroundColor: `var(--bg-color-${theme})`}}>
           {chatList.map((chat) => (
           <div className='d-flex flex-row' key={chat.id}>
                 <div 
@@ -660,6 +661,12 @@ const handleImageUpload = async (event) => {
         value={isRecording ? '' : newMessage}
         onChange={(e) => setNewMessage(e.target.value)}
         disabled={isRecording}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !isRecording) {
+            handleSubmit(newMessage);
+            handleSendMessage();
+          }
+        }}
         style={{
           width: '100%',
           color: isRecording
