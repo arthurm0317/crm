@@ -35,7 +35,7 @@ function ChatPage({ theme }) {
   
   const [socketInstance] = useState(socket)
   
-  const url = 'https://landing-page-teste.8rxpnw.easypanel.host'
+  const url = 'http://localhost:3002'
 
   const handleChatClick = (chat) => {
   setSelectedChat(chat);
@@ -72,6 +72,7 @@ useEffect(() => {
       if (Array.isArray(updatedChats)) {
         const myChats = updatedChats.filter(chat => chat.assigned_user === userData.id);
         if (myChats.length > 0 && myChats[0].assigned_user===userData.id) {
+          console.log(myChats)
           setChats(myChats);
         }
       }

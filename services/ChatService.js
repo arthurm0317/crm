@@ -1,6 +1,7 @@
 const pool = require('../db/queries');
 const { v4: uuid4 } = require('uuid');
 const { getOnlineUsers, updateLastAssignedUser, getLastAssignedUser } = require('./UserService');
+const { getCurrentTimestamp } = require('./getCurrentTimestamp');
 
 const createChat = async (chat, instance, message, etapa, io) => {
   let schema;
@@ -73,16 +74,17 @@ const createChat = async (chat, instance, message, etapa, io) => {
       chat.getCreatedAt(),
       JSON.stringify([message]),
       contactNumber,
-      etapa || null
+      etapa || null,
+      getCurrentTimestamp
     ];
 
     const query = etapa
       ? `INSERT INTO ${schema}.chats 
-          (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages, contact_phone, etapa_id) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`
+          (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages, contact_phone, etapa_id, updated_time) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`
       : `INSERT INTO ${schema}.chats 
-          (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages, contact_phone) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`;
+          (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages, contact_phone, updated_time) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`;
 
 
     const result = await pool.query(query, etapa ? chatValues : chatValues.slice(0, -1));
@@ -112,10 +114,10 @@ const updateChatMessages = async (chat, schema, message) => {
   try {
     const result = await pool.query(
       `UPDATE ${schema}.chats 
-       SET messages = messages || $1::jsonb 
-       WHERE chat_id = $2 
+       SET messages = messages || $1::jsonb, updated_time=$2
+       WHERE chat_id = $3 
        RETURNING *`,
-      [JSON.stringify([message]), chat.getChatId()]
+      [JSON.stringify([message]), getCurrentTimestamp(), chat.getChatId()]
     );
     return result.rows[0];
   } catch (error) {
@@ -229,9 +231,10 @@ const getChatData = async(id, schema)=>{
 }
 
 const getChatByUser = async (userId, schema) => {
+  console.log('entrou getBYUser')
   try {
     const result = await pool.query(
-      `SELECT * FROM ${schema}.chats WHERE assigned_user = $1`,
+      `SELECT * FROM ${schema}.chats WHERE assigned_user = $1 ORDER BY updated_time desc`,
       [userId]
     );
 

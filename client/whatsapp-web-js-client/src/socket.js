@@ -1,6 +1,6 @@
 const {io} = require('socket.io-client')
 
-const socket = ()=>io('https://landing-page-socket.8rxpnw.easypanel.host/')
+const socket = ()=>io('http://localhost:3333')
 
 module.exports = {
     socket
