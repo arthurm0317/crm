@@ -70,15 +70,20 @@ useEffect(() => {
     });
     socketInstance.on('chats_updated', (updatedChats) => {
       if (Array.isArray(updatedChats)) {
-      const myChats = updatedChats.filter(chat => chat.assigned_user === userData.id);
-      setChats(myChats);
-    } else {
-      setChats([]);
+        const myChats = updatedChats.filter(chat => chat.assigned_user === userData.id);
+        if (myChats.length > 0 && myChats[0].assigned_user===userData.id) {
+          setChats(myChats);
+        }
+      }
+    });
+  }
+  return () => {
+    if (socketInstance) {
+      socketInstance.off('connect');
+      socketInstance.off('chats_updated');
     }
-});
-  } 
-}); 
-
+  };
+}, [socketInstance, userData.id]);
 const handleSubmit = (data) => {
   if (!selectedChat) {
     console.warn('Nenhum chat selecionado!');
@@ -509,6 +514,26 @@ const handleImageUpload = async (event) => {
 <div
   className={`col-9 chat-messages-${theme} d-flex flex-column`}
 >
+{selectedChat && (
+  <div
+    className="d-flex align-items-center px-3 py-2"
+    style={{
+      backgroundColor: 'var(--primary-color)',
+      color: '#fff',
+      borderBottom: '1px solid var(--border-color)',
+      minHeight: '60px'
+    }}
+  >
+    <div>
+      <strong style={{ fontSize: '1.1rem' }}>
+        {selectedChat.contact_name || 'Sem Nome'}
+      </strong>
+      <div style={{ fontSize: '0.95rem', opacity: 0.8 }}>
+        {selectedChat.contact_phone || selectedChat.id}
+      </div>
+    </div>
+  </div>
+)}
   <div
     style={{
       height: '100%',
