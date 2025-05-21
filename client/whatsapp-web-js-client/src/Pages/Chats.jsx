@@ -62,6 +62,7 @@ function ChatPage({ theme }) {
       c.id === chat.id ? { ...c, unreadmessages: false } : c
     )
   );
+  scrollToBottom()
 };
 
 useEffect(() => {
@@ -509,7 +510,8 @@ const handleImageUpload = async (event) => {
         className={`col-3 chat-list-${theme} bg-color-${theme}`} 
         style={{ overflowY: 'auto', height: '100%', maxHeight: '777.61px', width:'100%',maxWidth:'300px',backgroundColor: `var(--bg-color-${theme})`}}>
           {chatList.map((chat) => (
-          <div className='d-flex flex-row' key={chat.id}>   <div 
+          <div className='d-flex flex-row' key={chat.id}>
+               <div 
                 className={`selectedBar ${selectedChatId === chat.id ? '' : 'd-none'}`} style={{ width: '2.5%', maxWidth: '5px', backgroundColor: 'var(--primary-color)' }}></div>
                 <div 
                   className={`h-100 w-100 input-${theme}`}
@@ -562,7 +564,9 @@ const handleImageUpload = async (event) => {
       backgroundColor: 'var(--primary-color)',
       color: '#fff',
       borderBottom: '1px solid var(--border-color)',
-      minHeight: '60px'
+      minHeight: '60px',
+      width:'100%',
+      maxWidth:'1700px',
     }}
   >
     <div>
