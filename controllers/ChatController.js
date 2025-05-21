@@ -1,4 +1,4 @@
-const { setUserChat, getChats, getMessages, getChatData, getChatByUser, updateQueue, getChatById, saveMediaMessage, setMessageAsRead } = require('../services/ChatService');
+const { setUserChat, getChats, getMessages, getChatData, getChatByUser, updateQueue, getChatById, saveMediaMessage, setMessageAsRead, closeChat } = require('../services/ChatService');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
@@ -273,6 +273,19 @@ try {
   console.log(error)
 }
 }
+const closeChatContoller = async(req, res)=>{
+  try{
+    const {chat_id} = req.body
+    const schema = req.body.schema
+    const result = await closeChat(chat_id, schema)
+
+   res.status(200).json({
+    result:result
+  })
+  } catch (error) {
+    console.log(error)
+  }
+}
   module.exports = {
     setUserChatController,
     getChatsController,
@@ -285,5 +298,6 @@ try {
     sendImageController,
     uploadAudio,
     uploadImage,
-    setMessageAsReadController
+    setMessageAsReadController,
+    closeChatContoller
   };

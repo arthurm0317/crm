@@ -305,8 +305,15 @@ const setMessageAsRead = async(chat_id, schema)=>{
   }
 }
 
-
-
+const closeChat = async(chat_id, schema)=>{
+  try {
+    const result = await pool.query(`UPDATE ${schema}.chats set status=$1 where id=$2`,
+      ['closed', chat_id]
+    )
+  } catch (error) {
+    console.log(error)
+  }
+}
 
 module.exports = {
   createChat,
@@ -323,5 +330,6 @@ module.exports = {
   getChatById,
   createNewChat,
   setMessageIsUnread,
-  setMessageAsRead
+  setMessageAsRead, 
+  closeChat
 };
