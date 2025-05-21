@@ -37,6 +37,18 @@ function ChatPage({ theme }) {
   
   const url = 'http://localhost:3002'
 
+  const setAsRead = async()=>{
+    try{
+      const res = await axios.post(`${url}/chat/setAsRead`,{
+        chat_id: selectedChat.id,
+        schema:schema
+      })
+      console.log(res)
+    }catch(error){
+      console.error(error)
+    }
+  }
+
   const handleChatClick = (chat) => {
   setSelectedChat(chat);
   setSelectedChatId(chat.id);
@@ -44,6 +56,12 @@ function ChatPage({ theme }) {
   previousMessagesRef.current = [];
   selectedChatIdRef.current = chat.id; 
   loadMessages(chat);
+  setAsRead()
+  setChats(prevChats =>
+    prevChats.map(c =>
+      c.id === chat.id ? { ...c, unreadmessages: false } : c
+    )
+  );
 };
 
 useEffect(() => {
@@ -51,8 +69,18 @@ useEffect(() => {
     if (msg.chatId === selectedChatIdRef.current) {
       const formattedMessage = formatMessage(msg);
       setSelectedMessages((prev) => [...prev, formattedMessage]);
-      loadChats()
-      scrollToBottom()
+      loadChats();
+      scrollToBottom();
+      axios.post(`${url}/chat/setAsRead`, {
+        chat_id: msg.chatId,
+        schema: schema
+      });
+       setChats(prevChats =>
+      prevChats.map(c =>
+        c.id === msg.chatId ? { ...c, unreadmessages: false } : c
+      )
+    );
+    } else {
     }
   };
 
@@ -116,6 +144,7 @@ const loadChats = async () => {
     try {
       const res = await axios.get(`${url}/chat/getChat/${userData.id}/${schema}`);
       setChats(res.data.messages);
+      console.log(res.data.messages)
     } catch (err) {
       console.error('Erro ao carregar chats:', err);
     }
@@ -478,17 +507,29 @@ const handleImageUpload = async (event) => {
         {/* LISTA DE CONTATOS */}
         <div 
         className={`col-3 chat-list-${theme} bg-color-${theme}`} 
-        style={{ overflowY: 'auto', height: '100%', maxHeight: '777.61px', backgroundColor: `var(--bg-color-${theme})`}}>
+        style={{ overflowY: 'auto', height: '100%', maxHeight: '777.61px', width:'100%',maxWidth:'300px',backgroundColor: `var(--bg-color-${theme})`}}>
           {chatList.map((chat) => (
-          <div className='d-flex flex-row' key={chat.id}>
-                <div 
+          <div className='d-flex flex-row' key={chat.id}>   <div 
                 className={`selectedBar ${selectedChatId === chat.id ? '' : 'd-none'}`} style={{ width: '2.5%', maxWidth: '5px', backgroundColor: 'var(--primary-color)' }}></div>
                 <div 
                   className={`h-100 w-100 input-${theme}`}
                   onClick={() => handleChatClick(chat)}
                   style={{ cursor: 'pointer', padding: '10px', borderBottom: `1px solid var(--border-color-${theme})` }}
-                >
+                  >
                   <strong>{chat.contact_name || chat.id || 'Sem Nome'}</strong>
+            <div className='d-flex flex-column align-items-center justify-content-center'>
+            {chat.unreadmessages && selectedChatId !== chat.id && (
+            <span style={{
+              position: 'sticky',
+              width: 12,
+              height: 12,
+              left:'100%',
+              background: '#0082ca',
+              borderRadius: '50%',  
+              display: 'inline-block'
+            }} />
+          )}
+            </div>
                   <div
                     style={{
                       color: '#666',
@@ -503,14 +544,13 @@ const handleImageUpload = async (event) => {
                   ? (typeof chat.messages[chat.messages.length - 1] === 'string'
                       ? chat.messages[chat.messages.length - 1].slice(0, 40) + 
                         (chat.messages[chat.messages.length - 1].length > 50 ? '...' : '')
-                      : 'Mensagem inválida')
+                      : 'Mensagem de mídia')
                   : 'Sem mensagens'}
                   </div>
                 </div>
               </div>
             ))}
             </div>
-
 {/* MENSAGENS DO CONTATO SELECIONADO */}
 <div
   className={`col-9 chat-messages-${theme} d-flex flex-column`}

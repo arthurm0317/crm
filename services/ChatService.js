@@ -88,7 +88,6 @@ const createChat = async (chat, instance, message, etapa, io) => {
 
 
     const result = await pool.query(query, etapa ? chatValues : chatValues.slice(0, -1));
-    console.log('TESTE',result.rows[0])
          if(result.rows[0].queue_id===null){
             await setChatQueue(schema, result.rows[0].id)
           }
@@ -231,10 +230,9 @@ const getChatData = async(id, schema)=>{
 }
 
 const getChatByUser = async (userId, schema) => {
-  console.log('entrou getBYUser')
   try {
     const result = await pool.query(
-      `SELECT * FROM ${schema}.chats WHERE assigned_user = $1 ORDER BY updated_time desc`,
+      `SELECT * FROM ${schema}.chats WHERE assigned_user = $1 ORDER BY (updated_time IS NULL), updated_time DESC`,
       [userId]
     );
 
@@ -247,8 +245,6 @@ const getChatByUser = async (userId, schema) => {
 
 const getChatById = async (chatId, connection_id, schema) => {
   try {
-    console.log("chatId", chatId)
-    console.log("connection_id", connection_id) 
       
     const result = await pool.query(
       `SELECT * FROM ${schema}.chats WHERE id = $1 and connection_id = $2`,
@@ -287,6 +283,27 @@ const createNewChat = async(name, number, connectionId, queueId, user_id, schema
   }
 }
 
+const setMessageIsUnread = async(chat_id, schema)=>{
+  try {
+    await pool.query(
+      `UPDATE ${schema}.chats SET unreadmessages = $2 WHERE id=$1`,
+      [chat_id, true]
+    );
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+const setMessageAsRead = async(chat_id, schema)=>{
+  try {
+    await pool.query(
+      `UPDATE ${schema}.chats SET unreadmessages = $2 WHERE id=$1`,
+      [chat_id, false]
+    );
+  } catch (error) {
+    console.log(error)
+  }
+}
 
 
 
@@ -304,5 +321,7 @@ module.exports = {
   getChatByUser,
   saveMediaMessage,
   getChatById,
-  createNewChat
+  createNewChat,
+  setMessageIsUnread,
+  setMessageAsRead
 };
