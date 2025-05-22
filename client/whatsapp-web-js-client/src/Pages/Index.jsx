@@ -142,7 +142,7 @@ function Painel() {
               className={`btn ${page === 'kanban' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-start gap-2`}
             >
               <i className="bi bi-kanban"></i>
-              <span className="sidebar-label d-none">Chats</span>
+              <span className="sidebar-label d-none">Kanban</span>
             </button>
             <button
               id="filas"

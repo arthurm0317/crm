@@ -544,10 +544,11 @@ const handleImageUpload = async (event) => {
     <div className={`d-flex flex-column h-100 w-100 ms-2`}>
       <div className="mb-3">
         <button 
-        className={`btn btn-1-${theme}`}
+        className={`btn btn-1-${theme} d-flex gap-2`}
         data-bs-toggle="modal"
         data-bs-target="#NewContactModal"
         >
+          <i className="bi-plus-lg"></i>
           Novo Contato
         </button>
       </div>
