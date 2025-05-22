@@ -76,6 +76,8 @@ function ChatPage({ theme }) {
   const [audioUrl, setAudioUrl] = useState('');
   const [imageUrl, setImageUrl] = useState('')
   const selectedChatIdRef = useRef(null);
+  const [selectedTab, setSelectedTab] = useState('conversas'); // novo estado
+
 
   const [socketInstance] = useState(socket)
   
@@ -552,53 +554,82 @@ const handleImageUpload = async (event) => {
       <div className={`chat chat-${theme} h-100 w-100 d-flex flex-row`}>
 
         {/* LISTA DE CONTATOS */}
-        <div 
-        className={`col-3 chat-list-${theme} bg-color-${theme}`} 
-        style={{ overflowY: 'auto', height: '100%', maxHeight: '777.61px', width:'100%',maxWidth:'300px',backgroundColor: `var(--bg-color-${theme})`}}>
-          {chatList.map((chat) => (
-          <div className='msg d-flex flex-row' key={chat.id}>
-               <div 
-                className={`selectedBar ${selectedChatId === chat.id ? '' : 'd-none'}`} style={{ width: '2.5%', maxWidth: '5px', backgroundColor: 'var(--primary-color)' }}></div>
-                <div 
-                  className={`h-100 w-100 input-${theme}`}
-                  onClick={() => handleChatClick(chat)}
-                  style={{ cursor: 'pointer', padding: '10px', borderBottom: `1px solid var(--border-color-${theme})` }}
-                  >
-                  <strong>{chat.contact_name || chat.id || 'Sem Nome'}</strong>
-            <div className='d-flex flex-column align-items-center justify-content-center'>
-            {chat.unreadmessages && selectedChatId !== chat.id && (
-            <span style={{
-              position: 'sticky',
-              width: 12,
-              height: 12,
-              left:'100%',
-              background: '#0082ca',
-              borderRadius: '50%',  
-              display: 'inline-block'
-            }} />
-          )}
-            </div>
+        <div className={`col-3 chat-list-${theme} bg-color-${theme}`}
+          style={{ overflowY: 'auto', height: '100%', maxHeight: '777.61px', width:'100%',maxWidth:'300px',backgroundColor: `var(--bg-color-${theme})`}}>
+
+          {/* Botões de troca */}
+          <div className="d-flex gap-2 p-2">
+            <button
+              className={`btn btn-sm ${selectedTab === 'conversas' ? 'btn-primary' : 'btn-outline-primary'}`}
+              onClick={() => setSelectedTab('conversas')}
+            >
+              Conversas
+            </button>
+            <button
+              className={`btn btn-sm ${selectedTab === 'aguardando' ? 'btn-primary' : 'btn-outline-primary'}`}
+              onClick={() => setSelectedTab('aguardando')}
+            >
+              Aguardando
+            </button>
+          </div>
+
+          {/* Lista filtrada */}
+          <div>
+            <h6 style={{padding: '8px 0 0 10px'}}>
+              {selectedTab === 'conversas' ? 'Conversas' : 'Sala de Espera'}
+            </h6>
+            {chatList
+              .filter(chat =>
+                selectedTab === 'conversas'
+                  ? chat.status !== 'waiting'
+                  : chat.status === 'waiting'
+              )
+              .map((chat) => (
+                <div className='msg d-flex flex-row' key={chat.id}>
                   <div
-                    style={{
-                      color: '#666',
-                      fontSize: '0.9rem',
-                      overflow: 'hidden',
-                      whiteSpace: 'nowrap',
-                      textOverflow: 'ellipsis',
-                      maxWidth: '100%',
-                    }}
+                    className={`selectedBar ${selectedChatId === chat.id ? '' : 'd-none'}`}
+                    style={{ width: '2.5%', maxWidth: '5px', backgroundColor: 'var(--primary-color)' }}></div>
+                  <div
+                    className={`h-100 w-100 input-${theme}`}
+                    onClick={() => handleChatClick(chat)}
+                    style={{ cursor: 'pointer', padding: '10px', borderBottom: `1px solid var(--border-color-${theme})` }}
                   >
-                    {Array.isArray(chat.messages) && chat.messages.length > 0
-                  ? (typeof chat.messages[chat.messages.length - 1] === 'string'
-                      ? chat.messages[chat.messages.length - 1].slice(0, 40) + 
-                        (chat.messages[chat.messages.length - 1].length > 50 ? '...' : '')
-                      : 'Mensagem de mídia')
-                  : 'Sem mensagens'}
+                    <strong>{chat.contact_name || chat.id || 'Sem Nome'}</strong>
+                    <div className='d-flex flex-column align-items-center justify-content-center'>
+                      {chat.unreadmessages && selectedChatId !== chat.id && (
+                        <span style={{
+                          position: 'sticky',
+                          width: 12,
+                          height: 12,
+                          left:'100%',
+                          background: '#0082ca',
+                          borderRadius: '50%',
+                          display: 'inline-block'
+                        }} />
+                      )}
+                    </div>
+                    <div
+                      style={{
+                        color: '#666',
+                        fontSize: '0.9rem',
+                        overflow: 'hidden',
+                        whiteSpace: 'nowrap',
+                        textOverflow: 'ellipsis',
+                        maxWidth: '100%',
+                      }}
+                    >
+                      {Array.isArray(chat.messages) && chat.messages.length > 0
+                        ? (typeof chat.messages[chat.messages.length - 1] === 'string'
+                            ? chat.messages[chat.messages.length - 1].slice(0, 40) +
+                              (chat.messages[chat.messages.length - 1].length > 50 ? '...' : '')
+                            : 'Mensagem de mídia')
+                        : 'Sem mensagens'}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-            </div>
+              ))}
+          </div>
+        </div>
 {/* MENSAGENS DO CONTATO SELECIONADO */}
 <div
   className={`w-100 chat-messages-${theme} d-flex flex-column`} style={{ borderTopRightRadius: '10px' }}

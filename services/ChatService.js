@@ -168,30 +168,42 @@ const setUserChat = async (chatId, schema) => {
       [chatId]
     );
     const queueId = chatDb.rows[0].queue_id;
-    const onlineUsers = await getOnlineUsers(schema);
-    const queueUsersQuery = await pool.query(
-      `SELECT user_id FROM ${schema}.queue_users WHERE queue_id=$1`,
-      [queueId]
-    );
-    const userIdsInQueue = queueUsersQuery.rows.map(row => row.user_id);
-    const eligibleUsers = onlineUsers.filter(user =>
-      user.permission === 'user' && userIdsInQueue.includes(user.id)
-    );
-    if (eligibleUsers.length === 0) return;
-    const lastAssigned = await getLastAssignedUser(queueId, schema);
-    let nextUser;
-    if (!lastAssigned) {
-      nextUser = eligibleUsers[0];
-    } else {
-      const lastIndex = eligibleUsers.findIndex(u => u.id === lastAssigned.user_id);
-      nextUser = eligibleUsers[(lastIndex + 1) % eligibleUsers.length];
+    const isDistributionOn = await pool.query(
+      `SELECT * FROM ${schema}.queues WHERE id=$1 `, [queueId]
+    )
+    if (isDistributionOn.rows[0].distribution === true) {
+      const onlineUsers = await getOnlineUsers(schema);
+      const queueUsersQuery = await pool.query(
+        `SELECT user_id FROM ${schema}.queue_users WHERE queue_id=$1`,
+        [queueId]
+      );
+      const userIdsInQueue = queueUsersQuery.rows.map(row => row.user_id);
+      const eligibleUsers = onlineUsers.filter(user =>
+        user.permission === 'user' && userIdsInQueue.includes(user.id)
+      );
+      if (eligibleUsers.length === 0) return;
+      const lastAssigned = await getLastAssignedUser(queueId, schema);
+      let nextUser;
+      if (!lastAssigned) {
+        nextUser = eligibleUsers[0];
+      } else {
+        const lastIndex = eligibleUsers.findIndex(u => u.id === lastAssigned.user_id);
+        nextUser = eligibleUsers[(lastIndex + 1) % eligibleUsers.length];
+      }
+      await updateLastAssignedUser(queueId, nextUser.id, schema);
+     const result =  await pool.query(
+        `UPDATE ${schema}.chats SET assigned_user=$1 WHERE id=$2`,
+        [nextUser.id, chatId]
+      );
+      return result
+    }else{
+      const result = await pool.query(
+        `UPDATE ${schema}.chats SET status='waiting' WHERE id=$1`,
+        [chatId]
+      )
+      return result.rows[0]
     }
-    await updateLastAssignedUser(queueId, nextUser.id, schema);
-   const result =  await pool.query(
-      `UPDATE ${schema}.chats SET assigned_user=$1 WHERE id=$2`,
-      [nextUser.id, chatId]
-    );
-    return result
+
 };
 
 const getChats = async (schema) => {
@@ -257,7 +269,7 @@ const getChatByUser = async (userId, role, schema) => {
       return result.rows;
     }else{
       const result = await pool.query(
-        `SELECT * FROM ${schema}.chats WHERE assigned_user = $1 AND status <> 'closed' ORDER BY (updated_time IS NULL), updated_time DESC`,
+        `SELECT * FROM ${schema}.chats WHERE (assigned_user = $1 OR assigned_user IS NULL) AND status <> 'closed' ORDER BY (updated_time IS NULL), updated_time DESC`,
         [userId]
       );
       return result.rows;
@@ -300,7 +312,7 @@ const createNewChat = async(name, number, connectionId, queueId, user_id, schema
   try {
     const result = await pool.query(
       `INSERT INTO ${schema}.chats (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-      [uuid4(), number + '@c.us', connectionId, queueId, false, name, user_id, 'open', new Date().getTime(), JSON.stringify([])]
+      [uuid4(), number + '@c.us', connectionId, queueId, false, name, user_id, 'waiting', new Date().getTime(), JSON.stringify([])]
     );
     return result.rows[0];
   } catch (error) {
