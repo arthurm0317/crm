@@ -38,8 +38,8 @@ const createChat = async (chat, instance, message, etapa, io) => {
     if (existingChat.rowCount > 0) {
       const updated = await updateChatMessages(chat, schema, message);
       if(existingChat.rows[0].queue_id===null){
-            await setChatQueue(schema, existingChat.rows[0].id)
-          }
+        await setChatQueue(schema, existingChat.rows[0].id)
+      }
       return {
         chat: existingChat.rows[0],
         schema: schema
@@ -62,35 +62,52 @@ const createChat = async (chat, instance, message, etapa, io) => {
       contactName = newContact.rows[0].contact_name;
     }
 
-    const chatValues = [
-      chat.getId(),
-      chat.getChatId(),
-      chat.getConnectionId(),
-      chat.getQueueId(),
-      chat.getIsGroup(),
-      contactName,
-      chat.getAssignedUser(),
-      chat.getStatus(),
-      chat.getCreatedAt(),
-      JSON.stringify([message]),
-      contactNumber,
-      etapa || null,
-      getCurrentTimestamp
-    ];
+    // Defina os valores conforme a existência de etapa
+    let values, query;
+    if (etapa) {
+      values = [
+        chat.getId(),
+        chat.getChatId(),
+        chat.getConnectionId(),
+        chat.getQueueId(),
+        chat.getIsGroup(),
+        contactName,
+        chat.getAssignedUser(),
+        chat.getStatus(),
+        chat.getCreatedAt(),
+        JSON.stringify([message]),
+        contactNumber,
+        etapa,
+        getCurrentTimestamp()
+      ];
+      query = `INSERT INTO ${schema}.chats 
+        (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages, contact_phone, etapa_id, updated_time) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`;
+    } else {
+      values = [
+        chat.getId(),
+        chat.getChatId(),
+        chat.getConnectionId(),
+        chat.getQueueId(),
+        chat.getIsGroup(),
+        contactName,
+        chat.getAssignedUser(),
+        chat.getStatus(),
+        chat.getCreatedAt(),
+        JSON.stringify([message]),
+        contactNumber,
+        getCurrentTimestamp()
+      ];
+      query = `INSERT INTO ${schema}.chats 
+        (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages, contact_phone, updated_time) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`;
+    }
 
-    const query = etapa
-      ? `INSERT INTO ${schema}.chats 
-          (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages, contact_phone, etapa_id, updated_time) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`
-      : `INSERT INTO ${schema}.chats 
-          (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages, contact_phone, updated_time) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`;
-
-
-    const result = await pool.query(query, etapa ? chatValues : chatValues.slice(0, -1));
-         if(result.rows[0].queue_id===null){
-            await setChatQueue(schema, result.rows[0].id)
-          }
+    const result = await pool.query(query, values);
+    console.log('Resultado da inserção do chat:', result.rows[0]);
+    if(result.rows[0].queue_id===null){
+      await setChatQueue(schema, result.rows[0].id)
+    }
 
     if (io) {
       io.to(schema).emit("chat:new-message", {
@@ -229,14 +246,21 @@ const getChatData = async(id, schema)=>{
   }
 }
 
-const getChatByUser = async (userId, schema) => {
+const getChatByUser = async (userId, role, schema) => {
   try {
-    const result = await pool.query(
-      `SELECT * FROM ${schema}.chats WHERE assigned_user = $1 ORDER BY (updated_time IS NULL), updated_time DESC`,
-      [userId]
-    );
+    if(role === 'admin'){
+      const result = await pool.query(
+        `SELECT * FROM ${schema}.chats ORDER BY (updated_time IS NULL), updated_time DESC`
+      )
+      return result.rows;
+    }else{
+      const result = await pool.query(
+        `SELECT * FROM ${schema}.chats WHERE assigned_user = $1 ORDER BY (updated_time IS NULL), updated_time DESC`,
+        [userId]
+      );
+      return result.rows;
+    }
 
-    return result.rows;
   } catch (error) {
     console.error('Erro ao buscar chats do usuário:', error.message);
     throw new Error('Erro ao buscar chats do usuário');

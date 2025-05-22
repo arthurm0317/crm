@@ -37,6 +37,7 @@ function ChatPage({ theme }) {
   
   const url = 'http://localhost:3002'
 
+
   const setAsRead = async()=>{
     try{
       const res = await axios.post(`${url}/chat/setAsRead`,{
@@ -143,7 +144,7 @@ useEffect(() => {
 
 const loadChats = async () => {
     try {
-      const res = await axios.get(`${url}/chat/getChat/${userData.id}/${schema}`);
+      const res = await axios.get(`${url}/chat/getChat/${userData.id}/${schema}/${userData.role}`);
       setChats(res.data.messages);
       console.log(res.data.messages)
     } catch (err) {

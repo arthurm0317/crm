@@ -31,8 +31,9 @@ module.exports = (broadcastMessage) => {
   app.post('/chat', async (req, res) => {
     const result = req.body;
     console.log('------------- resultado -----------------')
-    console.log(result)
-
+    console.log(result.data.message.imageMessage)
+    console.log('------------- resultado imagem -----------------')
+    console.log(result.data.message)
     if (!result?.data?.key?.remoteJid) {
       return res.status(400).json({ error: 'Dados incompletos' });
     }
@@ -75,7 +76,7 @@ module.exports = (broadcastMessage) => {
       if(result.data.key.fromMe===false){
         await setMessageIsUnread(baseChat.id, schema)
       }
-      const userChat = await getChatByUser(baseChat.assigned_user, schema)
+      const userChat = await getChatByUser(baseChat.assigned_user, baseChat.permission,schema)
 
       serverTest.io.emit('chats_updated', userChat)
 

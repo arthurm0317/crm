@@ -191,7 +191,7 @@ const getChatDataController = async (req, res) => {
 };
 
 const getChatByUserController = async (req, res) => {
-  const { userId } = req.params;
+  const { userId, role} = req.params;
   const schema = req.params.schema || 'effective_gain';
 
   if (!userId) {
@@ -199,7 +199,7 @@ const getChatByUserController = async (req, res) => {
   }
 
   try {
-    const result = await getChatByUser(userId, schema);
+    const result = await getChatByUser(userId, role, schema);
     res.status(200).json({ messages: result });
   } catch (err) {
     res.status(500).json({ error: 'Erro ao buscar chats do usuário.' });
