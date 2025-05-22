@@ -560,22 +560,27 @@ const handleImageUpload = async (event) => {
           {/* Botões de troca */}
           <div className="d-flex gap-2 p-2">
             <button
-              className={`btn btn-sm ${selectedTab === 'conversas' ? 'btn-primary' : 'btn-outline-primary'}`}
+              className={`d-flex gap-2 btn btn-sm ${selectedTab === 'conversas' ? `btn-1-${theme}` : `btn-2-${theme}`}`}
               onClick={() => setSelectedTab('conversas')}
             >
+              <i className="bi bi-chat-left-text"></i>
               Conversas
             </button>
             <button
-              className={`btn btn-sm ${selectedTab === 'aguardando' ? 'btn-primary' : 'btn-outline-primary'}`}
+              className={`d-flex gap-2 btn btn-sm ${selectedTab === 'aguardando' ? `btn-1-${theme}` : `btn-2-${theme}`}`}
               onClick={() => setSelectedTab('aguardando')}
             >
+              <i className="bi bi-alarm"></i>
               Aguardando
             </button>
           </div>
 
           {/* Lista filtrada */}
           <div>
-            <h6 style={{padding: '8px 0 0 10px'}}>
+            <h6 
+              className={`header-text-${theme}`}
+              style={{padding: '8px 0 0 10px'}}
+            >
               {selectedTab === 'conversas' ? 'Conversas' : 'Sala de Espera'}
             </h6>
             {chatList
@@ -657,14 +662,28 @@ const handleImageUpload = async (event) => {
       </div>
     </div>
 
-    <div>
-  <DropdownComponent
-    theme={theme}
-    selectedChat={selectedChat}
-    handleChatClick={handleChatClick}
-  />
-</div>
-    
+    <div className='d-flex flex-row gap-2'>
+
+      <div>
+        <button
+          className={`btn btn-2-${theme} d-flex gap-2`}
+        >
+          <i className="bi bi-check2"></i>
+          Aceitar
+        </button>
+
+      </div>
+
+      <div>
+        <DropdownComponent
+          theme={theme}
+          selectedChat={selectedChat}
+          handleChatClick={handleChatClick}
+        />
+      </div>
+
+    </div>
+
   </div>
 )}
   <div
