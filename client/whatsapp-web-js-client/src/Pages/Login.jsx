@@ -134,7 +134,7 @@ function Login() {
                 className={`btn btn-2-${theme} toggle-${theme}`}
                 onClick={toggleTheme}
               >
-                <i className="bi bi-sun"></i>
+                <i className={`${theme === 'light' ? `bi-sun` : `bi-moon-stars`}`}></i>
               </button>
             </div>
 
