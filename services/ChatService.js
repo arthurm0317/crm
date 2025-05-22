@@ -31,20 +31,23 @@ const createChat = async (chat, instance, message, etapa, io) => {
 
   try {
     const existingChat = await pool.query(
-      `SELECT * FROM ${schema}.chats WHERE chat_id = $1 AND connection_id = $2`,
+      `SELECT * FROM ${schema}.chats WHERE chat_id = $1 AND connection_id = $2 order by (status='closed') `,
       [chat.getChatId(), chat.getConnectionId()]
     );
 
     if (existingChat.rowCount > 0) {
-      const updated = await updateChatMessages(chat, schema, message);
-      if(existingChat.rows[0].queue_id===null){
-        await setChatQueue(schema, existingChat.rows[0].id)
+      if(existingChat.rows[0].status !== 'closed'){
+        console.log('chat', existingChat.rows[0]);
+        const updated = await updateChatMessages(chat, schema, message);
+        if(existingChat.rows[0].queue_id===null){
+          await setChatQueue(schema, existingChat.rows[0].id)
+        }
+        return {
+          chat: existingChat.rows[0],
+          schema: schema
+        };
       }
-      return {
-        chat: existingChat.rows[0],
-        schema: schema
-      };
-    }
+    } 
     const contactNumber = chat.getChatId().split('@')[0];
     const contactQuery = await pool.query(
       `SELECT * FROM ${schema}.contacts WHERE number = $1`,
@@ -62,7 +65,6 @@ const createChat = async (chat, instance, message, etapa, io) => {
       contactName = newContact.rows[0].contact_name;
     }
 
-    // Defina os valores conforme a existência de etapa
     let values, query;
     if (etapa) {
       values = [
@@ -255,7 +257,7 @@ const getChatByUser = async (userId, role, schema) => {
       return result.rows;
     }else{
       const result = await pool.query(
-        `SELECT * FROM ${schema}.chats WHERE assigned_user = $1 ORDER BY (updated_time IS NULL), updated_time DESC`,
+        `SELECT * FROM ${schema}.chats WHERE assigned_user = $1 AND status <> 'closed' ORDER BY (updated_time IS NULL), updated_time DESC`,
         [userId]
       );
       return result.rows;

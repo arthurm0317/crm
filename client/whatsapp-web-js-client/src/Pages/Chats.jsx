@@ -3,30 +3,45 @@ import axios from 'axios';
 import EmojiPicker from 'emoji-picker-react';
 import NewContactModal from './modalPages/Chats_novoContato';
 import {socket} from '../socket'
-import Dropdown from 'react-bootstrap/Dropdown';
+import {Dropdown} from 'react-bootstrap';
 import './assets/style.css';
 
-function DropdownComponent({ theme }) {
+function DropdownComponent({ theme, selectedChat, handleChatClick }) {
+  const url = 'http://localhost:3002'
+  const userData = JSON.parse(localStorage.getItem('user'));
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const handleToggle = (isOpen) => {
     setIsDropdownOpen(isOpen);
   };
 
+  const handleCloseChat = async () => {
+    try {
+      const res = await axios.post(`${url}/chat/close`, {
+        chat_id: selectedChat.id,
+        schema: userData.schema
+      });
+      // Exemplo: chamar handleChatClick após fechar o chat
+      // handleChatClick(null);
+    } catch (error) {
+      console.error(error)
+    }
+  };
+
   return (
     <Dropdown drop="start" onToggle={handleToggle}>
       <Dropdown.Toggle
-        variant={theme === 'light' ? 'light' : 'dark'} // Exemplo: usando variantes padrão do Bootstrap
+        variant={theme === 'light' ? 'light' : 'dark'}
         id="dropdown-basic"
         className={`btn-2-${theme}`}
       >
         Opções
       </Dropdown.Toggle>
 
-      <Dropdown.Menu 
-      variant={theme === 'light' ? 'light' : 'dark'} 
-      className={`input-${theme}`}>
-        <Dropdown.Item href="#">Action</Dropdown.Item>
+      <Dropdown.Menu
+        variant={theme === 'light' ? 'light' : 'dark'}
+        className={`input-${theme}`}>
+        <Dropdown.Item href="#" onClick={handleCloseChat}>Finalizar Atendimento</Dropdown.Item>
         <Dropdown.Item href="#">Another action</Dropdown.Item>
       </Dropdown.Menu>
     </Dropdown>
@@ -91,8 +106,9 @@ function ChatPage({ theme }) {
     prevChats.map(c =>
       c.id === chat.id ? { ...c, unreadmessages: false } : c
     )
-  );
+  );  
   scrollToBottom()
+  
 };
 
   useEffect(() => {
@@ -611,8 +627,12 @@ const handleImageUpload = async (event) => {
     </div>
 
     <div>
-      <DropdownComponent theme={theme} />
-    </div>
+  <DropdownComponent
+    theme={theme}
+    selectedChat={selectedChat}
+    handleChatClick={handleChatClick}
+  />
+</div>
     
   </div>
 )}
