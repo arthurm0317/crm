@@ -3,6 +3,35 @@ import axios from 'axios';
 import EmojiPicker from 'emoji-picker-react';
 import NewContactModal from './modalPages/Chats_novoContato';
 import {socket} from '../socket'
+import Dropdown from 'react-bootstrap/Dropdown';
+import './assets/style.css';
+
+function DropdownComponent({ theme }) {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const handleToggle = (isOpen) => {
+    setIsDropdownOpen(isOpen);
+  };
+
+  return (
+    <Dropdown drop="start" onToggle={handleToggle}>
+      <Dropdown.Toggle
+        variant={theme === 'light' ? 'light' : 'dark'} // Exemplo: usando variantes padrão do Bootstrap
+        id="dropdown-basic"
+        className={`btn-2-${theme}`}
+      >
+        Opções
+      </Dropdown.Toggle>
+
+      <Dropdown.Menu 
+      variant={theme === 'light' ? 'light' : 'dark'} 
+      className={`input-${theme}`}>
+        <Dropdown.Item href="#">Action</Dropdown.Item>
+        <Dropdown.Item href="#">Another action</Dropdown.Item>
+      </Dropdown.Menu>
+    </Dropdown>
+  );
+}
 
 
 function ChatPage({ theme }) {
@@ -32,7 +61,7 @@ function ChatPage({ theme }) {
   const [audioUrl, setAudioUrl] = useState('');
   const [imageUrl, setImageUrl] = useState('')
   const selectedChatIdRef = useRef(null);
-  
+
   const [socketInstance] = useState(socket)
   
   const url = 'http://localhost:3002'
@@ -65,32 +94,32 @@ function ChatPage({ theme }) {
   scrollToBottom()
 };
 
-useEffect(() => {
-  const handleMessage = (msg) => {
-    if (msg.chatId === selectedChatIdRef.current) {
-      const formattedMessage = formatMessage(msg);
-      setSelectedMessages((prev) => [...prev, formattedMessage]);
-      loadChats();
-      scrollToBottom();
-      axios.post(`${url}/chat/setAsRead`, {
-        chat_id: msg.chatId,
-        schema: schema
-      });
-       setChats(prevChats =>
-      prevChats.map(c =>
-        c.id === msg.chatId ? { ...c, unreadmessages: false } : c
-      )
-    );
-    } else {
-    }
-  };
+  useEffect(() => {
+    const handleMessage = (msg) => {
+      if (msg.chatId === selectedChatIdRef.current) {
+        const formattedMessage = formatMessage(msg);
+        setSelectedMessages((prev) => [...prev, formattedMessage]);
+        loadChats();
+        scrollToBottom();
+        axios.post(`${url}/chat/setAsRead`, {
+          chat_id: msg.chatId,
+          schema: schema
+        });
+        setChats(prevChats =>
+        prevChats.map(c =>
+          c.id === msg.chatId ? { ...c, unreadmessages: false } : c
+        )
+      );
+      } else {
+      }
+    };
 
-  socketInstance.on('message', handleMessage);
+    socketInstance.on('message', handleMessage);
 
-  return () => {
-    socketInstance.off('message', handleMessage);
-  };
-}, []);
+    return () => {
+      socketInstance.off('message', handleMessage);
+    };
+  }, []);
 
  useEffect(() => {
   if (socketInstance) {
@@ -510,7 +539,7 @@ const handleImageUpload = async (event) => {
         className={`col-3 chat-list-${theme} bg-color-${theme}`} 
         style={{ overflowY: 'auto', height: '100%', maxHeight: '777.61px', width:'100%',maxWidth:'300px',backgroundColor: `var(--bg-color-${theme})`}}>
           {chatList.map((chat) => (
-          <div className='d-flex flex-row' key={chat.id}>
+          <div className='msg d-flex flex-row' key={chat.id}>
                <div 
                 className={`selectedBar ${selectedChatId === chat.id ? '' : 'd-none'}`} style={{ width: '2.5%', maxWidth: '5px', backgroundColor: 'var(--primary-color)' }}></div>
                 <div 
@@ -555,20 +584,22 @@ const handleImageUpload = async (event) => {
             </div>
 {/* MENSAGENS DO CONTATO SELECIONADO */}
 <div
-  className={`col-9 chat-messages-${theme} d-flex flex-column`}
+  className={`w-100 chat-messages-${theme} d-flex flex-column`} style={{ borderTopRightRadius: '10px' }}
 >
 {selectedChat && (
   <div
-    className="d-flex align-items-center px-3 py-2"
+    className="d-flex justify-content-between align-items-center flex-row px-3 py-2"
     style={{
-      backgroundColor: 'var(--primary-color)',
-      color: '#fff',
-      borderBottom: '1px solid var(--border-color)',
-      minHeight: '60px',
+      borderTopRightRadius: '5px',
+      backgroundColor: `var(--bg-color-${theme})`,
+      color: `var(--color-${theme})`,
+      borderBottom: `1px solid var(--border-color-${theme})`,
+      minHeight: '80px',
       width:'100%',
       maxWidth:'1700px',
     }}
   >
+
     <div>
       <strong style={{ fontSize: '1.1rem' }}>
         {selectedChat.contact_name || 'Sem Nome'}
@@ -577,6 +608,11 @@ const handleImageUpload = async (event) => {
         {selectedChat.contact_phone || selectedChat.id}
       </div>
     </div>
+
+    <div>
+      <DropdownComponent theme={theme} />
+    </div>
+    
   </div>
 )}
   <div
@@ -678,6 +714,7 @@ const handleImageUpload = async (event) => {
   <div
     className="p-3 w-100 d-flex justify-content-center message-input gap-2"
     style={{
+      borderBottomRightRadius: '5px',
       backgroundColor: `var(--bg-color-${theme})`,
       borderTop: '1px solid var(--border-color)',
       height: '70px',
