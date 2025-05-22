@@ -13,6 +13,7 @@ import AgendaPage from './Lembretes';
 import RelatorioPage from './Relatorios';
 import UsuariosPage from './Usuarios';
 import FilaPage from './Filas';
+import KanbanPage from './Kanban';
 
 window.addEventListener('error', function (event) {
   if (
@@ -88,6 +89,7 @@ function Painel() {
     switch (page) {
       case 'dashboard': return <Dashboard theme={theme} />;
       case 'chats': return <ChatPage theme={theme} />;
+      case 'kanban': return <Dashboard theme={theme} />; // Temporário
       case 'filas': return <FilaPage theme={theme} />;
       case 'usuarios': return <UsuariosPage theme={theme} />;
       case 'agenda': return <AgendaPage theme={theme} />;
@@ -129,6 +131,17 @@ function Painel() {
               className={`btn ${page === 'chats' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-start gap-2`}
             >
               <i className="bi bi-chat-dots"></i>
+              <span className="sidebar-label d-none">Chats</span>
+            </button>
+            <button
+              id="kanban"
+              onClick={() => setPage('kanban')}
+              data-bs-toggle="tooltip"
+              data-bs-placement="right"
+              data-bs-title="Kanban"
+              className={`btn ${page === 'kanban' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-start gap-2`}
+            >
+              <i className="bi bi-kanban"></i>
               <span className="sidebar-label d-none">Chats</span>
             </button>
             <button
