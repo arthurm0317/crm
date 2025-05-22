@@ -46,9 +46,6 @@ const fetchInstanceEvo = async(instanceName)=>{
 
 }
 const sendTextMessage = async(instanceId, text, number)=>{
-  console.log("instanceId", instanceId)
-  console.log("text", text)
-  console.log("number", number)
   const payload = {
     text,
     number
@@ -72,6 +69,7 @@ const sendTextMessage = async(instanceId, text, number)=>{
   }
 }
 const getBase64FromMediaMessage = async (instanceId, mediaKey) => {
+  console.log(instanceId)
   try {
     if (!process.env.EVOLUTION_SERVER_URL) {
       throw new Error('EVOLUTION_SERVER_URL não está configurado no arquivo .env');

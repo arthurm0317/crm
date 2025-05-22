@@ -1,6 +1,8 @@
 const express = require('express');
 const {
   processReceivedAudio, setUserChatController, sendImageController, getChatsController, getMessagesController, setQueueController, getChatDataController, getChatByUserController, updateQueueController, sendAudioController, uploadImage, uploadAudio,
+  setMessageAsReadController,
+  closeChatContoller,
 } = require('../controllers/ChatController'); 
 const router = express.Router();
 
@@ -13,5 +15,6 @@ router.get('/getChat/:userId/:schema', getChatByUserController);
 router.post('/sendAudio', uploadAudio.single('audio'), sendAudioController);
 router.post('/chat/processReceivedAudio', processReceivedAudio);
 router.post('/sendImage', uploadImage.single('image'), sendImageController); 
-
+router.post('/setAsRead', setMessageAsReadController)
+router.post('/close', closeChatContoller)
 module.exports = router;

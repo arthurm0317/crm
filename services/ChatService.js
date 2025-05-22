@@ -1,6 +1,7 @@
 const pool = require('../db/queries');
 const { v4: uuid4 } = require('uuid');
 const { getOnlineUsers, updateLastAssignedUser, getLastAssignedUser } = require('./UserService');
+const { getCurrentTimestamp } = require('./getCurrentTimestamp');
 
 const createChat = async (chat, instance, message, etapa, io) => {
   let schema;
@@ -73,20 +74,20 @@ const createChat = async (chat, instance, message, etapa, io) => {
       chat.getCreatedAt(),
       JSON.stringify([message]),
       contactNumber,
-      etapa || null
+      etapa || null,
+      getCurrentTimestamp
     ];
 
     const query = etapa
       ? `INSERT INTO ${schema}.chats 
-          (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages, contact_phone, etapa_id) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`
+          (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages, contact_phone, etapa_id, updated_time) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`
       : `INSERT INTO ${schema}.chats 
-          (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages, contact_phone) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`;
+          (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages, contact_phone, updated_time) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`;
 
 
     const result = await pool.query(query, etapa ? chatValues : chatValues.slice(0, -1));
-    console.log('TESTE',result.rows[0])
          if(result.rows[0].queue_id===null){
             await setChatQueue(schema, result.rows[0].id)
           }
@@ -112,10 +113,10 @@ const updateChatMessages = async (chat, schema, message) => {
   try {
     const result = await pool.query(
       `UPDATE ${schema}.chats 
-       SET messages = messages || $1::jsonb 
-       WHERE chat_id = $2 
+       SET messages = messages || $1::jsonb, updated_time=$2
+       WHERE chat_id = $3 
        RETURNING *`,
-      [JSON.stringify([message]), chat.getChatId()]
+      [JSON.stringify([message]), getCurrentTimestamp(), chat.getChatId()]
     );
     return result.rows[0];
   } catch (error) {
@@ -231,7 +232,7 @@ const getChatData = async(id, schema)=>{
 const getChatByUser = async (userId, schema) => {
   try {
     const result = await pool.query(
-      `SELECT * FROM ${schema}.chats WHERE assigned_user = $1`,
+      `SELECT * FROM ${schema}.chats WHERE assigned_user = $1 ORDER BY (updated_time IS NULL), updated_time DESC`,
       [userId]
     );
 
@@ -244,8 +245,6 @@ const getChatByUser = async (userId, schema) => {
 
 const getChatById = async (chatId, connection_id, schema) => {
   try {
-    console.log("chatId", chatId)
-    console.log("connection_id", connection_id) 
       
     const result = await pool.query(
       `SELECT * FROM ${schema}.chats WHERE id = $1 and connection_id = $2`,
@@ -284,9 +283,37 @@ const createNewChat = async(name, number, connectionId, queueId, user_id, schema
   }
 }
 
+const setMessageIsUnread = async(chat_id, schema)=>{
+  try {
+    await pool.query(
+      `UPDATE ${schema}.chats SET unreadmessages = $2 WHERE id=$1`,
+      [chat_id, true]
+    );
+  } catch (error) {
+    console.log(error)
+  }
+}
 
+const setMessageAsRead = async(chat_id, schema)=>{
+  try {
+    await pool.query(
+      `UPDATE ${schema}.chats SET unreadmessages = $2 WHERE id=$1`,
+      [chat_id, false]
+    );
+  } catch (error) {
+    console.log(error)
+  }
+}
 
-
+const closeChat = async(chat_id, schema)=>{
+  try {
+    const result = await pool.query(`UPDATE ${schema}.chats set status=$1 where id=$2`,
+      ['closed', chat_id]
+    )
+  } catch (error) {
+    console.log(error)
+  }
+}
 
 module.exports = {
   createChat,
@@ -301,5 +328,8 @@ module.exports = {
   getChatByUser,
   saveMediaMessage,
   getChatById,
-  createNewChat
+  createNewChat,
+  setMessageIsUnread,
+  setMessageAsRead, 
+  closeChat
 };
