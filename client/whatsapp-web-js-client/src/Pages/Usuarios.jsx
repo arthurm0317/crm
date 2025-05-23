@@ -1,5 +1,6 @@
 import NewUserModal from './modalPages/Usuarios_modal';
 import DeleteUserModal from './modalPages/Usuarios_delete';
+import EditUserModal from './modalPages/User_edit';
 import { useEffect, useState } from 'react';
 import * as bootstrap from 'bootstrap';
 import axios from 'axios';
@@ -13,6 +14,7 @@ function UsuariosPage({ theme }) {
   const url = process.env.REACT_APP_URL;
   const [searchTerm, setSearchTerm] = useState('');
   const [modalType, setModalType] = useState('new');
+
 
   useEffect(() => {
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
@@ -105,7 +107,8 @@ function UsuariosPage({ theme }) {
                       title="Editar"
                       onClick={() => {
                         setModalType('edit');
-                        const modal = new bootstrap.Modal(document.getElementById('NewUserModal'));
+                        setUsuarioSelecionado(usuario);
+                        const modal = new bootstrap.Modal(document.getElementById('EditUserModal'));
                         modal.show();
                       }}
                     >
@@ -132,6 +135,7 @@ function UsuariosPage({ theme }) {
         </table>
       </div>
       <NewUserModal theme={theme} type={modalType}/>
+      <EditUserModal theme={theme} user={usuarioSelecionado}/>
       <DeleteUserModal theme={theme} usuario={usuarioSelecionado}/>
     </div>
   );

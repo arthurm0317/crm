@@ -1,4 +1,4 @@
-const { createUser, getAllUsers, searchUser, changeOnline, getOnlineUsers, changeOffline, deleteUser} = require('../services/UserService');
+const { createUser, getAllUsers, searchUser, changeOnline, getOnlineUsers, changeOffline, deleteUser, updateUser} = require('../services/UserService');
 const { Users } = require('../entities/Users');
 const { v4: uuidv4 } = require('uuid');
 
@@ -24,6 +24,19 @@ const createUserController = async (req, res) => {
       res.status(500).json({ error: 'Erro ao criar usuário' });
     }
   };
+  const updateUserController = async (req, res) => {
+    const { userId, userName, userEmail, userRole } = req.body;
+    const schema = req.body.schema;
+    try {
+      const result = await updateUser(userId, userName, userEmail, userRole, schema);
+      res.status(200).json({
+        message: 'Usuário atualizado com sucesso',
+      })
+    } catch (error) {
+      console.error("Erro ao atualizar usuário:", error.message);
+      res.status(500).json({ error: 'Erro ao atualizar usuário' });
+    }
+  }
 const getAllUsersController = async(req, res)=>{
   const schema = req.params.schema
     try{
@@ -122,5 +135,6 @@ const deleteUserController = async(req, res)=>{
     searchUserController,
     getOnlineUsersController,
     changeOfflineController,
-    deleteUserController
+    deleteUserController,
+    updateUserController
   }

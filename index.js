@@ -25,7 +25,7 @@ const corsOptions = {
     'https://landing-page-front.8rxpnw.easypanel.host',
     'https://eg-crm.effectivegain.com'
   ],
-  methods: ['GET', 'POST', 'DELETE'],
+  methods: ['GET', 'POST', 'DELETE', 'PUT'],
 };
 
 const server = http.createServer(app);
@@ -36,7 +36,7 @@ const io = socketIo(server, {
       'https://eg-crm.effectivegain.com',
       'https://landing-page-teste.8rxpnw.easypanel.host/'
     ], 
-    methods: ['GET', 'POST', 'DELETE'],
+    methods: ['GET', 'POST', 'DELETE', 'PUT'],
   },
 });
 
