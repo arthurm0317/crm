@@ -64,7 +64,8 @@ function NewUserModal({ theme, type }) {
     <div className="modal fade" id="NewUserModal" tabIndex="-1" aria-labelledby="NewUserModalLabel" aria-hidden="true">
       <div className="modal-dialog modal-sm">
         <div className="modal-content" style={{ backgroundColor: `var(--bg-color-${theme})` }}>
-          <div className="modal-header">
+          <div className="modal-header gap-3">
+            <i className={`bi bi-people header-text-${theme}`}></i>
             <h5 className={`modal-title header-text-${theme}`} id="NewUserModalLabel">
               Dados do Usuário
             </h5>
