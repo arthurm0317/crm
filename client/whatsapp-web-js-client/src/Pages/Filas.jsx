@@ -12,22 +12,22 @@ function FilaPage({ theme }) {
   const url = process.env.REACT_APP_URL;
 
   useEffect(() => {
-    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    const tooltipList = [...tooltipTriggerList].map(el => {
-        if (el) {
-        return new bootstrap.Tooltip(el);
-        }
-        return null;
-    });
+  const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+  const tooltipList = [...tooltipTriggerList].map(el => {
+    if (el) {
+      return new bootstrap.Tooltip(el);
+    }
+    return null;
+  });
 
-    return () => {
-        tooltipList.forEach(t => {
-        if (t) {
-            t.dispose();
-        }
-        });
-    };
-    }, [filas]);
+  return () => {
+    tooltipList.forEach(t => {
+      if (t && t._element && t._element.closest) {
+        t.dispose();
+      }
+    });
+  };
+}, [filas]);
 
 
   useEffect(() => {
