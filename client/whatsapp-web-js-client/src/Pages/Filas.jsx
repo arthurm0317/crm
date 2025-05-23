@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import * as bootstrap from 'bootstrap';
 import axios from 'axios';
+import NewQueueModal from './modalPages/Filas_novaFila';
+import DeleteQueueModal from './modalPages/Filas_delete';
 
 function FilaPage({ theme }) {
   const [filas, setFilas] = useState([]);
@@ -56,13 +58,14 @@ const filasFiltradas = filas.filter(fila => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <button
-            className={`btn btn-1-${theme}`}
-            data-bs-toggle="modal"
-            data-bs-target="#NewFilaModal"
+          <button 
+          className={`btn btn-1-${theme} d-flex gap-2`}
+          data-bs-toggle="modal"
+          data-bs-target="#NewQueueModal"
           >
+            <i className="bi-plus-lg"></i>
             Nova Fila
-          </button>
+          </button>        
         </div>
       </div>
 
@@ -103,14 +106,19 @@ const filasFiltradas = filas.filter(fila => {
                   >
                     <i className="bi bi-pencil-fill"></i>
                   </button>
+
                   <button
                     className="icon-btn text-danger"
                     data-bs-toggle="tooltip"
                     title="Excluir"
-                    onClick={() => {}}
+                    onClick={() => {
+                      const modal = new bootstrap.Modal(document.getElementById('DeleteQueueModal'));
+                      modal.show();
+                    }}
                   >
                     <i className="bi bi-trash-fill"></i>
                   </button>
+
                 </td>
 
               </tr>
@@ -118,8 +126,10 @@ const filasFiltradas = filas.filter(fila => {
           </tbody>
         </table>
       </div>
-
-      {/* Aqui você irá importar e usar os modais futuramente */}
+        <div>
+          <NewQueueModal theme={theme}/>
+          <DeleteQueueModal theme={theme}/>
+        </div>
     </div>
   );
 }

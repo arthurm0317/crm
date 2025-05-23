@@ -5,6 +5,7 @@ import NewContactModal from './modalPages/Chats_novoContato';
 import {socket} from '../socket'
 import {Dropdown} from 'react-bootstrap';
 import './assets/style.css';
+import NewQueueModal from './modalPages/Filas_novaFila';
 
 function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, setSelectedChat, setSelectedMessages }) {
 
@@ -967,7 +968,7 @@ const handleImageUpload = async (event) => {
 
   </div>
 </div>
-      </div>
+    </div>
       <NewContactModal theme={theme}/>
     </div>
   );

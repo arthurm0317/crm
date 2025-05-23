@@ -24,9 +24,10 @@ function DeleteUserModal({ theme, usuario }) {
     <div className="modal fade" id="DeleteUserModal" tabIndex="-1" aria-labelledby="DeleteUserModalLabel" aria-hidden="true">
       <div className="modal-dialog modal-md">
         <div className="modal-content" style={{ backgroundColor: `var(--bg-color-${theme})` }}>
-          <div className="modal-header">
+          <div className="modal-header gap-3">
+            <i className={`bi bi-trash header-text-${theme}`}></i>
             <h5 className={`modal-title header-text-${theme}`} id="DeleteUserModalLabel">
-              Confirmar Exclusão
+              Confirmar exclusão
             </h5>
             <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
           </div>

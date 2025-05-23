@@ -604,3 +604,8 @@ input[type="range"]::-moz-range-progress {
   width: 0;
   height: 0;
 }
+
+.form-switch .form-check-input:not(:checked) {
+  background-color: transparent;
+  border-color: var(--primary-color);
+}
