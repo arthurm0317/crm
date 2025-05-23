@@ -7,7 +7,7 @@ import { useEffect } from 'react';
 import React, { use, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-const url = 'https://landing-page-teste.8rxpnw.easypanel.host'
+const url = process.env.REACT_APP_URL;
 
 function Login() {
   const [theme, setTheme] = useTheme();

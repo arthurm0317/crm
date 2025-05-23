@@ -8,7 +8,7 @@ import './assets/style.css';
 
 function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, setSelectedChat, setSelectedMessages }) {
 
-  const url = 'http://localhost:3002'
+  const url = process.env.REACT_APP_URL
   const userData = JSON.parse(localStorage.getItem('user'));
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -84,8 +84,7 @@ function ChatPage({ theme }) {
 
   const [socketInstance] = useState(socket)
   
-  const url = 'http://localhost:3002'
-
+  const url = process.env.REACT_APP_URL;
 
   const setAsRead = async()=>{
     try{

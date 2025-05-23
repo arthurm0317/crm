@@ -10,7 +10,7 @@ function UsuariosPage({ theme }) {
   const [usuarios, setUsuarios] = useState([]);
   const [usuarioSelecionado, setUsuarioSelecionado] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const url = 'https://landing-page-teste.8rxpnw.easypanel.host'
+  const url = process.env.REACT_APP_URL;
   const [searchTerm, setSearchTerm] = useState('');
   const [modalType, setModalType] = useState('new');
 
