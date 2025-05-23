@@ -1,6 +1,7 @@
 import NewUserModal from './modalPages/Usuarios_modal';
 import DeleteUserModal from './modalPages/Usuarios_delete';
 import EditUserModal from './modalPages/User_edit';
+import UserFilasModal from './modalPages/Usuarios_gerirFilas';
 import { useEffect, useState } from 'react';
 import * as bootstrap from 'bootstrap';
 import axios from 'axios';
@@ -85,6 +86,7 @@ function UsuariosPage({ theme }) {
               <th>Nome</th>
               <th>Email</th>
               <th>Perfil</th>
+              <th>Filas</th>
               <th>Ações</th>
             </tr>
           </thead>
@@ -99,8 +101,25 @@ function UsuariosPage({ theme }) {
                   <td>{usuario.name}</td>
                   <td>{usuario.email}</td>
                   <td>{usuario.permission}</td>
-                  <td>
 
+                  <td>
+                    <div className='d-flex justify-content-between'>
+                      {"teste"}
+                      <button
+                        className={`icon-btn btn-2-${theme} btn-user`}
+                        data-bs-toggle="tooltip"
+                        title="Gerir filas"
+                        onClick={() => {
+                          const modal = new bootstrap.Modal(document.getElementById('UserFilasModal'));
+                          modal.show();
+                        }}
+                      >
+                        <i className="bi bi-folder"></i>
+                      </button>
+                    </div>
+                  </td>
+
+                  <td>
                     <button
                       className={`icon-btn btn-2-${theme} btn-user`}
                       data-bs-toggle="tooltip"
@@ -127,8 +146,8 @@ function UsuariosPage({ theme }) {
                     >
                       <i className="bi bi-trash-fill"></i>
                     </button>
-
                   </td>
+
                 </tr>
             ))}
           </tbody>
@@ -137,6 +156,7 @@ function UsuariosPage({ theme }) {
       <NewUserModal theme={theme} type={modalType}/>
       <EditUserModal theme={theme} user={usuarioSelecionado}/>
       <DeleteUserModal theme={theme} usuario={usuarioSelecionado}/>
+      <UserFilasModal theme={theme}/>
     </div>
   );
 }

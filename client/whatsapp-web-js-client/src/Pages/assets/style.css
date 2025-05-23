@@ -609,3 +609,7 @@ input[type="range"]::-moz-range-progress {
   background-color: transparent;
   border-color: var(--primary-color);
 }
+
+.text-unchanged {
+  color: var(--placeholder-color);
+}

@@ -91,14 +91,6 @@ const filasFiltradas = filas.filter(fila => {
 
                 <td>
                   <button
-                    className={`icon-btn header-text-${theme} me-1`}
-                    data-bs-toggle="tooltip"
-                    title="Gerenciar"
-                    onClick={() => {}}
-                  >
-                    <i className="bi bi-gear"></i>
-                  </button>
-                  <button
                     className={`icon-btn btn-2-${theme} me-1 btn-user`}
                     data-bs-toggle="tooltip"
                     title="Editar"
