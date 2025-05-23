@@ -168,16 +168,25 @@ const handleAcceptChat = async () => {
       console.log('Conectado ao servidor WebSocket');
     });
     socketInstance.on('chats_updated', (updatedChats) => {
-      console.log('Chats atualizados:', updatedChats);
-      if (Array.isArray(updatedChats)) {
-        const myChats = updatedChats.filter(
-          chat =>
-            chat.assigned_user === userData.id ||
-            chat.status === 'waiting'
-        );
-        setChats(myChats);  
-      }
+  let chats = [];
+  if (Array.isArray(updatedChats)) {
+    chats = updatedChats;
+  } else if (updatedChats && typeof updatedChats === 'object') {
+    chats = [updatedChats];
+  }
+  if (chats.length > 0) {
+    setChats(prevChats => {
+      const updatedMap = new Map(chats.map(chat => [chat.id, chat]));
+      const merged = prevChats.map(chat => updatedMap.get(chat.id) || chat);
+      chats.forEach(chat => {
+        if (!prevChats.some(c => c.id === chat.id)) {
+          merged.push(chat);
+        }
+      });
+      return merged;
     });
+  }
+});
   }
   return () => {
     if (socketInstance) {
