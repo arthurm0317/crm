@@ -16,7 +16,7 @@ function UserFilasModal({ theme, filas = ['Vendas', 'Relacionamento', 'Financeir
 
   return (
     <div className="modal fade" id="UserFilasModal" tabIndex="-1" aria-labelledby="UserFilasModalLabel" aria-hidden="true">
-      <div className="modal-dialog modal-centered modal-dialog-scrollable">
+      <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div className="modal-content" style={{ backgroundColor: `var(--bg-color-${theme})` }}>
           <div className="modal-header gap-3">
             <i className={`bi bi-folder header-text-${theme}`}></i>
@@ -27,20 +27,32 @@ function UserFilasModal({ theme, filas = ['Vendas', 'Relacionamento', 'Financeir
           </div>
 
           <div className="modal-body">
+            
+            <p className="text-danger-true mb-3">Usuário: 
+                <span className={`fw-bold header-text-${theme} ms-1`}>
+                Vitor Bitencourt
+                </span>
+            </p>
+
             <div className="list-group">
               {filas.map((fila) => (
                 <label
                   key={fila}
-                  className={`list-group-item d-flex align-items-center gap-2 input-${theme}`}
+                  className={`list-group-item d-flex align-items-center justify-content-between gap-2 input-${theme}`}
                   style={{ cursor: 'pointer' }}
                 >
-                  <input
+                <div>
+                    <input
                     className="form-check-input me-2"
                     type="checkbox"
                     checked={selectedFilas.includes(fila)}
                     onChange={() => handleToggleFila(fila)}
-                  />
-                  {fila}
+                    />
+                    {fila}
+                </div>
+                    <span className='text-unchanged d-none'>
+                        Super-usuário
+                    </span>
                 </label>
               ))}
             </div>
