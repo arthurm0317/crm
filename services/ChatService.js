@@ -262,19 +262,26 @@ const getChatData = async(id, schema)=>{
 
 const getChatByUser = async (userId, role, schema) => {
   try {
-    if(role === 'admin'){
+    if (role === 'admin') {
       const result = await pool.query(
-        `SELECT * FROM ${schema}.chats ORDER BY (updated_time IS NULL), updated_time DESC`
-      )
-      return result.rows;
-    }else{
-      const result = await pool.query(
-        `SELECT * FROM ${schema}.chats WHERE (assigned_user = $1 OR assigned_user IS NULL) AND status <> 'closed' ORDER BY (updated_time IS NULL), updated_time DESC`,
-        [userId]
+        `SELECT * FROM ${schema}.chats where status <> 'closed' ORDER BY (updated_time IS NULL) , updated_time DESC`
       );
       return result.rows;
+    } else {
+      const queues = await pool.query(
+        `SELECT * FROM ${schema}.queue_users WHERE user_id=$1`, [userId]
+      );
+      let allChats = [];
+      for (let i = 0; i < queues.rowCount; i++) {
+        const queueId = queues.rows[i].queue_id;
+        const result = await pool.query(
+          `SELECT * FROM ${schema}.chats WHERE (assigned_user = $1 OR assigned_user IS NULL) AND status <> 'closed' AND queue_id=$2 ORDER BY (updated_time IS NULL), updated_time DESC`,
+          [userId, queueId]
+        );
+        allChats = allChats.concat(result.rows);
+      }
+      return allChats;
     }
-
   } catch (error) {
     console.error('Erro ao buscar chats do usuário:', error.message);
     throw new Error('Erro ao buscar chats do usuário');
@@ -353,6 +360,18 @@ const closeChat = async(chat_id, schema)=>{
   }
 }
 
+const setSpecificUser = async(chat_id, user_id, schema)=>{
+  try{
+    const result = await pool.query(
+      `update ${schema}.chats set assigned_user=$1, status='open' where id=$2`,
+      [user_id, chat_id]
+    )
+    return result.rows[0]
+  } catch (error) {
+    console.log(error)
+  }
+}
+
 module.exports = {
   createChat,
   updateChatMessages,
@@ -369,5 +388,6 @@ module.exports = {
   createNewChat,
   setMessageIsUnread,
   setMessageAsRead, 
-  closeChat
+  closeChat,
+  setSpecificUser
 };

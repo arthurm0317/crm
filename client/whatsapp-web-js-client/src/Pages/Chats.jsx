@@ -6,7 +6,8 @@ import {socket} from '../socket'
 import {Dropdown} from 'react-bootstrap';
 import './assets/style.css';
 
-function DropdownComponent({ theme, selectedChat, handleChatClick }) {
+function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, setSelectedChat, setSelectedMessages }) {
+
   const url = 'http://localhost:3002'
   const userData = JSON.parse(localStorage.getItem('user'));
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -15,14 +16,17 @@ function DropdownComponent({ theme, selectedChat, handleChatClick }) {
     setIsDropdownOpen(isOpen);
   };
 
+  
+
   const handleCloseChat = async () => {
     try {
       const res = await axios.post(`${url}/chat/close`, {
         chat_id: selectedChat.id,
         schema: userData.schema
       });
-      // Exemplo: chamar handleChatClick após fechar o chat
-      // handleChatClick(null);
+      setChats(prevChats => prevChats.filter(c => c.id !== selectedChat.id));
+      setSelectedChat(null)
+      setSelectedMessages([])
     } catch (error) {
       console.error(error)
     }
@@ -42,7 +46,6 @@ function DropdownComponent({ theme, selectedChat, handleChatClick }) {
         variant={theme === 'light' ? 'light' : 'dark'}
         className={`input-${theme}`}>
         <Dropdown.Item href="#" onClick={handleCloseChat}>Finalizar Atendimento</Dropdown.Item>
-        <Dropdown.Item href="#">Another action</Dropdown.Item>
       </Dropdown.Menu>
     </Dropdown>
   );
@@ -91,6 +94,26 @@ function ChatPage({ theme }) {
         schema:schema
       })
       console.log(res)
+    }catch(error){
+      console.error(error)
+    }
+  }
+
+const handleAcceptChat = async () => {
+    try{
+      const res = await axios.post(`${url}/chat/setUser`,{
+        user_id: userData.id,
+        chat_id: selectedChat.id,
+        schema: userData.schema
+      })
+      setChats(prevChats =>
+      prevChats.map(c =>
+        c.id === selectedChat.id
+          ? { ...c, status: 'open', assigned_user: userData.id }
+          : c
+      )
+    );
+
     }catch(error){
       console.error(error)
     }
@@ -192,7 +215,7 @@ useEffect(() => {
 const loadChats = async () => {
     try {
       const res = await axios.get(`${url}/chat/getChat/${userData.id}/${schema}/${userData.role}`);
-      setChats(res.data.messages);
+      setChats(Array.isArray(res.data.messages) ? res.data.messages : []);;
       console.log(res.data.messages)
     } catch (err) {
       console.error('Erro ao carregar chats:', err);
@@ -665,22 +688,28 @@ const handleImageUpload = async (event) => {
 
     <div className='d-flex flex-row gap-2'>
 
-      <div>
-        <button
-          className={`btn btn-2-${theme} d-flex gap-2`}
-        >
-          <i className="bi bi-check2"></i>
-          Aceitar
-        </button>
+      {selectedChat && selectedChat.status === 'waiting' && (
+  <div>
+    <button
+      className={`btn btn-2-${theme} d-flex gap-2`}
+      // AQUI VEM O ON CLICK DO ACCEPT
+      onClick={handleAcceptChat}
+    >
+      <i className="bi bi-check2"></i>
+      Aceitar
+    </button>
+  </div>
+)}
 
-      </div>
-
       <div>
-        <DropdownComponent
-          theme={theme}
-          selectedChat={selectedChat}
-          handleChatClick={handleChatClick}
-        />
+       <DropdownComponent
+        theme={theme}
+        selectedChat={selectedChat}
+        handleChatClick={handleChatClick}
+        setChats={setChats}
+        setSelectedChat={setSelectedChat}
+        setSelectedMessages={setSelectedMessages}
+      />
       </div>
 
     </div>
