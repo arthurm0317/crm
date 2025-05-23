@@ -168,12 +168,14 @@ const handleAcceptChat = async () => {
       console.log('Conectado ao servidor WebSocket');
     });
     socketInstance.on('chats_updated', (updatedChats) => {
+      console.log('Chats atualizados:', updatedChats);
       if (Array.isArray(updatedChats)) {
-        const myChats = updatedChats.filter(chat => chat.assigned_user === userData.id);
-        if (myChats.length > 0 && myChats[0].assigned_user===userData.id) {
-          console.log(myChats)
-          setChats(myChats);
-        }
+        const myChats = updatedChats.filter(
+          chat =>
+            chat.assigned_user === userData.id ||
+            chat.status === 'waiting'
+        );
+        setChats(myChats);  
       }
     });
   }

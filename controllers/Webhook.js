@@ -7,7 +7,7 @@ const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const { Chat } = require('../entities/Chat');
 const { Message } = require('../entities/Message');
-const { createChat, getChatService, setChatQueue, setUserChat, saveMediaMessage, getChatByUser, setMessageIsUnread } = require('../services/ChatService');
+const { createChat, getChatService, setChatQueue, setUserChat, saveMediaMessage, getChatByUser, setMessageIsUnread, getChatIfUserIsNull } = require('../services/ChatService');
 const { saveMessage } = require('../services/MessageService');
 const pool = require('../db/queries');
 const { getCurrentTimestamp } = require('../services/getCurrentTimestamp');
@@ -76,10 +76,14 @@ module.exports = (broadcastMessage) => {
       if(result.data.key.fromMe===false){
         await setMessageIsUnread(baseChat.id, schema)
       }
-      const userChat = await getChatByUser(baseChat.assigned_user, baseChat.permission,schema)
-
-      serverTest.io.emit('chats_updated', userChat)
-
+      if (baseChat.assigned_user !== null) {
+        const userChat = await getChatByUser(baseChat.assigned_user, baseChat.permission,schema)
+        serverTest.io.emit('chats_updated', userChat)
+      }else{
+        const chats = await getChatIfUserIsNull(baseChat.connection_id,baseChat.permission,schema)
+        console.log('chats', chats)
+        serverTest.io.emit('chats_updated', chats)
+      }
 
       if (result.data.message?.conversation) {
       } else if (result.data.message?.audioMessage) {

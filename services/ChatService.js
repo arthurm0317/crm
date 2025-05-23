@@ -287,6 +287,24 @@ const getChatByUser = async (userId, role, schema) => {
     throw new Error('Erro ao buscar chats do usuário');
   }
 };
+const getChatIfUserIsNull = async(connection, permission, schema)=>{
+  try{
+     if (permission === 'admin') {
+      const result = await pool.query(
+        `SELECT * FROM ${schema}.chats where status <> 'closed' ORDER BY (updated_time IS NULL) , updated_time DESC`
+      );
+      return result.rows;
+    }else{
+      const result = await pool.query(
+        `SELECT * FROM ${schema}.chats WHERE connection_id=$1 AND assigned_user IS NULL AND status='waiting'`, [connection]
+      )
+      return result.rows
+    }
+  }catch (error) {
+    console.error('Erro ao buscar chats do usuário:', error.message);
+    throw new Error('Erro ao buscar chats do usuário');
+  }
+}
 
 const getChatById = async (chatId, connection_id, schema) => {
   try {
@@ -389,5 +407,6 @@ module.exports = {
   setMessageIsUnread,
   setMessageAsRead, 
   closeChat,
-  setSpecificUser
+  setSpecificUser,
+  getChatIfUserIsNull
 };
