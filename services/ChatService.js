@@ -296,7 +296,7 @@ const getChatIfUserIsNull = async(connection, permission, schema)=>{
       return result.rows;
     }else{
       const result = await pool.query(
-        `SELECT * FROM ${schema}.chats WHERE connection_id=$1 AND assigned_user IS NULL AND status='waiting'`, [connection]
+        `SELECT * FROM ${schema}.chats WHERE connection_id=$1 AND assigned_user IS NULL AND status='waiting' ORDER BY (updated_time IS NULL) , updated_time DESC`, [connection]
       )
       return result.rows
     }
