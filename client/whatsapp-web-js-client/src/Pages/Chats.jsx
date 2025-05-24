@@ -7,6 +7,11 @@ import {Dropdown} from 'react-bootstrap';
 import './assets/style.css';
 import NewQueueModal from './modalPages/Filas_novaFila';
 
+function formatHour(timestamp) {
+  const date = new Date(Number(timestamp));
+  return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+
 function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, setSelectedChat, setSelectedMessages }) {
 
   const url = process.env.REACT_APP_URL
@@ -242,11 +247,12 @@ const formatMessage = (msg) => ({
   name: msg.contact_name || msg.senderName,
   text: msg.text || msg.body,
   from_me: msg.from_me|| msg.fromMe,
-  timestamp: msg.timestamp || new Date().toISOString(),
+  timestamp: msg.created_at,
   message_type: msg.message_type,
   base64: msg.midiaBase64 || msg.base64
 
 });
+
 
 const loadMessages = async (chatId) => {
   try {
@@ -566,6 +572,10 @@ const handleImageUpload = async (event) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  useEffect(() => {
+  scrollToBottom();
+}, [selectedMessages]);
+
   const handleImageClick = (imageBase64) => {
     setSelectedImage(imageBase64);
   };
@@ -764,60 +774,63 @@ const handleImageUpload = async (event) => {
     {msg.message_type === 'audio' || msg.message_type === 'audioMessage' ? (
       <AudioPlayer base64Audio={msg.base64} audioId={msg.id} />
     ) : msg.message_type === 'imageMessage' || msg.message_type === 'image' ? (
-      
-     <img
-  src={
-  typeof msg.base64 === 'string' 
-    ? msg.base64.startsWith('blob:') 
-      ? msg.base64 // Se for blob, usa diretamente
-      : `data:image/jpeg;base64,${msg.base64}` // Se for Base64, adiciona o prefixo
-    : msg.base64 // Se não for string (ex: URL normal), usa como está
-    }
-    alt="imagem"
-    style={{
-      maxWidth: '300px',
-      width: '100%',
-      height: 'auto',
-      borderRadius: '8px',
-      display: 'block',
-      cursor: 'pointer',
-    }}
-    onClick={() => handleImageClick(msg.base64)}
-      />
-) : (
-  msg.text
-)}
-
-    {selectedImage && (
-      <div
-        className="image-modal"
-        onClick={closeImageModal}
+      <img
+        src={
+          typeof msg.base64 === 'string'
+            ? msg.base64.startsWith('blob:')
+              ? msg.base64
+              : `data:image/jpeg;base64,${msg.base64}`
+            : msg.base64
+        }
+        alt="imagem"
         style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
+          maxWidth: '300px',
           width: '100%',
-          height: '100%',
-          backgroundColor: 'rgba(0, 0, 0, 0.25)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000,
+          height: 'auto',
+          borderRadius: '8px',
+          display: 'block',
+          cursor: 'pointer',
         }}
-      >
-        <img
-          src={`data:image/jpeg;base64,${selectedImage}`}
-          alt="imagem ampliada"
-          style={{
-            maxWidth: '90%',
-            maxHeight: '90%',
-          }}
-        />
-      </div>
+        onClick={() => handleImageClick(msg.base64)}
+      />
+    ) : (
+      msg.text
     )}
-
+    {/* Horário formatado */}
+    <div style={{ fontSize: '0.75rem', color: '#888', marginTop: 2 }}>
+      {formatHour(msg.timestamp)}
+    </div>
   </div>
 ))}
+
+{/* Renderize o modal de imagem ampliada fora do map */}
+{selectedImage && (
+  <div
+    className="image-modal"
+    onClick={closeImageModal}
+    style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'rgba(0, 0, 0, 0.25)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+    }}
+  >
+    <img
+      src={`data:image/jpeg;base64,${selectedImage}`}
+      alt="imagem ampliada"
+      style={{
+        maxWidth: '90%',
+        maxHeight: '90%',
+      }}
+    />
+  </div>
+)}
       <div ref={messagesEndRef} />
     </div>
   </div>
