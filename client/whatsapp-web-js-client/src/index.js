@@ -9,6 +9,7 @@ import ChatPage from './Pages/Chats';
 import DashboardCards from './Pages/Dashboard';
 import UsuariosPage from './Pages/Usuarios';
 import Painel from './Pages/Index';
+import SchemasPage from './Pages/Schemas';
 
 const router = createBrowserRouter([
   {
@@ -22,6 +23,10 @@ const router = createBrowserRouter([
   {
    path:"/painel", 
    element: <Painel />
+  },
+  {
+    path:'/schemas',
+    element: <SchemasPage/>
   }
 ]);
 

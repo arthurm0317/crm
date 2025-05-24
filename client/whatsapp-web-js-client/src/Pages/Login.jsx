@@ -44,7 +44,13 @@ function Login() {
           schema: response.data.company.schema_name,
         };
         localStorage.setItem('user', JSON.stringify(userData));
-
+         if (userData.role === 'admin') {
+          navigate('/painel');
+        } else if (userData.role === 'tecnico') {
+          navigate('/schemas');
+        } else {
+          navigate('/painel'); 
+        }
         const rememberedCredentials = JSON.parse(localStorage.getItem('rememberedCredentials')) || {};
         if (rememberMe) {
           rememberedCredentials[username] = password;
@@ -53,7 +59,6 @@ function Login() {
         }
         localStorage.setItem('rememberedCredentials', JSON.stringify(rememberedCredentials));
 
-        navigate('/painel');
       }
     } catch (err) {
       const senhaIncorretaElement = document.     getElementById("senhaIncorreta");

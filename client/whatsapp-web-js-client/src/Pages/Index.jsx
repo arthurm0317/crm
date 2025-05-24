@@ -41,15 +41,18 @@ function Painel() {
   const navigate = useNavigate();
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
 
+
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user'));
-    if (userData) {
-      setUsername(userData.username);
-      setRole(userData.role);
-      setEmpresa(userData.empresa);
+    if (!userData || !userData.schema) {
+      navigate('/'); // Redireciona para login se não estiver logado ou sem schema
+      return;
     }
-  }, []);
-
+    setUsername(userData.username);
+    setRole(userData.role);
+    setEmpresa(userData.empresa);
+  }, [navigate]);
+  
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     document.body.classList.remove('light', 'dark');

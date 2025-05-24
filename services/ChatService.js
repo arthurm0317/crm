@@ -262,7 +262,7 @@ const getChatData = async(id, schema)=>{
 
 const getChatByUser = async (userId, role, schema) => {
   try {
-    if (role === 'admin') {
+    if (role === 'admin' || role === 'tecnico') {
       const result = await pool.query(
         `SELECT * FROM ${schema}.chats where status <> 'closed' ORDER BY (updated_time IS NULL) , updated_time DESC`
       );
@@ -288,8 +288,9 @@ const getChatByUser = async (userId, role, schema) => {
   }
 };
 const getChatIfUserIsNull = async(connection, permission, schema)=>{
+  console,log(permission)
   try{
-     if (permission === 'admin') {
+     if (permission === 'admin' || permission ==='tecnico') {
       const result = await pool.query(
         `SELECT * FROM ${schema}.chats where status <> 'closed' ORDER BY (updated_time IS NULL) , updated_time DESC`
       );
