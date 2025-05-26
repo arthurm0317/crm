@@ -232,7 +232,6 @@ const loadChats = async () => {
     try {
       const res = await axios.get(`${url}/chat/getChat/${userData.id}/${schema}/${userData.role}`);
       setChats(Array.isArray(res.data.messages) ? res.data.messages : []);;
-      console.log(res.data.messages)
     } catch (err) {
       console.error('Erro ao carregar chats:', err);
     }

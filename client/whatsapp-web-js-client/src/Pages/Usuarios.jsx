@@ -16,7 +16,6 @@ function UsuariosPage({ theme }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [modalType, setModalType] = useState('new');
 
-
   useEffect(() => {
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     tooltipTriggerList.forEach((el) => {
@@ -39,7 +38,7 @@ function UsuariosPage({ theme }) {
     const fetchUsuarios = async () => {
       try {
         const response = await axios.get(`${url}/api/users/${schema}`);
-
+        console.log(response)
         setUsuarios(response.data.users || []);
         console.log(response.data.users)
       } catch (error) {

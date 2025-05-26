@@ -1,16 +1,39 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import * as bootstrap from 'bootstrap';
+import axios from 'axios';
 
-function DashboardCards({ theme }) {
+
+function Dashboard({ theme }) {
+  const url = process.env.REACT_APP_URL;
+  const userData = JSON.parse(localStorage.getItem('user'));
+  const [user, setUser] = useState()
+  console.log('DashboardCards MONTANDO');
+
+  console.log('URLu',url)
+
+
+
+  const schema = userData.schema
   useEffect(() => {
-    // Inicializa os tooltips do Bootstrap
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     const tooltipList = [...tooltipTriggerList].map(
       (tooltipTriggerEl) => new bootstrap.Tooltip(tooltipTriggerEl)
     );
-
-    // Limpa os tooltips ao desmontar o componente
     return () => tooltipList.forEach((tooltip) => tooltip.dispose());
+  }, []);
+
+   useEffect(() => {
+    const fetchUsuarios = async () => {
+      try {
+        const response = await axios.get(`${url}/api/users/${schema}`);
+
+        setUser(response.data.users || []);
+      } catch (error) {
+        console.error('Erro ao buscar usuários:', error);
+      }
+    };
+
+    fetchUsuarios();
   }, []);
 
   return (
@@ -38,7 +61,11 @@ function DashboardCards({ theme }) {
             <i className="bi bi-person-check card-icon" style={{ fontSize: '2.5rem' }}></i>
             <div className="d-flex flex-column align-items-start justify-content-start">
               <h6 className={`card-subtitle-${theme} m-0`}>Atendentes online</h6>
-              <h2 id="atendentes-online" className={`header-text-${theme}`}>0</h2>
+              <h2 id="atendentes-online" className={`header-text-${theme}`}>
+              {user && Array.isArray(user)
+                ? user.filter(u => u.online && u.permission === 'user').length
+                : 0}
+            </h2>
             </div>
             <div>
               <i
@@ -58,6 +85,25 @@ function DashboardCards({ theme }) {
                 <span>Setor</span>
                 <span>Status</span>
               </li>
+              {user && user
+              .filter(u => u.permission === 'user')
+              .map((u) => (
+                <li key={u.id} className="d-flex justify-content-between px-2 py-1">
+                  <span>{u.nome || u.username || u.name}</span>
+                  <span>{u.setor || u.sector || '-'}</span>
+                  <span>
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        width: 12,
+                        height: 12,
+                        borderRadius: '50%',
+                        background: u.online ? '#28a745' : '#dc3545'
+                      }}
+                    ></span>
+                  </span>
+                </li>
+            ))}
             </ul>
           </div>
         </div>
@@ -194,4 +240,4 @@ function DashboardCards({ theme }) {
   );
 }
 
-export default DashboardCards;
+export default Dashboard;
