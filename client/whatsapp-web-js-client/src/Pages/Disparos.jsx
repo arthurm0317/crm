@@ -130,7 +130,7 @@ function DisparosPage({ theme }) {
   return (
     <div className="h-100 w-100 ms-2">
       <div className="d-flex justify-content-end align-items-center mb-3">
-        <div className="input-group" style={{ width: '30%' }}>
+        <div className="input-group" style={{ width: '40%' }}>
           <input
             type="header-text"
             className={`form-control input-${theme}`}
