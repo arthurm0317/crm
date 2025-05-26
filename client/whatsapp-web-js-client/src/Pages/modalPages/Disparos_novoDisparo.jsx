@@ -8,8 +8,8 @@ function DisparoModal({ theme, disparo = null }) {
   const [canal, setCanal] = useState(disparo?.canal || '');
   const [tipoAlvo, setTipoAlvo] = useState(disparo?.tipoAlvo || 'Funil');
   const [funilSelecionado, setFunilSelecionado] = useState(disparo?.funilId || '');
-  const [tagSelecionada, setTagSelecionada] = useState(disparo?.tagId || '');
   const [etapa, setEtapa] = useState(disparo?.etapa || '');
+  const [tagsSelecionadas, setTagsSelecionadas] = useState(disparo?.tags || []);
   const [dataInicio, setDataInicio] = useState(disparo?.dataInicio || '');
   const [horaInicio, setHoraInicio] = useState(disparo?.horaInicio || '');
   const [intervaloTempo, setIntervaloTempo] = useState(disparo?.intervaloTempo || 30);
@@ -70,7 +70,7 @@ function DisparoModal({ theme, disparo = null }) {
   // Efeito para limpar seleções quando muda o tipo de alvo
   useEffect(() => {
     if (tipoAlvo === 'Funil') {
-      setTagSelecionada('');
+      setTagsSelecionadas([]);
     } else {
       setFunilSelecionado('');
       setEtapa('');
@@ -104,9 +104,20 @@ function DisparoModal({ theme, disparo = null }) {
     setIntervaloUnidade(unidade);
   };
 
+  // Função para manipular a seleção de tags
+  const handleTagSelection = (e) => {
+    const selectedOptions = Array.from(e.target.selectedOptions, option => parseInt(option.value));
+    setTagsSelecionadas(selectedOptions);
+  };
+
   const handleSave = async () => {
     if (!titulo || !canal || !dataInicio || !horaInicio || mensagens.some(msg => !msg)) {
       console.error('Preencha todos os campos obrigatórios.');
+      return;
+    }
+
+    if (tipoAlvo === 'Tag' && tagsSelecionadas.length === 0) {
+      console.error('Selecione pelo menos uma tag.');
       return;
     }
 
@@ -115,7 +126,7 @@ function DisparoModal({ theme, disparo = null }) {
       mensagens,
       canal,
       tipoAlvo,
-      etapa,
+      ...(tipoAlvo === 'Funil' ? { etapa } : { tags: tagsSelecionadas }),
       dataInicio,
       horaInicio,
       intervalo: {
@@ -291,22 +302,44 @@ function DisparoModal({ theme, disparo = null }) {
                   </div>
                 ) : (
                   <div className="mb-3">
-                    <label htmlFor="tag" className={`form-label card-subtitle-${theme}`}>
-                      Tag
+                    <label className={`form-label card-subtitle-${theme}`}>
+                      Tags (Selecione uma ou mais)
                     </label>
-                    <select
-                      className={`form-select input-${theme}`}
-                      id="tag"
-                      value={tagSelecionada}
-                      onChange={(e) => setTagSelecionada(e.target.value)}
+                    <div 
+                      className={`border rounded p-3 input-${theme}`} 
+                      style={{ 
+                        height: '140px', 
+                        overflowY: 'auto',
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                        gap: '10px'
+                      }}
                     >
-                      <option value="" disabled>Selecione uma tag</option>
                       {tags.map((tag) => (
-                        <option key={tag.id} value={tag.id}>
-                          {tag.nome}
-                        </option>
+                        <div key={tag.id} className="form-check">
+                          <input
+                            type="checkbox"
+                            className="form-check-input"
+                            id={`tag-${tag.id}`}
+                            checked={tagsSelecionadas.includes(tag.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setTagsSelecionadas([...tagsSelecionadas, tag.id]);
+                              } else {
+                                setTagsSelecionadas(tagsSelecionadas.filter(id => id !== tag.id));
+                              }
+                            }}
+                          />
+                          <label 
+                            className={`form-check-label card-subtitle-${theme}`} 
+                            htmlFor={`tag-${tag.id}`}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            {tag.nome}
+                          </label>
+                        </div>
                       ))}
-                    </select>
+                    </div>
                   </div>
                 )}
               </div>
