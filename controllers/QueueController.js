@@ -4,12 +4,12 @@ const { createQueue, addUserinQueue, getUserQueues, getAllQueues, deleteQueue } 
 
 const createQueueController = async(req, res)=>{
     try{
-        const {name, color} = req.body;
+        const {name, color, super_user, distribution} = req.body;
 
         const queue = new Queue(uuidv4(), name, color)
         
         const schema = req.body.schema || 'effective_gain'
-        const result = createQueue(queue, schema)
+        const result = createQueue(queue, super_user, distribution, schema)
         
         res.status(201).json({
             result
