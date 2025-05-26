@@ -7,11 +7,6 @@ function Dashboard({ theme }) {
   const url = process.env.REACT_APP_URL;
   const userData = JSON.parse(localStorage.getItem('user'));
   const [user, setUser] = useState()
-  console.log('DashboardCards MONTANDO');
-
-  console.log('URLu',url)
-
-
 
   const schema = userData.schema
   useEffect(() => {
