@@ -1,4 +1,4 @@
-const { createUser, getAllUsers, searchUser, changeOnline, getOnlineUsers, changeOffline, deleteUser, updateUser} = require('../services/UserService');
+const { createUser, getAllUsers, searchUser, changeOnline, getOnlineUsers, changeOffline, deleteUser, updateUser, getUserById} = require('../services/UserService');
 const { Users } = require('../entities/Users');
 const { v4: uuidv4 } = require('uuid');
 
@@ -81,6 +81,28 @@ const searchUserController = async (req, res) => {
   }
 
 }
+
+const searchUserByIdController = async (req, res) => {
+  const { user_id, schema } = req.params;
+
+
+  try {
+    const result = await getUserById(user_id, schema);
+
+    if (!result) {
+      return res.status(404).json({});
+    }
+
+    res.status(200).json({
+      success: true,
+      user: result,
+    });
+
+  } catch (error) {
+    console.error("Erro ao buscar usuário:", error.message);
+    res.status(500).json({ error: 'Erro ao buscar usuário' });
+  }
+}
 const getOnlineUsersController = async (req, res) => {
   const { schema } = req.query 
   try {
@@ -136,5 +158,6 @@ const deleteUserController = async(req, res)=>{
     getOnlineUsersController,
     changeOfflineController,
     deleteUserController,
-    updateUserController
+    updateUserController,
+    searchUserByIdController
   }

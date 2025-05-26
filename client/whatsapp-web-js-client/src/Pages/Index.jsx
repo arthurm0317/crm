@@ -41,8 +41,7 @@ function Painel() {
   const [page, setPage] = useState('dashboard');
   const navigate = useNavigate();
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
-
-
+  
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user'));
     if (!userData || !userData.schema) {
@@ -218,7 +217,23 @@ function Painel() {
               <h4 className={`header-text-${theme} mb-0`}>Bem vindo, <span id="username">{username}</span></h4>
               <h6 className={`header-text-${theme}`}><span id="role">{role}</span> | <span id="empresa">{empresa}</span></h6>
             </div>
+
+             {/* Botão para técnicos */}
             <div className="d-flex flex-row align-items-center gap-2">
+              {/* Botão para técnicos */}
+              {role === 'tecnico' && (
+                <button
+                  type="button"
+                  data-bs-toggle="tooltip"
+                  data-bs-placement="bottom"
+                  data-bs-title="Schemas"
+                  className={`btn btn-2-${theme} toggle-${theme}`}
+                  onClick={() => navigate('/schemas')}
+                >
+                  <i className="bi bi-diagram-3"></i>
+                </button>
+              )}
+
               <button type="button" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Mudar Tema" className={`btn btn-2-${theme} toggle-${theme}`} onClick={toggleTheme}>
                 <i className={`${theme === 'light' ? `bi-sun` : `bi-moon-stars`}`}></i>
               </button>
@@ -226,7 +241,6 @@ function Painel() {
               <button id="sair" type="button" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Sair" className={`btn btn-2-${theme} toggle-${theme}`} onClick={handleLogout}>
                 <i className="bi bi-door-open"></i>
               </button>
-
             </div>
           </div>
           <div className={`main-${theme} pe-3 pb-3`} style={{ flexGrow: 1, overflow: 'hidden' }} id="main">
