@@ -8,7 +8,7 @@ const tableContainerStyle = {
   overflowY: 'auto'
 };
 
-function WhatsappUsuariosModal({ theme, show, onHide, contato, usuarios = [] }) {
+function WhatsappFilasModal({ theme, show, onHide, contato, filas = [] }) {
   return (
     <Modal 
       show={show} 
@@ -21,9 +21,9 @@ function WhatsappUsuariosModal({ theme, show, onHide, contato, usuarios = [] }) 
       size="lg"
     >
       <Modal.Header closeButton>
-        <i className={`bi bi-people header-text-${theme} me-2`}></i>
+        <i className={`bi bi-diagram-3 header-text-${theme} me-2`}></i>
         <Modal.Title className={`header-text-${theme}`}>
-          Usuários Vinculados ao WhatsApp
+          Filas Vinculadas ao WhatsApp
         </Modal.Title>
       </Modal.Header>
       
@@ -51,31 +51,29 @@ function WhatsappUsuariosModal({ theme, show, onHide, contato, usuarios = [] }) 
             </p>
           </div>
 
-          {/* Lista de Usuários */}
+          {/* Lista de Filas */}
           <div className="table-responsive" style={tableContainerStyle}>
             <table className={`custom-table-${theme} align-middle w-100`}>
               <thead>
                 <tr>
-                  <th className="text-start px-3 py-2">Nome</th>
-                  <th className="text-start px-3 py-2">Email</th>
-                  <th className="text-start px-3 py-2">Cargo</th>
+                  <th className="text-start px-3 py-2">Nome da Fila</th>
+                  <th className="text-start px-3 py-2">Setor</th>
                   <th className="text-start px-3 py-2">Data de Vinculação</th>
                 </tr>
               </thead>
               <tbody>
-                {usuarios.length === 0 ? (
+                {filas.length === 0 ? (
                   <tr>
-                    <td colSpan="4" className="text-center px-3 py-2">
-                      <span className={`card-subtitle-${theme}`}>Nenhum usuário vinculado a este contato.</span>
+                    <td colSpan="3" className="text-center px-3 py-2">
+                      <span className={`card-subtitle-${theme}`}>Nenhuma fila vinculada a este contato.</span>
                     </td>
                   </tr>
                 ) : (
-                  usuarios.map((usuario, index) => (
+                  filas.map((fila, index) => (
                     <tr key={index}>
-                      <td className="px-3 py-2">{usuario.nome}</td>
-                      <td className="px-3 py-2">{usuario.email}</td>
-                      <td className="px-3 py-2">{usuario.cargo}</td>
-                      <td className="px-3 py-2">{new Date(usuario.dataVinculacao).toLocaleDateString('pt-BR')}</td>
+                      <td className="px-3 py-2">{fila.nome}</td>
+                      <td className="px-3 py-2">{fila.setor}</td>
+                      <td className="px-3 py-2">{new Date(fila.dataVinculacao).toLocaleDateString('pt-BR')}</td>
                     </tr>
                   ))
                 )}
@@ -88,4 +86,4 @@ function WhatsappUsuariosModal({ theme, show, onHide, contato, usuarios = [] }) 
   );
 }
 
-export default WhatsappUsuariosModal;
+export default WhatsappFilasModal;
