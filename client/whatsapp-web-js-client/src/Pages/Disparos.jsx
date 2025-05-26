@@ -8,6 +8,20 @@ import DeleteDisparoModal from './modalPages/Disparos_delete';
 
 function DisparosPage({ theme }) {
   const [disparoSelecionado, setDisparoSelecionado] = useState(null);
+  
+  // Função para formatar a data e hora
+  const formatarDataHora = (dataHoraString) => {
+    const data = new Date(dataHoraString);
+    return data.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+  };
+
   // Exemplo de dados - substitua por dados reais da sua API
   const [disparos, setDisparos] = useState([
     {
@@ -163,7 +177,7 @@ function DisparosPage({ theme }) {
                 <div className={`header-text-${theme} fw-bold`}>ID: {disparo.id}</div>
                 <div className={`header-text-${theme} h5 mb-2`}>{disparo.titulo}</div>
                 <div className={`header-text-${theme} mb-1`}>
-                  Início: {disparo.dataInicio} ({disparo.gmt})
+                  Início: {formatarDataHora(disparo.dataInicio)} ({disparo.gmt})
                 </div>
                 <div className={`header-text-${theme}`}>
                   Status: <span className={`fw-bold`}>
