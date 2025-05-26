@@ -7,6 +7,8 @@ function DisparoModal({ theme, disparo = null }) {
   const [mensagens, setMensagens] = useState(disparo?.mensagens || ['']);
   const [canal, setCanal] = useState(disparo?.canal || '');
   const [tipoAlvo, setTipoAlvo] = useState(disparo?.tipoAlvo || 'Funil');
+  const [funilSelecionado, setFunilSelecionado] = useState(disparo?.funilId || '');
+  const [tagSelecionada, setTagSelecionada] = useState(disparo?.tagId || '');
   const [etapa, setEtapa] = useState(disparo?.etapa || '');
   const [dataInicio, setDataInicio] = useState(disparo?.dataInicio || '');
   const [horaInicio, setHoraInicio] = useState(disparo?.horaInicio || '');
@@ -21,6 +23,14 @@ function DisparoModal({ theme, disparo = null }) {
     { id: 4, nome: "Contato 4 - Financeiro" }
   ];
 
+  // Lista fictícia de funis
+  const funis = [
+    { id: 1, nome: "Vendas" },
+    { id: 2, nome: "Marketing" },
+    { id: 3, nome: "Onboarding" },
+    { id: 4, nome: "Pós-venda" }
+  ];
+
   // Lista fictícia de etapas
   const etapas = [
     { id: 1, nome: "Lead Capturado" },
@@ -30,6 +40,16 @@ function DisparoModal({ theme, disparo = null }) {
     { id: 5, nome: "Negociação" },
     { id: 6, nome: "Fechamento" },
     { id: 7, nome: "Pós-venda" }
+  ];
+
+  // Lista fictícia de tags
+  const tags = [
+    { id: 1, nome: "Cliente VIP" },
+    { id: 2, nome: "Prospect" },
+    { id: 3, nome: "Lead Quente" },
+    { id: 4, nome: "Lead Frio" },
+    { id: 5, nome: "Abandonou Carrinho" },
+    { id: 6, nome: "Newsletter" }
   ];
 
   // Efeito para atualizar o array de mensagens quando o número de mensagens muda
@@ -46,6 +66,16 @@ function DisparoModal({ theme, disparo = null }) {
     }
     setMensagens(novasMensagens);
   }, [numMensagens]);
+
+  // Efeito para limpar seleções quando muda o tipo de alvo
+  useEffect(() => {
+    if (tipoAlvo === 'Funil') {
+      setTagSelecionada('');
+    } else {
+      setFunilSelecionado('');
+      setEtapa('');
+    }
+  }, [tipoAlvo]);
 
   const handleIntervaloChange = (valor, unidade) => {
     // Converter tudo para segundos para validação
@@ -187,10 +217,10 @@ function DisparoModal({ theme, disparo = null }) {
                   </select>
                 </div>
 
-                {/* Tipo de Alvo */}
+                {/* Tipo de Alvo com Seleção de Funil */}
                 <div className="mb-3">
                   <label className={`form-label card-subtitle-${theme}`}>Tipo de Alvo</label>
-                  <div className="d-flex gap-3">
+                  <div className="d-flex gap-3 align-items-center">
                     <div className="form-check">
                       <input
                         type="radio"
@@ -219,28 +249,66 @@ function DisparoModal({ theme, disparo = null }) {
                         Tag
                       </label>
                     </div>
+                    
+                    {/* Lista suspensa de Funis */}
+                    {tipoAlvo === 'Funil' && (
+                      <select
+                        className={`form-select input-${theme} ms-3`}
+                        value={funilSelecionado}
+                        onChange={(e) => setFunilSelecionado(e.target.value)}
+                        style={{ width: 'auto', minWidth: '200px' }}
+                      >
+                        <option value="" disabled>Selecione um funil</option>
+                        {funis.map((funil) => (
+                          <option key={funil.id} value={funil.id}>
+                            {funil.nome}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
                 </div>
 
-                {/* Etapa */}
-                <div className="mb-3">
-                  <label htmlFor="etapa" className={`form-label card-subtitle-${theme}`}>
-                    Etapa
-                  </label>
-                  <select
-                    className={`form-select input-${theme}`}
-                    id="etapa"
-                    value={etapa}
-                    onChange={(e) => setEtapa(e.target.value)}
-                  >
-                    <option value="" disabled>Selecione uma etapa</option>
-                    {etapas.map((etapa) => (
-                      <option key={etapa.id} value={etapa.id}>
-                        {etapa.nome}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {/* Etapa ou Tag (dependendo do tipo de alvo) */}
+                {tipoAlvo === 'Funil' ? (
+                  <div className="mb-3">
+                    <label htmlFor="etapa" className={`form-label card-subtitle-${theme}`}>
+                      Etapa
+                    </label>
+                    <select
+                      className={`form-select input-${theme}`}
+                      id="etapa"
+                      value={etapa}
+                      onChange={(e) => setEtapa(e.target.value)}
+                    >
+                      <option value="" disabled>Selecione uma etapa</option>
+                      {etapas.map((etapa) => (
+                        <option key={etapa.id} value={etapa.id}>
+                          {etapa.nome}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="mb-3">
+                    <label htmlFor="tag" className={`form-label card-subtitle-${theme}`}>
+                      Tag
+                    </label>
+                    <select
+                      className={`form-select input-${theme}`}
+                      id="tag"
+                      value={tagSelecionada}
+                      onChange={(e) => setTagSelecionada(e.target.value)}
+                    >
+                      <option value="" disabled>Selecione uma tag</option>
+                      {tags.map((tag) => (
+                        <option key={tag.id} value={tag.id}>
+                          {tag.nome}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               {/* Coluna da Direita */}
