@@ -14,6 +14,7 @@ import RelatorioPage from './Relatorios';
 import UsuariosPage from './Usuarios';
 import FilaPage from './Filas';
 import KanbanPage from './Kanban';
+import DisparosPage from './Disparos';
 
 window.addEventListener('error', function (event) {
   if (
@@ -97,6 +98,7 @@ function Painel() {
       case 'usuarios': return <UsuariosPage theme={theme} />;
       case 'agenda': return <AgendaPage theme={theme} />;
       case 'relatorios': return <RelatorioPage theme={theme} />;
+      case 'disparos': return <DisparosPage theme={theme} />;
       default: return <Dashboard theme={theme} />;
     }
   };
@@ -125,6 +127,7 @@ function Painel() {
               <i className="bi bi-speedometer2"></i>
               <span className="sidebar-label d-none">Dashboard</span>
             </button>
+            <hr className={`hr-${theme} mx-auto my-0`} style={{ width: '50%' }} />
             <button
               id="chats"
               onClick={() => setPage('chats')}
@@ -159,6 +162,18 @@ function Painel() {
               <span className="sidebar-label d-none">Filas</span>
             </button>
             <button
+              id="disparos"
+              onClick={() => setPage('disparos')}
+              data-bs-toggle="tooltip"
+              data-bs-placement="right"
+              data-bs-title="Disparos"
+              className={`btn ${page === 'disparos' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-start gap-2`}
+            >
+              <i className="bi bi-megaphone"></i>
+              <span className="sidebar-label d-none">Disparos</span>
+            </button>
+            <hr className={`hr-${theme} mx-auto my-0`} style={{ width: '50%' }} />
+            <button
               id="usuarios"
               onClick={() => setPage('usuarios')}
               data-bs-toggle="tooltip"
@@ -180,6 +195,7 @@ function Painel() {
               <i className="bi bi-bell"></i>
               <span className="sidebar-label d-none">Lembretes</span>
             </button>
+            <hr className={`hr-${theme} mx-auto my-0`} style={{ width: '50%' }} />
             <button
               id="relatorios"
               onClick={() => setPage('relatorios')}

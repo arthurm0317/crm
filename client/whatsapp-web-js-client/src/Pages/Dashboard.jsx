@@ -81,7 +81,7 @@ function DashboardCards({ theme }) {
           </div>
 
           <div className={`card card-${theme} p-2 d-flex flex-row align-items-center justify-content-evenly`}>
-            <i className="bi bi-clock-history card-icon" style={{ fontSize: '2.5rem' }}></i>
+            <i className="bi bi-check2-all card-icon" style={{ fontSize: '2.5rem' }}></i>
             <div className="d-flex flex-column align-items-start justify-content-start">
               <h6 className={`card-subtitle-${theme} m-0`}>Esperando Atendente</h6>
               <h2 id="esperando-atendente" className={`header-text-${theme}`}>0</h2>
