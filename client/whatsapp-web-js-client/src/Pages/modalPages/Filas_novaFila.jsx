@@ -1,16 +1,45 @@
+import axios from 'axios';
 import React, { useState, useEffect } from 'react';
 
 function NewQueueModal({ theme, superUsers = [] }) {
   const [title, setTitle] = useState('');
   const [superUser, setSuperUser] = useState('');
+  const [users, setUser] = useState([]);
   const [autoDistribution, setAutoDistribution] = useState(false);
+  const userData = JSON.parse(localStorage.getItem('user')); 
+  const schema = userData?.schema
+
+  useEffect(() => {
+    const fetchUsuarios = async () => {
+      try {
+        const response = await axios.get(`${process.env.REACT_APP_URL}/api/users/${schema}`);
+
+        setUser(response.data.users || []);
+      } catch (error) {
+        console.error('Erro ao buscar usuários:', error);
+      }
+    };
+
+    fetchUsuarios();
+  }, []);
 
   const handleSave = async () => {
     if (!title || !superUser) {
       console.error('Preencha todos os campos obrigatórios.');
       return;
     }
-    // Aqui você pode adicionar a lógica para salvar a nova fila
+    try{
+      const response = await axios.post(`${process.env.REACT_APP_URL}/queue/create-queue`,{
+        name: title,
+        super_user: superUser,
+        schema: schema,
+        distribution: autoDistribution,
+      })
+      console.log(response.data)
+    }catch(error){
+      console.error('Erro ao salvar a fila:', error);
+      return;
+    }
     console.log({
       title,
       superUser,
@@ -62,9 +91,9 @@ function NewQueueModal({ theme, superUsers = [] }) {
                 <option value="" disabled>
                   Escolha um usuário
                 </option>
-                {superUsers.map((user) => (
+                {users.map((user) => (
                   <option key={user.id} value={user.id}>
-                    {user.name}
+                    {user ? user.name:'...'}
                   </option>
                 ))}
               </select>
@@ -77,6 +106,7 @@ function NewQueueModal({ theme, superUsers = [] }) {
                 type="checkbox"
                 id="autoDistribution"
                 checked={autoDistribution}
+                value={autoDistribution ? 'true' : 'false'}
                 onChange={() => setAutoDistribution((prev) => !prev)}
               />
               <label className={`form-check-label card-subtitle-${theme}`} htmlFor="autoDistribution">

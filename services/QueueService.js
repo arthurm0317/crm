@@ -1,13 +1,15 @@
 const pool = require('../db/queries')
 
-const createQueue=async(queue, schema)=>{
+const createQueue=async(queue, super_user, distribution, schema)=>{
     const result = await pool.query(
-        `INSERT INTO ${schema}.queues (id, name, color, users) VALUES ($1, $2, $3, $4)`,
+        `INSERT INTO ${schema}.queues (id, name, color, users, superuser, distribution) VALUES ($1, $2, $3, $4, $5, $6)`,
         [
             queue.getId(),
             queue.getName(),
             queue.getColor(),
-            queue.getUsers()
+            queue.getUsers(),
+            super_user,
+            distribution
         ]
     );
     return result.rows[0]

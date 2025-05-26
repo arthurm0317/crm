@@ -3,7 +3,7 @@ const { createQueueController, addUserinQueueController, getUserQueuesController
 
 const router = express.Router();
 
-router.post('/queue', createQueueController)
+router.post('/create-queue', createQueueController)
 router.post('/addUser', addUserinQueueController)
 router.get('/getUserQueue', getUserQueuesController)
 router.get('/get-all-queues/:schema', getAllQueuesControllers)

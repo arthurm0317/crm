@@ -31,14 +31,18 @@ const createCompany = async (company, schema) => {
               created_at BIGINT,
               messages JSONB,
               contact_phone text,
-              etapa_id uuid
+              etapa_id uuid,
+              updated_time bigint,
+              unreadmessages boolean
             );
           `);
         await pool.query(`CREATE TABLE IF NOT EXISTS ${schema}.queues(
             id UUID PRIMARY KEY,
             name TEXT UNIQUE NOT NULL,
             color TEXT,
-            users JSONB
+            users JSONB,
+            distribution boolean,
+            superuser uuid REFERENCES ${schema}.users(id) ON DELETE SET NULL,
         );`);
         await pool.query(`
             CREATE TABLE IF NOT EXISTS ${schema}.connections (
