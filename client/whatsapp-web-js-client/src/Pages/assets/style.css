@@ -14,11 +14,9 @@
 
 .bg-form-light {
     background-color: var(--bg-color-light);
-    max-width: 450px;
 }
 .bg-form-dark {
     background-color: var(--bg-color-dark);
-    max-width: 450px;
 }
 
 .input-group-text {
