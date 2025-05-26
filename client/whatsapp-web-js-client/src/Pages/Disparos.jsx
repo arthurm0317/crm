@@ -4,11 +4,12 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import { Card, Button } from 'react-bootstrap';
 import DisparoModal from './modalPages/Disparos_novoDisparo';
+import DeleteDisparoModal from './modalPages/Disparos_delete';
 
 function DisparosPage({ theme }) {
   const [disparoSelecionado, setDisparoSelecionado] = useState(null);
   // Exemplo de dados - substitua por dados reais da sua API
-  const [disparos] = useState([
+  const [disparos, setDisparos] = useState([
     {
       id: '001',
       titulo: 'Disparo de Boas-vindas',
@@ -63,14 +64,21 @@ function DisparosPage({ theme }) {
   // Inicialização dos tooltips
   useEffect(() => {
     let tooltipList = [];
+    let deleteModal = null;
 
     try {
       const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
       if (tooltipTriggerList.length > 0) {
         tooltipList = [...tooltipTriggerList].map(el => new bootstrap.Tooltip(el));
       }
+
+      // Inicializa o modal de exclusão
+      const modalElement = document.getElementById('DeleteDisparoModal');
+      if (modalElement) {
+        deleteModal = new bootstrap.Modal(modalElement);
+      }
     } catch (error) {
-      console.error('Erro ao inicializar tooltips:', error);
+      console.error('Erro ao inicializar componentes:', error);
     }
 
     return () => {
@@ -80,6 +88,9 @@ function DisparosPage({ theme }) {
             t.dispose();
           }
         });
+      }
+      if (deleteModal) {
+        deleteModal.dispose();
       }
     };
   }, []);
@@ -92,14 +103,28 @@ function DisparosPage({ theme }) {
   };
 
   const handleDelete = (id) => {
-    console.log('Deletar disparo:', id);
-    // Implementar lógica de deleção
+    const disparo = disparos.find(d => d.id === id);
+    setDisparoSelecionado(disparo);
+    const modalElement = document.getElementById('DeleteDisparoModal');
+    if (modalElement) {
+      const modal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+      modal.show();
+    }
   };
 
   const handleNovoDisparo = () => {
     setDisparoSelecionado(null);
     const modal = new bootstrap.Modal(document.getElementById('DisparoModal'));
     modal.show();
+  };
+
+  const handleDisparoDeleted = () => {
+    // Aqui você implementará a atualização da lista após a exclusão
+    // Por enquanto, vamos apenas simular removendo do estado local
+    if (disparoSelecionado) {
+      setDisparos(disparos.filter(d => d.id !== disparoSelecionado.id));
+      setDisparoSelecionado(null);
+    }
   };
 
   return (
@@ -162,7 +187,7 @@ function DisparosPage({ theme }) {
                   <i className="bi bi-pencil-fill"></i>
                 </button>
                 <button
-                  className={`btn btn-2-${theme} delete-btn w-100`}
+                  className={`btn delete-btn w-100`}
                   data-bs-toggle="tooltip"
                   data-bs-placement="left"
                   data-bs-title="Excluir"
@@ -178,6 +203,9 @@ function DisparosPage({ theme }) {
 
       {/* Modal de Novo/Editar Disparo */}
       <DisparoModal theme={theme} disparo={disparoSelecionado} />
+
+      {/* Modal de Exclusão */}
+      <DeleteDisparoModal theme={theme} disparo={disparoSelecionado} onDelete={handleDisparoDeleted} />
     </div>
   );
 }
