@@ -1,31 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import * as bootstrap from 'bootstrap';
 import axios from 'axios';
+import NewQueueModal from './modalPages/Filas_novaFila';
+import DeleteQueueModal from './modalPages/Filas_delete';
 
 function FilaPage({ theme }) {
   const [filas, setFilas] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const userData = JSON.parse(localStorage.getItem('user'));
   const schema = userData?.schema;
-  const url = 'https://landing-page-teste.8rxpnw.easypanel.host';
+  const url = process.env.REACT_APP_URL;
 
   useEffect(() => {
-    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    const tooltipList = [...tooltipTriggerList].map(el => {
-        if (el) {
-        return new bootstrap.Tooltip(el);
-        }
-        return null;
-    });
+  const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+  const tooltipList = [...tooltipTriggerList].map(el => {
+    if (el) {
+      return new bootstrap.Tooltip(el);
+    }
+    return null;
+  });
 
-    return () => {
-        tooltipList.forEach(t => {
-        if (t) {
-            t.dispose();
-        }
-        });
-    };
-    }, [filas]);
+  return () => {
+    tooltipList.forEach(t => {
+      if (t && t._element && t._element.closest) {
+        t.dispose();
+      }
+    });
+  };
+}, [filas]);
 
 
   useEffect(() => {
@@ -56,13 +58,14 @@ const filasFiltradas = filas.filter(fila => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <button
-            className={`btn btn-1-${theme}`}
-            data-bs-toggle="modal"
-            data-bs-target="#NewFilaModal"
+          <button 
+          className={`btn btn-1-${theme} d-flex gap-2`}
+          data-bs-toggle="modal"
+          data-bs-target="#NewQueueModal"
           >
+            <i className="bi-plus-lg"></i>
             Nova Fila
-          </button>
+          </button>        
         </div>
       </div>
 
@@ -88,14 +91,6 @@ const filasFiltradas = filas.filter(fila => {
 
                 <td>
                   <button
-                    className={`icon-btn header-text-${theme} me-1`}
-                    data-bs-toggle="tooltip"
-                    title="Gerenciar"
-                    onClick={() => {}}
-                  >
-                    <i className="bi bi-gear"></i>
-                  </button>
-                  <button
                     className={`icon-btn btn-2-${theme} me-1 btn-user`}
                     data-bs-toggle="tooltip"
                     title="Editar"
@@ -103,14 +98,19 @@ const filasFiltradas = filas.filter(fila => {
                   >
                     <i className="bi bi-pencil-fill"></i>
                   </button>
+
                   <button
                     className="icon-btn text-danger"
                     data-bs-toggle="tooltip"
                     title="Excluir"
-                    onClick={() => {}}
+                    onClick={() => {
+                      const modal = new bootstrap.Modal(document.getElementById('DeleteQueueModal'));
+                      modal.show();
+                    }}
                   >
                     <i className="bi bi-trash-fill"></i>
                   </button>
+
                 </td>
 
               </tr>
@@ -118,8 +118,10 @@ const filasFiltradas = filas.filter(fila => {
           </tbody>
         </table>
       </div>
-
-      {/* Aqui você irá importar e usar os modais futuramente */}
+        <div>
+          <NewQueueModal theme={theme}/>
+          <DeleteQueueModal theme={theme}/>
+        </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-const { setUserChat, getChats, getMessages, getChatData, getChatByUser, updateQueue, getChatById, saveMediaMessage } = require('../services/ChatService');
+const { setUserChat, getChats, getMessages, getChatData, getChatByUser, updateQueue, getChatById, saveMediaMessage, setMessageAsRead, closeChat, setSpecificUser } = require('../services/ChatService');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
@@ -191,7 +191,7 @@ const getChatDataController = async (req, res) => {
 };
 
 const getChatByUserController = async (req, res) => {
-  const { userId } = req.params;
+  const { userId, role} = req.params;
   const schema = req.params.schema || 'effective_gain';
 
   if (!userId) {
@@ -199,7 +199,7 @@ const getChatByUserController = async (req, res) => {
   }
 
   try {
-    const result = await getChatByUser(userId, schema);
+    const result = await getChatByUser(userId, role, schema);
     res.status(200).json({ messages: result });
   } catch (err) {
     res.status(500).json({ error: 'Erro ao buscar chats do usuário.' });
@@ -259,8 +259,48 @@ const sendAudioController = async (req, res) => {
     }, 500);
   }
 
+};
+const setMessageAsReadController = async(req, res)=>{
+try {
+  const {chat_id} = req.body
+  const schema = req.body.schema
 
-  };
+  const result = await setMessageAsRead(chat_id, schema)
+  res.status(200).json({
+    result:result
+  })
+} catch (error) {
+  console.log(error)
+}
+}
+const closeChatContoller = async(req, res)=>{
+  try{
+    const {chat_id} = req.body
+    const schema = req.body.schema
+    const result = await closeChat(chat_id, schema)
+
+   res.status(200).json({
+    result:result
+  })
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+const setSpecificUserController = async(req, res)=>{
+  try {
+    const {user_id, chat_id} = req.body
+    const schema = req.body.schema
+
+    const result = await setSpecificUser( chat_id, user_id, schema)
+
+    res.status(200).json({
+      result:result
+    })
+  }catch (error) {
+    console.log(error)
+  }
+}
   module.exports = {
     setUserChatController,
     getChatsController,
@@ -273,4 +313,7 @@ const sendAudioController = async (req, res) => {
     sendImageController,
     uploadAudio,
     uploadImage,
+    setMessageAsReadController,
+    closeChatContoller,
+    setSpecificUserController
   };

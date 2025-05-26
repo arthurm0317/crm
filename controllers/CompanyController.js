@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const { Company } = require('../entities/company');
-const { createCompany, getAllCompanies } = require('../services/CompanyService');
+const { createCompany, getAllCompanies, getAllCompaniesTecUser } = require('../services/CompanyService');
 
 const createCompanyController = async (req, res) => {
     try {
@@ -36,5 +36,18 @@ const getAllCompaniesController = async(req, res)=>{
         })
     }
 }
+const getAllCompaniesTecUserController = async(req, res)=>{
+    try{
+        const result = await getAllCompaniesTecUser();
+        res.status(201).json({
+            empresas: result
+        })
+    }catch(error){
+        console.log(error)
+        res.status(500).json({
+            message:"Erro ao buscar empresas"
+        })
+    }
+}
 
-module.exports = { createCompanyController, getAllCompaniesController };
+module.exports = { createCompanyController, getAllCompaniesController, getAllCompaniesTecUserController};

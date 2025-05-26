@@ -10,6 +10,9 @@ function NewUserModal({ theme, type }) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [verifyPassword, setVerifyPassword] = useState('');
+  const userData = JSON.parse(localStorage.getItem('user')); 
+  const schema = userData?.schema
+  const url = process.env.REACT_APP_URL;
 
   const handleConfirmPasswordBlur = () => {
     if (confirmPassword && confirmPassword !== password) {
@@ -18,7 +21,7 @@ function NewUserModal({ theme, type }) {
   };
 
   const handleSave = async () => {
-    if (!userName || !userEmail || !userRole || (type === 'new' && (!password || !confirmPassword)) || (type === 'edit' && !verifyPassword)) {
+    if (!userName || !userEmail || !userRole || (type === 'edit' && !verifyPassword)) {
       console.error('Preencha todos os campos.');
       return;
     }
@@ -29,11 +32,12 @@ function NewUserModal({ theme, type }) {
     }
 
     try {
-      const response = await axios.post('https://landing-page-teste.8rxpnw.easypanel.host/api/users', {
+      const response = await axios.post(`${url}/api/users`, {
         name: userName,
         email: userEmail,
         role: userRole,
         password: password,
+        schema: schema
       });
 
       console.log('Usuário criado:', response.data);
@@ -60,7 +64,8 @@ function NewUserModal({ theme, type }) {
     <div className="modal fade" id="NewUserModal" tabIndex="-1" aria-labelledby="NewUserModalLabel" aria-hidden="true">
       <div className="modal-dialog modal-sm">
         <div className="modal-content" style={{ backgroundColor: `var(--bg-color-${theme})` }}>
-          <div className="modal-header">
+          <div className="modal-header gap-3">
+            <i className={`bi bi-people header-text-${theme}`}></i>
             <h5 className={`modal-title header-text-${theme}`} id="NewUserModalLabel">
               Dados do Usuário
             </h5>

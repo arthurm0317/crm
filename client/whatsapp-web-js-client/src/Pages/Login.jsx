@@ -7,7 +7,7 @@ import { useEffect } from 'react';
 import React, { use, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-const url = 'https://landing-page-teste.8rxpnw.easypanel.host'
+const url = process.env.REACT_APP_URL;
 
 function Login() {
   const [theme, setTheme] = useTheme();
@@ -44,7 +44,13 @@ function Login() {
           schema: response.data.company.schema_name,
         };
         localStorage.setItem('user', JSON.stringify(userData));
-
+         if (userData.role === 'admin') {
+          navigate('/painel');
+        } else if (userData.role === 'tecnico') {
+          navigate('/schemas');
+        } else {
+          navigate('/painel'); 
+        }
         const rememberedCredentials = JSON.parse(localStorage.getItem('rememberedCredentials')) || {};
         if (rememberMe) {
           rememberedCredentials[username] = password;
@@ -53,7 +59,6 @@ function Login() {
         }
         localStorage.setItem('rememberedCredentials', JSON.stringify(rememberedCredentials));
 
-        navigate('/painel');
       }
     } catch (err) {
       const senhaIncorretaElement = document.     getElementById("senhaIncorreta");
@@ -134,7 +139,7 @@ function Login() {
                 className={`btn btn-2-${theme} toggle-${theme}`}
                 onClick={toggleTheme}
               >
-                <i className="bi bi-sun"></i>
+                <i className={`${theme === 'light' ? `bi-sun` : `bi-moon-stars`}`}></i>
               </button>
             </div>
 

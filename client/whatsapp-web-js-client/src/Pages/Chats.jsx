@@ -3,6 +3,59 @@ import axios from 'axios';
 import EmojiPicker from 'emoji-picker-react';
 import NewContactModal from './modalPages/Chats_novoContato';
 import {socket} from '../socket'
+import {Dropdown} from 'react-bootstrap';
+import './assets/style.css';
+import NewQueueModal from './modalPages/Filas_novaFila';
+
+function formatHour(timestamp) {
+  const date = new Date(Number(timestamp));
+  return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, setSelectedChat, setSelectedMessages }) {
+
+  const url = process.env.REACT_APP_URL
+  const userData = JSON.parse(localStorage.getItem('user'));
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const handleToggle = (isOpen) => {
+    setIsDropdownOpen(isOpen);
+  };
+
+  
+
+  const handleCloseChat = async () => {
+    try {
+      const res = await axios.post(`${url}/chat/close`, {
+        chat_id: selectedChat.id,
+        schema: userData.schema
+      });
+      setChats(prevChats => prevChats.filter(c => c.id !== selectedChat.id));
+      setSelectedChat(null)
+      setSelectedMessages([])
+    } catch (error) {
+      console.error(error)
+    }
+  };
+
+  return (
+    <Dropdown drop="start" onToggle={handleToggle}>
+      <Dropdown.Toggle
+        variant={theme === 'light' ? 'light' : 'dark'}
+        id="dropdown-basic"
+        className={`btn-2-${theme}`}
+      >
+        Opções
+      </Dropdown.Toggle>
+
+      <Dropdown.Menu
+        variant={theme === 'light' ? 'light' : 'dark'}
+        className={`input-${theme}`}>
+        <Dropdown.Item href="#" onClick={handleCloseChat}>Finalizar Atendimento</Dropdown.Item>
+      </Dropdown.Menu>
+    </Dropdown>
+  );
+}
 
 
 function ChatPage({ theme }) {
@@ -32,10 +85,44 @@ function ChatPage({ theme }) {
   const [audioUrl, setAudioUrl] = useState('');
   const [imageUrl, setImageUrl] = useState('')
   const selectedChatIdRef = useRef(null);
-  
+  const [selectedTab, setSelectedTab] = useState('conversas'); // novo estado
+
+
   const [socketInstance] = useState(socket)
   
-  const url = 'https://landing-page-teste.8rxpnw.easypanel.host'
+  const url = process.env.REACT_APP_URL;
+
+  const setAsRead = async()=>{
+    try{
+      const res = await axios.post(`${url}/chat/setAsRead`,{
+        chat_id: selectedChat.id,
+        schema:schema
+      })
+      console.log(res)
+    }catch(error){
+      console.error(error)
+    }
+  }
+
+const handleAcceptChat = async () => {
+    try{
+      const res = await axios.post(`${url}/chat/setUser`,{
+        user_id: userData.id,
+        chat_id: selectedChat.id,
+        schema: userData.schema
+      })
+      setChats(prevChats =>
+      prevChats.map(c =>
+        c.id === selectedChat.id
+          ? { ...c, status: 'open', assigned_user: userData.id }
+          : c
+      )
+    );
+
+    }catch(error){
+      console.error(error)
+    }
+  }
 
   const handleChatClick = (chat) => {
   setSelectedChat(chat);
@@ -44,24 +131,42 @@ function ChatPage({ theme }) {
   previousMessagesRef.current = [];
   selectedChatIdRef.current = chat.id; 
   loadMessages(chat);
+  setAsRead()
+  setChats(prevChats =>
+    prevChats.map(c =>
+      c.id === chat.id ? { ...c, unreadmessages: false } : c
+    )
+  );  
+  scrollToBottom()
+  
 };
 
-useEffect(() => {
-  const handleMessage = (msg) => {
-    if (msg.chatId === selectedChatIdRef.current) {
-      const formattedMessage = formatMessage(msg);
-      setSelectedMessages((prev) => [...prev, formattedMessage]);
-      loadChats()
-      scrollToBottom()
-    }
-  };
+  useEffect(() => {
+    const handleMessage = (msg) => {
+      if (msg.chatId === selectedChatIdRef.current) {
+        const formattedMessage = formatMessage(msg);
+        setSelectedMessages((prev) => [...prev, formattedMessage]);
+        loadChats();
+        scrollToBottom();
+        axios.post(`${url}/chat/setAsRead`, {
+          chat_id: msg.chatId,
+          schema: schema
+        });
+        setChats(prevChats =>
+        prevChats.map(c =>
+          c.id === msg.chatId ? { ...c, unreadmessages: false } : c
+        )
+      );
+      } else {
+      }
+    };
 
-  socketInstance.on('message', handleMessage);
+    socketInstance.on('message', handleMessage);
 
-  return () => {
-    socketInstance.off('message', handleMessage);
-  };
-}, []);
+    return () => {
+      socketInstance.off('message', handleMessage);
+    };
+  }, []);
 
  useEffect(() => {
   if (socketInstance) {
@@ -69,16 +174,33 @@ useEffect(() => {
       console.log('Conectado ao servidor WebSocket');
     });
     socketInstance.on('chats_updated', (updatedChats) => {
-      if (Array.isArray(updatedChats)) {
-      const myChats = updatedChats.filter(chat => chat.assigned_user === userData.id);
-      setChats(myChats);
-    } else {
-      setChats([]);
-    }
+  let chats = [];
+  if (Array.isArray(updatedChats)) {
+    chats = updatedChats;
+  } else if (updatedChats && typeof updatedChats === 'object') {
+    chats = [updatedChats];
+  }
+  if (chats.length > 0) {
+    setChats(prevChats => {
+      const updatedMap = new Map(chats.map(chat => [chat.id, chat]));
+      const merged = prevChats.map(chat => updatedMap.get(chat.id) || chat);
+      chats.forEach(chat => {
+        if (!prevChats.some(c => c.id === chat.id)) {
+          merged.push(chat);
+        }
+      });
+      return merged;
+    });
+  }
 });
-  } 
-}); 
-
+  }
+  return () => {
+    if (socketInstance) {
+      socketInstance.off('connect');
+      socketInstance.off('chats_updated');
+    }
+  };
+}, [socketInstance, userData.id]);
 const handleSubmit = (data) => {
   if (!selectedChat) {
     console.warn('Nenhum chat selecionado!');
@@ -108,8 +230,8 @@ useEffect(() => {
 
 const loadChats = async () => {
     try {
-      const res = await axios.get(`${url}/chat/getChat/${userData.id}/${schema}`);
-      setChats(res.data.messages);
+      const res = await axios.get(`${url}/chat/getChat/${userData.id}/${schema}/${userData.role}`);
+      setChats(Array.isArray(res.data.messages) ? res.data.messages : []);;
     } catch (err) {
       console.error('Erro ao carregar chats:', err);
     }
@@ -124,11 +246,12 @@ const formatMessage = (msg) => ({
   name: msg.contact_name || msg.senderName,
   text: msg.text || msg.body,
   from_me: msg.from_me|| msg.fromMe,
-  timestamp: msg.timestamp || new Date().toISOString(),
+  timestamp: msg.created_at,
   message_type: msg.message_type,
   base64: msg.midiaBase64 || msg.base64
 
 });
+
 
 const loadMessages = async (chatId) => {
   try {
@@ -448,6 +571,10 @@ const handleImageUpload = async (event) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  useEffect(() => {
+  scrollToBottom();
+}, [selectedMessages]);
+
   const handleImageClick = (imageBase64) => {
     setSelectedImage(imageBase64);
   };
@@ -460,55 +587,155 @@ const handleImageUpload = async (event) => {
     <div className={`d-flex flex-column h-100 w-100 ms-2`}>
       <div className="mb-3">
         <button 
-        className={`btn btn-1-${theme}`}
+        className={`btn btn-1-${theme} d-flex gap-2`}
         data-bs-toggle="modal"
         data-bs-target="#NewContactModal"
         >
+          <i className="bi-plus-lg"></i>
           Novo Contato
         </button>
       </div>
       <div className={`chat chat-${theme} h-100 w-100 d-flex flex-row`}>
 
         {/* LISTA DE CONTATOS */}
-        <div 
-        className={`col-3 chat-list-${theme} bg-color-${theme}`} 
-        style={{ overflowY: 'auto', height: '100%', maxHeight: '777.61px', backgroundColor: `var(--bg-color-${theme})`}}>
-          {chatList.map((chat) => (
-          <div className='d-flex flex-row' key={chat.id}>
-                <div 
-                className={`selectedBar ${selectedChatId === chat.id ? '' : 'd-none'}`} style={{ width: '2.5%', maxWidth: '5px', backgroundColor: 'var(--primary-color)' }}></div>
-                <div 
-                  className={`h-100 w-100 input-${theme}`}
-                  onClick={() => handleChatClick(chat)}
-                  style={{ cursor: 'pointer', padding: '10px', borderBottom: `1px solid var(--border-color-${theme})` }}
-                >
-                  <strong>{chat.contact_name || chat.id || 'Sem Nome'}</strong>
+        <div className={`col-3 chat-list-${theme} bg-color-${theme}`}
+          style={{ overflowY: 'auto', height: '100%', maxHeight: '777.61px', width:'100%',maxWidth:'300px',backgroundColor: `var(--bg-color-${theme})`}}>
+
+          {/* Botões de troca */}
+          <div className="d-flex gap-2 p-2">
+            <button
+              className={`d-flex gap-2 btn btn-sm ${selectedTab === 'conversas' ? `btn-1-${theme}` : `btn-2-${theme}`}`}
+              onClick={() => setSelectedTab('conversas')}
+            >
+              <i className="bi bi-chat-left-text"></i>
+              Conversas
+            </button>
+            <button
+              className={`d-flex gap-2 btn btn-sm ${selectedTab === 'aguardando' ? `btn-1-${theme}` : `btn-2-${theme}`}`}
+              onClick={() => setSelectedTab('aguardando')}
+            >
+              <i className="bi bi-alarm"></i>
+              Aguardando
+            </button>
+          </div>
+
+          {/* Lista filtrada */}
+          <div>
+            <h6 
+              className={`header-text-${theme}`}
+              style={{padding: '8px 0 0 10px'}}
+            >
+              {selectedTab === 'conversas' ? 'Conversas' : 'Sala de Espera'}
+            </h6>
+            {chatList
+              .filter(chat =>
+                selectedTab === 'conversas'
+                  ? chat.status !== 'waiting'
+                  : chat.status === 'waiting'
+              )
+              .map((chat) => (
+                <div className='msg d-flex flex-row' key={chat.id}>
                   <div
-                    style={{
-                      color: '#666',
-                      fontSize: '0.9rem',
-                      overflow: 'hidden',
-                      whiteSpace: 'nowrap',
-                      textOverflow: 'ellipsis',
-                      maxWidth: '100%',
-                    }}
+                    className={`selectedBar ${selectedChatId === chat.id ? '' : 'd-none'}`}
+                    style={{ width: '2.5%', maxWidth: '5px', backgroundColor: 'var(--primary-color)' }}></div>
+                  <div
+                    className={`h-100 w-100 input-${theme}`}
+                    onClick={() => handleChatClick(chat)}
+                    style={{ cursor: 'pointer', padding: '10px', borderBottom: `1px solid var(--border-color-${theme})` }}
                   >
-                    {Array.isArray(chat.messages) && chat.messages.length > 0
-                  ? (typeof chat.messages[chat.messages.length - 1] === 'string'
-                      ? chat.messages[chat.messages.length - 1].slice(0, 40) + 
-                        (chat.messages[chat.messages.length - 1].length > 50 ? '...' : '')
-                      : 'Mensagem inválida')
-                  : 'Sem mensagens'}
+                    <strong>{chat.contact_name || chat.id || 'Sem Nome'}</strong>
+                    <div className='d-flex flex-column align-items-center justify-content-center'>
+                      {chat.unreadmessages && selectedChatId !== chat.id && (
+                        <span style={{
+                          position: 'sticky',
+                          width: 12,
+                          height: 12,
+                          left:'100%',
+                          background: '#0082ca',
+                          borderRadius: '50%',
+                          display: 'inline-block'
+                        }} />
+                      )}
+                    </div>
+                    <div
+                      style={{
+                        color: '#666',
+                        fontSize: '0.9rem',
+                        overflow: 'hidden',
+                        whiteSpace: 'nowrap',
+                        textOverflow: 'ellipsis',
+                        maxWidth: '100%',
+                      }}
+                    >
+                      {Array.isArray(chat.messages) && chat.messages.length > 0
+                        ? (typeof chat.messages[chat.messages.length - 1] === 'string'
+                            ? chat.messages[chat.messages.length - 1].slice(0, 40) +
+                              (chat.messages[chat.messages.length - 1].length > 50 ? '...' : '')
+                            : 'Mensagem de mídia')
+                        : 'Sem mensagens'}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-            </div>
-
+              ))}
+          </div>
+        </div>
 {/* MENSAGENS DO CONTATO SELECIONADO */}
 <div
-  className={`col-9 chat-messages-${theme} d-flex flex-column`}
+  className={`w-100 chat-messages-${theme} d-flex flex-column`} style={{ borderTopRightRadius: '10px' }}
 >
+{selectedChat && (
+  <div
+    className="d-flex justify-content-between align-items-center flex-row px-3 py-2"
+    style={{
+      borderTopRightRadius: '5px',
+      backgroundColor: `var(--bg-color-${theme})`,
+      color: `var(--color-${theme})`,
+      borderBottom: `1px solid var(--border-color-${theme})`,
+      minHeight: '80px',
+      width:'100%',
+      maxWidth:'1700px',
+    }}
+  >
+
+    <div>
+      <strong style={{ fontSize: '1.1rem' }}>
+        {selectedChat.contact_name || 'Sem Nome'}
+      </strong>
+      <div style={{ fontSize: '0.95rem', opacity: 0.8 }}>
+        {selectedChat.contact_phone || selectedChat.id}
+      </div>
+    </div>
+
+    <div className='d-flex flex-row gap-2'>
+
+      {selectedChat && selectedChat.status === 'waiting' && (
+  <div>
+    <button
+      className={`btn btn-2-${theme} d-flex gap-2`}
+      // AQUI VEM O ON CLICK DO ACCEPT
+      onClick={handleAcceptChat}
+    >
+      <i className="bi bi-check2"></i>
+      Aceitar
+    </button>
+  </div>
+)}
+
+      <div>
+       <DropdownComponent
+        theme={theme}
+        selectedChat={selectedChat}
+        handleChatClick={handleChatClick}
+        setChats={setChats}
+        setSelectedChat={setSelectedChat}
+        setSelectedMessages={setSelectedMessages}
+      />
+      </div>
+
+    </div>
+
+  </div>
+)}
   <div
     style={{
       height: '100%',
@@ -546,60 +773,63 @@ const handleImageUpload = async (event) => {
     {msg.message_type === 'audio' || msg.message_type === 'audioMessage' ? (
       <AudioPlayer base64Audio={msg.base64} audioId={msg.id} />
     ) : msg.message_type === 'imageMessage' || msg.message_type === 'image' ? (
-      
-     <img
-  src={
-  typeof msg.base64 === 'string' 
-    ? msg.base64.startsWith('blob:') 
-      ? msg.base64 // Se for blob, usa diretamente
-      : `data:image/jpeg;base64,${msg.base64}` // Se for Base64, adiciona o prefixo
-    : msg.base64 // Se não for string (ex: URL normal), usa como está
-    }
-    alt="imagem"
-    style={{
-      maxWidth: '300px',
-      width: '100%',
-      height: 'auto',
-      borderRadius: '8px',
-      display: 'block',
-      cursor: 'pointer',
-    }}
-    onClick={() => handleImageClick(msg.base64)}
-      />
-) : (
-  msg.text
-)}
-
-    {selectedImage && (
-      <div
-        className="image-modal"
-        onClick={closeImageModal}
+      <img
+        src={
+          typeof msg.base64 === 'string'
+            ? msg.base64.startsWith('blob:')
+              ? msg.base64
+              : `data:image/jpeg;base64,${msg.base64}`
+            : msg.base64
+        }
+        alt="imagem"
         style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
+          maxWidth: '300px',
           width: '100%',
-          height: '100%',
-          backgroundColor: 'rgba(0, 0, 0, 0.25)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000,
+          height: 'auto',
+          borderRadius: '8px',
+          display: 'block',
+          cursor: 'pointer',
         }}
-      >
-        <img
-          src={`data:image/jpeg;base64,${selectedImage}`}
-          alt="imagem ampliada"
-          style={{
-            maxWidth: '90%',
-            maxHeight: '90%',
-          }}
-        />
-      </div>
+        onClick={() => handleImageClick(msg.base64)}
+      />
+    ) : (
+      msg.text
     )}
-
+    {/* Horário formatado */}
+    <div style={{ fontSize: '0.75rem', color: '#888', marginTop: 2 }}>
+      {formatHour(msg.timestamp)}
+    </div>
   </div>
 ))}
+
+{/* Renderize o modal de imagem ampliada fora do map */}
+{selectedImage && (
+  <div
+    className="image-modal"
+    onClick={closeImageModal}
+    style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'rgba(0, 0, 0, 0.25)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+    }}
+  >
+    <img
+      src={`data:image/jpeg;base64,${selectedImage}`}
+      alt="imagem ampliada"
+      style={{
+        maxWidth: '90%',
+        maxHeight: '90%',
+      }}
+    />
+  </div>
+)}
       <div ref={messagesEndRef} />
     </div>
   </div>
@@ -608,6 +838,7 @@ const handleImageUpload = async (event) => {
   <div
     className="p-3 w-100 d-flex justify-content-center message-input gap-2"
     style={{
+      borderBottomRightRadius: '5px',
       backgroundColor: `var(--bg-color-${theme})`,
       borderTop: '1px solid var(--border-color)',
       height: '70px',
@@ -749,7 +980,7 @@ const handleImageUpload = async (event) => {
 
   </div>
 </div>
-      </div>
+    </div>
       <NewContactModal theme={theme}/>
     </div>
   );

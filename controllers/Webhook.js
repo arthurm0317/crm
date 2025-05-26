@@ -7,7 +7,7 @@ const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const { Chat } = require('../entities/Chat');
 const { Message } = require('../entities/Message');
-const { createChat, getChatService, setChatQueue, setUserChat, saveMediaMessage, getChatByUser } = require('../services/ChatService');
+const { createChat, getChatService, setChatQueue, setUserChat, saveMediaMessage, getChatByUser, setMessageIsUnread, getChatIfUserIsNull } = require('../services/ChatService');
 const { saveMessage } = require('../services/MessageService');
 const pool = require('../db/queries');
 const { getCurrentTimestamp } = require('../services/getCurrentTimestamp');
@@ -31,8 +31,9 @@ module.exports = (broadcastMessage) => {
   app.post('/chat', async (req, res) => {
     const result = req.body;
     console.log('------------- resultado -----------------')
-    console.log(result)
-
+    console.log(result.data.message.imageMessage)
+    console.log('------------- resultado imagem -----------------')
+    console.log(result.data.message)
     if (!result?.data?.key?.remoteJid) {
       return res.status(400).json({ error: 'Dados incompletos' });
     }
@@ -67,15 +68,22 @@ module.exports = (broadcastMessage) => {
       const chatDb = await getChatService(createChats.chat.id, createChats.chat.connection_id, createChats.schema);
       const schema = createChats.schema
 
-      await setUserChat(chatDb.id, schema)
+      if(chatDb.assigned_user===null){
+        await setUserChat(chatDb.id, schema)
+      }
 
       const baseChat = await getChatService(createChats.chat.id, createChats.chat.connection_id, createChats.schema)
-
-      const userChat = await getChatByUser(baseChat.assigned_user, schema)
-
-      serverTest.io.emit('chats_updated', userChat)
-      console.log('chat emitido', userChat)
-
+      if(result.data.key.fromMe===false){
+        await setMessageIsUnread(baseChat.id, schema)
+      }
+      if (baseChat.assigned_user !== null) {
+        const userChat = await getChatByUser(baseChat.assigned_user, baseChat.permission,schema)
+        serverTest.io.emit('chats_updated', userChat)
+      }else{
+        const chats = await getChatIfUserIsNull(baseChat.connection_id,baseChat.permission,schema)
+        console.log('chats', chats)
+        serverTest.io.emit('chats_updated', chats)
+      }
 
       if (result.data.message?.conversation) {
       } else if (result.data.message?.audioMessage) {
@@ -117,9 +125,11 @@ module.exports = (broadcastMessage) => {
       if (result.data.message?.imageMessage) {
         try {
           if (result.data.message.base64) {
+            console.log('entrou if message.b64')
             imageBase64 = result.data.message.base64
           } 
           if (imageBase64) {
+            console.log('entrou id img b64')
             const base64Formatado = await getBase64FromMediaMessage(result.instance, result.data.key.id)
             await saveMediaMessage(result.data.key.id,result.data.key.fromMe, chatDb.id, timestamp, 'image', base64Formatado.base64, schema);
             messageBody = '[imagem recebida]';
@@ -155,7 +165,6 @@ module.exports = (broadcastMessage) => {
         serverTest.io.emit('message', payload);
       
 
-      console.log('Mensagem recebida via webhook:', payload);
       }
       if (!chat || !result.instance) {
         throw new Error('Dados obrigatórios ausentes para createChat');

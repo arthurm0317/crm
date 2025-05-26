@@ -5,14 +5,14 @@ function DeleteUserModal({ theme, usuario }) {
   const [password, setPassword] = useState('');
   const [showError, setShowError] = useState(false);
   const userData = JSON.parse(localStorage.getItem('user')); 
-  const url = 'https://landing-page-teste.8rxpnw.easypanel.host'
+  const url = process.env.REACT_APP_URL;
 
   console.log(usuario)
 
   const handleDelete=async()=>{
     try{
       const deletion = await axios.delete(`${url}/api/delete-user`, {
-    data: { user_id: usuario.id, schema:userData },
+    data: { user_id: usuario.id, schema:userData.schema },
     });
       console.log(deletion)
     }catch(error){
@@ -24,9 +24,10 @@ function DeleteUserModal({ theme, usuario }) {
     <div className="modal fade" id="DeleteUserModal" tabIndex="-1" aria-labelledby="DeleteUserModalLabel" aria-hidden="true">
       <div className="modal-dialog modal-md">
         <div className="modal-content" style={{ backgroundColor: `var(--bg-color-${theme})` }}>
-          <div className="modal-header">
+          <div className="modal-header gap-3">
+            <i className={`bi bi-trash header-text-${theme}`}></i>
             <h5 className={`modal-title header-text-${theme}`} id="DeleteUserModalLabel">
-              Confirmar Exclusão
+              Confirmar exclusão
             </h5>
             <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
           </div>

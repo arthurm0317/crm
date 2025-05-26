@@ -63,7 +63,8 @@ if (!userData || !userData.id) {
     <div className="modal fade" id="NewContactModal" tabIndex="-1" aria-labelledby="NewContactModalLabel" aria-hidden="true">
       <div className="modal-dialog modal-sm">
         <div className="modal-content" style={{ backgroundColor: `var(--bg-color-${theme})` }}>
-          <div className="modal-header">
+          <div className="modal-header gap-3">
+            <i className={`bi bi-whatsapp header-text-${theme}`}></i>
             <h5 className={`modal-title header-text-${theme}`} id="NewContactModalLabel">
               Novo Contato
             </h5>

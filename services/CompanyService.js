@@ -143,5 +143,15 @@ const getAllCompanies = async () => {
     `);
     return result.rows;
 };
-
-module.exports = { createCompany, getAllCompanies };
+const getAllCompaniesTecUser = async () => {
+    try{
+        const result = await pool.query(
+            `SELECT * FROM effective_gain.companies`
+        )
+        return result.rows
+    }catch(error){
+        console.log(error)
+        throw new Error("Erro ao buscar empresas")
+    }
+}
+module.exports = { createCompany, getAllCompanies, getAllCompaniesTecUser };

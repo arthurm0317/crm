@@ -13,6 +13,7 @@ import AgendaPage from './Lembretes';
 import RelatorioPage from './Relatorios';
 import UsuariosPage from './Usuarios';
 import FilaPage from './Filas';
+import KanbanPage from './Kanban';
 
 window.addEventListener('error', function (event) {
   if (
@@ -39,16 +40,18 @@ function Painel() {
   const [page, setPage] = useState('dashboard');
   const navigate = useNavigate();
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
-
+  
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user'));
-    if (userData) {
-      setUsername(userData.username);
-      setRole(userData.role);
-      setEmpresa(userData.empresa);
+    if (!userData || !userData.schema) {
+      navigate('/'); // Redireciona para login se não estiver logado ou sem schema
+      return;
     }
-  }, []);
-
+    setUsername(userData.username);
+    setRole(userData.role);
+    setEmpresa(userData.empresa);
+  }, [navigate]);
+  
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     document.body.classList.remove('light', 'dark');
@@ -88,6 +91,7 @@ function Painel() {
     switch (page) {
       case 'dashboard': return <Dashboard theme={theme} />;
       case 'chats': return <ChatPage theme={theme} />;
+      case 'kanban': return <Dashboard theme={theme} />; // Temporário
       case 'filas': return <FilaPage theme={theme} />;
       case 'usuarios': return <UsuariosPage theme={theme} />;
       case 'agenda': return <AgendaPage theme={theme} />;
@@ -130,6 +134,17 @@ function Painel() {
             >
               <i className="bi bi-chat-dots"></i>
               <span className="sidebar-label d-none">Chats</span>
+            </button>
+            <button
+              id="kanban"
+              onClick={() => setPage('kanban')}
+              data-bs-toggle="tooltip"
+              data-bs-placement="right"
+              data-bs-title="Kanban"
+              className={`btn ${page === 'kanban' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-start gap-2`}
+            >
+              <i className="bi bi-kanban"></i>
+              <span className="sidebar-label d-none">Kanban</span>
             </button>
             <button
               id="filas"
@@ -186,15 +201,30 @@ function Painel() {
               <h4 className={`header-text-${theme} mb-0`}>Bem vindo, <span id="username">{username}</span></h4>
               <h6 className={`header-text-${theme}`}><span id="role">{role}</span> | <span id="empresa">{empresa}</span></h6>
             </div>
+
+             {/* Botão para técnicos */}
             <div className="d-flex flex-row align-items-center gap-2">
+              {/* Botão para técnicos */}
+              {role === 'tecnico' && (
+                <button
+                  type="button"
+                  data-bs-toggle="tooltip"
+                  data-bs-placement="bottom"
+                  data-bs-title="Schemas"
+                  className={`btn btn-2-${theme} toggle-${theme}`}
+                  onClick={() => navigate('/schemas')}
+                >
+                  <i className="bi bi-diagram-3"></i>
+                </button>
+              )}
+
               <button type="button" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Mudar Tema" className={`btn btn-2-${theme} toggle-${theme}`} onClick={toggleTheme}>
-                <i className="bi bi-sun"></i>
+                <i className={`${theme === 'light' ? `bi-sun` : `bi-moon-stars`}`}></i>
               </button>
 
               <button id="sair" type="button" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Sair" className={`btn btn-2-${theme} toggle-${theme}`} onClick={handleLogout}>
                 <i className="bi bi-door-open"></i>
               </button>
-
             </div>
           </div>
           <div className={`main-${theme} pe-3 pb-3`} style={{ flexGrow: 1, overflow: 'hidden' }} id="main">

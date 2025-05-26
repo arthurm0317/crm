@@ -1,6 +1,7 @@
 const pool = require('../db/queries');
 const { v4: uuid4 } = require('uuid');
 const { getOnlineUsers, updateLastAssignedUser, getLastAssignedUser } = require('./UserService');
+const { getCurrentTimestamp } = require('./getCurrentTimestamp');
 
 const createChat = async (chat, instance, message, etapa, io) => {
   let schema;
@@ -30,20 +31,23 @@ const createChat = async (chat, instance, message, etapa, io) => {
 
   try {
     const existingChat = await pool.query(
-      `SELECT * FROM ${schema}.chats WHERE chat_id = $1 AND connection_id = $2`,
+      `SELECT * FROM ${schema}.chats WHERE chat_id = $1 AND connection_id = $2 order by (status='closed') `,
       [chat.getChatId(), chat.getConnectionId()]
     );
 
     if (existingChat.rowCount > 0) {
-      const updated = await updateChatMessages(chat, schema, message);
-      if(existingChat.rows[0].queue_id===null){
-            await setChatQueue(schema, existingChat.rows[0].id)
-          }
-      return {
-        chat: existingChat.rows[0],
-        schema: schema
-      };
-    }
+      if(existingChat.rows[0].status !== 'closed'){
+        console.log('chat', existingChat.rows[0]);
+        const updated = await updateChatMessages(chat, schema, message);
+        if(existingChat.rows[0].queue_id===null){
+          await setChatQueue(schema, existingChat.rows[0].id)
+        }
+        return {
+          chat: existingChat.rows[0],
+          schema: schema
+        };
+      }
+    } 
     const contactNumber = chat.getChatId().split('@')[0];
     const contactQuery = await pool.query(
       `SELECT * FROM ${schema}.contacts WHERE number = $1`,
@@ -61,35 +65,51 @@ const createChat = async (chat, instance, message, etapa, io) => {
       contactName = newContact.rows[0].contact_name;
     }
 
-    const chatValues = [
-      chat.getId(),
-      chat.getChatId(),
-      chat.getConnectionId(),
-      chat.getQueueId(),
-      chat.getIsGroup(),
-      contactName,
-      chat.getAssignedUser(),
-      chat.getStatus(),
-      chat.getCreatedAt(),
-      JSON.stringify([message]),
-      contactNumber,
-      etapa || null
-    ];
+    let values, query;
+    if (etapa) {
+      values = [
+        chat.getId(),
+        chat.getChatId(),
+        chat.getConnectionId(),
+        chat.getQueueId(),
+        chat.getIsGroup(),
+        contactName,
+        chat.getAssignedUser(),
+        chat.getStatus(),
+        chat.getCreatedAt(),
+        JSON.stringify([message]),
+        contactNumber,
+        etapa,
+        getCurrentTimestamp()
+      ];
+      query = `INSERT INTO ${schema}.chats 
+        (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages, contact_phone, etapa_id, updated_time) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`;
+    } else {
+      values = [
+        chat.getId(),
+        chat.getChatId(),
+        chat.getConnectionId(),
+        chat.getQueueId(),
+        chat.getIsGroup(),
+        contactName,
+        chat.getAssignedUser(),
+        chat.getStatus(),
+        chat.getCreatedAt(),
+        JSON.stringify([message]),
+        contactNumber,
+        getCurrentTimestamp()
+      ];
+      query = `INSERT INTO ${schema}.chats 
+        (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages, contact_phone, updated_time) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`;
+    }
 
-    const query = etapa
-      ? `INSERT INTO ${schema}.chats 
-          (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages, contact_phone, etapa_id) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`
-      : `INSERT INTO ${schema}.chats 
-          (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages, contact_phone) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`;
-
-
-    const result = await pool.query(query, etapa ? chatValues : chatValues.slice(0, -1));
-    console.log('TESTE',result.rows[0])
-         if(result.rows[0].queue_id===null){
-            await setChatQueue(schema, result.rows[0].id)
-          }
+    const result = await pool.query(query, values);
+    console.log('Resultado da inserção do chat:', result.rows[0]);
+    if(result.rows[0].queue_id===null){
+      await setChatQueue(schema, result.rows[0].id)
+    }
 
     if (io) {
       io.to(schema).emit("chat:new-message", {
@@ -112,10 +132,10 @@ const updateChatMessages = async (chat, schema, message) => {
   try {
     const result = await pool.query(
       `UPDATE ${schema}.chats 
-       SET messages = messages || $1::jsonb 
-       WHERE chat_id = $2 
+       SET messages = messages || $1::jsonb, updated_time=$2
+       WHERE chat_id = $3 
        RETURNING *`,
-      [JSON.stringify([message]), chat.getChatId()]
+      [JSON.stringify([message]), getCurrentTimestamp(), chat.getChatId()]
     );
     return result.rows[0];
   } catch (error) {
@@ -148,30 +168,42 @@ const setUserChat = async (chatId, schema) => {
       [chatId]
     );
     const queueId = chatDb.rows[0].queue_id;
-    const onlineUsers = await getOnlineUsers(schema);
-    const queueUsersQuery = await pool.query(
-      `SELECT user_id FROM ${schema}.queue_users WHERE queue_id=$1`,
-      [queueId]
-    );
-    const userIdsInQueue = queueUsersQuery.rows.map(row => row.user_id);
-    const eligibleUsers = onlineUsers.filter(user =>
-      user.permission === 'user' && userIdsInQueue.includes(user.id)
-    );
-    if (eligibleUsers.length === 0) return;
-    const lastAssigned = await getLastAssignedUser(queueId, schema);
-    let nextUser;
-    if (!lastAssigned) {
-      nextUser = eligibleUsers[0];
-    } else {
-      const lastIndex = eligibleUsers.findIndex(u => u.id === lastAssigned.user_id);
-      nextUser = eligibleUsers[(lastIndex + 1) % eligibleUsers.length];
+    const isDistributionOn = await pool.query(
+      `SELECT * FROM ${schema}.queues WHERE id=$1 `, [queueId]
+    )
+    if (isDistributionOn.rows[0].distribution === true) {
+      const onlineUsers = await getOnlineUsers(schema);
+      const queueUsersQuery = await pool.query(
+        `SELECT user_id FROM ${schema}.queue_users WHERE queue_id=$1`,
+        [queueId]
+      );
+      const userIdsInQueue = queueUsersQuery.rows.map(row => row.user_id);
+      const eligibleUsers = onlineUsers.filter(user =>
+        user.permission === 'user' && userIdsInQueue.includes(user.id)
+      );
+      if (eligibleUsers.length === 0) return;
+      const lastAssigned = await getLastAssignedUser(queueId, schema);
+      let nextUser;
+      if (!lastAssigned) {
+        nextUser = eligibleUsers[0];
+      } else {
+        const lastIndex = eligibleUsers.findIndex(u => u.id === lastAssigned.user_id);
+        nextUser = eligibleUsers[(lastIndex + 1) % eligibleUsers.length];
+      }
+      await updateLastAssignedUser(queueId, nextUser.id, schema);
+     const result =  await pool.query(
+        `UPDATE ${schema}.chats SET assigned_user=$1 WHERE id=$2`,
+        [nextUser.id, chatId]
+      );
+      return result
+    }else{
+      const result = await pool.query(
+        `UPDATE ${schema}.chats SET status='waiting' WHERE id=$1`,
+        [chatId]
+      )
+      return result.rows[0]
     }
-    await updateLastAssignedUser(queueId, nextUser.id, schema);
-   const result =  await pool.query(
-      `UPDATE ${schema}.chats SET assigned_user=$1 WHERE id=$2`,
-      [nextUser.id, chatId]
-    );
-    return result
+
 };
 
 const getChats = async (schema) => {
@@ -228,24 +260,55 @@ const getChatData = async(id, schema)=>{
   }
 }
 
-const getChatByUser = async (userId, schema) => {
+const getChatByUser = async (userId, role, schema) => {
   try {
-    const result = await pool.query(
-      `SELECT * FROM ${schema}.chats WHERE assigned_user = $1`,
-      [userId]
-    );
-
-    return result.rows;
+    if (role === 'admin' || role === 'tecnico') {
+      const result = await pool.query(
+        `SELECT * FROM ${schema}.chats where status <> 'closed' ORDER BY (updated_time IS NULL) , updated_time DESC`
+      );
+      return result.rows;
+    } else {
+      const queues = await pool.query(
+        `SELECT * FROM ${schema}.queue_users WHERE user_id=$1`, [userId]
+      );
+      let allChats = [];
+      for (let i = 0; i < queues.rowCount; i++) {
+        const queueId = queues.rows[i].queue_id;
+        const result = await pool.query(
+          `SELECT * FROM ${schema}.chats WHERE (assigned_user = $1 OR assigned_user IS NULL) AND status <> 'closed' AND queue_id=$2 ORDER BY (updated_time IS NULL), updated_time DESC`,
+          [userId, queueId]
+        );
+        allChats = allChats.concat(result.rows);
+      }
+      return allChats;
+    }
   } catch (error) {
     console.error('Erro ao buscar chats do usuário:', error.message);
     throw new Error('Erro ao buscar chats do usuário');
   }
 };
+const getChatIfUserIsNull = async(connection, permission, schema)=>{
+  console,log(permission)
+  try{
+     if (permission === 'admin' || permission ==='tecnico') {
+      const result = await pool.query(
+        `SELECT * FROM ${schema}.chats where status <> 'closed' ORDER BY (updated_time IS NULL) , updated_time DESC`
+      );
+      return result.rows;
+    }else{
+      const result = await pool.query(
+        `SELECT * FROM ${schema}.chats WHERE connection_id=$1 AND assigned_user IS NULL AND status='waiting' ORDER BY (updated_time IS NULL) , updated_time DESC`, [connection]
+      )
+      return result.rows
+    }
+  }catch (error) {
+    console.error('Erro ao buscar chats do usuário:', error.message);
+    throw new Error('Erro ao buscar chats do usuário');
+  }
+}
 
 const getChatById = async (chatId, connection_id, schema) => {
   try {
-    console.log("chatId", chatId)
-    console.log("connection_id", connection_id) 
       
     const result = await pool.query(
       `SELECT * FROM ${schema}.chats WHERE id = $1 and connection_id = $2`,
@@ -275,7 +338,7 @@ const createNewChat = async(name, number, connectionId, queueId, user_id, schema
   try {
     const result = await pool.query(
       `INSERT INTO ${schema}.chats (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-      [uuid4(), number + '@c.us', connectionId, queueId, false, name, user_id, 'open', new Date().getTime(), JSON.stringify([])]
+      [uuid4(), number + '@c.us', connectionId, queueId, false, name, user_id, 'waiting', new Date().getTime(), JSON.stringify([])]
     );
     return result.rows[0];
   } catch (error) {
@@ -284,9 +347,49 @@ const createNewChat = async(name, number, connectionId, queueId, user_id, schema
   }
 }
 
+const setMessageIsUnread = async(chat_id, schema)=>{
+  try {
+    await pool.query(
+      `UPDATE ${schema}.chats SET unreadmessages = $2 WHERE id=$1`,
+      [chat_id, true]
+    );
+  } catch (error) {
+    console.log(error)
+  }
+}
 
+const setMessageAsRead = async(chat_id, schema)=>{
+  try {
+    await pool.query(
+      `UPDATE ${schema}.chats SET unreadmessages = $2 WHERE id=$1`,
+      [chat_id, false]
+    );
+  } catch (error) {
+    console.log(error)
+  }
+}
 
+const closeChat = async(chat_id, schema)=>{
+  try {
+    const result = await pool.query(`UPDATE ${schema}.chats set status=$1 where id=$2`,
+      ['closed', chat_id]
+    )
+  } catch (error) {
+    console.log(error)
+  }
+}
 
+const setSpecificUser = async(chat_id, user_id, schema)=>{
+  try{
+    const result = await pool.query(
+      `update ${schema}.chats set assigned_user=$1, status='open' where id=$2`,
+      [user_id, chat_id]
+    )
+    return result.rows[0]
+  } catch (error) {
+    console.log(error)
+  }
+}
 
 module.exports = {
   createChat,
@@ -301,5 +404,10 @@ module.exports = {
   getChatByUser,
   saveMediaMessage,
   getChatById,
-  createNewChat
+  createNewChat,
+  setMessageIsUnread,
+  setMessageAsRead, 
+  closeChat,
+  setSpecificUser,
+  getChatIfUserIsNull
 };
