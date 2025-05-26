@@ -83,7 +83,7 @@ function Dashboard({ theme }) {
               {user && user
               .filter(u => u.permission === 'user')
               .map((u) => (
-                <li key={u.id} className="d-flex justify-content-between px-2 py-1">
+                <li key={u.id} className={`d-flex justify-content-between px-2 py-1 header-text-${theme}`}>
                   <span>{u.nome || u.username || u.name}</span>
                   <span>{u.setor || u.sector || '-'}</span>
                   <span>
