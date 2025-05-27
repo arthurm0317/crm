@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import WhatsappNovoContatoModal from './Whatsapp_novoContato';
 import WhatsappDeleteModal from './Whatsapp_delete';
-import WhatsappUsuariosModal from './Whatsapp_usuarios';
+import WhatsappFilasModal from './Whatsapp_filas';
 
 function WhatsappModal({ theme, show, onHide }) {
   const [contatos, setContatos] = useState([]);
   const [selectedContato, setSelectedContato] = useState(null);
-  const [usuarios, setUsuarios] = useState([]);
+  const [filas, setFilas] = useState([]);
   const [showNovoContatoModal, setShowNovoContatoModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showUsuariosModal, setShowUsuariosModal] = useState(false);
@@ -29,10 +29,11 @@ function WhatsappModal({ theme, show, onHide }) {
     setShowDeleteModal(false);
   };
 
-  const handleVerUsuarios = (contato) => {
+  const handleVerFilas = (contato) => {
     setSelectedContato(contato);
-    setUsuarios([
-      { nome: 'João Silva', email: 'joao@exemplo.com', cargo: 'Atendente', dataVinculacao: '2024-03-15T10:00:00' }
+    setFilas([
+      { nome: 'Fila Suporte', setor: 'Suporte', dataVinculacao: '2024-03-15T10:00:00' },
+      { nome: 'Fila Vendas', setor: 'Vendas', dataVinculacao: '2024-03-16T11:30:00' }
     ]);
     setShowUsuariosModal(true);
   };
@@ -99,13 +100,32 @@ function WhatsappModal({ theme, show, onHide }) {
                             <button
                               type="button"
                               className={`btn btn-sm btn-2-${theme}`}
-                              onClick={() => handleVerUsuarios(contato)}
+                              data-bs-toggle="tooltip"
+                              data-bs-placement="top"
+                              title="Editar"
+                              onClick={() => {
+                                setSelectedContato(contato);
+                                setShowNovoContatoModal(true);
+                              }}
                             >
-                              <i className="bi bi-people"></i>
+                              <i className="bi bi-pencil-fill"></i>
+                            </button>
+                            <button
+                              type="button"
+                              className={`btn btn-sm btn-2-${theme}`}
+                              data-bs-toggle="tooltip"
+                              data-bs-placement="top"
+                              title="Filas"
+                              onClick={() => handleVerFilas(contato)}
+                            >
+                              <i className="bi bi-diagram-3"></i>
                             </button>
                             <button
                               type="button"
                               className="btn btn-sm delete-btn"
+                              data-bs-toggle="tooltip"
+                              data-bs-placement="top"
+                              title="Excluir"
                               onClick={() => {
                                 setSelectedContato(contato);
                                 setShowDeleteModal(true);
@@ -146,12 +166,12 @@ function WhatsappModal({ theme, show, onHide }) {
         onDelete={handleDelete} 
       />
       
-      <WhatsappUsuariosModal 
+      <WhatsappFilasModal 
         theme={theme} 
         show={showUsuariosModal}
         onHide={() => setShowUsuariosModal(false)}
         contato={selectedContato} 
-        usuarios={usuarios} 
+        filas={filas} 
       />
     </div>
   );
