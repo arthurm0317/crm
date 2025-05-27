@@ -94,7 +94,7 @@ function Painel() {
     switch (page) {
       case 'dashboard': return <Dashboard theme={theme} />;
       case 'chats': return <ChatPage theme={theme} />;
-      case 'kanban': return <Dashboard theme={theme} />; // Temporário
+      case 'kanban': return <KanbanPage theme={theme} />;
       case 'filas': return <FilaPage theme={theme} />;
       case 'usuarios': return <UsuariosPage theme={theme} />;
       case 'agenda': return <AgendaPage theme={theme} />;
@@ -259,7 +259,7 @@ function Painel() {
               </button>
             </div>
           </div>
-          <div className={`main-${theme} pe-3 pb-3`} style={{ flexGrow: 1, overflow: 'hidden' }} id="main">
+          <div className={`main-${theme} pe-3 pb-3`} style={{ flexGrow: 1, overflow: 'auto' }} id="main">
             {renderPage()}
           </div>
         </div>

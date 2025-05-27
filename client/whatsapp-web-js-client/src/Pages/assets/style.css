@@ -241,6 +241,7 @@ a {
 }
 #main {
     display: flex;
+    min-width: 0;
 }
 
 .main-light {
@@ -473,10 +474,10 @@ a {
     overflow: hidden;
 }
 .custom-table-light {
-    border: 1px solid var(--border-color-light);
+    border: 1px solid var(--border-color-light) !important;
 }
 .custom-table-dark {
-    border: 1px solid var(--border-color-dark);
+    border: 1px solid var(--border-color-dark) !important;
 }
 .custom-table-dark thead {
     background-color: var(--bg-color-dark);
@@ -635,4 +636,14 @@ input[type="range"]::-moz-range-progress {
 .delete-btn:focus {
     border-color: var(--primary-color);
     color: var(--primary-color);
+}
+
+/* Scrollbar customizado para o Kanban */
+.kanban-scroll-container::-webkit-scrollbar {
+  height: 8px;
+  background: #222;
+}
+.kanban-scroll-container::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 4px;
 }
