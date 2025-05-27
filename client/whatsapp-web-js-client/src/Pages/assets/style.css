@@ -675,3 +675,5 @@ input[type="range"]::-moz-range-progress {
 .bg-primary {
     background-color: var(--primary-color) !important;
 }
+
+.no-caret::after { display: none !important; }
