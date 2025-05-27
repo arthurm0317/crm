@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import NovoFunilModal from './modalPages/Kanban_novoFunil';
+import GerirEtapaModal from './modalPages/Kanban_gerirEtapa';
 
 // Mock inicial de funis, etapas e leads
 const mockFunis = [
@@ -6,10 +8,10 @@ const mockFunis = [
         id: 1,
         nome: 'Vendas',
         etapas: [
-        { id: 1, nome: 'Novos Clientes', cor: 'red' }, // Exemplo de cor
-        { id: 2, nome: 'Proposta Enviada', cor: 'blue' },
-        { id: 3, nome: 'Negociação', cor: 'green' },
-        { id: 4, nome: 'Aguardando Retorno', cor: 'aquamarine' },
+        { id: 1, nome: 'Novos Clientes', cor: '#ff0000' }, // Exemplo de cor
+        { id: 2, nome: 'Proposta Enviada', cor: '#0000ff' },
+        { id: 3, nome: 'Negociação', cor: '#008000' },
+        { id: 4, nome: 'Aguardando Retorno', cor: '#7fffd4' },
         { id: 5, nome: 'Clientes Fechados', cor: '#2ecc71' },
         { id: 6, nome: 'Pós-venda', cor: '#1abc9c' },
         { id: 7, nome: 'Perdidos', cor: '#e74c3c' }
@@ -101,7 +103,7 @@ function KanbanPage({ theme }) {
   const etapas = funilAtual.etapas;
 
   // CRUD de etapas e tags: placeholders para modais ou menus
-  const handleAddEtapa = () => alert('Adicionar etapa (CRUD)');
+  const handleAddEtapa = () => setShowGerirEtapaModal(true);
   const handleEditEtapa = (etapa) => alert(`Editar etapa: ${etapa.nome}`);
   const handleDeleteEtapa = (etapa) => alert(`Excluir etapa: ${etapa.nome}`);
   const handleManageTags = (lead) => alert(`Gerenciar tags de ${lead.nome}`);
@@ -116,6 +118,38 @@ function KanbanPage({ theme }) {
   };
 
   const [showNovoFunilModal, setShowNovoFunilModal] = useState(false);
+  const [showGerirEtapaModal, setShowGerirEtapaModal] = useState(false);
+
+  // Salvar novo funil
+  const handleSalvarNovoFunil = ({ titulo, etapas }) => {
+    const novoId = funis.length > 0 ? Math.max(...funis.map(f => f.id)) + 1 : 1;
+    const novoFunil = {
+      id: novoId,
+      nome: titulo,
+      etapas: etapas.map((etapa, idx) => ({
+        id: novoId * 100 + idx + 1, // Garante id único
+        nome: etapa.nome,
+        cor: etapa.cor
+      })),
+      contatosVinculados: [],
+      usuariosVinculados: [],
+      filasVinculadas: []
+    };
+    setFunis([...funis, novoFunil]);
+    setFunilSelecionado(novoId);
+  };
+
+  // Salvar etapas do funil
+  const handleSalvarEtapas = (novasEtapas) => {
+    setFunis(funis.map(f =>
+      f.id === funilSelecionado
+        ? { ...f, etapas: novasEtapas.map((etapa, idx) => ({
+            ...etapa,
+            id: f.etapas[idx]?.id || (f.id * 100 + idx + 1)
+          })) }
+        : f
+    ));
+  };
 
   return (
     <div className={`main-kanban bg-form-${theme} p-3 h-100 w-100`} style={{ minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -145,7 +179,7 @@ function KanbanPage({ theme }) {
             </button>
             
             <button className={`btn btn-1-${theme}`} style={{ minWidth: 140 }} onClick={handleAddEtapa}>
-                <i className="bi bi-layout-sidebar-inset me-2"></i>Nova Etapa
+                <i className="bi bi-layout-sidebar-inset me-2"></i>Gerir Etapas
             </button>
 
         </div>
@@ -283,7 +317,22 @@ function KanbanPage({ theme }) {
         </div>
       </div>
 
-
+      {/* Modal de Novo Funil */}
+      <NovoFunilModal
+        theme={theme}
+        show={showNovoFunilModal}
+        onHide={() => setShowNovoFunilModal(false)}
+        onSave={handleSalvarNovoFunil}
+      />
+      {/* Modal de Gerir Etapas */}
+      <GerirEtapaModal
+        theme={theme}
+        show={showGerirEtapaModal}
+        onHide={() => setShowGerirEtapaModal(false)}
+        onSave={handleSalvarEtapas}
+        funil={funilAtual}
+        etapas={etapas}
+      />
 
     </div>
   );

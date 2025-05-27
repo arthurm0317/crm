@@ -1,25 +1,12 @@
 import React, { useState } from 'react';
 
-function NovoFunilModal({ theme, show, onHide, onSave }) {
-  const [titulo, setTitulo] = useState('');
-  const [numEtapas, setNumEtapas] = useState(1);
-  const [etapas, setEtapas] = useState([
-    { nome: '', cor: '#2ecc71' }
-  ]);
+function GerirEtapaModal({ theme, show, onHide, onSave, funil, etapas: etapasProp }) {
+  const [etapas, setEtapas] = useState(etapasProp || []);
 
-  // Atualiza o array de etapas quando o número de etapas muda
   React.useEffect(() => {
-    let novasEtapas = [...etapas];
-    if (numEtapas > etapas.length) {
-      while (novasEtapas.length < numEtapas) {
-        novasEtapas.push({ nome: '', cor: '#2ecc71' });
-      }
-    } else {
-      novasEtapas = novasEtapas.slice(0, numEtapas);
-    }
-    setEtapas(novasEtapas);
+    setEtapas(etapasProp || []);
     // eslint-disable-next-line
-  }, [numEtapas]);
+  }, [etapasProp, show]);
 
   const handleEtapaChange = (index, field, value) => {
     const novasEtapas = etapas.map((etapa, i) =>
@@ -28,16 +15,22 @@ function NovoFunilModal({ theme, show, onHide, onSave }) {
     setEtapas(novasEtapas);
   };
 
+  const handleAddEtapa = () => {
+    setEtapas([...etapas, { nome: '', cor: '#2ecc71' }]);
+  };
+
+  const handleRemoveEtapa = (index) => {
+    if (etapas.length <= 1) return;
+    setEtapas(etapas.filter((_, i) => i !== index));
+  };
+
   const handleSave = () => {
-    if (!titulo || etapas.some(e => !e.nome || !e.cor)) {
-      alert('Preencha todos os campos obrigatórios.');
+    if (etapas.some(e => !e.nome || !e.cor)) {
+      alert('Preencha todos os campos obrigatórios das etapas.');
       return;
     }
-    if (onSave) onSave({ titulo, etapas });
+    if (onSave) onSave(etapas);
     if (onHide) onHide();
-    setTitulo('');
-    setNumEtapas(1);
-    setEtapas([{ nome: '', cor: '#2ecc71' }]);
   };
 
   if (!show) return null;
@@ -47,40 +40,24 @@ function NovoFunilModal({ theme, show, onHide, onSave }) {
       <div className="modal-dialog modal-lg modal-dialog-centered">
         <div className="modal-content" style={{ backgroundColor: `var(--bg-color-${theme})` }}>
           <div className="modal-header gap-3">
-            <i className={`bi bi-funnel header-text-${theme}`}></i>
-            <h5 className={`modal-title header-text-${theme}`}>Novo Funil</h5>
+            <i className={`bi bi-layout-sidebar-inset header-text-${theme}`}></i>
+            <h5 className={`modal-title header-text-${theme}`}>Gerir Etapas do Funil</h5>
             <button type="button" className="btn-close" onClick={onHide}></button>
           </div>
           <div className="modal-body">
-            {/* Título do Funil */}
             <div className="mb-3">
-              <label htmlFor="tituloFunil" className={`form-label card-subtitle-${theme}`}>Título do Funil</label>
+              <label className={`form-label card-subtitle-${theme}`}>Funil Selecionado</label>
               <input
                 type="text"
                 className={`form-control input-${theme}`}
-                id="tituloFunil"
-                value={titulo}
-                onChange={e => setTitulo(e.target.value)}
-                placeholder="Digite o título do funil"
+                style={{ backgroundColor: 'transparent' }}
+                value={funil?.nome || ''}
+                disabled
               />
             </div>
-            {/* Número de Etapas */}
-            <div className="mb-3">
-              <label htmlFor="numEtapas" className={`form-label card-subtitle-${theme}`}>Quantidade de Etapas</label>
-              <input
-                type="number"
-                className={`form-control input-${theme}`}
-                id="numEtapas"
-                min="1"
-                max="10"
-                value={numEtapas}
-                onChange={e => setNumEtapas(Math.max(1, Math.min(10, parseInt(e.target.value) || 1)))}
-              />
-            </div>
-            {/* Inputs das Etapas */}
             {etapas.map((etapa, idx) => (
               <div className="row mb-3" key={idx}>
-                <div className="col-8">
+                <div className="col-7">
                   <label className={`form-label card-subtitle-${theme}`}>Nome da Etapa</label>
                   <input
                     type="text"
@@ -90,25 +67,37 @@ function NovoFunilModal({ theme, show, onHide, onSave }) {
                     placeholder={`Nome da etapa ${idx + 1}`}
                   />
                 </div>
-                <div className="col-4 d-flex align-items-end">
+                <div className="col-3 d-flex align-items-end">
                   <div className="w-100">
                     <label className={`form-label card-subtitle-${theme}`}>Cor</label>
                     <input
                       type="color"
                       className={`form-control form-control-color border-${theme}`}
-                      value={etapa.cor}
+                      value={/^#[0-9A-Fa-f]{6}$/.test(etapa.cor) ? etapa.cor : 'transparent'}
                       onChange={e => handleEtapaChange(idx, 'cor', e.target.value)}
                       title="Escolha a cor da etapa"
-                      style={{ width: '100%' , backgroundColor: 'transparent'}}
+                      style={{ width: '100%', backgroundColor: 'transparent' }}
                     />
                   </div>
                 </div>
+                <div className="col-2 d-flex align-items-end">
+                  <button
+                    className="btn btn-sm delete-btn mt-3"
+                    onClick={() => handleRemoveEtapa(idx)}
+                    disabled={etapas.length <= 1}
+                  >
+                    <i className="bi bi-trash"></i>
+                  </button>
+                </div>
               </div>
             ))}
+            <button className={`btn btn-2-${theme} w-100 mb-2`} onClick={handleAddEtapa}>
+              <i className="bi bi-plus-circle me-2"></i>Nova Etapa
+            </button>
           </div>
           <div className="modal-footer">
             <button type="button" className={`btn btn-2-${theme}`} onClick={onHide}>Cancelar</button>
-            <button type="button" className={`btn btn-1-${theme}`} onClick={handleSave}>Salvar Funil</button>
+            <button type="button" className={`btn btn-1-${theme}`} onClick={handleSave}>Salvar Etapas</button>
           </div>
         </div>
       </div>
@@ -116,4 +105,4 @@ function NovoFunilModal({ theme, show, onHide, onSave }) {
   );
 }
 
-export default NovoFunilModal;
+export default GerirEtapaModal; 
