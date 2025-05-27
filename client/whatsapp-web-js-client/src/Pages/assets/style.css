@@ -636,6 +636,21 @@ input[type="range"]::-moz-range-progress {
     color: var(--primary-color);
 }
 
+.success-btn {
+    border-color: var(--success-color);
+    color: var(--success-color);
+    background-color: transparent;
+}
+.success-btn:hover {
+    border-color: var(--success-color);
+    color: var(--success-color);
+    box-shadow: inset 0 0 5px 2px rgba(189, 143, 83, 0.25);
+}
+.success-btn:focus {
+    border-color: var(--success-color);
+    color: var(--success-color);
+}
+
 /* Scrollbar customizado para o Kanban */
 .kanban-scroll-container::-webkit-scrollbar {
   height: 8px;

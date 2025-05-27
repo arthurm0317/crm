@@ -68,8 +68,6 @@ function DisparosPage({ theme }) {
     fetchDisparos();
   })
   
-
-  
   // Inicialização dos tooltips
   useEffect(() => {
     let tooltipList = [];
@@ -186,7 +184,8 @@ function DisparosPage({ theme }) {
     {/* Seção de Ações */}
     <div className="d-flex flex-column gap-2 justify-content-center">
       <button
-        className={`btn btn-2-${theme} w-100`}
+        className={`btn btn-2-${theme}`}
+        style={{ maxWidth: '42px' }}
         data-bs-toggle="tooltip"
         data-bs-placement="left"
         data-bs-title="Editar"
@@ -195,7 +194,8 @@ function DisparosPage({ theme }) {
         <i className="bi bi-pencil-fill"></i>
       </button>
       <button
-        className={`btn delete-btn w-100`}
+        className={`btn delete-btn`}
+        style={{ maxWidth: '42px' }}
         data-bs-toggle="tooltip"
         data-bs-placement="left"
         data-bs-title="Excluir"
@@ -204,15 +204,15 @@ function DisparosPage({ theme }) {
         <i className="bi bi-trash-fill"></i>
       </button>
       <button
-        className={`btn btn-success w-100`}
+        className={`btn success-btn`}
         data-bs-toggle="tooltip"
         data-bs-placement="left"
-        data-bs-title="Iniciar Disparo"
+        data-bs-title="Disparar"
         onClick={() =>{
           handleStartDisparo(disparo.id)
         }} 
       >
-        <i className="bi bi-play-fill"></i> Iniciar
+        <i className="bi bi-play-fill"></i>
       </button>
     </div>
   </div>

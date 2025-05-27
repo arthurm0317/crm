@@ -14,15 +14,14 @@ const mockFunis = [
         { id: 6, nome: 'Pós-venda', cor: '#1abc9c' },
         { id: 7, nome: 'Perdidos', cor: '#e74c3c' }
         ],
-        contatosVinculados: ['+5511999999999', '+5511988888888'],
+        contatosVinculados: ['+5511999999999', '+5511988888888', '+5511977777777'],
         usuariosVinculados: [
             { id: 1, nome: 'Arthur FilhoDeCauan' },
             { id: 2, nome: 'Cauan FilhoDeArthur' }
           ],
         filasVinculadas: [
             { id: 1, nome: 'Fila 1' },
-            { id: 2, nome: 'Fila 2' },
-            { id: 3, nome: 'Fila 3' }
+            { id: 2, nome: 'Fila 2' }
         ]
     },
     {
@@ -33,7 +32,10 @@ const mockFunis = [
         { id: 9, nome: 'Cobrança 2', cor: '#f1c40f' },
         { id: 10, nome: 'Pago', cor: '#2ecc71' }
         ],
-        contatosVinculados: ['+5511988888888'],
+        contatosVinculados: ['+5511966666666'],
+        usuariosVinculados: [
+            { id: 1, nome: 'Vitor FilhoDeChocadeira' },
+          ],
         filasVinculadas: [
             { id: 3, nome: 'Fila 3' }
         ]
@@ -113,6 +115,8 @@ function KanbanPage({ theme }) {
     }
   };
 
+  const [showNovoFunilModal, setShowNovoFunilModal] = useState(false);
+
   return (
     <div className={`main-kanban bg-form-${theme} p-3 h-100 w-100`} style={{ minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'column', flex: 1 }}>
       {/* Seletor de Funil */}
@@ -136,7 +140,7 @@ function KanbanPage({ theme }) {
                 </select>
             </div>
 
-            <button className={`btn btn-1-${theme}`} style={{ minWidth: 140 }} onClick={() => alert('Adicionar Funil (CRUD)')}>
+            <button className={`btn btn-1-${theme}`} style={{ minWidth: 140 }} onClick={() => setShowNovoFunilModal(true)}>
                 <i className="bi bi-funnel me-2"></i>Novo Funil
             </button>
             
@@ -149,40 +153,64 @@ function KanbanPage({ theme }) {
 
       {/* Vinculações */}
       <div id="vinculados" className="w-100">
-
-        <div className={`px-3 mb-3 card-${theme} d-flex flex-row align-items-center justify-content-evenly`}
-        style={{ 
+        <div className={`px-3 mb-3 card-${theme} d-flex flex-row align-items-center justify-content-between`}
+          style={{ 
+            overflowX: 'auto', whiteSpace: 'nowrap',
             borderRadius: '0.375rem', 
             padding: '6px',
             border: `1px solid var(--border-color-${theme})`
-        }}>
-            <div>
-                <span className={`card-subtitle-${theme} me-2`}>
-                    <i className="bi bi-whatsapp me-2"></i> Contatos 
-                </span>
-                {funilAtual.contatosVinculados.map((num, i) => (
-                <span key={num} className="badge bg-primary me-2">{maskPhone(num)}</span>
-                ))}
-            </div>
+          }}>
+          
+          {/* Contatos */}
+          <div className="d-flex flex-row align-items-center">
+            <span className={`card-subtitle-${theme} me-2`}>
+              <i className="bi bi-whatsapp me-2"></i> Contatos 
+            </span>
+            {(funilAtual.contatosVinculados || []).map((num, i) => (
+              <span key={num} className="badge bg-primary me-2">{maskPhone(num)}</span>
+            ))}
+          </div>
 
-            <div>
-                <span className={`card-subtitle-${theme} me-2`}>
-                <i className="bi bi-list me-2"></i> Filas 
-                </span>
-                {funilAtual.filasVinculadas && funilAtual.filasVinculadas.map((fila) => (
-                <span key={fila.id} className="badge bg-primary me-2">
-                    {fila.nome}
-                </span>
-                ))}
-            </div>
+          {/* Divider Vertical entre Contatos e Filas */}
+          <div style={{
+            width: '1px',
+            height: '30px',
+            backgroundColor: `var(--border-color-${theme})`,
+            margin: '0 10px'
+          }}></div>
 
+          {/* Filas */}
+          <div className="d-flex flex-row align-items-center">
+            <span className={`card-subtitle-${theme} me-2`}>
+              <i className="bi bi-diagram-3 me-2"></i> Filas
+            </span>
+            {(funilAtual.filasVinculadas || []).map((fila) => (
+              <span key={fila.id} className="badge bg-secondary me-2">{fila.nome}</span>
+            ))}
+          </div>
+
+          {/* Divider Vertical entre Filas e Usuários */}
+          <div style={{
+            width: '1px',
+            height: '30px',
+            backgroundColor: `var(--border-color-${theme})`,
+            margin: '0 10px'
+          }}></div>
+
+          {/* Usuários */}
+          <div className="d-flex flex-row align-items-center">
+            <span className={`card-subtitle-${theme} me-2`}>
+              <i className="bi bi-people me-2"></i> Usuários 
+            </span>
+            {(funilAtual.usuariosVinculados || []).map((usuario) => (
+              <span key={usuario.id} className="badge bg-secondary me-2">{usuario.nome}</span>
+            ))}
+          </div>
         </div>
-
-
       </div>
 
       {/* Colunas do Kanban (etapas) */}
-      <div style={{ width: '100%', height: 500 }}>
+      <div style={{ width: '100%', height: '100%' }}>
         <div
           className="kanban-scroll-container"
           ref={scrollRef}
@@ -198,63 +226,65 @@ function KanbanPage({ theme }) {
         >
           <div className="d-flex flex-row gap-4"
             style={{ minHeight: 0, minWidth: '100%', width: 'max-content' }}>
-            {etapas.map(etapa => (
-            <div key={etapa.id} className={`kanban-col card-${theme} border border-${theme} rounded p-2`} style={{ minWidth: 300, maxWidth: 300 }}
+            {(funilAtual.etapas || []).map(etapa => (
+              <div key={etapa.id} className={`kanban-col card-${theme} border border-${theme} rounded p-2`} style={{ minWidth: 300, maxWidth: 300 }}
                 onDragOver={e => e.preventDefault()}
                 onDrop={() => onDrop(etapa.id)}
               >
-
                 <div className="d-flex flex-column mb-2 mx-2">
-
-                    <div
-                        style={{
-                        width: '100%',
-                        height: '6px',
-                        background: `${etapa.cor}`,
-                        borderRadius: '4px',
-                        marginBottom: '8px'
-                        }}
-                    />
-                    <div className="d-flex flex-row justify-content-between align-items-center mb-2">
-                        <h6 className={`mb-0 header-text-${theme}`}>{etapa.nome}</h6>
-                        <div className="d-flex gap-1">
-                            <button className="btn btn-sm btn-2-light" title="Editar etapa" onClick={() => handleEditEtapa(etapa)}><i className="bi bi-pencil"></i></button>
-                            <button className="btn btn-sm delete-btn" title="Excluir etapa" onClick={() => handleDeleteEtapa(etapa)}><i className="bi bi-trash"></i></button>
-                        </div>
-                    </div>
-                </div>
-
-            
-                {/* Cards de leads nesta etapa */}
-                {leads.filter(l => l.funilId === funilSelecionado && l.etapaId === etapa.id).map(lead => (
                   <div
-                    key={lead.id}
-                    className={`kanban-card card-${theme} border border-${theme} mb-2 py-2 px-3`}
-                    draggable
-                    onDragStart={() => onDragStart(lead)}
-                    style={{ cursor: 'auto' }}
-                  >
-                    <div className="d-flex justify-content-between align-items-center">
-                      <span className={`fw-bold header-text-${theme}`}>{lead.nome}</span>
-                      <div className="d-flex gap-1">
-                        <button className="btn btn-sm btn-2-light" title="Gerenciar tags" onClick={() => handleManageTags(lead)} style={{cursor: 'pointer'}}><i className="bi bi-tags"></i></button>
-                        <button className="btn btn-sm btn-2-light" title="Alterar funil" onClick={() => alert('Alterar funil do lead')} style={{cursor: 'pointer'}}><i className="bi bi-kanban"></i></button>
-                        <button className="btn btn-sm btn-2-light" title="Abrir chat" style={{cursor: 'pointer'}}><i className="bi bi-chat-dots"></i></button>
-                      </div>
+                    style={{
+                      width: '100%',
+                      height: '6px',
+                      background: `${etapa.cor}`,
+                      borderRadius: '4px',
+                      marginBottom: '8px'
+                    }}
+                  />
+                  <div className="d-flex flex-row justify-content-between align-items-center mb-2">
+                    <h6 className={`mb-0 header-text-${theme}`}>{etapa.nome}</h6>
+                    <div className="d-flex gap-1">
+                      <button className="btn btn-sm btn-2-light" title="Editar etapa" onClick={() => handleEditEtapa(etapa)}>
+                        <i className="bi bi-pencil"></i>
+                      </button>
+                      <button className="btn btn-sm delete-btn" title="Excluir etapa" onClick={() => handleDeleteEtapa(etapa)}>
+                        <i className="bi bi-trash"></i>
+                      </button>
                     </div>
-                    <div className="mt-1">
-                      {lead.tags.map(tag => (
-                        <span key={tag} className="badge bg-primary me-1">{tag}</span>
-                      ))}
-                    </div>
-                    <div className={`mt-1 small header-text-${theme}`}>{lead.telefone}</div>
                   </div>
-                ))}
+
+                  {/* Renderizando os leads filtrados */}
+                  {(leads.filter(lead => lead.funilId === funilSelecionado && lead.etapaId === etapa.id) || []).map(lead => (
+                    <div key={lead.id} className={`kanban-card card-${theme} border border-${theme} mb-2 py-2 px-3`}
+                      draggable
+                      onDragStart={() => onDragStart(lead)}
+                    >
+                      <div className="d-flex justify-content-between align-items-center">
+                        <span className={`fw-bold header-text-${theme}`}>{lead.nome}</span>
+                        <div className="d-flex gap-1">
+                          <button className="btn btn-sm btn-2-light" title="Gerenciar tags" onClick={() => handleManageTags(lead)} style={{ cursor: 'pointer' }}>
+                            <i className="bi bi-tags"></i>
+                          </button>
+                          <button className="btn btn-sm btn-2-light" title="Alterar funil" onClick={() => alert('Alterar funil do lead')} style={{ cursor: 'pointer' }}>
+                            <i className="bi bi-funnel-fill"></i>
+                          </button>
+                          <button className="btn btn-sm btn-2-light" title="Abrir chat" style={{ cursor: 'pointer' }}>
+                            <i className="bi bi-chat-dots"></i>
+                          </button>
+                        </div>
+                      </div>
+                      <div className={`mt-1 small header-text-${theme}`}>{maskPhone(lead.telefone)}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
         </div>
       </div>
+
+
+
     </div>
   );
 }
