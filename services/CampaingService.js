@@ -116,7 +116,6 @@ const startCampaingRedis = async (campaing_id, timer, schema) => {
 
     const messageList = messages.rows;
     let messageIndex = 0;
-    console.log(chatId)
     for (let i = 0; i < chatId.length; i++) {
       const instanceId = await pool.query(
         `SELECT * FROM ${schema}.chats WHERE id=$1`, [chatId[i].id]

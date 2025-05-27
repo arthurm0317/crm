@@ -98,7 +98,6 @@ function ChatPage({ theme }) {
         chat_id: selectedChat.id,
         schema:schema
       })
-      console.log(res)
     }catch(error){
       console.error(error)
     }
@@ -142,36 +141,27 @@ const handleAcceptChat = async () => {
 };
 
   useEffect(() => {
-    const handleMessage = (msg) => {
-      if (msg.chatId === selectedChatIdRef.current) {
-        const formattedMessage = formatMessage(msg);
-        setSelectedMessages((prev) => [...prev, formattedMessage]);
-        loadChats();
-        scrollToBottom();
-        axios.post(`${url}/chat/setAsRead`, {
-          chat_id: msg.chatId,
-          schema: schema
-        });
-        setChats(prevChats =>
-        prevChats.map(c =>
-          c.id === msg.chatId ? { ...c, unreadmessages: false } : c
-        )
-      );
-      } else {
-      }
-    };
+  if (socketInstance && selectedChatId) {
+    socketInstance.emit('join', selectedChatId);
 
+    const handleMessage = (msg) => {
+    if (msg.chatId === selectedChatId) {
+      const formatted = formatMessage(msg);
+      setSelectedMessages(prev => [...prev, formatted]);
+    }
+  };
     socketInstance.on('message', handleMessage);
 
     return () => {
+      socketInstance.emit('leave', selectedChatId);
       socketInstance.off('message', handleMessage);
     };
-  }, []);
+  }
+}, [socketInstance, selectedChatId]);
 
  useEffect(() => {
   if (socketInstance) {
     socketInstance.on('connect', () => {
-      console.log('Conectado ao servidor WebSocket');
     });
     socketInstance.on('chats_updated', (updatedChats) => {
   let chats = [];
@@ -220,7 +210,6 @@ const handleSubmit = (data) => {
     const formattedMessage = formatMessage(newMessage);
     setSelectedMessages((prev) => [...prev, formattedMessage]);
   } else {
-    console.log('Sem socket');
   }
 };
 
@@ -246,7 +235,7 @@ const formatMessage = (msg) => ({
   name: msg.contact_name || msg.senderName,
   text: msg.text || msg.body,
   from_me: msg.from_me|| msg.fromMe,
-  timestamp: msg.created_at,
+  timestamp: msg.timestamp || msg.created_at,
   message_type: msg.message_type,
   base64: msg.midiaBase64 || msg.base64
 
@@ -464,9 +453,6 @@ const handleImageUpload = async (event) => {
           message_type: 'image',
           base64:newImageUrl
           }
-
-      console.log('Imagem carregada e preparada para o socket:', message);
-
       if (socketInstance) {
         socketInstance.emit('message', message);
 

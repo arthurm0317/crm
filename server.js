@@ -42,7 +42,13 @@ class SocketServer {
     sockets() {
         this.io.on('connection', (socket) => {
             console.log('Novo cliente conectado');
-           
+            socket.on('join', (room)=> {
+                socket.join(room);
+            });
+
+            socket.on('leave', (roomId) => {
+                socket.leave(roomId);
+            });
 
             socket.on('disconnect', () => {
                 console.log('Cliente desconectado');
