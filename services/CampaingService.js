@@ -142,8 +142,34 @@ const startCampaingRedis = async (campaing_id, timer, schema) => {
   }
 }
 
+const getCampaings = async(schema)=>{
+  try {
+    const result = await pool.query(
+      `SELECT * FROM ${schema}.campaing`
+    );
+    return result.rows;
+  }catch (error) {
+    console.error('Erro ao buscar campanhas:', error.message);
+    throw error;
+  }
+}
+
+const getCampaingById = async (campaing_id, schema) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM ${schema}.campaing WHERE id=$1`, [campaing_id]
+    );
+    return result.rows[0];
+  } catch (error) {
+    console.error('Erro ao buscar campanha por ID:', error.message);
+    throw error;
+  }
+}
+
 module.exports = {
     createCampaing,
     startCampaing,
-    startCampaingRedis
+    startCampaingRedis,
+    getCampaings,
+    getCampaingById
 }
