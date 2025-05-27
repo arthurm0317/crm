@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import Modal from 'react-bootstrap/Modal';
 import Button from 'react-bootstrap/Button';
+import InputMask from 'react-input-mask';
 
 function WhatsappNovoContatoModal({ theme, show, onHide, onSave }) {
   const [nome, setNome] = useState('');
@@ -19,11 +20,18 @@ function WhatsappNovoContatoModal({ theme, show, onHide, onSave }) {
       return;
     }
 
+    // Limpa o número para enviar só os dígitos
+    const numeroLimpo = numero.replace(/\D/g, '');
+    if (numeroLimpo.length !== 12) {
+      console.error('Número inválido para EvolutionAPI.');
+      return;
+    }
+
     // Aqui você implementará a lógica de salvar
     if (onSave) {
       onSave({
         nome,
-        numero,
+        numero: numeroLimpo,
         dataConexao: new Date().toISOString()
       });
     }
@@ -81,13 +89,13 @@ function WhatsappNovoContatoModal({ theme, show, onHide, onSave }) {
             <label htmlFor="numeroWhatsapp" className={`form-label card-subtitle-${theme}`}>
               Número do WhatsApp
             </label>
-            <input
-              type="text"
+            <InputMask
+              mask="+55 (99) 9999-9999"
               className={`form-control input-${theme}`}
               id="numeroWhatsapp"
               value={numero}
               onChange={(e) => setNumero(e.target.value)}
-              placeholder="Ex: +5511999999999"
+              placeholder="+55 (__) ____-____"
             />
           </div>
 
@@ -138,7 +146,13 @@ function WhatsappNovoContatoModal({ theme, show, onHide, onSave }) {
           type="button"
           className={`btn btn-1-${theme}`}
           onClick={() => setStatus('conectando')}
-          disabled={!nome || !numero || status === 'conectando' || status === 'conectado'}
+          disabled={
+            !nome ||
+            !numero ||
+            status === 'conectando' ||
+            status === 'conectado' ||
+            numero.replace(/\D/g, '').length !== 12
+          }
         >
           Gerar QR Code
         </button>
@@ -146,7 +160,7 @@ function WhatsappNovoContatoModal({ theme, show, onHide, onSave }) {
           type="button"
           className={`btn btn-1-${theme}`}
           onClick={handleSave}
-          disabled={!nome || !numero || status !== 'conectado'}
+          disabled={!nome || !numero || status !== 'conectado' || numero.replace(/\D/g, '').length !== 12}
         >
           Salvar
         </button>
