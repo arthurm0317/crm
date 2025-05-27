@@ -1,6 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 const pool = require("../db/queries");
 const { sendTextMessage } = require('../requests/evolution');
+const { searchConnById } = require('./ConnectionService');
 
 const replacePlaceholders = async (message, number, schema) => {
   try {
@@ -51,9 +52,10 @@ const createMessageForBlast = async (messageValue, sector, campaingId, schema) =
 
 const sendBlastMessage = async (instanceId,messageValue, number, schema) => {
   try {
+    const instance = await searchConnById(instanceId, schema);
     const processedMessage = await replacePlaceholders(messageValue, number, schema);
 
-    await sendTextMessage(instanceId, processedMessage, number);
+    await sendTextMessage(instance.name, processedMessage, number);
 
     console.log(`Mensagem enviada para ${number}: ${processedMessage}`);
   } catch (error) {

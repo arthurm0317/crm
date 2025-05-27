@@ -146,21 +146,33 @@ useEffect(() => {
       return;
     }
 
-    const disparoData = {
-      titulo,
-      mensagens,
-      canal,
-      tipoAlvo,
-      ...(tipoAlvo === 'Funil' ? { etapa } : { tags: tagsSelecionadas }),
-      dataInicio,
-      horaInicio,
-      intervalo: {
-        tempo: intervaloTempo,
-        unidade: intervaloUnidade
-      }
-    };
+    const start_date = dataInicio && horaInicio
+    ? `${dataInicio}T${horaInicio}:00`
+    : '';
 
-    console.log('Dados do disparo:', disparoData);
+  const disparoData = {
+    name: titulo,
+    connection_id: canal,
+    sector: funilSelecionado.charAt(0).toLowerCase()+ funilSelecionado.slice(1), 
+    kanban_stage: etapa, 
+    start_date, 
+    schema,
+    tipoAlvo,
+    ...(tipoAlvo === 'Funil' ? { etapa } : { tags: tagsSelecionadas }),
+    mensagem: mensagens,
+    intervalo: {
+      timer: intervaloTempo,
+      unidade: intervaloUnidade
+    }
+  };
+    try{
+      const response = await axios.post(`${url}/campaing/create`, {
+        ...disparoData,
+      })
+      console.log('Disparo salvo com sucesso:', response.data);
+    }catch(error){
+      console.error('Erro ao salvar disparo:', error);
+    }
     // Aqui você implementará a lógica de salvar no banco de dados
   };
 

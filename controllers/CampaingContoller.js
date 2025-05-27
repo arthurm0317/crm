@@ -1,42 +1,73 @@
-const { startCampaingRedis, getCampaings, getCampaingById } = require("../services/CampaingService")
+const { scheduleCampaingBlast, getCampaings, getCampaingById, createCampaing } = require("../services/CampaingService");
+const { createMessageForBlast } = require("../services/MessageBlast");
 
 const startCampaingController = async (req, res) => {
-    const {campaing_id, timer} = req.body
-    const schema = req.body.schema
-    try{
-        const result = await startCampaingRedis(campaing_id, timer, schema)
+  const { campaing_id, timer } = req.body;
+  const schema = req.body.schema;
+  try {
+    const result = await startCampaingRedis(campaing_id, timer, schema);
     res.status(201).json(result);
-    } catch (error) {
+  } catch (error) {
     console.log(error);
     res.status(500).json({
       erro: 'Não foi possível iniciar a campanha',
     });
   }
-}
-const getCampaingsController = async (req, res)=>{
-  const schema = req.params
-  try{
-    const result = await getCampaings(schema.schema)
+};
+
+const getCampaingsController = async (req, res) => {
+  const schema = req.params;
+  try {
+    const result = await getCampaings(schema.schema);
     res.status(201).json(result);
-  }catch (error) {
+  } catch (error) {
     console.error('Erro ao buscar campanhas:', error);
     res.status(500).json({
       erro: 'Não foi possível buscar as campanhas',
     });
   }
-}
+};
 
-const getCampaingByIdController = async(req, res)=>{
-  const{campaing_id, schema} = req.params
-  try{
-    const result = await getCampaingById(campaing_id, schema.schema)
+const getCampaingByIdController = async (req, res) => {
+  const { campaing_id, schema } = req.params;
+  try {
+    const result = await getCampaingById(campaing_id, schema.schema);
     res.status(200).json(result);
-  }catch(error){
-    console.error(error)
+  } catch (error) {
+    console.error(error);
   }
-}
+};
+
+const createCampaingController = async (req, res) => {
+  const { name, sector, kanban_stage, connection_id, start_date, schema, mensagem } = req.body;
+  try {
+    // 1. Cria a campanha
+    const campaing = await createCampaing(name, sector, kanban_stage, connection_id, start_date, schema);
+
+    // 2. Cria as mensagens (mensagem pode ser array)
+    if (mensagem && Array.isArray(mensagem)) {
+      for (const msg of mensagem) {
+        await createMessageForBlast(msg, sector, campaing.id, schema);
+      }
+    } else if (mensagem) {
+      await createMessageForBlast(msg, sector, campaing.id, schema);
+    }
+
+    // 3. Agenda o disparo
+    await scheduleCampaingBlast(campaing, schema);
+
+    res.status(201).json(campaing);
+  } catch (error) {
+    console.error('Erro ao criar campanha:', error);
+    res.status(500).json({
+      erro: 'Não foi possível criar a campanha',
+    });
+  }
+};
+
 module.exports = {
   startCampaingController,
   getCampaingsController,
-  getCampaingByIdController
-}
+  getCampaingByIdController,
+  createCampaingController
+};

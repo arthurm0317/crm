@@ -41,6 +41,21 @@ function DisparosPage({ theme }) {
       hour12: false
     });
   };
+
+  const handleStartDisparo = async (id) => {
+  try {
+    await axios.post(`${url}/campaing/start`, { 
+        campaing_id:id,
+        schema:schema,
+        timer:1000 });
+    // Opcional: atualizar lista ou mostrar feedback
+    alert('Campanha iniciada!');
+  } catch (error) {
+    console.error('Erro ao iniciar disparo:', error);
+    alert('Erro ao iniciar disparo');
+  }
+};
+
   useEffect(() => {
     const fetchDisparos = async()=>{
       try{
@@ -148,11 +163,11 @@ function DisparosPage({ theme }) {
       >
         <div className="d-flex flex-column gap-3 p-3 w-100">
           {Array.isArray(disparos) && disparos.map((disparo) => (
-            <div 
-              key={disparo.id}
-              className={`d-flex flex-row justify-content-between align-items-stretch p-3 card-${theme} border-${theme} rounded w-100`}
-            >
-              {/* Seção de Dados */}
+  <div 
+    key={disparo.id}
+    className={`d-flex flex-row justify-content-between align-items-stretch p-3 card-${theme} border-${theme} rounded w-100`}
+  >
+    {/* Seção de Dados */}
               <div className="d-flex flex-column flex-grow-1">
                 <div className={`header-text-${theme} h5 mb-2`}>{disparo.campaing_name}</div>
                 <div className={`header-text-${theme} mb-1`}>
@@ -165,32 +180,43 @@ function DisparosPage({ theme }) {
                 </div>
               </div>
 
-              {/* Divider Vertical */}
-              <div className={`border-end border-${theme} mx-3`} style={{ minHeight: '100px' }}></div>
+    {/* Divider Vertical */}
+    <div className={`border-end border-${theme} mx-3`} style={{ minHeight: '100px' }}></div>
 
-              {/* Seção de Ações */}
-              <div className="d-flex flex-column gap-2 justify-content-center">
-                <button
-                  className={`btn btn-2-${theme} w-100`}
-                  data-bs-toggle="tooltip"
-                  data-bs-placement="left"
-                  data-bs-title="Editar"
-                  onClick={() => handleEdit(disparo.id)}
-                >
-                  <i className="bi bi-pencil-fill"></i>
-                </button>
-                <button
-                  className={`btn delete-btn w-100`}
-                  data-bs-toggle="tooltip"
-                  data-bs-placement="left"
-                  data-bs-title="Excluir"
-                  onClick={() => handleDelete(disparo.id)}
-                >
-                  <i className="bi bi-trash-fill"></i>
-                </button>
-              </div>
-            </div>
-          ))}
+    {/* Seção de Ações */}
+    <div className="d-flex flex-column gap-2 justify-content-center">
+      <button
+        className={`btn btn-2-${theme} w-100`}
+        data-bs-toggle="tooltip"
+        data-bs-placement="left"
+        data-bs-title="Editar"
+        onClick={() => handleEdit(disparo.id)}
+      >
+        <i className="bi bi-pencil-fill"></i>
+      </button>
+      <button
+        className={`btn delete-btn w-100`}
+        data-bs-toggle="tooltip"
+        data-bs-placement="left"
+        data-bs-title="Excluir"
+        onClick={() => handleDelete(disparo.id)}
+      >
+        <i className="bi bi-trash-fill"></i>
+      </button>
+      <button
+        className={`btn btn-success w-100`}
+        data-bs-toggle="tooltip"
+        data-bs-placement="left"
+        data-bs-title="Iniciar Disparo"
+        onClick={() =>{
+          handleStartDisparo(disparo.id)
+        }} 
+      >
+        <i className="bi bi-play-fill"></i> Iniciar
+      </button>
+    </div>
+  </div>
+))}
         </div>
       </div>
 
