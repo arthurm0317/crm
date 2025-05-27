@@ -225,7 +225,7 @@ function Painel() {
             </button>
           </div>
         </div>
-        <div className="d-flex flex-column flex-grow-1">
+        <div className="d-flex flex-column flex-grow-1" style={{ flex: 1, minWidth: 0 }}>
           <div className={`header-${theme} ps-1 pe-4 d-flex align-items-center justify-content-between`} style={{ height: '10%' }}>
             <button data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Expandir/Retrair" id="toggleSidebar" className={`btn btn-3-${theme} p-1`} onClick={toggleSidebar}>
               <i className={`bi ${isSidebarExpanded ? 'bi-arrow-bar-left' : 'bi-arrow-bar-right'}`}></i>
@@ -259,7 +259,7 @@ function Painel() {
               </button>
             </div>
           </div>
-          <div className={`main-${theme} pe-3 pb-3`} style={{ flexGrow: 1, overflow: 'auto' }} id="main">
+          <div className={`main-${theme} pe-3 pb-3`} style={{ flex: 1, overflow: 'auto', minWidth: 0 }} id="main">
             {renderPage()}
           </div>
         </div>

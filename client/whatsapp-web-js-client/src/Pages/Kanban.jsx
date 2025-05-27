@@ -2,30 +2,42 @@ import React, { useState, useRef, useEffect } from 'react';
 
 // Mock inicial de funis, etapas e leads
 const mockFunis = [
-  {
-    id: 1,
-    nome: 'Vendas',
-    etapas: [
-      { id: 1, nome: 'Novos Clientes' },
-      { id: 2, nome: 'Proposta Enviada' },
-      { id: 3, nome: 'Negociação' },
-      { id: 4, nome: 'Aguardando Retorno' },
-      { id: 5, nome: 'Clientes Fechados' },
-      { id: 6, nome: 'Pós-venda' },
-      { id: 7, nome: 'Perdidos' }
-    ],
-    contatosVinculados: ['+5511999999999'],
-  },
-  {
-    id: 2,
-    nome: 'Adimplência',
-    etapas: [
-      { id: 8, nome: 'Cobrança 1' },
-      { id: 9, nome: 'Cobrança 2' },
-      { id: 10, nome: 'Pago' }
-    ],
-    contatosVinculados: ['+5511988888888'],
-  }
+    {
+        id: 1,
+        nome: 'Vendas',
+        etapas: [
+        { id: 1, nome: 'Novos Clientes', cor: 'red' }, // Exemplo de cor
+        { id: 2, nome: 'Proposta Enviada', cor: 'blue' },
+        { id: 3, nome: 'Negociação', cor: 'green' },
+        { id: 4, nome: 'Aguardando Retorno', cor: 'aquamarine' },
+        { id: 5, nome: 'Clientes Fechados', cor: '#2ecc71' },
+        { id: 6, nome: 'Pós-venda', cor: '#1abc9c' },
+        { id: 7, nome: 'Perdidos', cor: '#e74c3c' }
+        ],
+        contatosVinculados: ['+5511999999999', '+5511988888888'],
+        usuariosVinculados: [
+            { id: 1, nome: 'Arthur FilhoDeCauan' },
+            { id: 2, nome: 'Cauan FilhoDeArthur' }
+          ],
+        filasVinculadas: [
+            { id: 1, nome: 'Fila 1' },
+            { id: 2, nome: 'Fila 2' },
+            { id: 3, nome: 'Fila 3' }
+        ]
+    },
+    {
+        id: 2,
+        nome: 'Adimplência',
+        etapas: [
+        { id: 8, nome: 'Cobrança 1', cor: '#e67e22' },
+        { id: 9, nome: 'Cobrança 2', cor: '#f1c40f' },
+        { id: 10, nome: 'Pago', cor: '#2ecc71' }
+        ],
+        contatosVinculados: ['+5511988888888'],
+        filasVinculadas: [
+            { id: 3, nome: 'Fila 3' }
+        ]
+    }
 ];
 
 const mockLeads = [
@@ -33,6 +45,13 @@ const mockLeads = [
   { id: 2, nome: 'Maria Souza', funilId: 1, etapaId: 2, tags: ['Retorno'], telefone: '+5511999999999' },
   { id: 3, nome: 'Empresa X', funilId: 2, etapaId: 4, tags: ['Cobrança'], telefone: '+5511988888888' }
 ];
+
+function maskPhone(num) {
+  // Remove tudo que não for dígito
+  const digits = num.replace(/\D/g, '');
+  // Aplica a máscara
+  return digits.replace(/^(\d{2})(\d{2})(\d{5})(\d{4})$/, '+$1 ($2) $3-$4');
+}
 
 function KanbanPage({ theme }) {
   const [funis, setFunis] = useState(mockFunis);
@@ -76,7 +95,7 @@ function KanbanPage({ theme }) {
     setScrollLeft(scrollRef.current?.scrollLeft || 0);
   };
 
-  const funilAtual = funis.find(f => f.id === funilSelecionado);
+  const funilAtual = funis.find(f => f.id === funilSelecionado) || { etapas: [], contatosVinculados: [], filasVinculadas: [] };
   const etapas = funilAtual.etapas;
 
   // CRUD de etapas e tags: placeholders para modais ou menus
@@ -98,30 +117,68 @@ function KanbanPage({ theme }) {
     <div className={`main-kanban bg-form-${theme} p-3 h-100 w-100`} style={{ minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'column', flex: 1 }}>
       {/* Seletor de Funil */}
       <div className="d-flex align-items-center justify-content-between gap-3 mb-4">
-        <h4 className={`header-text-${theme} mb-0`}>{funilAtual.nome}</h4>
+        <h2 className={`header-text-${theme} mb-0 ms-3`}>{funilAtual.nome}</h2>
+
         <div className="d-flex gap-2 align-items-center">
-          <select
-            className={`form-select input-${theme}`}
-            style={{ width: 220 }}
-            value={funilSelecionado}
-            onChange={e => setFunilSelecionado(Number(e.target.value))}
-          >
-            {funis.map(f => (
-              <option key={f.id} value={f.id}>{f.nome}</option>
-            ))}
-          </select>
-          <button className={`btn btn-1-${theme}`} onClick={() => alert('Adicionar Funil (CRUD)')}><i className="bi bi-plus-lg me-2"></i>Novo Funil</button>
-          <button className={`btn btn-1-${theme}`} onClick={handleAddEtapa}><i className="bi bi-plus-lg me-2"></i>Nova Etapa</button>
+            <div className="input-group">
+                <span className={`input-group-text igt-${theme}`}>
+                    <i className="bi bi-funnel-fill"></i>
+                </span>
+                <select
+                className={`form-select input-${theme}`}
+                style={{ width: 150 }}
+                value={funilSelecionado}
+                onChange={e => setFunilSelecionado(Number(e.target.value))}
+                >
+                {funis.map(f => (
+                    <option key={f.id} value={f.id}>{f.nome}</option>
+                ))}
+                </select>
+            </div>
+
+            <button className={`btn btn-1-${theme}`} style={{ minWidth: 140 }} onClick={() => alert('Adicionar Funil (CRUD)')}>
+                <i className="bi bi-funnel me-2"></i>Novo Funil
+            </button>
+            
+            <button className={`btn btn-1-${theme}`} style={{ minWidth: 140 }} onClick={handleAddEtapa}>
+                <i className="bi bi-layout-sidebar-inset me-2"></i>Nova Etapa
+            </button>
+
         </div>
       </div>
 
-      {/* Contatos vinculados ao funil */}
-      <div className="mb-3">
-        <span className={`card-subtitle-${theme}`}>Contatos WhatsApp vinculados: </span>
-        {funilAtual.contatosVinculados.map((num, i) => (
-          <span key={num} className="badge bg-success me-2">{num}</span>
-        ))}
-        <button className={`btn btn-2-${theme} btn-sm ms-2`} onClick={() => alert('Vincular contato WhatsApp ao funil')}>Vincular Contato</button>
+      {/* Vinculações */}
+      <div id="vinculados" className="w-100">
+
+        <div className={`px-3 mb-3 card-${theme} d-flex flex-row align-items-center justify-content-evenly`}
+        style={{ 
+            borderRadius: '0.375rem', 
+            padding: '6px',
+            border: `1px solid var(--border-color-${theme})`
+        }}>
+            <div>
+                <span className={`card-subtitle-${theme} me-2`}>
+                    <i className="bi bi-whatsapp me-2"></i> Contatos 
+                </span>
+                {funilAtual.contatosVinculados.map((num, i) => (
+                <span key={num} className="badge bg-primary me-2">{maskPhone(num)}</span>
+                ))}
+            </div>
+
+            <div>
+                <span className={`card-subtitle-${theme} me-2`}>
+                <i className="bi bi-list me-2"></i> Filas 
+                </span>
+                {funilAtual.filasVinculadas && funilAtual.filasVinculadas.map((fila) => (
+                <span key={fila.id} className="badge bg-primary me-2">
+                    {fila.nome}
+                </span>
+                ))}
+            </div>
+
+        </div>
+
+
       </div>
 
       {/* Colunas do Kanban (etapas) */}
@@ -142,22 +199,37 @@ function KanbanPage({ theme }) {
           <div className="d-flex flex-row gap-4"
             style={{ minHeight: 0, minWidth: '100%', width: 'max-content' }}>
             {etapas.map(etapa => (
-              <div key={etapa.id} className={`kanban-col card-${theme} border border-${theme} rounded p-2`} style={{ minWidth: 300, maxWidth: 300 }}
+            <div key={etapa.id} className={`kanban-col card-${theme} border border-${theme} rounded p-2`} style={{ minWidth: 300, maxWidth: 300 }}
                 onDragOver={e => e.preventDefault()}
                 onDrop={() => onDrop(etapa.id)}
               >
-                <div className="d-flex justify-content-between align-items-center mb-2">
-                  <h6 className={`mb-0 header-text-${theme}`}>{etapa.nome}</h6>
-                  <div className="d-flex gap-1">
-                    <button className="btn btn-sm btn-2-light" title="Editar etapa" onClick={() => handleEditEtapa(etapa)}><i className="bi bi-pencil"></i></button>
-                    <button className="btn btn-sm delete-btn" title="Excluir etapa" onClick={() => handleDeleteEtapa(etapa)}><i className="bi bi-trash"></i></button>
-                  </div>
+
+                <div className="d-flex flex-column mb-2 mx-2">
+
+                    <div
+                        style={{
+                        width: '100%',
+                        height: '6px',
+                        background: `${etapa.cor}`,
+                        borderRadius: '4px',
+                        marginBottom: '8px'
+                        }}
+                    />
+                    <div className="d-flex flex-row justify-content-between align-items-center mb-2">
+                        <h6 className={`mb-0 header-text-${theme}`}>{etapa.nome}</h6>
+                        <div className="d-flex gap-1">
+                            <button className="btn btn-sm btn-2-light" title="Editar etapa" onClick={() => handleEditEtapa(etapa)}><i className="bi bi-pencil"></i></button>
+                            <button className="btn btn-sm delete-btn" title="Excluir etapa" onClick={() => handleDeleteEtapa(etapa)}><i className="bi bi-trash"></i></button>
+                        </div>
+                    </div>
                 </div>
+
+            
                 {/* Cards de leads nesta etapa */}
                 {leads.filter(l => l.funilId === funilSelecionado && l.etapaId === etapa.id).map(lead => (
                   <div
                     key={lead.id}
-                    className={`kanban-card card-${theme} border border-${theme} mb-2 p-2`}
+                    className={`kanban-card card-${theme} border border-${theme} mb-2 py-2 px-3`}
                     draggable
                     onDragStart={() => onDragStart(lead)}
                     style={{ cursor: 'auto' }}
