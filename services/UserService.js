@@ -21,6 +21,13 @@ const getAllUsers = async (schema) => {
     const result = await pool.query(`SELECT * FROM ${schema}.users`);
     return result.rows;
 };
+
+const getUserById = async (user_id, schema)=>{
+  const result = await pool.query(
+    `select * from ${schema}.users where id=$1`,[user_id]
+  )
+  return result.rows[0]
+}
 const searchUser = async (userMail, userPassword) => {
     const availableSchemas = await pool.query(`
       SELECT schema_name 
@@ -121,5 +128,6 @@ module.exports = { createUser,
   getLastAssignedUser, 
   updateLastAssignedUser,
   deleteUser,
-  updateUser
+  updateUser,
+  getUserById
 };

@@ -14,6 +14,8 @@ import RelatorioPage from './Relatorios';
 import UsuariosPage from './Usuarios';
 import FilaPage from './Filas';
 import KanbanPage from './Kanban';
+import DisparosPage from './Disparos';
+import WhatsappModal from './modalPages/Whatsapp';
 
 window.addEventListener('error', function (event) {
   if (
@@ -38,6 +40,7 @@ function Painel() {
   const [empresa, setEmpresa] = useState('');
   const [theme, setTheme] = useTheme();
   const [page, setPage] = useState('dashboard');
+  const [showWhatsappModal, setShowWhatsappModal] = useState(false);
   const navigate = useNavigate();
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   
@@ -96,6 +99,7 @@ function Painel() {
       case 'usuarios': return <UsuariosPage theme={theme} />;
       case 'agenda': return <AgendaPage theme={theme} />;
       case 'relatorios': return <RelatorioPage theme={theme} />;
+      case 'disparos': return <DisparosPage theme={theme} />;
       default: return <Dashboard theme={theme} />;
     }
   };
@@ -103,6 +107,10 @@ function Painel() {
   const handleLogout = () => {
     localStorage.removeItem('user');
     navigate('/');
+  };
+
+  const handleWhatsapp = () => {
+    setShowWhatsappModal(true);
   };
 
   return (
@@ -124,6 +132,7 @@ function Painel() {
               <i className="bi bi-speedometer2"></i>
               <span className="sidebar-label d-none">Dashboard</span>
             </button>
+            <hr className={`hr-${theme} mx-auto my-0`} style={{ width: '50%' }} />
             <button
               id="chats"
               onClick={() => setPage('chats')}
@@ -158,6 +167,18 @@ function Painel() {
               <span className="sidebar-label d-none">Filas</span>
             </button>
             <button
+              id="disparos"
+              onClick={() => setPage('disparos')}
+              data-bs-toggle="tooltip"
+              data-bs-placement="right"
+              data-bs-title="Disparos"
+              className={`btn ${page === 'disparos' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-start gap-2`}
+            >
+              <i className="bi bi-megaphone"></i>
+              <span className="sidebar-label d-none">Disparos</span>
+            </button>
+            <hr className={`hr-${theme} mx-auto my-0`} style={{ width: '50%' }} />
+            <button
               id="usuarios"
               onClick={() => setPage('usuarios')}
               data-bs-toggle="tooltip"
@@ -167,6 +188,17 @@ function Painel() {
             >
               <i className="bi bi-people"></i>
               <span className="sidebar-label d-none">Usuários</span>
+            </button>
+            <button
+              id="whatsapp"
+              onClick={handleWhatsapp}
+              data-bs-toggle="tooltip"
+              data-bs-placement="right"
+              data-bs-title="WhatsApp"
+              className={`btn btn-2-${theme} d-flex flex-row align-items-center justify-content-start gap-2`}
+            >
+              <i className="bi bi-whatsapp"></i>
+              <span className="sidebar-label d-none">WhatsApp</span>
             </button>
             <button
               id="lembretes"
@@ -179,6 +211,7 @@ function Painel() {
               <i className="bi bi-bell"></i>
               <span className="sidebar-label d-none">Lembretes</span>
             </button>
+            <hr className={`hr-${theme} mx-auto my-0`} style={{ width: '50%' }} />
             <button
               id="relatorios"
               onClick={() => setPage('relatorios')}
@@ -202,7 +235,6 @@ function Painel() {
               <h6 className={`header-text-${theme}`}><span id="role">{role}</span> | <span id="empresa">{empresa}</span></h6>
             </div>
 
-             {/* Botão para técnicos */}
             <div className="d-flex flex-row align-items-center gap-2">
               {/* Botão para técnicos */}
               {role === 'tecnico' && (
@@ -232,6 +264,13 @@ function Painel() {
           </div>
         </div>
       </div>
+
+      {/* WhatsApp Modal */}
+      <WhatsappModal 
+        theme={theme}
+        show={showWhatsappModal}
+        onHide={() => setShowWhatsappModal(false)}
+      />
     </div>
   );
 }

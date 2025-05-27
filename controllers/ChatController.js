@@ -1,3 +1,4 @@
+
 const { setUserChat, getChats, getMessages, getChatData, getChatByUser, updateQueue, getChatById, saveMediaMessage, setMessageAsRead, closeChat, setSpecificUser } = require('../services/ChatService');
 const multer = require('multer');
 const fs = require('fs');
@@ -300,6 +301,7 @@ const setSpecificUserController = async(req, res)=>{
   }catch (error) {
     console.log(error)
   }
+
 }
   module.exports = {
     setUserChatController,
@@ -315,5 +317,5 @@ const setSpecificUserController = async(req, res)=>{
     uploadImage,
     setMessageAsReadController,
     closeChatContoller,
-    setSpecificUserController
+    setSpecificUserController,
   };

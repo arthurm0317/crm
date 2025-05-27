@@ -6,6 +6,7 @@ import DeleteQueueModal from './modalPages/Filas_delete';
 
 function FilaPage({ theme }) {
   const [filas, setFilas] = useState([]);
+  const [fila, setFila] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const userData = JSON.parse(localStorage.getItem('user'));
   const schema = userData?.schema;
@@ -50,7 +51,7 @@ const filasFiltradas = filas.filter(fila => {
   return (
     <div className="h-100 w-100 mx-2">
       <div className="d-flex justify-content-end align-items-center mb-3">
-        <div className="input-group" style={{ width: '30%' }}>
+        <div className="input-group" style={{ width: '40%' }}>
           <input
             type="text"
             className={`form-control input-${theme}`}
@@ -106,6 +107,7 @@ const filasFiltradas = filas.filter(fila => {
                     onClick={() => {
                       const modal = new bootstrap.Modal(document.getElementById('DeleteQueueModal'));
                       modal.show();
+                      setFila(fila)
                     }}
                   >
                     <i className="bi bi-trash-fill"></i>
@@ -120,7 +122,7 @@ const filasFiltradas = filas.filter(fila => {
       </div>
         <div>
           <NewQueueModal theme={theme}/>
-          <DeleteQueueModal theme={theme}/>
+          <DeleteQueueModal theme={theme} fila={fila}/>
         </div>
     </div>
   );

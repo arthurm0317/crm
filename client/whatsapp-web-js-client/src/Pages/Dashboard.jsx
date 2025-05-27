@@ -7,11 +7,6 @@ function Dashboard({ theme }) {
   const url = process.env.REACT_APP_URL;
   const userData = JSON.parse(localStorage.getItem('user'));
   const [user, setUser] = useState()
-  console.log('DashboardCards MONTANDO');
-
-  console.log('URLu',url)
-
-
 
   const schema = userData.schema
   useEffect(() => {
@@ -88,7 +83,7 @@ function Dashboard({ theme }) {
               {user && user
               .filter(u => u.permission === 'user')
               .map((u) => (
-                <li key={u.id} className="d-flex justify-content-between px-2 py-1">
+                <li key={u.id} className={`d-flex justify-content-between px-2 py-1 header-text-${theme}`}>
                   <span>{u.nome || u.username || u.name}</span>
                   <span>{u.setor || u.sector || '-'}</span>
                   <span>
@@ -127,7 +122,7 @@ function Dashboard({ theme }) {
           </div>
 
           <div className={`card card-${theme} p-2 d-flex flex-row align-items-center justify-content-evenly`}>
-            <i className="bi bi-clock-history card-icon" style={{ fontSize: '2.5rem' }}></i>
+            <i className="bi bi-check2-all card-icon" style={{ fontSize: '2.5rem' }}></i>
             <div className="d-flex flex-column align-items-start justify-content-start">
               <h6 className={`card-subtitle-${theme} m-0`}>Esperando Atendente</h6>
               <h2 id="esperando-atendente" className={`header-text-${theme}`}>0</h2>

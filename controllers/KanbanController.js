@@ -1,4 +1,4 @@
-const { createKanbanStage } = require("../services/KanbanService");
+const { createKanbanStage, getFunis, getKanbanStages } = require("../services/KanbanService");
 const { createMessageForBlast } = require("../services/MessageBlast");
 
 
@@ -27,7 +27,34 @@ const createMessageForBlastController = async (req, res) => {
         res.status(500).json({ error: 'Erro ao criar mensagem para blast' });
     }
 }
+const getFunisController = async (req, res) => {
+    try{
+        const schema = req.params.schema
+        const funis = await getFunis(schema)
+        res.status(200).json(funis);
+    }catch (err) {
+        console.error("Erro ao buscar funis:", err.message);
+        res.status(500).json({ error: 'Erro ao buscar funis' });
+}
+}
+const getKanbanStagesController = async (req, res) => {
+    try {
+        const funil = req.params.funil;
+        const schema = req.params.schema
+
+        console.log("Funil:", funil);
+        console.log("Schema:", schema);
+
+        const stages = await getKanbanStages(funil, schema);
+        res.status(200).json(stages);
+    } catch (err) {
+        console.error("Erro ao buscar estágios do Kanban:", err);
+        res.status(500).json({ error: 'Erro ao buscar estágios do Kanban' });
+    }
+}
 module.exports = {
     createKanbanStageController,
-    createMessageForBlastController
+    createMessageForBlastController,
+    getFunisController,
+    getKanbanStagesController
 }
