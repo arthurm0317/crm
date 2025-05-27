@@ -117,7 +117,9 @@ const createCompany = async (company, schema) => {
             campaing_name text not null,
             sector text not null,
             kanban_stage UUID not null,
-            connection_id UUID not null
+            connection_id UUID not null,
+            start_date bigint,
+            status text
             )
             `)
 

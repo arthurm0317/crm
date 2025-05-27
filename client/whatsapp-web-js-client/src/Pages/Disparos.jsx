@@ -2,14 +2,34 @@ import React, { useState, useEffect } from 'react';
 import * as bootstrap from 'bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
+import axios from 'axios';
 import { Card, Button } from 'react-bootstrap';
 import DisparoModal from './modalPages/Disparos_novoDisparo';
 import DeleteDisparoModal from './modalPages/Disparos_delete';
 
+function formatDateHour(timestamp) {
+  let ts = Number(timestamp);
+  if (ts < 1000000000000) {
+    ts = ts * 1000;
+  }
+  const date = new Date(ts);
+  return date.toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZoneName: 'short'
+  });
+}
 function DisparosPage({ theme }) {
   const [disparoSelecionado, setDisparoSelecionado] = useState(null);
-  
-  // Função para formatar a data e hora
+  const userData = JSON.parse(localStorage.getItem('user')); 
+  const schema = userData?.schema
+  const url = process.env.REACT_APP_URL;
+  const [disparos, setDisparos] = useState([]);
+
   const formatarDataHora = (dataHoraString) => {
     const data = new Date(dataHoraString);
     return data.toLocaleString('pt-BR', {
@@ -21,71 +41,31 @@ function DisparosPage({ theme }) {
       hour12: false
     });
   };
-
-  // Exemplo de dados - substitua por dados reais da sua API
-  const [disparos, setDisparos] = useState([
-    {
-      id: '001',
-      titulo: 'Disparo de Boas-vindas',
-      dataInicio: '2024-03-20 14:30:00',
-      gmt: 'GMT-3',
-      status: 'Agendado'
-    },
-    {
-      id: '002',
-      titulo: 'Campanha Promocional',
-      dataInicio: '2024-03-21 09:00:00',
-      gmt: 'GMT-3',
-      status: 'Em execução'
-    },
-    {
-      id: '003',
-      titulo: 'Lembrete de Pagamento',
-      dataInicio: '2024-03-22 08:00:00',
-      gmt: 'GMT-3',
-      status: 'Pendente'
-    },
-    {
-      id: '004',
-      titulo: 'Newsletter Semanal',
-      dataInicio: '2024-03-23 10:00:00',
-      gmt: 'GMT-3',
-      status: 'Agendado'
-    },
-    {
-      id: '005',
-      titulo: 'Pesquisa de Satisfação',
-      dataInicio: '2024-03-24 15:45:00',
-      gmt: 'GMT-3',
-      status: 'Em execução'
-    },
-    {
-      id: '006',
-      titulo: 'Promoção Flash',
-      dataInicio: '2024-03-25 12:00:00',
-      gmt: 'GMT-3',
-      status: 'Agendado'
-    },
-    {
-      id: '007',
-      titulo: 'Atualização de Cadastro',
-      dataInicio: '2024-03-26 09:30:00',
-      gmt: 'GMT-3',
-      status: 'Pendente'
+  useEffect(() => {
+    const fetchDisparos = async()=>{
+      try{
+        const response = await axios.get(`${url}/campaing/get-campaing/${schema}`)
+        setDisparos(response.data);
+      }catch(error){
+        console.error('Erro ao buscar disparos:', error);
+      }
     }
-  ]);
+    fetchDisparos();
+  })
+  
 
+  
   // Inicialização dos tooltips
   useEffect(() => {
     let tooltipList = [];
     let deleteModal = null;
-
+    
     try {
       const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
       if (tooltipTriggerList.length > 0) {
         tooltipList = [...tooltipTriggerList].map(el => new bootstrap.Tooltip(el));
       }
-
+      
       // Inicializa o modal de exclusão
       const modalElement = document.getElementById('DeleteDisparoModal');
       if (modalElement) {
@@ -94,7 +74,7 @@ function DisparosPage({ theme }) {
     } catch (error) {
       console.error('Erro ao inicializar componentes:', error);
     }
-
+    
     return () => {
       if (tooltipList.length > 0) {
         tooltipList.forEach(t => {
@@ -167,17 +147,16 @@ function DisparosPage({ theme }) {
         }}
       >
         <div className="d-flex flex-column gap-3 p-3 w-100">
-          {disparos.map((disparo) => (
+          {Array.isArray(disparos) && disparos.map((disparo) => (
             <div 
               key={disparo.id}
               className={`d-flex flex-row justify-content-between align-items-stretch p-3 card-${theme} border-${theme} rounded w-100`}
             >
               {/* Seção de Dados */}
               <div className="d-flex flex-column flex-grow-1">
-                <div className={`header-text-${theme} fw-bold`}>ID: {disparo.id}</div>
-                <div className={`header-text-${theme} h5 mb-2`}>{disparo.titulo}</div>
+                <div className={`header-text-${theme} h5 mb-2`}>{disparo.campaing_name}</div>
                 <div className={`header-text-${theme} mb-1`}>
-                  Início: {formatarDataHora(disparo.dataInicio)} ({disparo.gmt})
+                  Início: {formatDateHour(disparo.start_date)}
                 </div>
                 <div className={`header-text-${theme}`}>
                   Status: <span className={`fw-bold`}>

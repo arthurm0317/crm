@@ -1,5 +1,6 @@
 const pool = require("../db/queries");
 const { v4: uuidv4 } = require("uuid");
+const { get } = require("../routes/ConnectionRoutes");
 
 const createKanbanStage = async (name, schema) => {
   const stageExists = await pool.query(
@@ -90,8 +91,34 @@ const getChatsInKanbanStage = async (stage, schema) => {
   }
 };
 
+const getKanbanStages = async(funil, schema)=>{
+  const stages = await pool.query(
+    `SELECT * FROM ${schema}.kanban_${funil} `  
+  )
+  return stages.rows
+}
+
+const getFunis = async (schema) => {
+  try{
+    const kanbans = await pool.query(
+      `SELECT tablename FROM pg_tables WHERE schemaname=$1 and tablename LIKE 'kanban_%'`,[schema]
+    )
+    const funis = kanbans.rows.map(item => {
+    return item.tablename.split('_')[1]; 
+    });
+    return {
+      name: funis
+    }
+  }catch(error) {
+    console.error('Erro ao buscar funis:', error);
+    return [];
+  }
+}
+
 module.exports = {
   createKanbanStage,
   insertInKanbanStage,
   getChatsInKanbanStage,
+  getKanbanStages,
+  getFunis
 };

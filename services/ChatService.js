@@ -288,7 +288,7 @@ const getChatByUser = async (userId, role, schema) => {
   }
 };
 const getChatIfUserIsNull = async(connection, permission, schema)=>{
-  console,log(permission)
+  console.log(permission)
   try{
      if (permission === 'admin' || permission ==='tecnico') {
       const result = await pool.query(

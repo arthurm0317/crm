@@ -1,3 +1,4 @@
+import axios from 'axios';
 import React, { useState, useEffect } from 'react';
 
 function DisparoModal({ theme, disparo = null }) {
@@ -8,39 +9,63 @@ function DisparoModal({ theme, disparo = null }) {
   const [canal, setCanal] = useState(disparo?.canal || '');
   const [tipoAlvo, setTipoAlvo] = useState(disparo?.tipoAlvo || 'Funil');
   const [funilSelecionado, setFunilSelecionado] = useState(disparo?.funilId || '');
-  const [etapa, setEtapa] = useState(disparo?.etapa || '');
+  const [funis, setFunis] = useState([]);
+  const [etapas, setEtapas] = useState([]); 
+const [etapa, setEtapa] = useState(disparo?.etapa || ''); 
   const [tagsSelecionadas, setTagsSelecionadas] = useState(disparo?.tags || []);
   const [dataInicio, setDataInicio] = useState(disparo?.dataInicio || '');
   const [horaInicio, setHoraInicio] = useState(disparo?.horaInicio || '');
   const [intervaloTempo, setIntervaloTempo] = useState(disparo?.intervaloTempo || 30);
   const [intervaloUnidade, setIntervaloUnidade] = useState(disparo?.intervaloUnidade || 'segundos');
+  const [conexao, setConexao] = useState([])
+  const userData = JSON.parse(localStorage.getItem('user'));
+  const schema = userData?.schema;
+  const url = process.env.REACT_APP_URL;
+useEffect(() => {
+  const fetchConn = async()=>{
+    try{
+      const response = await axios.post(`${url}/connection/getAllConnections`,{
+          schema:schema
+      })
+      setConexao(Array.isArray(response.data)?response.data:[])
+    }catch(error){
+      console.error('Erro ao buscar conexões:', error);
+      setConexao([])
+    }
+  }
+  fetchConn();
+  
+  const fetchFunis = async()=>{
+    try{
+      const response = await axios.get(`${url}/kanban/get-funis/${schema}`);
+      console.log('Funis:', response.data.name);
+      setFunis(Array.isArray(response.data.name)? response.data.name : []);
+    }catch(error){
+      console.error('Erro ao buscar funis:', error);
+    }
+  }
+  fetchFunis();
+},[])
 
-  // Lista fictícia de contatos
-  const contatos = [
-    { id: 1, nome: "Contato 1 - Marketing" },
-    { id: 2, nome: "Contato 2 - Vendas" },
-    { id: 3, nome: "Contato 3 - Suporte" },
-    { id: 4, nome: "Contato 4 - Financeiro" }
-  ];
-
-  // Lista fictícia de funis
-  const funis = [
-    { id: 1, nome: "Vendas" },
-    { id: 2, nome: "Marketing" },
-    { id: 3, nome: "Onboarding" },
-    { id: 4, nome: "Pós-venda" }
-  ];
-
-  // Lista fictícia de etapas
-  const etapas = [
-    { id: 1, nome: "Lead Capturado" },
-    { id: 2, nome: "Qualificação Inicial" },
-    { id: 3, nome: "Apresentação" },
-    { id: 4, nome: "Proposta Enviada" },
-    { id: 5, nome: "Negociação" },
-    { id: 6, nome: "Fechamento" },
-    { id: 7, nome: "Pós-venda" }
-  ];
+useEffect(() => {
+  if (!funilSelecionado) {
+    setEtapas([]);
+    setEtapa('');
+    return;
+  }
+  const fetchEtapas = async () => {
+    try {
+      const response = await axios.get(`${url}/kanban/get-stages/${funilSelecionado.charAt(0).toLowerCase()+funilSelecionado.slice(1)}/${schema}`);
+      setEtapas(Array.isArray(response.data) ? response.data : []);
+      setEtapa('');
+      console.log(response.data)
+    } catch (error) {
+      console.error(error);
+      setEtapas([]);
+    }
+  };
+  fetchEtapas();
+}, [funilSelecionado, url, schema]);
 
   // Lista fictícia de tags
   const tags = [
@@ -73,7 +98,7 @@ function DisparoModal({ theme, disparo = null }) {
       setTagsSelecionadas([]);
     } else {
       setFunilSelecionado('');
-      setEtapa('');
+      setEtapas('');
     }
   }, [tipoAlvo]);
 
@@ -220,9 +245,9 @@ function DisparoModal({ theme, disparo = null }) {
                     onChange={(e) => setCanal(e.target.value)}
                   >
                     <option value="" disabled>Selecione um canal</option>
-                    {contatos.map((contato) => (
-                      <option key={contato.id} value={contato.id}>
-                        {contato.nome}
+                   {Array.isArray(conexao) && conexao.map((conn) => (
+                      <option key={conn.number} value={conn.id}>
+                        {conn.name}
                       </option>
                     ))}
                   </select>
@@ -272,7 +297,7 @@ function DisparoModal({ theme, disparo = null }) {
                         <option value="" disabled>Selecione um funil</option>
                         {funis.map((funil) => (
                           <option key={funil.id} value={funil.id}>
-                            {funil.nome}
+                            {funil.charAt(0).toUpperCase()+ funil.slice(1)}
                           </option>
                         ))}
                       </select>
@@ -293,9 +318,9 @@ function DisparoModal({ theme, disparo = null }) {
                       onChange={(e) => setEtapa(e.target.value)}
                     >
                       <option value="" disabled>Selecione uma etapa</option>
-                      {etapas.map((etapa) => (
-                        <option key={etapa.id} value={etapa.id}>
-                          {etapa.nome}
+                      {etapas.map((etapaObj) => (
+                        <option key={etapaObj.id} value={etapaObj.id}>
+                          {etapaObj.etapa}
                         </option>
                       ))}
                     </select>

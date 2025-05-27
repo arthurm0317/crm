@@ -7,33 +7,47 @@ const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const { Chat } = require('../entities/Chat');
 const { Message } = require('../entities/Message');
-const { createChat, getChatService, setChatQueue, setUserChat, saveMediaMessage, getChatByUser, setMessageIsUnread, getChatIfUserIsNull } = require('../services/ChatService');
+const { createChat, getChatService, setChatQueue, setUserChat, saveMediaMessage, getChatByUser, setMessageIsUnread, getChatIfUserIsNull, getChatById } = require('../services/ChatService');
 const { saveMessage } = require('../services/MessageService');
 const pool = require('../db/queries');
 const { getCurrentTimestamp } = require('../services/getCurrentTimestamp');
 const { getBase64FromMediaMessage } = require('../requests/evolution');
 const express = require('express');
-const SocketServer = require('../server')
+const SocketServer = require('../server');
+const createRedisConnection = require('../config/Redis');
+const { Queue, Worker } = require('bullmq');
 
 
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
+
+
 module.exports = (broadcastMessage) => {
   const serverTest = new SocketServer()
   serverTest.start()
-
   const app = express.Router();
 
   app.use(express.json({ limit: '100mb' }));
   app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
+
+  const bullConn = createRedisConnection();
+
+  const chatQueue = new Queue('chat', {connection: bullConn });
+
+  new Worker('chat', async(job)=>{
+    try{
+      if(job.data.chatId){
+        serverTest.io.to(job.data.chatId).emit('message', job.data);
+      }
+    }catch(error){
+      console.error(error)
+    }
+  }, {connection: bullConn})
+
   app.post('/chat', async (req, res) => {
     const result = req.body;
-    console.log('------------- resultado -----------------')
-    console.log(result.data.message.imageMessage)
-    console.log('------------- resultado imagem -----------------')
-    console.log(result.data.message)
     if (!result?.data?.key?.remoteJid) {
       return res.status(400).json({ error: 'Dados incompletos' });
     }
@@ -81,7 +95,6 @@ module.exports = (broadcastMessage) => {
         serverTest.io.emit('chats_updated', userChat)
       }else{
         const chats = await getChatIfUserIsNull(baseChat.connection_id,baseChat.permission,schema)
-        console.log('chats', chats)
         serverTest.io.emit('chats_updated', chats)
       }
 
@@ -111,8 +124,7 @@ module.exports = (broadcastMessage) => {
             timestamp,
             message_type: result.data.messageType
           };
-
-          serverTest.io.emit('message', payload);
+          await chatQueue.add('message', payload, { removeOnComplete: true });
           } else {
             throw new Error('Áudio não encontrado ou não processado.');
           }
@@ -125,11 +137,9 @@ module.exports = (broadcastMessage) => {
       if (result.data.message?.imageMessage) {
         try {
           if (result.data.message.base64) {
-            console.log('entrou if message.b64')
             imageBase64 = result.data.message.base64
           } 
           if (imageBase64) {
-            console.log('entrou id img b64')
             const base64Formatado = await getBase64FromMediaMessage(result.instance, result.data.key.id)
             await saveMediaMessage(result.data.key.id,result.data.key.fromMe, chatDb.id, timestamp, 'image', base64Formatado.base64, schema);
             messageBody = '[imagem recebida]';
@@ -142,8 +152,7 @@ module.exports = (broadcastMessage) => {
             timestamp,
             message_type: result.data.messageType
           };
-
-          serverTest.io.emit('message', payload);
+          await chatQueue.add('message', payload, { removeOnComplete: true });
           } else {
             throw new Error('Imagem não encontrada ou não processada.');
           }
@@ -160,10 +169,12 @@ module.exports = (broadcastMessage) => {
             fromMe: result.data.key.fromMe,
             from: result.data.pushName,
             timestamp,
-            message_type: result.data.messageType
+            message_type: result.data.messageType,
+            user_id: baseChat.assigned_user,
+            status: baseChat.status
           };
-        serverTest.io.emit('message', payload);
       
+          await chatQueue.add('message', payload, { removeOnComplete: true });
 
       }
       if (!chat || !result.instance) {

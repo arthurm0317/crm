@@ -9,12 +9,14 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 const url = process.env.REACT_APP_URL;
 
+
 function Login() {
   const [theme, setTheme] = useTheme();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,45 +30,60 @@ function Login() {
     }
   }, [username]);
   
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await axios.post('https://landing-page-teste.8rxpnw.easypanel.host/api/login', {
-        email: username,
-        password,
-      });
-      if (response.data.success) {
-        const userData = {
-          id: response.data.user.id,
-          username: response.data.user.name,
-          role: response.data.user.permission,
-          empresa: response.data.company.company_name,
-          schema: response.data.company.schema_name,
-        };
-        localStorage.setItem('user', JSON.stringify(userData));
-         if (userData.role === 'admin') {
+const handleLogin = async (e) => {
+  e.preventDefault();
+  setLoading(true); 
+
+  try {
+    const response = await axios.post('https://landing-page-teste.8rxpnw.easypanel.host/api/login', {
+      email: username,
+      password,
+    });
+
+    if (response.data.success) {
+      const userData = {
+        id: response.data.user.id,
+        username: response.data.user.name,
+        role: response.data.user.permission,
+        empresa: response.data.company.company_name,
+        schema: response.data.company.schema_name,
+      };
+      localStorage.setItem('user', JSON.stringify(userData));
+
+      const rememberedCredentials = JSON.parse(localStorage.getItem('rememberedCredentials')) || {};
+      if (rememberMe) {
+        rememberedCredentials[username] = password;
+      } else {
+        delete rememberedCredentials[username];
+      }
+      localStorage.setItem('rememberedCredentials', JSON.stringify(rememberedCredentials));
+
+   
+      setTimeout(() => {
+        setLoading(false);
+        if (userData.role === 'admin') {
           navigate('/painel');
         } else if (userData.role === 'tecnico') {
           navigate('/schemas');
         } else {
-          navigate('/painel'); 
+          navigate('/painel');
         }
-        const rememberedCredentials = JSON.parse(localStorage.getItem('rememberedCredentials')) || {};
-        if (rememberMe) {
-          rememberedCredentials[username] = password;
-        } else {
-          delete rememberedCredentials[username];
-        }
-        localStorage.setItem('rememberedCredentials', JSON.stringify(rememberedCredentials));
-
-      }
-    } catch (err) {
-      const senhaIncorretaElement = document.     getElementById("senhaIncorreta");
+      }, 5000);
+    } else {
+      setLoading(false);
+      const senhaIncorretaElement = document.getElementById("senhaIncorreta");
       if (senhaIncorretaElement) {
         senhaIncorretaElement.classList.remove("d-none");
       }
     }
-  };
+  } catch (err) {
+    setLoading(false);
+    const senhaIncorretaElement = document.getElementById("senhaIncorreta");
+    if (senhaIncorretaElement) {
+      senhaIncorretaElement.classList.remove("d-none");
+    }
+  }
+};
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
