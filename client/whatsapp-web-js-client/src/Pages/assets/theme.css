@@ -12,14 +12,14 @@
     /* Light */
     --primary-hover-color-light: #006ba2;
     --bg-color-light: #f8f9fa;
-    --input-bg-color-light: #FFFFFF;
+    --input-bg-color-light: #FFFFFF !important;
     --border-color-light: #dee2e6;
     --color-light: #212529;
 
     /* Dark */
     --primary-hover-color-dark: #339bd5;
     --bg-color-dark: #252525;
-    --input-bg-color-dark: #333333;
+    --input-bg-color-dark: #333333 !important;
     --border-color-dark: #444444;
     --color-dark: #E0E0E0;
     --placeholder-color: #808080;

@@ -692,3 +692,42 @@ input[type="range"]::-moz-range-progress {
 }
 
 .no-caret::after { display: none !important; }
+
+/* Toast styles */
+.toast-container {
+  z-index: 1050;
+}
+.toast {
+  min-width: 300px;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  opacity: 1 !important;
+}
+.toast.bg-light {
+  background-color: var(--input-bg-color-light) !important;
+  border-color: var(--border-color-light) !important;
+}
+.toast.bg-dark {
+  background-color: var(--input-bg-color-dark) !important;
+  border-color: var(--border-color-dark) !important;
+}
+.toast .toast-body.text-dark {
+  color: var(--color-light) !important;
+}
+.toast .toast-body.text-light {
+  color: var(--color-dark) !important;
+}
+.toast .toast-body i {
+  color: inherit !important;
+}
+.toast .btn-close {
+  opacity: 0.5;
+}
+.toast .btn-close:hover {
+  opacity: 0.75;
+}
+.toast-header {
+  border-bottom: 1px solid var(--border-color-light);
+}
+.toast.bg-dark .toast-header {
+  border-bottom: 1px solid var(--border-color-dark);
+}
