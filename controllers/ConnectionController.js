@@ -1,6 +1,7 @@
 const Connection = require("../entities/Connection")
 const { v4: uuidv4 } = require('uuid');
-const { createConnection, setQueue, getAllConnections } = require("../services/ConnectionService");
+const { createConnection, setQueue, getAllConnections, deleteConnection } = require("../services/ConnectionService");
+const { deleteInstance } = require("../requests/evolution");
 
 const createConnectionController = async(req, res)=>{
     try{
@@ -43,9 +44,25 @@ const getAllConnectionsController = async (req, res) => {
         res.status(500).json({ error: 'Erro ao buscar todas as conexões' });
     }
 };
+const deleteConnectionController =async (req, res) => {
+    try {
+        const {connection_id, instanceName, schema} = req.params
+        const result = await deleteConnection(connection_id, schema)
+        console.log(result)
+        await deleteInstance(instanceName)
+
+        res.status(200).json({result})
+    } catch (error) {
+        console.error(error)
+        res.stats(500).json({
+            error:'Erro ao deletar conexão'
+        })
+    }
+}
 
 module.exports = {
     createConnectionController, 
     setQueueController,
-    getAllConnectionsController
+    getAllConnectionsController,
+    deleteConnectionController
 }

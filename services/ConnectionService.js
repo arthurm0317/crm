@@ -62,11 +62,24 @@ const getAllConnections = async (schema) => {
     }
 };
 
+const deleteConnection = async (connection_id, schema) => {
+    try {
+        const result = await pool.query(
+            `DELETE FROM ${schema}.connections where id=$1`,[connection_id]
+        )
+        return result.rows
+    } catch (error) {
+        console.error(error)
+    }
+    
+}
+
 
 module.exports = {
     createConnection,
     fetchInstance,
     searchConnById,
     setQueue,
-    getAllConnections
+    getAllConnections,
+    deleteConnection
 }

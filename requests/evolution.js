@@ -195,10 +195,16 @@ const sendAudioToWhatsApp = async (number, audioBase64, instanceId) => {
 };
 const deleteInstance=async (instanceName) => {
   try {
-    const result = await axios.delete(`${process.env.EVOLUTION_SERVER_URL}/instance/delete/${instanceName}`)
+    const result = await axios.delete(`${process.env.EVOLUTION_SERVER_URL}/instance/delete/${instanceName}`,
+      {
+        headers:{
+          apikey: process.env.EVOLUTION_API_KEY
+        }
+      }
+    )
     return result
   } catch (error) {
-    console.error(error)
+    // console.error(error)
   }
   
 }

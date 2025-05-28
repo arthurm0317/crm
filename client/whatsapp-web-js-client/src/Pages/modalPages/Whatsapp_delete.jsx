@@ -5,9 +5,12 @@ import Button from 'react-bootstrap/Button';
 import axios from 'axios';
 
 function WhatsappDeleteModal({ theme, show, onHide, contato, onDelete }) {
+  const userData = JSON.parse(localStorage.getItem('user')); 
+  const schema = userData?.schema
+  const url = process.env.REACT_APP_URL;
   const handleDelete = async () => {
     try {
-      const response = await axios.delete()
+      const response = await axios.delete(`${url}/connection/delete/${contato.id}/${contato.name}/${schema}`)
     } catch (error) {
       console.error(error)
     }
@@ -50,13 +53,13 @@ function WhatsappDeleteModal({ theme, show, onHide, contato, onDelete }) {
         <p className="text-danger-true fw-bold mb-1">
           Nome:
           <span className={`fw-bold header-text-${theme} ms-1`}>
-            {contato?.nome}
+            {contato?.name}
           </span>
         </p>
         <p className="text-danger-true fw-bold mb-1">
           Número:
           <span className={`fw-bold header-text-${theme} ms-1`}>
-            {contato?.numero}
+            {contato?.number}
           </span>
         </p>
         <p className={`card-subtitle-${theme}`}>
