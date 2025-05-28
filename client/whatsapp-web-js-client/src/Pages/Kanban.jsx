@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import NovoFunilModal from './modalPages/Kanban_novoFunil';
 import GerirEtapaModal from './modalPages/Kanban_gerirEtapa';
 import { Dropdown } from 'react-bootstrap';
+import KanbanExcluirEtapaModal from './modalPages/Kanban_excluirEtapa';
 
 // Mock inicial de funis, etapas e leads
 const mockFunis = [
@@ -73,7 +74,7 @@ function KanbanDropdown({ theme, funis, funilAtualId, onSelect }) {
         variant={theme === 'light' ? 'light' : 'dark'}
         id="kanban-dropdown"
         className={`btn btn-2-${theme} btn-sm no-caret`}
-        style={{ padding: 6, minWidth: 32 }}
+        style={{ padding: 6, minWidth: 35, minHeight: 35 }}
         title="Alterar funil"
       >
         <i className="bi bi-funnel-fill"></i>
@@ -104,7 +105,7 @@ function KanbanTagsDropdown({ theme, leadTags, onChange }) {
         variant={theme === 'light' ? 'light' : 'dark'}
         id="kanban-tags-dropdown"
         className={`btn btn-2-${theme} btn-sm no-caret`}
-        style={{ padding: 6, minWidth: 32 }}
+        style={{ padding: 6, minWidth: 35, minHeight: 35 }}
         title="Gerenciar tags"
         onClick={e => setIsOpen(!isOpen)}
       >
@@ -136,6 +137,8 @@ function KanbanPage({ theme }) {
   const [funis, setFunis] = useState(mockFunis);
   const [leads, setLeads] = useState(mockLeads);
   const [funilSelecionado, setFunilSelecionado] = useState(mockFunis[0].id);
+  const [editingEtapaId, setEditingEtapaId] = useState(null);
+  const [editingEtapaNome, setEditingEtapaNome] = useState('');
 
   // Drag and drop state
   const [draggedLead, setDraggedLead] = useState(null);
@@ -179,8 +182,37 @@ function KanbanPage({ theme }) {
 
   // CRUD de etapas e tags: placeholders para modais ou menus
   const handleAddEtapa = () => setShowGerirEtapaModal(true);
-  const handleEditEtapa = (etapa) => alert(`Editar etapa: ${etapa.nome}`);
-  const handleDeleteEtapa = (etapa) => alert(`Excluir etapa: ${etapa.nome}`);
+  const handleEditEtapa = (etapa) => {
+    setEditingEtapaId(etapa.id);
+    setEditingEtapaNome(etapa.nome);
+  };
+  const handleSaveEditEtapa = (etapa) => {
+    setFunis(funis => funis.map(f =>
+      f.id === funilSelecionado
+        ? { ...f, etapas: f.etapas.map(e =>
+            e.id === etapa.id ? { ...e, nome: editingEtapaNome } : e
+          ) }
+        : f
+    ));
+    setEditingEtapaId(null);
+    setEditingEtapaNome('');
+  };
+  const [showExcluirEtapaModal, setShowExcluirEtapaModal] = useState(false);
+  const [etapaParaExcluir, setEtapaParaExcluir] = useState(null);
+
+  const handleDeleteEtapa = (etapa) => {
+    setEtapaParaExcluir(etapa);
+    setShowExcluirEtapaModal(true);
+  };
+  const handleConfirmarExcluirEtapa = () => {
+    setFunis(funis => funis.map(f =>
+      f.id === funilSelecionado
+        ? { ...f, etapas: f.etapas.filter(e => e.id !== etapaParaExcluir.id) }
+        : f
+    ));
+    setShowExcluirEtapaModal(false);
+    setEtapaParaExcluir(null);
+  };
   const handleManageTags = (lead) => alert(`Gerenciar tags de ${lead.nome}`);
 
   // Drag and drop handlers
@@ -335,83 +367,108 @@ function KanbanPage({ theme }) {
         >
           <div className="d-flex flex-row gap-4"
             style={{ minHeight: 0, minWidth: '100%', width: 'max-content' }}>
-            {(funilAtual.etapas || []).map(etapa => (
-              <div key={etapa.id} className={`kanban-col card-${theme} border border-${theme} rounded p-2`} style={{ minWidth: 300, maxWidth: 300 }}
-                onDragOver={e => e.preventDefault()}
-                onDrop={() => onDrop(etapa.id)}
-              >
-                <div className="d-flex flex-column mb-2 mx-2">
-                  <div
-                    style={{
-                      width: '100%',
-                      height: '6px',
-                      background: `${etapa.cor}`,
-                      borderRadius: '4px',
-                      marginBottom: '8px'
-                    }}
-                  />
-                  <div className="d-flex flex-row justify-content-between align-items-center mb-2">
-                    <h6 className={`mb-0 header-text-${theme}`}>{etapa.nome}</h6>
-                    <div className="d-flex gap-1">
-                      <button className="btn btn-sm btn-2-light" title="Editar etapa" onClick={() => handleEditEtapa(etapa)}>
-                        <i className="bi bi-pencil"></i>
-                      </button>
-                      <button className="btn btn-sm delete-btn" title="Excluir etapa" onClick={() => handleDeleteEtapa(etapa)}>
-                        <i className="bi bi-trash"></i>
-                      </button>
+            {(funilAtual.etapas || []).map(etapa => {
+              const etapaTemLeads = leads.some(lead => lead.funilId === funilSelecionado && lead.etapaId === etapa.id);
+              return (
+                <div key={etapa.id} className={`kanban-col card-${theme} border border-${theme} rounded p-2`} style={{ minWidth: 300, maxWidth: 300 }}
+                  onDragOver={e => e.preventDefault()}
+                  onDrop={() => onDrop(etapa.id)}
+                >
+                  <div className="d-flex flex-column mb-2 mx-2">
+                    <div
+                      style={{
+                        width: '100%',
+                        height: '6px',
+                        background: `${etapa.cor}`,
+                        borderRadius: '4px',
+                        marginBottom: '8px'
+                      }}
+                    />
+                    <div className="d-flex flex-row justify-content-between align-items-center mb-2">
+                      {editingEtapaId === etapa.id ? (
+                        <input
+                          className={`form-control input-${theme} mb-0`}
+                          style={{ maxWidth: 160, fontWeight: 600, fontSize: '1rem', lineHeight: '1.2', height: 'auto', padding: '2px 8px' }}
+                          value={editingEtapaNome}
+                          autoFocus
+                          onChange={e => setEditingEtapaNome(e.target.value)}
+                          onBlur={() => handleSaveEditEtapa(etapa)}
+                          onKeyDown={e => { if (e.key === 'Enter') handleSaveEditEtapa(etapa); }}
+                        />
+                      ) : (
+                        <h6 className={`mb-0 header-text-${theme}`} style={{ fontWeight: 600 }}>{etapa.nome}</h6>
+                      )}
+                      <div className="d-flex gap-1">
+                        <button
+                          className={`btn btn-sm btn-2-${theme} ${editingEtapaId === etapa.id ? 'disabled-btn' : ''}`}
+                          title="Editar etapa"
+                          onClick={() => handleEditEtapa(etapa)}
+                          disabled={editingEtapaId === etapa.id}
+                        >
+                          <i className="bi bi-pencil"></i>
+                        </button>
+                        <button
+                          className={`btn btn-sm btn-2-light delete-btn`}
+                          title="Excluir etapa"
+                          onClick={() => handleDeleteEtapa(etapa)}
+                          disabled={etapaTemLeads}
+                        >
+                          <i className="bi bi-trash"></i>
+                        </button>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Renderizando os leads filtrados */}
-                  {(leads.filter(lead => lead.funilId === funilSelecionado && lead.etapaId === etapa.id) || []).map(lead => (
-                    <div key={lead.id} className={`kanban-card card-${theme} border border-${theme} mb-2 py-2 px-3`}
-                      draggable
-                      onDragStart={() => onDragStart(lead)}
-                    >
-                      <div className="d-flex justify-content-between align-items-center">
-                        <span className={`fw-bold header-text-${theme}`}>{lead.nome}</span>
-                        <div className="d-flex gap-1">
-                          {/* Dropdown de gerenciamento de tags */}
-                          <KanbanTagsDropdown
-                            theme={theme}
-                            leadTags={lead.tags || []}
-                            onChange={(tag, checked) => {
-                              setLeads(leads => leads.map(l =>
-                                l.id === lead.id
-                                  ? { ...l, tags: checked
-                                    ? [...(l.tags || []), tag]
-                                    : (l.tags || []).filter(t => t !== tag)
-                                  }
-                                  : l
-                              ));
-                            }}
-                          />
-                          {/* Dropdown de alterar funil */}
-                          <span style={{ display: 'inline-block', verticalAlign: 'middle' }}>
-                            <KanbanDropdown
+                    {/* Renderizando os leads filtrados */}
+                    {(leads.filter(lead => lead.funilId === funilSelecionado && lead.etapaId === etapa.id) || []).map(lead => (
+                      <div key={lead.id} className={`kanban-card card-${theme} border border-${theme} mb-2 py-2 px-3`}
+                        draggable
+                        onDragStart={() => onDragStart(lead)}
+                      >
+                        <div className="d-flex justify-content-between align-items-center">
+                          <span className={`fw-bold header-text-${theme}`}>{lead.nome}</span>
+                          <div className="d-flex gap-1">
+                            {/* Dropdown de gerenciamento de tags */}
+                            <KanbanTagsDropdown
                               theme={theme}
-                              funis={funis}
-                              funilAtualId={funilSelecionado}
-                              onSelect={f => alert(`Mover lead para o funil: ${f.nome}`)}
+                              leadTags={lead.tags || []}
+                              onChange={(tag, checked) => {
+                                setLeads(leads => leads.map(l =>
+                                  l.id === lead.id
+                                    ? { ...l, tags: checked
+                                      ? [...(l.tags || []), tag]
+                                      : (l.tags || []).filter(t => t !== tag)
+                                    }
+                                    : l
+                                ));
+                              }}
                             />
-                          </span>
-                          <button className="btn btn-sm btn-2-light" title="Abrir chat" style={{ cursor: 'pointer' }}>
-                            <i className="bi bi-chat-dots"></i>
-                          </button>
+                            {/* Dropdown de alterar funil */}
+                            <span style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+                              <KanbanDropdown
+                                theme={theme}
+                                funis={funis}
+                                funilAtualId={funilSelecionado}
+                                onSelect={f => alert(`Mover lead para o funil: ${f.nome}`)}
+                              />
+                            </span>
+                            <button className="btn btn-sm btn-2-light" title="Abrir chat" style={{ cursor: 'pointer', minWidth: 35, minHeight: 35 }}>
+                              <i className="bi bi-chat-dots"></i>
+                            </button>
+                          </div>
                         </div>
+                        {/* Exibir tags do lead */}
+                        <div className="mt-1 mb-1 d-flex flex-wrap gap-1">
+                          {(lead.tags || []).map(tag => (
+                            <span key={tag} className="badge bg-secondary">{tag}</span>
+                          ))}
+                        </div>
+                        <div className={`small header-text-${theme}`}>{maskPhone(lead.telefone)}</div>
                       </div>
-                      {/* Exibir tags do lead */}
-                      <div className="mt-1 mb-1 d-flex flex-wrap gap-1">
-                        {(lead.tags || []).map(tag => (
-                          <span key={tag} className="badge bg-secondary">{tag}</span>
-                        ))}
-                      </div>
-                      <div className={`small header-text-${theme}`}>{maskPhone(lead.telefone)}</div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
@@ -431,6 +488,14 @@ function KanbanPage({ theme }) {
         onSave={handleSalvarEtapas}
         funil={funilAtual}
         etapas={etapas}
+      />
+      {/* Modal de Excluir Etapa */}
+      <KanbanExcluirEtapaModal
+        show={showExcluirEtapaModal}
+        onHide={() => setShowExcluirEtapaModal(false)}
+        onConfirm={handleConfirmarExcluirEtapa}
+        etapa={etapaParaExcluir}
+        theme={theme}
       />
 
     </div>
