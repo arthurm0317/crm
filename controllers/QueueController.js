@@ -1,6 +1,6 @@
 const Queue = require("../entities/Queue");
 const { v4: uuidv4 } = require('uuid');
-const { createQueue, addUserinQueue, getUserQueues, getAllQueues, deleteQueue } = require("../services/QueueService");
+const { createQueue, addUserinQueue, getUserQueues, getAllQueues, deleteQueue, getConnQueue } = require("../services/QueueService");
 
 const createQueueController = async(req, res)=>{
     try{
@@ -75,10 +75,24 @@ const deleteQueueController = async(req, res)=>{
         res.status(500).json({ error: 'Erro ao deletar fila' });
 }
 }
+const getConnQueueController = async(req, res)=>{
+    try{
+        const {queue_id, schema} = req.params
+        console.log(queue_id, schema)
+        const result = await getConnQueue(queue_id, schema)
+        res.status(201).json({
+            result
+        })
+    }catch(error){
+        console.log(error)
+        res.status(500).json({ error: 'Erro ao buscar fila' });
+}
+}
 module.exports = {
     createQueueController,
     addUserinQueueController,
     getUserQueuesController,
     getAllQueuesControllers,
-    deleteQueueController
+    deleteQueueController,
+    getConnQueueController
 }

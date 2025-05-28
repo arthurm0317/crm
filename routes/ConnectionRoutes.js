@@ -4,6 +4,6 @@ const router = express.Router();
 
 router.post('/create', createConnectionController)
 router.post('/setConnQueue', setQueueController)
-router.post('/getAllConnections', getAllConnectionsController)
+router.get('/get-all-connections/:schema', getAllConnectionsController)
 
 module.exports = router;

@@ -37,7 +37,6 @@ const fetchInstanceEvo = async(instanceName)=>{
   try {
     const response = await fetch(`${process.env.EVOLUTION_SERVER_URL}/instance/fetchInstances?instanceName=${instanceName}`, options);
     const result = await response.json();
-    console.log(result)
     
     return result;
   } catch (err) {
@@ -154,8 +153,6 @@ const sendImageToWhatsApp = async (number, imageBase64, instanceId) => {
       },
     });
 
-    console.log('Número:', number);
-    console.log('Imagem enviada para o WhatsApp com sucesso:', response.data);
     return response.data;
   } catch (error) {
     if (error.response) {
@@ -190,14 +187,32 @@ const sendAudioToWhatsApp = async (number, audioBase64, instanceId) => {
       },
     });
 
-    console.log('Áudio enviado para o WhatsApp com sucesso:', response.data);
     return response.data;
   } catch (error) {
     console.error('Erro ao enviar áudio para o WhatsApp:', error.message);
     throw error;
   }
 };
+const deleteInstance=async (instanceName) => {
+  try {
+    const result = await axios.delete(`${process.env.EVOLUTION_SERVER_URL}/instance/delete/${instanceName}`)
+    return result
+  } catch (error) {
+    console.error(error)
+  }
+  
+}
 
-module.exports = { createInstance, fetchInstanceEvo, sendTextMessage, searchContact, sendAudioToWhatsApp, getBase64FromMediaMessage, sendImageToWhatsApp};
+module.exports = {
+  createInstance,
+  fetchInstanceEvo,
+  sendTextMessage,
+  searchContact,
+  sendAudioToWhatsApp,
+  getBase64FromMediaMessage,
+  sendImageToWhatsApp,
+  deleteInstance
+
+};
 
 

@@ -2,11 +2,14 @@ import React from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import Modal from 'react-bootstrap/Modal';
 import Button from 'react-bootstrap/Button';
+import axios from 'axios';
 
 function WhatsappDeleteModal({ theme, show, onHide, contato, onDelete }) {
   const handleDelete = async () => {
-    if (onDelete) {
-      await onDelete(contato);
+    try {
+      const response = await axios.delete()
+    } catch (error) {
+      console.error(error)
     }
   };
 

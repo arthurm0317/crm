@@ -2,7 +2,6 @@ import axios from 'axios';
 import React, { useState, useEffect } from 'react';
 
 function DisparoModal({ theme, disparo = null }) {
-  // Estados para controlar os campos do formulário
   const [titulo, setTitulo] = useState(disparo?.titulo || '');
   const [numMensagens, setNumMensagens] = useState(1);
   const [mensagens, setMensagens] = useState(disparo?.mensagens || ['']);

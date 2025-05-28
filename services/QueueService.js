@@ -88,11 +88,19 @@ const deleteQueue = async(queueId, schema)=>{
     return result.rowCount > 0;
 }
 
+const getConnQueue = async(queue_id, schema)=>{
+    const result = await pool.query(
+        `SELECT * FROM ${schema}.queues where id=$1`,[queue_id]
+    )
+    return result.rows
+}
+
 module.exports = {
     createQueue,
     addUserinQueue,
     getUserQueues, 
     getChatsInQueue,
     getAllQueues,
-    deleteQueue
+    deleteQueue,
+    getConnQueue
 }

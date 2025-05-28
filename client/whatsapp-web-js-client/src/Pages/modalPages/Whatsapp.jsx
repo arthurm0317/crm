@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import WhatsappNovoContatoModal from './Whatsapp_novoContato';
 import WhatsappDeleteModal from './Whatsapp_delete';
 import WhatsappFilasModal from './Whatsapp_filas';
+import axios from 'axios';
 
 function WhatsappModal({ theme, show, onHide }) {
   const [contatos, setContatos] = useState([]);
@@ -11,12 +12,20 @@ function WhatsappModal({ theme, show, onHide }) {
   const [showNovoContatoModal, setShowNovoContatoModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showUsuariosModal, setShowUsuariosModal] = useState(false);
+  const userData = JSON.parse(localStorage.getItem('user')); 
+  const schema = userData?.schema
+  const url = process.env.REACT_APP_URL;
 
   useEffect(() => {
-    setContatos([
-      { id: 1, nome: 'Suporte', numero: '+5511999999999', dataConexao: '2024-03-20T10:00:00', status: 'conectado' },
-      { id: 2, nome: 'Vendas', numero: '+5511988888888', dataConexao: '2024-03-19T15:30:00', status: 'conectado' }
-    ]);
+    const handleConns = async()=>{
+      try{
+        const response = await axios.get(`${url}/connection/get-all-connections/${schema}`)
+        setContatos(Array.isArray([response.data])?response.data:[response.data]);
+      }catch(error){
+        console.error(error)
+      }
+    }
+    handleConns()
   }, []);
 
   const handleNovoContato = (novoContato) => {
@@ -68,8 +77,7 @@ function WhatsappModal({ theme, show, onHide }) {
                   <tr>
                     <th className="text-start px-3 py-2">Nome</th>
                     <th className="text-start px-3 py-2">Telefone</th>
-                    <th className="text-start px-3 py-2">Cargo</th>
-                    <th className="text-start px-3 py-2">Data de Conexão</th>
+                    {/* <th className="text-start px-3 py-2">Status</th> */}
                     <th className="text-start px-3 py-2">Ações</th>
                   </tr>
                 </thead>
@@ -83,18 +91,17 @@ function WhatsappModal({ theme, show, onHide }) {
                   ) : (
                     contatos.map((contato) => (
                       <tr key={contato.id}>
-                        <td className="px-3 py-2">{contato.nome}</td>
-                        <td className="px-3 py-2">{contato.numero}</td>
-                        <td className="px-3 py-2">{new Date(contato.dataConexao).toLocaleString('pt-BR')}</td>
-                        <td className="px-3 py-2">
-                          <div className="d-flex align-items-center gap-2">
+                        <td className="px-3 py-2">{contato.name}</td>
+                        <td className="px-3 py-2">{contato.number}</td>
+                        {/*<td className="px-3 py-2">
+                          * <div className="d-flex align-items-center gap-2">
                             <div
                               className={`rounded-circle ${contato.status === 'conectado' ? 'bg-success' : 'bg-danger'}`}
                               style={{ width: '8px', height: '8px' }}
                             ></div>
                             <span>{contato.status === 'conectado' ? 'Conectado' : 'Desconectado'}</span>
-                          </div>
-                        </td>
+                          </div> 
+                        </td>*/}
                         <td className="px-3 py-2">
                           <div className="d-flex flex-wrap gap-2">
                             <button

@@ -9,21 +9,22 @@ const { getCurrentTimestamp } = require('../services/getCurrentTimestamp');
 const createInstanceController = async (req, res) => {
     try {
         const { instanceName, number } = req.body;
-        const schema = req.body.schema || 'effective_gain';
+        const schema = req.body.schema
 
         const result = await createInstance({
             instanceName: instanceName,
             number: number,
         });
 
-        const conn = new Connection(result.instance.instanceId, instanceName, number);
-        await createConnection(conn, schema);
+        const conn = new Connections(result.instance.instanceId, instanceName, number);
+        const ress = await createConnection(conn, schema);
+        console.log(ress)
 
         res.status(201).json({
             result,
         });
     } catch (error) {
-        console.error("Erro ao criar instancia:", error.message);
+        console.error("Erro ao criar instancia:", error);
         res.status(500).json({ error: 'Erro ao criar instancia' });
     }
 };

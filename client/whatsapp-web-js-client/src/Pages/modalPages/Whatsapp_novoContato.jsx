@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import Modal from 'react-bootstrap/Modal';
 import Button from 'react-bootstrap/Button';
 import InputMask from 'react-input-mask';
+import axios from 'axios';
 
 function WhatsappNovoContatoModal({ theme, show, onHide, onSave }) {
   const [nome, setNome] = useState('');
@@ -10,30 +11,94 @@ function WhatsappNovoContatoModal({ theme, show, onHide, onSave }) {
   const [qrCode, setQrCode] = useState(null);
   const [status, setStatus] = useState('aguardando'); // aguardando, conectando, conectado, erro
 
+  const userData = JSON.parse(localStorage.getItem('user'));
+  const schema = userData?.schema;
+  const url = process.env.REACT_APP_URL;
+
   const handleClose = () => {
     if (onHide) onHide();
   };
 
-  const handleSave = async () => {
+    useEffect(() => {
+    if (show) {
+      setNome('');
+      setNumero('');
+      setQrCode(null);
+      setStatus('aguardando');
+    }
+  }, [show]);
+
+
+  // Gera QR Code sem limpar os campos
+  const handleGenerateQrCode = async () => {
     if (!nome || !numero) {
       console.error('Preencha todos os campos obrigatórios.');
       return;
     }
 
-    // Limpa o número para enviar só os dígitos
     const numeroLimpo = numero.replace(/\D/g, '');
     if (numeroLimpo.length !== 12) {
       console.error('Número inválido para EvolutionAPI.');
       return;
     }
 
-    // Aqui você implementará a lógica de salvar
-    if (onSave) {
-      onSave({
-        nome,
-        numero: numeroLimpo,
-        dataConexao: new Date().toISOString()
+    setStatus('conectando');
+    setQrCode(null);
+
+    try {
+      console.log(nome, numeroLimpo)
+      const response = await axios.post(`${url}/evo/instance`, {
+        instanceName: nome,
+        number: numeroLimpo,
+        schema: schema
       });
+      // Supondo que o QR Code vem em response.data.result.qrcode.base64
+      if (response.data?.result?.qrcode?.base64) {
+        setQrCode(response.data.result.qrcode.base64);
+        setStatus('conectando'); // Mantém status enquanto não conectar
+      } else {
+        setQrCode(null);
+        setStatus('erro');
+      }
+    } catch (error) {
+      console.error('Erro ao gerar QR Code:', error);
+      setQrCode(null);
+      setStatus('erro');
+    }
+  };
+
+  // Salva o contato (chame seu backend de /connection/create aqui se desejar)
+  const handleSave = async () => {
+    if (!nome || !numero) {
+      console.error('Preencha todos os campos obrigatórios.');
+      return;
+    }
+
+    const numeroLimpo = numero.replace(/\D/g, '');
+    if (numeroLimpo.length !== 12) {
+      console.error('Número inválido para EvolutionAPI.');
+      return;
+    }
+
+    try {
+      // Aqui você pode chamar o endpoint de salvar contato, se necessário
+      // Exemplo:
+      // const response = await axios.post(`${url}/connection/create`, {
+      //   name: nome,
+      //   number: numeroLimpo,
+      //   schema: schema
+      // });
+      if (onSave) {
+        onSave({ name: nome, number: numeroLimpo });
+      }
+      setNome('');
+      setNumero('');
+      setQrCode(null);
+      setStatus('aguardando');
+      handleClose();
+    } catch (error) {
+      console.error('Erro ao salvar contato:', error);
+      setStatus('erro');
     }
   };
 
@@ -110,7 +175,7 @@ function WhatsappNovoContatoModal({ theme, show, onHide, onSave }) {
                   Clique em "Gerar QR Code" para iniciar a conexão
                 </div>
               )}
-              {status === 'conectando' && (
+              {status === 'conectando' && !qrCode && (
                 <div className="d-flex flex-column align-items-center gap-2">
                   <div className="spinner-border text-primary" role="status">
                     <span className="visually-hidden">Carregando...</span>
@@ -120,13 +185,12 @@ function WhatsappNovoContatoModal({ theme, show, onHide, onSave }) {
                   </div>
                 </div>
               )}
-              {status === 'conectado' && (
-                <div className="text-success">
-                  <i className="bi bi-check-circle-fill fs-1"></i>
-                  <div className={`card-subtitle-${theme}`}>
-                    Conectado com sucesso!
-                  </div>
-                </div>
+              {qrCode && (
+                <img
+                  src={qrCode}
+                  alt="QR Code"
+                  style={{ maxWidth: '200px', maxHeight: '200px', filter: 'grayscale(1) contrast(2)' }}
+                />
               )}
               {status === 'erro' && (
                 <div className="text-danger">
@@ -145,7 +209,7 @@ function WhatsappNovoContatoModal({ theme, show, onHide, onSave }) {
         <button
           type="button"
           className={`btn btn-1-${theme}`}
-          onClick={() => setStatus('conectando')}
+          onClick={handleGenerateQrCode}
           disabled={
             !nome ||
             !numero ||
@@ -160,7 +224,7 @@ function WhatsappNovoContatoModal({ theme, show, onHide, onSave }) {
           type="button"
           className={`btn btn-1-${theme}`}
           onClick={handleSave}
-          disabled={!nome || !numero || status !== 'conectado' || numero.replace(/\D/g, '').length !== 12}
+          disabled={!nome || !numero || !qrCode || numero.replace(/\D/g, '').length !== 12}
         >
           Salvar
         </button>
@@ -172,7 +236,6 @@ function WhatsappNovoContatoModal({ theme, show, onHide, onSave }) {
 WhatsappNovoContatoModal.defaultProps = {
   show: false,
   onHide: () => {},
-  onSave: () => {},
 };
 
-export default WhatsappNovoContatoModal; 
+export default WhatsappNovoContatoModal;

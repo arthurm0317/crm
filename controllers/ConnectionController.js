@@ -11,8 +11,7 @@ const createConnectionController = async(req, res)=>{
             number,
             []
         )
-        console.log(conn)
-        const schema = req.body.schema || 'effective_gain';
+        const schema = req.body.schema
         const result = await createConnection(conn, schema);
 
       res.status(201).json(result);
@@ -36,7 +35,7 @@ const setQueueController = async(req, res)=>{
 
 const getAllConnectionsController = async (req, res) => {
     try {
-        const schema = req.body.schema || 'effective_gain';
+        const schema = req.params.schema;
         const result = await getAllConnections(schema);
         res.status(200).json(result);
     } catch (error) {
