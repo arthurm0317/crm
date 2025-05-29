@@ -71,7 +71,7 @@ const sendImageController = async (req, res) => {
     
     const chat_id = await getChatById(chatId, connectionId, schema);
     
-    if (!chat_id || !chat_id.contact_phone) {
+    if (!chat_id || !chat_id.contact_name) {
       throw new Error('O chat_id ou contact_phone não foi encontrado.');
     }
     
@@ -288,21 +288,31 @@ const closeChatContoller = async(req, res)=>{
   }
 }
 
-const setSpecificUserController = async(req, res)=>{
+const setSpecificUserController = async(req, res) => {
   try {
     const {user_id, chat_id} = req.body
     const schema = req.body.schema
 
-    const result = await setSpecificUser( chat_id, user_id, schema)
+    const result = await setSpecificUser(chat_id, user_id, schema)
 
     res.status(200).json({
-      result:result
+      result: result
     })
-  }catch (error) {
+  } catch (error) {
     console.log(error)
   }
+};
 
-}
+const updateContactNameController = async (req, res) => {
+  try {
+    const { chat_id, new_name, schema } = req.body;
+    const result = await updateContactName(chat_id, new_name, schema);
+    res.status(200).json({ success: true, updated: result });
+  } catch (error) {
+    console.error('erro ao atualizar contato', error);
+    res.status(500).json({ success: false, error: 'erro de atualização de contato' });
+  }
+};
   module.exports = {
     setUserChatController,
     getChatsController,
@@ -318,4 +328,5 @@ const setSpecificUserController = async(req, res)=>{
     setMessageAsReadController,
     closeChatContoller,
     setSpecificUserController,
-  };
+    updateContactNameController, 
+};

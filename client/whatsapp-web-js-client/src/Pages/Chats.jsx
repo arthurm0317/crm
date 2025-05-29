@@ -37,7 +37,28 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
       console.error(error)
     }
   };
-
+  const handleEditContactName = async (chatId) => {
+  const newName = window.prompt('mudar nome');
+  if (newName && newName.trim() !== '') {
+    try {
+    await axios.post(`${url}/chat/updateContactName`, {
+      chat_id: chatId,
+      new_name: newName,
+      schema: userData.schema
+    });
+      setChats(prevChats =>
+        prevChats.map(chat =>
+          chat.id === chatId ? { ...chat, contact_name: newName } : chat
+        )
+      );
+      if (selectedChat && selectedChat.id === chatId) {
+        setSelectedChat({ ...selectedChat, contact_name: newName });
+      }
+    } catch (error) {
+      alert('erro na edição de nome');
+    }
+  }
+};
   return (
     <Dropdown drop="start" onToggle={handleToggle}>
       <Dropdown.Toggle
@@ -52,6 +73,7 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
         variant={theme === 'light' ? 'light' : 'dark'}
         className={`input-${theme}`}>
         <Dropdown.Item href="#" onClick={handleCloseChat}>Finalizar Atendimento</Dropdown.Item>
+        <Dropdown.Item href="#" onClick={handleEditContactName}>Editar Nome</Dropdown.Item> 
       </Dropdown.Menu>
     </Dropdown>
   );
