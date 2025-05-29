@@ -101,6 +101,7 @@ function Painel() {
       case 'usuarios': return <UsuariosPage theme={theme} />;
       case 'agenda': return <AgendaPage theme={theme} />;
       case 'relatorios': return <Manutencao theme={theme} />;
+      case 'insights': return <Manutencao theme={theme} />;
       case 'disparos': return <DisparosPage theme={theme} />;
       case 'ajuda': return <AjudaPage theme={theme} />;
       default: return <Dashboard theme={theme} />;
@@ -225,6 +226,17 @@ function Painel() {
             >
               <i className="bi bi-bar-chart-line"></i>
               <span className="sidebar-label d-none">Relatórios</span>
+            </button>
+            <button
+              id="insights"
+              onClick={() => setPage('insights')}
+              data-bs-toggle="tooltip"
+              data-bs-placement="right"
+              data-bs-title="Insights"
+              className={`btn ${page === 'insights' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''}`}
+            >
+              <i className="bi bi-rocket"></i>
+              <span className="sidebar-label d-none">Insights</span>
             </button>
             <hr className={`hr-${theme} mx-auto my-0`} style={{ width: '50%' }} />
             <button

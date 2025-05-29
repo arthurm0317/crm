@@ -274,6 +274,36 @@ function AjudaPage({ theme }) {
           </div>
         </div>
       )
+    },
+    insights: {
+      title: 'Insights',
+      icon: 'bi-rocket',
+      content: (
+        <div>
+          <h5 className={`header-text-${theme} mb-3`}>Inteligência Artificial e Análise Avançada</h5>
+          <p className={`header-text-${theme}`}>
+            A seção de Insights utiliza modelos de Inteligência Artificial para analisar dados do seu negócio e oferecer 
+            recomendações estratégicas baseadas em padrões identificados:
+          </p>
+          <ul className={`header-text-${theme}`}>
+            <li><strong>Análise Preditiva:</strong> Previsão de tendências e comportamentos futuros baseados em dados históricos</li>
+            <li><strong>Segmentação Avançada:</strong> Identificação automática de padrões e grupos de clientes</li>
+            <li><strong>Recomendações Inteligentes:</strong> Sugestões de ações baseadas em análise de dados</li>
+            <li><strong>Detecção de Anomalias:</strong> Identificação automática de comportamentos fora do padrão</li>
+            <li><strong>Análise de Sentimento:</strong> Avaliação automática do sentimento das conversas</li>
+          </ul>
+          <div className="mt-4">
+            <h6 className={`header-text-${theme}`}>Como Usar:</h6>
+            <ul className={`header-text-${theme}`}>
+              <li><strong>Explorar Previsões:</strong> Acesse as análises preditivas para diferentes métricas</li>
+              <li><strong>Configurar Alertas:</strong> Defina gatilhos para notificações baseadas em IA</li>
+              <li><strong>Personalizar Modelos:</strong> Ajuste os parâmetros de análise para seu negócio</li>
+              <li><strong>Exportar Insights:</strong> Baixe relatórios detalhados das análises de IA</li>
+              <li><strong>Compartilhar Descobertas:</strong> Envie insights relevantes para sua equipe</li>
+            </ul>
+          </div>
+        </div>
+      )
     }
   };
 
