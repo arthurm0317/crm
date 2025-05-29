@@ -8,6 +8,7 @@ function SchemasPage({ theme }) {
   const [selectedSchema, setSelectedSchema] = useState(null);
 
   const url = process.env.REACT_APP_URL;
+  console.log('URL:', url);
   const navigate = useNavigate(); 
 
   useEffect(() => {
