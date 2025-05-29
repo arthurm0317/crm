@@ -128,7 +128,7 @@ function Painel() {
               data-bs-toggle="tooltip"
               data-bs-placement="right"
               data-bs-title="Dashboard"
-              className={`btn ${page === 'dashboard' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-start gap-2`}
+              className={`btn ${page === 'dashboard' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''}`}
             >
               <i className="bi bi-speedometer2"></i>
               <span className="sidebar-label d-none">Dashboard</span>
@@ -140,7 +140,7 @@ function Painel() {
               data-bs-toggle="tooltip"
               data-bs-placement="right"
               data-bs-title="Chats"
-              className={`btn ${page === 'chats' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-start gap-2`}
+              className={`btn ${page === 'chats' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''}`}
             >
               <i className="bi bi-chat-dots"></i>
               <span className="sidebar-label d-none">Chats</span>
@@ -151,7 +151,7 @@ function Painel() {
               data-bs-toggle="tooltip"
               data-bs-placement="right"
               data-bs-title="Kanban"
-              className={`btn ${page === 'kanban' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-start gap-2`}
+              className={`btn ${page === 'kanban' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''}`}
             >
               <i className="bi bi-kanban"></i>
               <span className="sidebar-label d-none">Kanban</span>
@@ -162,7 +162,7 @@ function Painel() {
               data-bs-toggle="tooltip"
               data-bs-placement="right"
               data-bs-title="Filas"
-              className={`btn ${page === 'filas' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-start gap-2`}
+              className={`btn ${page === 'filas' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''}`}
             >
               <i className="bi bi-diagram-3"></i>
               <span className="sidebar-label d-none">Filas</span>
@@ -173,7 +173,7 @@ function Painel() {
               data-bs-toggle="tooltip"
               data-bs-placement="right"
               data-bs-title="Disparos"
-              className={`btn ${page === 'disparos' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-start gap-2`}
+              className={`btn ${page === 'disparos' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''}`}
             >
               <i className="bi bi-megaphone"></i>
               <span className="sidebar-label d-none">Disparos</span>
@@ -185,7 +185,7 @@ function Painel() {
               data-bs-toggle="tooltip"
               data-bs-placement="right"
               data-bs-title="Usuários"
-              className={`btn ${page === 'usuarios' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-start gap-2`}
+              className={`btn ${page === 'usuarios' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''}`}
             >
               <i className="bi bi-people"></i>
               <span className="sidebar-label d-none">Usuários</span>
@@ -196,7 +196,7 @@ function Painel() {
               data-bs-toggle="tooltip"
               data-bs-placement="right"
               data-bs-title="WhatsApp"
-              className={`btn btn-2-${theme} d-flex flex-row align-items-center justify-content-start gap-2`}
+              className={`btn btn-2-${theme} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''}`}
             >
               <i className="bi bi-whatsapp"></i>
               <span className="sidebar-label d-none">WhatsApp</span>
@@ -207,7 +207,7 @@ function Painel() {
               data-bs-toggle="tooltip"
               data-bs-placement="right"
               data-bs-title="Lembretes"
-              className={`btn ${page === 'agenda' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-start gap-2`}
+              className={`btn ${page === 'agenda' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''}`}
             >
               <i className="bi bi-bell"></i>
               <span className="sidebar-label d-none">Lembretes</span>
@@ -219,7 +219,7 @@ function Painel() {
               data-bs-toggle="tooltip"
               data-bs-placement="right"
               data-bs-title="Relatórios"
-              className={`btn ${page === 'relatorios' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-start gap-2`}
+              className={`btn ${page === 'relatorios' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''}`}
             >
               <i className="bi bi-bar-chart-line"></i>
               <span className="sidebar-label d-none">Relatórios</span>
