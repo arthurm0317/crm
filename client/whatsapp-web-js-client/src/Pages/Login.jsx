@@ -161,8 +161,15 @@ const handleLogin = async (e) => {
             </div>
 
             <div className="d-flex flex-column">
-              <button type="submit" className={`btn btn-primary btn-1-${theme}`}>
-                Entrar
+              <button type="submit" className={`btn btn-1-${theme}`} disabled={loading}>
+                {loading ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    Entrando...
+                  </>
+                ) : (
+                  'Entrar'
+                )}
               </button>
             </div>
           </form>

@@ -317,7 +317,6 @@ function LembretesPage({ theme }) {
           setLembreteDeletando(null);
         }}
       />
-      <button onClick={() => showToast({id: 999, tipo: 'geral', titulo: 'Toast Teste', mensagem: 'Mensagem de teste', icone: 'bi-bell'})}>Testar Toast</button>
     </div>
   );
 }

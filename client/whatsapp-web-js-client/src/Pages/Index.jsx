@@ -16,6 +16,7 @@ import FilaPage from './Filas';
 import KanbanPage from './Kanban';
 import DisparosPage from './Disparos';
 import WhatsappModal from './modalPages/Whatsapp';
+import Manutencao from './Manutencao';
 
 window.addEventListener('error', function (event) {
   if (
@@ -98,7 +99,7 @@ function Painel() {
       case 'filas': return <FilaPage theme={theme} />;
       case 'usuarios': return <UsuariosPage theme={theme} />;
       case 'agenda': return <AgendaPage theme={theme} />;
-      case 'relatorios': return <RelatorioPage theme={theme} />;
+      case 'relatorios': return <Manutencao theme={theme} />;
       case 'disparos': return <DisparosPage theme={theme} />;
       default: return <Dashboard theme={theme} />;
     }
@@ -116,7 +117,7 @@ function Painel() {
   return (
     <div className={`bg-screen-${theme}`} style={{ height: '100vh', overflow: 'hidden' }}>
       <div className="d-flex h-100">
-        <div id="sidebar" className={`bg-form-${theme} h-100 sidebar ${isSidebarExpanded ? 'sidebar-expanded' : 'sidebar-collapsed'}`}>
+        <div id="sidebar" className={`bg-form-${theme} h-100 sidebar ${isSidebarExpanded ? 'sidebar-expanded' : 'sidebar-collapsed'} border-end border-${theme} card-${theme}`}>
           <div id="sidebar-top" style={{ height: '10%', width: '100%' }} className="p-2 d-flex flex-row align-items-center justify-content-evenly">
             <img src={isSidebarExpanded ? logo : shortlogo} alt="Logo" className="img-fluid" style={{ height: 'auto', width: isSidebarExpanded ? '80%' : '65%' }} />
           </div>
@@ -226,7 +227,7 @@ function Painel() {
           </div>
         </div>
         <div className="d-flex flex-column flex-grow-1" style={{ flex: 1, minWidth: 0 }}>
-          <div className={`header-${theme} ps-1 pe-4 d-flex align-items-center justify-content-between`} style={{ height: '10%' }}>
+          <div className={`header-${theme} ps-3 pe-4 d-flex align-items-center justify-content-between`} style={{ height: '10%' }}>
             <button data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Expandir/Retrair" id="toggleSidebar" className={`btn btn-3-${theme} p-1`} onClick={toggleSidebar}>
               <i className={`bi ${isSidebarExpanded ? 'bi-arrow-bar-left' : 'bi-arrow-bar-right'}`}></i>
             </button>
@@ -259,7 +260,7 @@ function Painel() {
               </button>
             </div>
           </div>
-          <div className={`main-${theme} pe-3 pb-3`} style={{ flex: 1, overflow: 'auto', minWidth: 0 }} id="main">
+          <div className={`main-${theme} ps-2 pe-3 pb-3`} style={{ flex: 1, overflow: 'auto', minWidth: 0 }} id="main">
             {renderPage()}
           </div>
         </div>

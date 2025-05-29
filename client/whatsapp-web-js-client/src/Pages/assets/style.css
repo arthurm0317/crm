@@ -365,7 +365,7 @@ a {
     color: var(--bg-color-dark);
 }
 .sidebar-collapsed {
-    width: 60px !important;
+    width: 75px !important;
 }
 .sidebar-expanded {
     width: 200px !important;
