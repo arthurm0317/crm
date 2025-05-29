@@ -14,6 +14,11 @@ function SchemasPage({ theme: themeProp }) {
   const url = process.env.REACT_APP_URL;
   const navigate = useNavigate();
 
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    navigate('/');
+  };
+
   useEffect(() => {
     async function fetchSchemas() {
       try {
@@ -68,6 +73,8 @@ function SchemasPage({ theme: themeProp }) {
               <i className={`bi bi-bounding-box header-text-${theme} fs-3 me-2`}></i>
               <h2 className={`ms-3 header-text-${theme} m-0`} style={{ fontWeight: 400, fontSize: '1.5rem' }}>Escolha um Schema</h2>
             </div>
+            
+            <div className="d-flex flex-row align-items-center gap-2">
             <button
               type="button"
               className={`btn btn-2-${theme}`}
@@ -77,6 +84,11 @@ function SchemasPage({ theme: themeProp }) {
             >
               <i className={`${theme === 'light' ? `bi-sun` : `bi-moon-stars`}`}></i>
             </button>
+            <button id="sair" type="button" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Sair" className={`btn btn-2-${theme} toggle-${theme}`} onClick={handleLogout}>
+                <i className="bi bi-door-open"></i>
+              </button>
+            </div>
+
           </div>
           <input
             type="text"
