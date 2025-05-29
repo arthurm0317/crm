@@ -125,6 +125,20 @@ function LembretesPage({ theme }) {
     }
   }, [lembreteDeletando]);
 
+  // Adicione esta função auxiliar no início do componente, após as declarações de estado
+  const formatarFilas = (filas) => {
+    if (!filas || filas.length === 0) return '';
+    const nomesFilas = {
+      '1': 'Suporte',
+      '2': 'Vendas',
+      '3': 'Financeiro',
+      '4': 'Marketing',
+      '5': 'RH'
+    };
+    const filasFormatadas = filas.map(id => nomesFilas[id] || id);
+    return filasFormatadas.length === 1 ? filasFormatadas[0] : filasFormatadas.join(' | ');
+  };
+
   // Function to show a toast notification
   const showToast = (lembrete) => {
     const toastId = `toast-${lembrete.id}-${Date.now()}`;
@@ -146,6 +160,9 @@ function LembretesPage({ theme }) {
       </div>
       <div class="toast-body ${textClass}">
         ${lembrete.mensagem}
+        ${lembrete.tipo === 'setorial' && lembrete.filas && lembrete.filas.length > 0 ? 
+          `<div style="font-size: 0.85rem; color: var(--placeholder-color); margin-top: 4px;">${formatarFilas(lembrete.filas)}</div>` 
+          : ''}
       </div>
     `;
     const toastContainer = document.getElementById('toast-container');
@@ -286,7 +303,7 @@ function LembretesPage({ theme }) {
                       return (
                         <td key={j} style={{ verticalAlign: 'top', minWidth: 80, height: 70, position: 'relative', padding: 4 }}>
                           <div className="d-flex flex-column align-items-start h-100">
-                            <span className="fw-bold mb-1">{dia}</span>
+                            <span className="fw-bold ms-1 mb-1">{dia}</span>
                             <div className="w-100 d-flex justify-content-center">
                               {lembretesDia.length > 0 && (
                                 <div
@@ -445,6 +462,11 @@ function LembretesPage({ theme }) {
                                         <span className="fw-semibold">{l.titulo}</span>
                                       </div>
                                       <div style={{ fontSize: '0.95rem' }}>{l.mensagem}</div>
+                                      {l.tipo === 'setorial' && l.filas && l.filas.length > 0 && (
+                                        <div style={{ fontSize: '0.85rem', color: 'var(--placeholder-color)' }}>
+                                          {formatarFilas(l.filas)}
+                                        </div>
+                                      )}
                                     </div>
                                     {index < lembretesDia.length - 1 && (
                                       <hr style={{ margin: '0.5rem 0', borderColor: 'var(--placeholder-color)', opacity: 0.5 }} />

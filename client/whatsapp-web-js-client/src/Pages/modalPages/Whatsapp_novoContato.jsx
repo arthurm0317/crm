@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Button } from 'react-bootstrap';
+import { Modal } from 'react-bootstrap';
 import InputMask from 'react-input-mask';
 import axios from 'axios';
 
@@ -101,127 +101,131 @@ function WhatsappNovoContatoModal({ theme, show, onHide, onSave }) {
   };
 
   return (
-    <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-      <div className="modal-dialog modal-lg modal-dialog-centered">
-        <div className="modal-content" style={{ backgroundColor: `var(--bg-color-${theme})` }}>
-          <div className="modal-header gap-3">
-            <i className={`bi bi-whatsapp header-text-${theme}`}></i>
-            <h5 className={`modal-title header-text-${theme}`}>Novo Contato WhatsApp</h5>
-            <button type="button" className="btn-close" onClick={onHide}></button>
+    <Modal
+      show={show}
+      onHide={onHide}
+      size="lg"
+      centered
+      backdrop="static"
+      style={{ zIndex: 1060 }}
+    >
+      <Modal.Header closeButton style={{ backgroundColor: `var(--bg-color-${theme})` }}>
+        <div className="d-flex align-items-center gap-3">
+          <i className={`bi bi-whatsapp header-text-${theme}`}></i>
+          <h5 className={`modal-title header-text-${theme}`}>Novo Contato WhatsApp</h5>
+        </div>
+      </Modal.Header>
+      
+      <Modal.Body style={{ backgroundColor: `var(--bg-color-${theme})` }}>
+        <div className="d-flex flex-column gap-3">
+          {/* Botão Voltar */}
+          <div>
+            <button
+              type="button"
+              className={`btn btn-2-${theme}`}
+              onClick={onHide}
+            >
+              <i className="bi bi-arrow-left me-2"></i>
+              Voltar
+            </button>
           </div>
-          
-          <div className="modal-body">
-            <div className="d-flex flex-column gap-3">
-              {/* Botão Voltar */}
-              <div>
-                <button
-                  type="button"
-                  className={`btn btn-2-${theme}`}
-                  onClick={handleClose}
-                >
-                  <i className="bi bi-arrow-left me-2"></i>
-                  Voltar
-                </button>
-              </div>
 
-              {/* Nome do Contato */}
-              <div className="mb-3">
-                <label htmlFor="nomeContato" className={`form-label card-subtitle-${theme}`}>
-                  Nome do Contato
-                </label>
-                <input
-                  type="text"
-                  className={`form-control input-${theme}`}
-                  id="nomeContato"
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value)}
-                  placeholder="Digite um nome para identificar este contato"
-                />
-              </div>
+          {/* Nome do Contato */}
+          <div className="mb-3">
+            <label htmlFor="nomeContato" className={`form-label card-subtitle-${theme}`}>
+              Nome do Contato
+            </label>
+            <input
+              type="text"
+              className={`form-control input-${theme}`}
+              id="nomeContato"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              placeholder="Digite um nome para identificar este contato"
+            />
+          </div>
 
-              {/* Número do WhatsApp */}
-              <div className="mb-3">
-                <label htmlFor="numeroWhatsapp" className={`form-label card-subtitle-${theme}`}>
-                  Número do WhatsApp
-                </label>
-                <InputMask
-                  mask="+55 (99) 9999-9999"
-                  className={`form-control input-${theme}`}
-                  id="numeroWhatsapp"
-                  value={numero}
-                  onChange={(e) => setNumero(e.target.value)}
-                  placeholder="+55 (__) ____-____"
-                />
-              </div>
+          {/* Número do WhatsApp */}
+          <div className="mb-3">
+            <label htmlFor="numeroWhatsapp" className={`form-label card-subtitle-${theme}`}>
+              Número do WhatsApp
+            </label>
+            <InputMask
+              mask="+55 (99) 9999-9999"
+              className={`form-control input-${theme}`}
+              id="numeroWhatsapp"
+              value={numero}
+              onChange={(e) => setNumero(e.target.value)}
+              placeholder="+55 (__) ____-____"
+            />
+          </div>
 
-              {/* QR Code */}
-              <div className="mb-3">
-                <label className={`form-label card-subtitle-${theme}`}>
-                  QR Code
-                </label>
-                <div className={`p-4 border rounded input-${theme} text-center`} style={{ minHeight: '200px' }}>
-                  {status === 'aguardando' && (
-                    <div className={`card-subtitle-${theme}`}>
-                      Clique em "Gerar QR Code" para iniciar a conexão
-                    </div>
-                  )}
-                  {status === 'conectando' && !qrCode && (
-                    <div className="d-flex flex-column align-items-center gap-2">
-                      <div className="spinner-border text-primary" role="status">
-                        <span className="visually-hidden">Carregando...</span>
-                      </div>
-                      <div className={`card-subtitle-${theme}`}>
-                        Gerando QR Code...
-                      </div>
-                    </div>
-                  )}
-                  {qrCode && (
-                    <img
-                      src={qrCode}
-                      alt="QR Code"
-                      style={{ maxWidth: '200px', maxHeight: '200px', filter: 'grayscale(1) contrast(2)' }}
-                    />
-                  )}
-                  {status === 'erro' && (
-                    <div className="text-danger">
-                      <i className="bi bi-x-circle-fill fs-1"></i>
-                      <div className={`card-subtitle-${theme}`}>
-                        Erro ao gerar QR Code. Tente novamente.
-                      </div>
-                    </div>
-                  )}
+          {/* QR Code */}
+          <div className="mb-3">
+            <label className={`form-label card-subtitle-${theme}`}>
+              QR Code
+            </label>
+            <div className={`p-4 border rounded input-${theme} text-center`} style={{ minHeight: '200px' }}>
+              {status === 'aguardando' && (
+                <div className={`card-subtitle-${theme}`}>
+                  Clique em "Gerar QR Code" para iniciar a conexão
                 </div>
-              </div>
+              )}
+              {status === 'conectando' && !qrCode && (
+                <div className="d-flex flex-column align-items-center gap-2">
+                  <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Carregando...</span>
+                  </div>
+                  <div className={`card-subtitle-${theme}`}>
+                    Gerando QR Code...
+                  </div>
+                </div>
+              )}
+              {qrCode && (
+                <img
+                  src={qrCode}
+                  alt="QR Code"
+                  style={{ maxWidth: '200px', maxHeight: '200px', filter: 'grayscale(1) contrast(2)' }}
+                />
+              )}
+              {status === 'erro' && (
+                <div className="text-danger">
+                  <i className="bi bi-x-circle-fill fs-1"></i>
+                  <div className={`card-subtitle-${theme}`}>
+                    Erro ao gerar QR Code. Tente novamente.
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-
-          <div className="modal-footer">
-            <button
-              type="button"
-              className={`btn btn-1-${theme}`}
-              onClick={handleGenerateQrCode}
-              disabled={
-                !nome ||
-                !numero ||
-                status === 'conectando' ||
-                status === 'conectado' ||
-                numero.replace(/\D/g, '').length !== 12
-              }
-            >
-              Gerar QR Code
-            </button>
-            <button
-              type="button"
-              className={`btn btn-1-${theme}`}
-              onClick={handleSave}
-              disabled={!nome || !numero || !qrCode || numero.replace(/\D/g, '').length !== 12}
-            >
-              Salvar
-            </button>
-          </div>
         </div>
-      </div>
-    </div>
+      </Modal.Body>
+
+      <Modal.Footer style={{ backgroundColor: `var(--bg-color-${theme})` }}>
+        <button
+          type="button"
+          className={`btn btn-1-${theme}`}
+          onClick={handleGenerateQrCode}
+          disabled={
+            !nome ||
+            !numero ||
+            status === 'conectando' ||
+            status === 'conectado' ||
+            numero.replace(/\D/g, '').length !== 12
+          }
+        >
+          Gerar QR Code
+        </button>
+        <button
+          type="button"
+          className={`btn btn-1-${theme}`}
+          onClick={handleSave}
+          disabled={!nome || !numero || !qrCode || numero.replace(/\D/g, '').length !== 12}
+        >
+          Salvar
+        </button>
+      </Modal.Footer>
+    </Modal>
   );
 }
 

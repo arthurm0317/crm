@@ -55,7 +55,14 @@ function WhatsappModal({ theme, show, onHide }) {
 
   return (
     <>
-      <Modal show={show} onHide={onHide} size="lg" centered>
+      <Modal 
+        show={show} 
+        onHide={onHide} 
+        size="lg" 
+        centered
+        backdrop="static"
+        style={{ zIndex: 1050 }}
+      >
         <Modal.Header closeButton style={{ backgroundColor: `var(--bg-color-${theme})` }}>
           <div className="d-flex align-items-center gap-3">
             <i className={`bi bi-whatsapp header-text-${theme}`}></i>
@@ -151,41 +158,47 @@ function WhatsappModal({ theme, show, onHide }) {
       </Modal>
 
       {showNovoContatoModal && (
-        <WhatsappNovoContatoModal 
-          theme={theme} 
-          show={showNovoContatoModal}
-          onHide={() => {
-            setShowNovoContatoModal(false);
-            setSelectedContato(null);
-          }}
-          onSave={handleNovoContato} 
-        />
+        <div style={{ zIndex: 1060 }}>
+          <WhatsappNovoContatoModal 
+            theme={theme} 
+            show={showNovoContatoModal}
+            onHide={() => {
+              setShowNovoContatoModal(false);
+              setSelectedContato(null);
+            }}
+            onSave={handleNovoContato} 
+          />
+        </div>
       )}
       
       {showDeleteModal && selectedContato && (
-        <WhatsappDeleteModal 
-          theme={theme} 
-          show={showDeleteModal}
-          onHide={() => {
-            setShowDeleteModal(false);
-            setSelectedContato(null);
-          }}
-          contato={selectedContato} 
-          onDelete={handleDelete} 
-        />
+        <div style={{ zIndex: 1060 }}>
+          <WhatsappDeleteModal 
+            theme={theme} 
+            show={showDeleteModal}
+            onHide={() => {
+              setShowDeleteModal(false);
+              setSelectedContato(null);
+            }}
+            contato={selectedContato} 
+            onDelete={handleDelete} 
+          />
+        </div>
       )}
       
       {showUsuariosModal && selectedContato && (
-        <WhatsappFilasModal 
-          theme={theme} 
-          show={showUsuariosModal}
-          onHide={() => {
-            setShowUsuariosModal(false);
-            setSelectedContato(null);
-          }}
-          contato={selectedContato} 
-          filas={filas} 
-        />
+        <div style={{ zIndex: 1060 }}>
+          <WhatsappFilasModal 
+            theme={theme} 
+            show={showUsuariosModal}
+            onHide={() => {
+              setShowUsuariosModal(false);
+              setSelectedContato(null);
+            }}
+            contato={selectedContato} 
+            filas={filas} 
+          />
+        </div>
       )}
     </>
   );

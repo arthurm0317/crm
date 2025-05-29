@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import InputMask from 'react-input-mask';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { Modal, Button } from 'react-bootstrap';
 
-function NewContactModal({ theme }) {
+function NewContactModal({ theme, show, onHide }) {
   const [contactName, setContactName] = useState('');
   const [contactNumber, setContactNumber] = useState('');
   const [attendant, setAttendant] = useState('');
@@ -11,8 +12,14 @@ function NewContactModal({ theme }) {
   const userData = JSON.parse(localStorage.getItem('user'));
   const navigate = useNavigate();
   const url = 'https://landing-page-teste.8rxpnw.easypanel.host'
-  useEffect(() => {
+  const [formData, setFormData] = useState({
+    name: '',
+    number: '',
+    email: '',
+    queue_id: ''
+  });
 
+  useEffect(() => {
     const fetchConnections = async () => {
       console.log(userData.id)
       try {
@@ -60,98 +67,106 @@ if (!userData || !userData.id) {
   };
 
   return (
-    <div className="modal fade" id="NewContactModal" tabIndex="-1" aria-labelledby="NewContactModalLabel" aria-hidden="true">
-      <div className="modal-dialog modal-sm">
-        <div className="modal-content" style={{ backgroundColor: `var(--bg-color-${theme})` }}>
-          <div className="modal-header gap-3">
-            <i className={`bi bi-whatsapp header-text-${theme}`}></i>
-            <h5 className={`modal-title header-text-${theme}`} id="NewContactModalLabel">
-              Novo Contato
-            </h5>
-            <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div className="modal-body">
-            {/* Nome do Contato */}
-            <div className="mb-3">
-              <label
-                htmlFor="contactName"
-                className={`form-label card-subtitle-${theme}`}
-              >
-                Nome do Contato
-              </label>
-              <input
-                type="text"
-                className={`form-control input-${theme}`}
-                id="contactName"
-                value={contactName}
-                onChange={(e) => setContactName(e.target.value)}
-                placeholder="Digite o nome do contato"
-              />
-            </div>
+    <Modal
+      show={show}
+      onHide={onHide}
+      centered
+      className={`modal-${theme}`}
+    >
+      <Modal.Header 
+        closeButton 
+        className={`modal-header-${theme}`}
+        style={{ borderBottom: `1px solid var(--border-color-${theme})` }}
+      >
+        <Modal.Title className={`text-${theme === 'dark' ? 'light' : 'dark'}`}>
+          Novo Contato
+        </Modal.Title>
+      </Modal.Header>
 
-            {/* Número do Contato */}
-            <div className="mb-3">
-              <label
-                htmlFor="contactNumber"
-                className={`form-label card-subtitle-${theme}`}
-              >
-                Contato
-              </label>
-              <InputMask
-                mask="+55 (99) 99999-9999"
-                className={`form-control input-${theme}`}
-                id="contactNumber"
-                value={contactNumber}
-                onChange={(e) => setContactNumber(e.target.value)}
-                placeholder="+55 (__) _____-____"
-              />
-            </div>
-
-            {/* Conexão */}
-            <div className="mb-3">
-              <label
-                htmlFor="attendant"
-                className={`form-label card-subtitle-${theme}`}
-              >
-                Conexão
-              </label>
-              <select
-                className={`form-select input-${theme}`}
-                id="attendant"
-                value={attendant}
-                onChange={(e) => setAttendant(e.target.value)}
-              >
-                <option value="" disabled>
-                  Selecione uma conexão
-                </option>
-                {connections.map((connection) => (
-                  <option key={connection.id} value={connection.name}>
-                    {connection.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="modal-footer">
-            <button
-              type="button"
-              className={`btn btn-2-${theme}`}
-              data-bs-dismiss="modal"
-            >
-              Cancelar
-            </button>
-
-            <button
-              type="button"
-              className={`btn btn-1-${theme}`}
-              onClick={handleSave}
-            >
-              Entrar em Contato
-            </button>
-          </div>
+      <Modal.Body className={`modal-body-${theme}`}>
+        {/* Nome do Contato */}
+        <div className="mb-3">
+          <label
+            htmlFor="contactName"
+            className={`form-label card-subtitle-${theme}`}
+          >
+            Nome do Contato
+          </label>
+          <input
+            type="text"
+            className={`form-control input-${theme}`}
+            id="contactName"
+            value={contactName}
+            onChange={(e) => setContactName(e.target.value)}
+            placeholder="Digite o nome do contato"
+          />
         </div>
-      </div>
-    </div>
+
+        {/* Número do Contato */}
+        <div className="mb-3">
+          <label
+            htmlFor="contactNumber"
+            className={`form-label card-subtitle-${theme}`}
+          >
+            Contato
+          </label>
+          <InputMask
+            mask="+55 (99) 99999-9999"
+            className={`form-control input-${theme}`}
+            id="contactNumber"
+            value={contactNumber}
+            onChange={(e) => setContactNumber(e.target.value)}
+            placeholder="+55 (__) _____-____"
+          />
+        </div>
+
+        {/* Conexão */}
+        <div className="mb-3">
+          <label
+            htmlFor="attendant"
+            className={`form-label card-subtitle-${theme}`}
+          >
+            Conexão
+          </label>
+          <select
+            className={`form-select input-${theme}`}
+            id="attendant"
+            value={attendant}
+            onChange={(e) => setAttendant(e.target.value)}
+          >
+            <option value="" disabled>
+              Selecione uma conexão
+            </option>
+            {connections.map((connection) => (
+              <option key={connection.id} value={connection.name}>
+                {connection.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </Modal.Body>
+
+      <Modal.Footer 
+        className={`modal-footer-${theme}`}
+        style={{ borderTop: `1px solid var(--border-color-${theme})` }}
+      >
+        <Button 
+          variant="secondary" 
+          onClick={onHide}
+          className={`btn-2-${theme}`}
+        >
+          Cancelar
+        </Button>
+        <Button 
+          variant="primary" 
+          onClick={handleSave}
+          className={`btn-1-${theme}`}
+          disabled={!contactName || !contactNumber || !attendant}
+        >
+          Entrar em Contato
+        </Button>
+      </Modal.Footer>
+    </Modal>
   );
 }
 

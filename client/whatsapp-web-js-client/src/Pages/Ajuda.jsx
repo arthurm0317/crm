@@ -194,7 +194,6 @@ function AjudaPage({ theme }) {
           <ul className={`header-text-${theme}`}>
             <li>Conectar dispositivos</li>
             <li>Gerenciar números de telefone</li>
-            <li>Configurar respostas automáticas</li>
             <li>Definir horários de atendimento</li>
             <li>Monitorar status da conexão</li>
           </ul>
@@ -202,7 +201,6 @@ function AjudaPage({ theme }) {
             <h6 className={`header-text-${theme}`}>Como Usar:</h6>
             <ul className={`header-text-${theme}`}>
               <li><strong>Conectar Dispositivo:</strong> Abra o modal de WhatsApp e escaneie o QR Code</li>
-              <li><strong>Configurar Respostas:</strong> Use o modal de configurações para definir mensagens automáticas</li>
               <li><strong>Verificar Status:</strong> O indicador no topo mostra o estado da conexão</li>
               <li><strong>Gerenciar Números:</strong> No modal de configurações, adicione ou remova números</li>
               <li><strong>Definir Horário:</strong> Configure os horários de atendimento no modal de configurações</li>
