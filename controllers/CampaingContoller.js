@@ -1,5 +1,5 @@
 const { scheduleCampaingBlast, getCampaings, getCampaingById, createCampaing } = require("../services/CampaingService");
-const { createMessageForBlast } = require("../services/MessageBlast");
+const { createMessageForBlast, getAllBlastMessages } = require("../services/MessageBlast");
 
 const startCampaingController = async (req, res) => {
   const { campaing_id, timer } = req.body;
@@ -65,9 +65,25 @@ const createCampaingController = async (req, res) => {
   }
 };
 
+const getAllBlastMessagesController = async(req, res)=>{
+  try {
+    const {campaing_id, schema} = req.params
+    const result = await getAllBlastMessages(campaing_id, schema)
+    res.status(200).json({
+      result
+    })
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({
+      error: 'Erro ao trazer mensagens do disparo'
+    })
+  }
+}
+
 module.exports = {
   startCampaingController,
   getCampaingsController,
   getCampaingByIdController,
-  createCampaingController
+  createCampaingController,
+  getAllBlastMessagesController
 };
