@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import * as bootstrap from 'bootstrap';
+import anime from 'animejs';
 import LembreteNovoLembrete from './modalPages/Lembrete_novoLembrete';
 import LembreteDeletarLembrete from './modalPages/Lembrete_deletarLembrete';
 
@@ -7,9 +8,28 @@ const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julh
 
 // Mock de lembretes
 const mockLembretes = [
-  { id: 1, tipo: 'geral', titulo: 'Reunião Geral', mensagem: 'Reunião mensal da empresa', data: '2025-06-10T10:00', icone: 'bi-globe-americas' },
-  { id: 2, tipo: 'setorial', titulo: 'Meta do Setor', mensagem: 'Alinhar metas do mês', data: '2025-06-15T14:00', icone: 'bi-diagram-3', filas: ['1'] },
-  { id: 3, tipo: 'pessoal', titulo: 'Dentista', mensagem: 'Consulta marcada', data: '2025-06-20T09:00', icone: 'bi-alarm' }
+  { id: 1, tipo: 'geral', titulo: 'Reunião Geral', mensagem: 'Reunião mensal da empresa', data: '2025-06-10T10:00', icone: 'bi-globe-americas', filas: ['1', '2', '3', '4', '5'] },
+  { id: 2, tipo: 'setorial', titulo: 'Meta do Setor', mensagem: 'Alinhar metas do mês', data: '2025-06-10T14:00', icone: 'bi-diagram-3', filas: ['1', '2'] },
+  { id: 3, tipo: 'pessoal', titulo: 'Dentista', mensagem: 'Consulta marcada', data: '2025-06-10T15:30', icone: 'bi-alarm', filas: [] },
+  { id: 4, tipo: 'geral', titulo: 'Treinamento de Equipe', mensagem: 'Treinamento sobre novas funcionalidades', data: '2025-06-05T09:00', icone: 'bi-people', filas: ['1', '2', '3', '4', '5'] },
+  { id: 5, tipo: 'setorial', titulo: 'Reunião de Vendas', mensagem: 'Análise de resultados do mês', data: '2025-06-05T11:00', icone: 'bi-graph-up', filas: ['2'] },
+  { id: 6, tipo: 'pessoal', titulo: 'Entrega de Relatório', mensagem: 'Finalizar relatório mensal', data: '2025-06-18T16:00', icone: 'bi-file-earmark-text', filas: [] },
+  { id: 7, tipo: 'geral', titulo: 'Atualização do Sistema', mensagem: 'Manutenção programada', data: '2025-06-18T22:00', icone: 'bi-gear', filas: ['1', '2', '3', '4', '5'] },
+  { id: 8, tipo: 'setorial', titulo: 'Capacitação', mensagem: 'Workshop de atendimento', data: '2025-06-08T13:00', icone: 'bi-book', filas: ['1', '2'] },
+  { id: 9, tipo: 'pessoal', titulo: 'Aniversário Cliente', mensagem: 'Enviar parabéns para João Silva', data: '2025-06-14T10:00', icone: 'bi-gift', filas: [] },
+  { id: 10, tipo: 'geral', titulo: 'Feriado', mensagem: 'Dia de Corpus Christi', data: '2025-06-19T00:00', icone: 'bi-calendar-event', filas: ['1', '2', '3', '4', '5'] },
+  { id: 11, tipo: 'setorial', titulo: 'Reunião de Suporte', mensagem: 'Alinhamento da equipe de suporte', data: '2025-06-19T11:00', icone: 'bi-headset', filas: ['1'] },
+  { id: 12, tipo: 'pessoal', titulo: 'Follow-up Cliente', mensagem: 'Ligar para Maria Souza', data: '2025-06-19T14:30', icone: 'bi-telephone', filas: [] },
+  { id: 13, tipo: 'geral', titulo: 'Encerramento do Mês', mensagem: 'Fechamento das atividades de junho', data: '2025-06-30T17:00', icone: 'bi-calendar-check', filas: ['1', '2', '3', '4', '5'] },
+  { id: 14, tipo: 'setorial', titulo: 'Análise de Métricas', mensagem: 'Revisão dos indicadores de performance', data: '2025-06-30T10:00', icone: 'bi-bar-chart', filas: ['1', '2', '3'] },
+  { id: 15, tipo: 'pessoal', titulo: 'Backup Mensal', mensagem: 'Realizar backup dos dados', data: '2025-06-30T23:00', icone: 'bi-cloud-upload', filas: [] },
+  { id: 16, tipo: 'geral', titulo: 'Coffee Break', mensagem: 'Pausa para café com a equipe', data: '2025-06-10T16:00', icone: 'bi-cup-hot', filas: ['1', '2', '3', '4', '5'] },
+  { id: 17, tipo: 'setorial', titulo: 'Feedback Individual', mensagem: 'Reuniões individuais de feedback', data: '2025-06-05T14:00', icone: 'bi-person-lines-fill', filas: ['1'] },
+  { id: 18, tipo: 'pessoal', titulo: 'Almoço com Cliente', mensagem: 'Almoço com Tech Solutions', data: '2025-06-18T12:00', icone: 'bi-basket', filas: [] },
+  { id: 19, tipo: 'geral', titulo: 'Apresentação de Projeto', mensagem: 'Apresentar novo projeto ao cliente', data: '2025-06-19T15:00', icone: 'bi-presentation', filas: ['1', '2', '3', '4', '5'] },
+  { id: 20, tipo: 'setorial', titulo: 'Treinamento de Vendas', mensagem: 'Workshop de técnicas de vendas', data: '2025-06-30T09:00', icone: 'bi-graph-up-arrow', filas: ['2'] },
+  { id: 21, tipo: 'pessoal', titulo: 'Reunião de Equipe', mensagem: 'Alinhamento diário da equipe', data: '2025-06-10T09:00', icone: 'bi-people-fill', filas: [] },
+  { id: 22, tipo: 'geral', titulo: 'Integração de Sistemas', mensagem: 'Teste de integração com novo sistema', data: '2025-06-05T16:00', icone: 'bi-hdd-network', filas: ['1', '2', '3', '4', '5'] }
 ];
 
 function getDaysInMonth(year, month) {
@@ -30,6 +50,7 @@ function LembretesPage({ theme }) {
   const [lembreteEditando, setLembreteEditando] = useState(null);
   const [lembreteDeletando, setLembreteDeletando] = useState(null);
   const [shownToasts, setShownToasts] = useState([]);
+  const buttonRefs = useRef({});
 
   // Navegação do calendário
   const handlePrevMonth = () => {
@@ -80,15 +101,18 @@ function LembretesPage({ theme }) {
   // Ordenar lembretes do mais antigo para o mais recente
   const lembretesOrdenados = [...lembretes].sort((a, b) => new Date(a.data) - new Date(b.data));
 
-  // Fecha popover ao clicar fora
+  // Adicione este useEffect no início do componente, logo após as declarações de estado
   React.useEffect(() => {
-    function handleClick(e) {
-      if (popoverDia && iconRefs.current[popoverDia.dia] && !iconRefs.current[popoverDia.dia].contains(e.target)) {
+    function handleClickOutside(event) {
+      if (popoverDia && !event.target.closest('.expand-container') && !event.target.closest('[data-bs-toggle="popover"]')) {
         setPopoverDia(null);
       }
     }
-    if (popoverDia) document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [popoverDia]);
 
   React.useEffect(() => {
@@ -162,53 +186,84 @@ function LembretesPage({ theme }) {
     return () => clearInterval(interval);
   }, [lembretes, shownToasts]);
 
+  // Função para animar o botão
+  const animateButton = (button, isExpanding, lembretesDia) => {
+    const targetWidth = isExpanding ? Math.max(80, lembretesDia.length * 24) : 80;
+    
+    anime({
+      targets: button,
+      width: targetWidth,
+      duration: 200,
+      easing: 'easeOutQuad',
+      begin: () => {
+        if (isExpanding) {
+          button.style.overflow = 'visible';
+          button.style.borderColor = `var(--primary-color)`;
+          button.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+          button.style.zIndex = '2';
+        }
+      },
+      complete: () => {
+        if (!isExpanding) {
+          button.style.overflow = 'hidden';
+          button.style.borderColor = `var(--border-color-${theme})`;
+          button.style.boxShadow = 'none';
+          button.style.zIndex = '1';
+        }
+      }
+    });
+  };
+
   return (
-    <div className="h-100 w-100 mx-2">
+    <div className="h-100 w-100  pt-3">
       {/* Add toast container */}
-      <div id="toast-container" className="toast-container position-fixed bottom-0 end-0 p-3"></div>
+      <div id="toast-container" className="toast-container position-fixed bottom-0 end-0 p-3" style={{ zIndex: 1060 }}></div>
       
       <div className="d-flex flex-row gap-3 h-100" style={{ minHeight: 400 }}>
         {/* Lista de lembretes à esquerda */}
-        <div style={{ width: '30%', minWidth: 220, maxWidth: 400, overflowY: 'auto', borderRight: `1px solid var(--border-color-${theme})` }} className="px-3">
+        <div style={{ width: '30%', minWidth: 220, maxWidth: 400, display: 'flex', flexDirection: 'column', borderRight: `1px solid var(--border-color-${theme})` }} className="px-3">
           <div className="d-flex flex-row align-items-center justify-content-between mb-3">
-            <h4 className={`fw-bold title-${theme} m-0`}>Lista</h4>
+            <h3 className={`ps-3 title-${theme} m-0`} style={{ fontWeight: 400 }}>Lista</h3>
             <button className={`btn btn-1-${theme} d-flex gap-2 align-items-center`} onClick={() => { setLembreteEditando(null); setShowNovoLembrete(true); }}>
               <i className="bi bi-plus-lg"></i> Novo Lembrete
             </button>
           </div>
-          {lembretesOrdenados.length === 0 && (
-            <div className="text-muted">Nenhum lembrete cadastrado.</div>
-          )}
-          {lembretesOrdenados.map(l => (
-            <div key={l.id} className={`d-flex align-items-center gap-2 mb-2 rounded px-3`} style={{ background: 'var(--input-bg-color-' + theme + ')', border: '1px solid var(--border-color-' + theme + ')', minHeight: 44, paddingTop: 8, paddingBottom: 8 }}>
-              <i className={`bi ${l.tipo === 'geral' ? 'bi-globe-americas' : l.tipo === 'setorial' ? 'bi-diagram-3' : l.icone} fs-5 header-text-${theme}`}></i>
-              <div className={`flex-grow-1 header-text-${theme}`}>
-                <div className="fw-semibold">{l.titulo}</div>
-                <div className="small">{new Date(l.data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })} • {l.tipo.charAt(0).toUpperCase() + l.tipo.slice(1)}</div>
+          <div style={{ overflowY: 'auto', flex: 1 }}>
+            {lembretesOrdenados.length === 0 && (
+              <div className="text-muted">Nenhum lembrete cadastrado.</div>
+            )}
+            {lembretesOrdenados.map(l => (
+              <div key={l.id} className={`d-flex align-items-center gap-2 mb-2 rounded px-3`} style={{ background: 'var(--input-bg-color-' + theme + ')', border: '1px solid var(--border-color-' + theme + ')', minHeight: 44, paddingTop: 8, paddingBottom: 8 }}>
+                <i className={`bi ${l.tipo === 'geral' ? 'bi-globe-americas' : l.tipo === 'setorial' ? 'bi-diagram-3' : l.icone} fs-5 header-text-${theme}`}></i>
+                <div className={`flex-grow-1 header-text-${theme}`}>
+                  <div className="fw-semibold">{l.titulo}</div>
+                  <div className="small">{new Date(l.data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })} • {l.tipo.charAt(0).toUpperCase() + l.tipo.slice(1)}</div>
+                </div>
+                <button
+                  className={`btn btn-sm btn-2-${theme}`}
+                  style={{ maxWidth: '38px' }}
+                  title="Editar"
+                  onClick={() => { setLembreteEditando(l); setShowNovoLembrete(true); }}
+                >
+                  <i className="bi bi-pencil-fill"></i>
+                </button>
+                <button
+                  className={`btn btn-sm delete-btn`}
+                  style={{ maxWidth: '38px' }}
+                  title="Excluir"
+                  onClick={() => setLembreteDeletando(l)}
+                >
+                  <i className="bi bi-trash"></i>
+                </button>
               </div>
-              <button
-                className={`btn btn-sm btn-2-${theme}`}
-                style={{ maxWidth: '38px' }}
-                title="Editar"
-                onClick={() => { setLembreteEditando(l); setShowNovoLembrete(true); }}
-              >
-                <i className="bi bi-pencil-fill"></i>
-              </button>
-              <button
-                className={`btn btn-sm delete-btn`}
-                style={{ maxWidth: '38px' }}
-                title="Excluir"
-                onClick={() => setLembreteDeletando(l)}
-              >
-                <i className="bi bi-trash"></i>
-              </button>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
         {/* Calendário à direita */}
         <div style={{ width: '70%' }}>
           <div className="d-flex flex-row align-items-center justify-content-between mb-3">
-            <h4 className={`fw-bold title-${theme} m-0`}>Calendário</h4>
+            <h3 className={`ms-3 title-${theme} m-0`} style={{ fontWeight: 400 }}>Calendário</h3>
+
             <div className="d-flex flex-row gap-2 align-items-center">
               <button className="btn btn-2-light btn-sm" onClick={handleHoje}>Hoje</button>
               <button className="btn btn-2-light btn-sm" onClick={handlePrevMonth}><i className="bi bi-chevron-left"></i></button>
@@ -235,18 +290,123 @@ function LembretesPage({ theme }) {
                             <div className="w-100 d-flex justify-content-center">
                               {lembretesDia.length > 0 && (
                                 <div
-                                  ref={el => { if (dia) iconRefs.current[dia] = el; }}
-                                  className={`px-2 border-rounded`}
-                                  style={{ background: 'var(--input-bg-color-' + theme + ')', border: '1px solid var(--border-color-' + theme + ')', padding: '2px 4px', minWidth: 24, minHeight: 24, display: 'flex', alignItems: 'center', gap: 6, borderRadius: 6, justifyContent: 'center', cursor: 'pointer' }}
-                                  onClick={e => { e.stopPropagation(); setPopoverDia({ dia, anchor: iconRefs.current[dia] }); }}
+                                  ref={el => { if (dia) buttonRefs.current[dia] = el; }}
+                                  className={`px-2 border-rounded position-relative`}
+                                  style={{ 
+                                    background: 'var(--input-bg-color-' + theme + ')', 
+                                    border: '1px solid var(--border-color-' + theme + ')', 
+                                    padding: '2px 4px', 
+                                    minWidth: 24, 
+                                    minHeight: 24, 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: 6, 
+                                    borderRadius: 6, 
+                                    justifyContent: 'center', 
+                                    cursor: 'pointer',
+                                    position: 'relative',
+                                    transition: 'border-color 0.2s, box-shadow 0.2s'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    if (lembretesDia.length > 2) {
+                                      const button = e.currentTarget;
+                                      button.style.borderColor = `var(--primary-color)`;
+                                      button.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+                                      button.style.zIndex = '2';
+                                      
+                                      // Criar ou atualizar o container de expansão
+                                      let expandContainer = button.querySelector('.expand-container');
+                                      if (!expandContainer) {
+                                        expandContainer = document.createElement('div');
+                                        expandContainer.className = 'expand-container';
+                                        expandContainer.style.cssText = `
+                                          position: absolute;
+                                          left: 50%;
+                                          top: 50%;
+                                          transform: translate(-50%, -50%);
+                                          background: var(--input-bg-color-${theme});
+                                          border: 1px solid var(--primary-color);
+                                          border-radius: 6px;
+                                          display: flex;
+                                          align-items: center;
+                                          justify-content: center;
+                                          gap: 6px;
+                                          padding: 4px 6px;
+                                          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                                          z-index: 3;
+                                          min-height: 32px;
+                                          width: 0;
+                                          overflow: hidden;
+                                        `;
+                                        button.appendChild(expandContainer);
+                                      }
+
+                                      // Animar a largura do container de expansão
+                                      anime({
+                                        targets: expandContainer,
+                                        width: Math.max(90, lembretesDia.length * 24),
+                                        duration: 150,
+                                        easing: 'easeOutQuad'
+                                      });
+
+                                      // Adicionar os ícones ao container de expansão
+                                      expandContainer.innerHTML = lembretesDia.map(l => `
+                                        <i class="bi ${l.tipo === 'geral' ? 'bi-globe-americas' : l.tipo === 'setorial' ? 'bi-diagram-3' : l.icone}" 
+                                           style="font-size: 16px; flex-shrink: 0;"></i>
+                                      `).join('');
+                                    }
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    if (lembretesDia.length > 2) {
+                                      const button = e.currentTarget;
+                                      button.style.borderColor = `var(--border-color-${theme})`;
+                                      button.style.boxShadow = 'none';
+                                      button.style.zIndex = '1';
+
+                                      const expandContainer = button.querySelector('.expand-container');
+                                      if (expandContainer) {
+                                        anime({
+                                          targets: expandContainer,
+                                          width: 0,
+                                          duration: 150,
+                                          easing: 'easeOutQuad',
+                                          complete: () => {
+                                            expandContainer.remove();
+                                          }
+                                        });
+                                      }
+                                    }
+                                  }}
+                                  onClick={e => { 
+                                    e.stopPropagation(); 
+                                    setPopoverDia({ dia, anchor: buttonRefs.current[dia] }); 
+                                  }}
                                 >
-                                  {lembretesDia.map((l, idx) => (
+                                  {lembretesDia.slice(0, 2).map((l, idx) => (
                                     <i
                                       key={l.id}
                                       className={`bi ${l.tipo === 'geral' ? 'bi-globe-americas' : l.tipo === 'setorial' ? 'bi-diagram-3' : l.icone}`}
-                                      style={{ fontSize: 14 }}
+                                      style={{ 
+                                        fontSize: 14,
+                                        flexShrink: 0
+                                      }}
                                     ></i>
                                   ))}
+                                  {lembretesDia.length > 2 && (
+                                    <i
+                                      className={`bi ${lembretesDia[2].tipo === 'geral' ? 'bi-globe-americas' : lembretesDia[2].tipo === 'setorial' ? 'bi-diagram-3' : lembretesDia[2].icone}`}
+                                      style={{ 
+                                        fontSize: 14,
+                                        flexShrink: 0,
+                                        WebkitMaskImage: 'linear-gradient(to right, black 0%, transparent 100%)',
+                                        maskImage: 'linear-gradient(to right, black 0%, transparent 100%)',
+                                        WebkitMaskSize: '100% 100%',
+                                        maskSize: '100% 100%',
+                                        WebkitMaskRepeat: 'no-repeat',
+                                        maskRepeat: 'no-repeat'
+                                      }}
+                                    />
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -257,7 +417,18 @@ function LembretesPage({ theme }) {
                                 style={{
                                   zIndex: 10,
                                   top: popoverDia.anchor.getBoundingClientRect().bottom + 4,
-                                  left: popoverDia.anchor.getBoundingClientRect().left,
+                                  left: (() => {
+                                    const anchorRect = popoverDia.anchor.getBoundingClientRect();
+                                    const windowWidth = window.innerWidth;
+                                    const popoverWidth = 180; // minWidth do popover
+                                    const rightEdge = anchorRect.left + popoverWidth;
+                                    
+                                    // Se o popover ultrapassar a janela, ajusta para a esquerda
+                                    if (rightEdge > windowWidth) {
+                                      return Math.max(10, windowWidth - popoverWidth - 10);
+                                    }
+                                    return anchorRect.left;
+                                  })(),
                                   minWidth: 180,
                                   background: `var(--bg-color-${theme})`,
                                   color: `var(--text-color-${theme})`,
@@ -265,15 +436,20 @@ function LembretesPage({ theme }) {
                                   border: `1px solid var(--border-color-${theme}) !important`
                                 }}
                               >
-                                <div className={`d-flex mb-1 justify-content-center`} style={{ color: `var(--primary-color)` }}>Lembretes - dia {dia}</div>
-                                {lembretesDia.map(l => (
-                                  <div key={l.id} className="mb-2">
-                                    <div className={`d-flex align-items-center gap-2 header-text-${theme}`}> 
-                                      <i className={`bi ${l.tipo === 'geral' ? 'bi-globe-americas' : l.tipo === 'setorial' ? 'bi-diagram-3' : l.icone}`}></i>
-                                      <span className="fw-semibold">{l.titulo}</span>
+                                <div className={`d-flex mb-2 justify-content-center`} style={{ color: `var(--primary-color)` }}>Lembretes - dia {dia}</div>
+                                {lembretesDia.map((l, index) => (
+                                  <React.Fragment key={l.id}>
+                                    <div className="mb-2">
+                                      <div className={`d-flex align-items-center gap-2 header-text-${theme}`}> 
+                                        <i className={`bi ${l.tipo === 'geral' ? 'bi-globe-americas' : l.tipo === 'setorial' ? 'bi-diagram-3' : l.icone}`}></i>
+                                        <span className="fw-semibold">{l.titulo}</span>
+                                      </div>
+                                      <div style={{ fontSize: '0.95rem' }}>{l.mensagem}</div>
                                     </div>
-                                    <div style={{ fontSize: '0.95rem' }}>{l.mensagem}</div>
-                                  </div>
+                                    {index < lembretesDia.length - 1 && (
+                                      <hr style={{ margin: '0.5rem 0', borderColor: 'var(--placeholder-color)', opacity: 0.5 }} />
+                                    )}
+                                  </React.Fragment>
                                 ))}
                               </div>
                             )}

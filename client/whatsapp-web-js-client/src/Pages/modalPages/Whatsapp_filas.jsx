@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import Modal from 'react-bootstrap/Modal';
-import Button from 'react-bootstrap/Button';
+import { Modal, Button } from 'react-bootstrap';
 import { useEffect } from 'react';
 import axios from 'axios';
 
@@ -29,80 +28,87 @@ function WhatsappFilasModal({ theme, show, onHide, contato }) {
     handleQueues()
   }, [contato, schema])
   return (
-    <Modal 
-      show={show} 
-      onHide={onHide}
-      centered
-      backdrop="static"
-      keyboard={true}
-      contentClassName={`bg-form-${theme}`}
-      dialogClassName="custom-modal-width"
-      size="lg"
-    >
-      <Modal.Header closeButton>
-        <i className={`bi bi-diagram-3 header-text-${theme} me-2`}></i>
-        <Modal.Title className={`header-text-${theme}`}>
-          Filas Vinculadas ao WhatsApp
-        </Modal.Title>
-      </Modal.Header>
-      
-      <Modal.Body>
-        <div className="d-flex flex-column gap-3">
-          {/* Botão Voltar */}
-          <div>
-            <button
-              type="button"
-              className={`btn btn-2-${theme}`}
-              onClick={()=>{
-                setFilas([])
-                  onHide()
-              }}
-            >
-              <i className="bi bi-arrow-left me-2"></i>
-              Voltar
+    <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+      <div className="modal-dialog modal-lg modal-dialog-centered">
+        <div className="modal-content" style={{ backgroundColor: `var(--bg-color-${theme})` }}>
+          <div className="modal-header gap-3">
+            <i className={`bi bi-diagram-3 header-text-${theme}`}></i>
+            <h5 className={`modal-title header-text-${theme}`}>Filas do Contato</h5>
+            <button type="button" className="btn-close" onClick={onHide}></button>
+          </div>
+
+          <div className="modal-body">
+            <div className="d-flex flex-column gap-3">
+              <div>
+                <button
+                  type="button"
+                  className={`btn btn-2-${theme}`}
+                  onClick={onHide}
+                >
+                  <i className="bi bi-arrow-left me-2"></i>
+                  Voltar
+                </button>
+              </div>
+
+              <div className={`card-subtitle-${theme} mb-2`}>
+                Contato: <strong>{contato?.name}</strong>
+              </div>
+
+              <div className="table-responsive">
+                <table className={`custom-table-${theme} align-middle w-100`}>
+                  <thead>
+                    <tr>
+                      <th className={`text-start px-3 py-2 header-text-${theme}`}>Nome da Fila</th>
+                      <th className={`text-start px-3 py-2 header-text-${theme}`}>Setor</th>
+                      <th className={`text-start px-3 py-2 header-text-${theme}`}>Data de Vinculação</th>
+                      <th className={`text-start px-3 py-2 header-text-${theme}`}>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filas.length === 0 ? (
+                      <tr>
+                        <td colSpan="4" className="text-center px-3 py-2">
+                          <span className={`card-subtitle-${theme}`}>
+                            Nenhuma fila vinculada.
+                          </span>
+                        </td>
+                      </tr>
+                    ) : (
+                      filas.map((fila, index) => (
+                        <tr key={index}>
+                          <td className={`px-3 py-2 card-subtitle-${theme}`}>{fila.name}</td>
+                          <td className={`px-3 py-2 card-subtitle-${theme}`}>{fila.setor}</td>
+                          <td className={`px-3 py-2 card-subtitle-${theme}`}>
+                            {new Date(fila.dataVinculacao).toLocaleString()}
+                          </td>
+                          <td className="px-3 py-2">
+                            <button
+                              type="button"
+                              className="btn btn-sm delete-btn"
+                              data-bs-toggle="tooltip"
+                              data-bs-placement="top"
+                              title="Remover da Fila"
+                            >
+                              <i className="bi bi-trash-fill"></i>
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div className="modal-footer">
+            <button type="button" className={`btn btn-2-${theme}`} onClick={onHide}>
+              Fechar
             </button>
           </div>
-
-          {/* Informações do Contato */}
-          <div className="mb-3">
-            <h6 className={`card-subtitle-${theme}`}>
-              Contato: <strong>{contato?.name}</strong>
-            </h6>
-            <p className={`card-subtitle-${theme}`}>
-              Número: {contato?.number}
-            </p>
-          </div>
-
-          {/* Lista de Filas */}
-          <div className="table-responsive" style={tableContainerStyle}>
-            <table className={`custom-table-${theme} align-middle w-100`}>
-              <thead>
-                <tr>
-                  <th className="text-start px-3 py-2">Nome da Fila</th>
-                  {/* <th className="text-start px-3 py-2">Distribuição</th> */}
-                </tr>
-              </thead>
-              <tbody>
-                {filas.length === 0 ? (
-                  <tr>
-                    <td colSpan="3" className="text-center px-3 py-2">
-                      <span className={`card-subtitle-${theme}`}>Nenhuma fila vinculada a este contato.</span>
-                    </td>
-                  </tr>
-                ) : (
-                  filas.map((fila) => (
-                    <tr key={fila.id}>
-                      <td className="px-3 py-2">{fila.name}</td>
-                      {/* <td className="px-3 py-2">{fila.distribution}</td> */}
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
         </div>
-      </Modal.Body>
-    </Modal>
+      </div>
+    </div>
   );
 }
 

@@ -32,7 +32,10 @@ function Dashboard({ theme }) {
   }, []);
 
   return (
-    <div className="container-fluid h-100">
+    <div className="container-fluid h-100 pt-3">
+
+      <h2 className={`mb-3 ms-3 header-text-${theme}`} style={{ fontWeight: 400 }}>Dashboard</h2>
+
       <div className="row h-100">
         {/* Coluna 1 */}
         <div className="col-4 d-flex flex-column gap-3">
