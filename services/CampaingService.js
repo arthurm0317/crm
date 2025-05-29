@@ -24,29 +24,47 @@ new Worker("Campanha", async (job) => {
   }
 }, { connection: bullConn });
 
-const createCampaing = async (campName, sector, kanbanStage, connectionId, startDate, schema) => {
+const createCampaing = async (campaing_id, campName, sector, kanbanStage, connectionId, startDate, schema) => {
   try {
     const unixStartDate = new Date(startDate).getTime();
-    const kanban_id = await pool.query(
-      `SELECT * FROM ${schema}.kanban_${sector} WHERE id=$1`, [kanbanStage]
-    );
-    const result = await pool.query(
-      `INSERT INTO ${schema}.campaing (id, campaing_name, sector, kanban_stage, connection_id, start_date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [uuidv4(), campName, sector, kanban_id.rows[0].id, connectionId, unixStartDate]
-    );
-    const campaing = result.rows[0];
+
+    let result;
+    let campaing;
+
+    if (campaing_id) {
+      result = await pool.query(
+        `UPDATE ${schema}.campaing 
+         SET campaing_name=$1, sector=$2, kanban_stage=$3, connection_id=$4, start_date=$5
+         WHERE id=$6 RETURNING *`,
+        [campName, sector, kanbanStage, connectionId, unixStartDate, campaing_id]
+      );
+      campaing = result.rows[0];
+    } else {
+      result = await pool.query(
+        `INSERT INTO ${schema}.campaing (id, campaing_name, sector, kanban_stage, connection_id, start_date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+        [uuidv4(), campName, sector, kanban_id.rows[0].id, connectionId, unixStartDate]
+      );
+      campaing = result.rows[0];
+    }
 
     await scheduleCampaingBlast(campaing, schema);
 
     return campaing;
   } catch (error) {
-    console.error('Erro ao criar campanha:', error.message);
+    console.error('Erro ao criar/atualizar campanha:', error.message);
     throw error;
   }
 };
 
 const scheduleCampaingBlast = async (campaing, schema) => {
   try {
+    const startDate = Number(campaing.start_date);
+    const now = Date.now();
+
+    if (startDate < now) {
+      return;
+    }
+
     const kanban = await pool.query(
       `SELECT * FROM ${schema}.kanban_vendas WHERE id=$1`, [campaing.kanban_stage]
     );
@@ -62,10 +80,7 @@ const scheduleCampaingBlast = async (campaing, schema) => {
     const messageList = messages.rows;
     let messageIndex = 0;
 
-    const startDate = Number(campaing.start_date);
-    const now = Date.now();
     const baseDelay = Math.max(0, startDate - now);
-
     const timer = 30; 
 
     for (let i = 0; i < chatIds.length; i++) {
@@ -81,13 +96,11 @@ const scheduleCampaingBlast = async (campaing, schema) => {
       const messageDelay = baseDelay + (i * (timer * 1000));
 
       await blastQueue.add('sendMessage', {
-      instance: instance.rows[0].name,
-      number: instanceId.rows[0].contact_phone,
-      message: message.value,
-      schema: schema
-    }, { delay: messageDelay });
-
-
+        instance: instance.rows[0].name,
+        number: instanceId.rows[0].contact_phone,
+        message: message.value,
+        schema: schema
+      }, { delay: messageDelay });
     }
   } catch (error) {
     console.error('Erro ao agendar disparo da campanha:', error);
@@ -100,9 +113,9 @@ const startCampaing = async (campaing_id, timer, schema) => {
       `SELECT * FROM ${schema}.campaing WHERE id=$1`, [campaing_id]
     );
     const kanban = await pool.query(
-      `SELECT * FROM ${schema}.kanban_vendas WHERE id=$1`, [campaing.rows[0].kanban_stage]
+      `SELECT * FROM ${schema}.kanban_${campaing.rows[0].sector} WHERE id=$1`, [campaing.rows[0].kanban_stage]
     );
-    const chatId = await getChatsInKanbanStage(kanban.rows[0].etapa, schema);
+    const chatId = await getChatsInKanbanStage(kanban.rows[0].etapa,campaing.rows[0].sector, schema);
     const messages = await pool.query(
       `SELECT * FROM ${schema}.message_blast WHERE campaing_id=$1`, [campaing_id]
     );
@@ -160,6 +173,11 @@ const getCampaingById = async (campaing_id, schema) => {
     throw error;
   }
 };
+
+const deleteCampaing = async(campaing_id, schema)=>{
+
+}
+
 
 module.exports = {
   createCampaing,

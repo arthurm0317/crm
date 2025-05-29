@@ -1,15 +1,7 @@
 import React, { useState } from 'react';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import Modal from 'react-bootstrap/Modal';
-import Button from 'react-bootstrap/Button';
+import { Modal } from 'react-bootstrap';
 import { useEffect } from 'react';
 import axios from 'axios';
-
-
-const tableContainerStyle = {
-  maxHeight: '400px',
-  overflowY: 'auto'
-};
 
 function WhatsappFilasModal({ theme, show, onHide, contato }) {
   const [filas, setFilas] = useState([])
@@ -28,72 +20,78 @@ function WhatsappFilasModal({ theme, show, onHide, contato }) {
     }
     handleQueues()
   }, [contato, schema])
+
   return (
-    <Modal 
-      show={show} 
+    <Modal
+      show={show}
       onHide={onHide}
+      size="lg"
       centered
       backdrop="static"
-      keyboard={true}
-      contentClassName={`bg-form-${theme}`}
-      dialogClassName="custom-modal-width"
-      size="lg"
+      style={{ zIndex: 1060 }}
     >
-      <Modal.Header closeButton>
-        <i className={`bi bi-diagram-3 header-text-${theme} me-2`}></i>
-        <Modal.Title className={`header-text-${theme}`}>
-          Filas Vinculadas ao WhatsApp
-        </Modal.Title>
+      <Modal.Header closeButton style={{ backgroundColor: `var(--bg-color-${theme})` }}>
+        <div className="d-flex align-items-center gap-3">
+          <i className={`bi bi-diagram-3 header-text-${theme}`}></i>
+          <h5 className={`modal-title header-text-${theme}`}>Filas do Contato</h5>
+        </div>
       </Modal.Header>
-      
-      <Modal.Body>
+
+      <Modal.Body style={{ backgroundColor: `var(--bg-color-${theme})` }}>
         <div className="d-flex flex-column gap-3">
-          {/* Botão Voltar */}
           <div>
             <button
               type="button"
               className={`btn btn-2-${theme}`}
-              onClick={()=>{
-                setFilas([])
-                  onHide()
-              }}
+              onClick={onHide}
             >
               <i className="bi bi-arrow-left me-2"></i>
               Voltar
             </button>
           </div>
 
-          {/* Informações do Contato */}
-          <div className="mb-3">
-            <h6 className={`card-subtitle-${theme}`}>
-              Contato: <strong>{contato?.name}</strong>
-            </h6>
-            <p className={`card-subtitle-${theme}`}>
-              Número: {contato?.number}
-            </p>
+          <div className={`card-subtitle-${theme} mb-2`}>
+            Contato: <strong>{contato?.name}</strong>
           </div>
 
-          {/* Lista de Filas */}
-          <div className="table-responsive" style={tableContainerStyle}>
+          <div className="table-responsive">
             <table className={`custom-table-${theme} align-middle w-100`}>
               <thead>
                 <tr>
-                  <th className="text-start px-3 py-2">Nome da Fila</th>
-                  {/* <th className="text-start px-3 py-2">Distribuição</th> */}
+                  <th className={`text-start px-3 py-2 header-text-${theme}`}>Nome da Fila</th>
+                  <th className={`text-start px-3 py-2 header-text-${theme}`}>Setor</th>
+                  <th className={`text-start px-3 py-2 header-text-${theme}`}>Data de Vinculação</th>
+                  <th className={`text-start px-3 py-2 header-text-${theme}`}>Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {filas.length === 0 ? (
                   <tr>
-                    <td colSpan="3" className="text-center px-3 py-2">
-                      <span className={`card-subtitle-${theme}`}>Nenhuma fila vinculada a este contato.</span>
+                    <td colSpan="4" className="text-center px-3 py-2">
+                      <span className={`card-subtitle-${theme}`}>
+                        Nenhuma fila vinculada.
+                      </span>
                     </td>
                   </tr>
                 ) : (
-                  filas.map((fila) => (
-                    <tr key={fila.id}>
-                      <td className="px-3 py-2">{fila.name}</td>
-                      {/* <td className="px-3 py-2">{fila.distribution}</td> */}
+                  filas.map((fila, index) => (
+                    <tr key={index}>
+                      <td className={`px-3 py-2 card-subtitle-${theme}`}>{fila.name}</td>
+                      <td className={`px-3 py-2 card-subtitle-${theme}`}>{fila.setor}</td>
+                      <td className={`px-3 py-2 card-subtitle-${theme}`}>
+                        {new Date(fila.dataVinculacao).toLocaleString()}
+                      </td>
+                      <td className="px-3 py-2">
+                        <button
+                          type="button"
+                          className="btn btn-sm delete-btn"
+                          data-bs-toggle="tooltip"
+                          data-bs-placement="top"
+                          title="Remover da Fila"
+                        >
+                          <i className="bi bi-trash-fill"></i>
+                        </button>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -102,6 +100,12 @@ function WhatsappFilasModal({ theme, show, onHide, contato }) {
           </div>
         </div>
       </Modal.Body>
+
+      <Modal.Footer style={{ backgroundColor: `var(--bg-color-${theme})` }}>
+        <button type="button" className={`btn btn-2-${theme}`} onClick={onHide}>
+          Fechar
+        </button>
+      </Modal.Footer>
     </Modal>
   );
 }

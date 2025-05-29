@@ -63,8 +63,18 @@ const sendBlastMessage = async (instanceId,messageValue, number, schema) => {
     throw error;
   }
 };
-
+const getAllBlastMessages = async(campaing_id, schema)=>{
+  try {
+    const result = await pool.query(
+      `SELECT * FROM ${schema}.message_blast where campaing_id=$1`, [campaing_id]
+    )
+    return result.rows
+  } catch (error) {
+    console.error(error)
+  }
+}
 module.exports = {
   createMessageForBlast,
   sendBlastMessage,
+  getAllBlastMessages
 };

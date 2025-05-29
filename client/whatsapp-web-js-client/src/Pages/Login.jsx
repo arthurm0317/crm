@@ -4,7 +4,7 @@ import './assets/style.css';
 import logo from './assets/effective-gain_logo.png';
 import { useTheme } from './assets/js/useTheme';
 import { useEffect } from 'react';
-import React, { use, useState } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 const url = process.env.REACT_APP_URL;

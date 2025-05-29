@@ -7,8 +7,6 @@ function DeleteUserModal({ theme, usuario }) {
   const userData = JSON.parse(localStorage.getItem('user')); 
   const url = process.env.REACT_APP_URL;
 
-  console.log(usuario)
-
   const handleDelete=async()=>{
     try{
       const deletion = await axios.delete(`${url}/api/delete-user`, {

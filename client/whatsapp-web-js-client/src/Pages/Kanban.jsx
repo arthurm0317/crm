@@ -48,8 +48,17 @@ const mockFunis = [
 
 const mockLeads = [
   { id: 1, nome: 'João Silva', funilId: 1, etapaId: 1, tags: ['VIP', 'Novo'], telefone: '+5511999999999' },
-  { id: 2, nome: 'Maria Souza', funilId: 1, etapaId: 2, tags: ['Retorno'], telefone: '+5511999999999' },
-  { id: 3, nome: 'Empresa X', funilId: 2, etapaId: 4, tags: ['Cobrança'], telefone: '+5511988888888' }
+  { id: 2, nome: 'Maria Souza', funilId: 1, etapaId: 2, tags: ['Retorno'], telefone: '+5511988888888' },
+  { id: 3, nome: 'Empresa X', funilId: 2, etapaId: 4, tags: ['Cobrança'], telefone: '+5511977777777' },
+  { id: 4, nome: 'Carlos Oliveira', funilId: 1, etapaId: 1, tags: ['Lead Quente'], telefone: '+5511966666666' },
+  { id: 5, nome: 'Ana Beatriz', funilId: 1, etapaId: 3, tags: ['Prospect'], telefone: '+5511955555555' },
+  { id: 6, nome: 'Tech Solutions Ltda', funilId: 1, etapaId: 2, tags: ['VIP', 'Lead Quente'], telefone: '+5511944444444' },
+  { id: 7, nome: 'Roberto Santos', funilId: 1, etapaId: 5, tags: ['Cliente Fechado'], telefone: '+5511933333333' },
+  { id: 8, nome: 'Inovação Digital', funilId: 1, etapaId: 4, tags: ['Lead Frio'], telefone: '+5511922222222' },
+  { id: 9, nome: 'Patrícia Lima', funilId: 1, etapaId: 6, tags: ['Pós-venda'], telefone: '+5511911111111' },
+  { id: 10, nome: 'Global Tech', funilId: 1, etapaId: 7, tags: ['Perdido'], telefone: '+5511900000000' },
+  { id: 11, nome: 'Lucas Mendes', funilId: 1, etapaId: 1, tags: ['Novo'], telefone: '+5511899999999' },
+  { id: 12, nome: 'Consultoria ABC', funilId: 1, etapaId: 2, tags: ['Lead Quente'], telefone: '+5511888888888' }
 ];
 
 // Lista fictícia de tags globais
@@ -66,70 +75,105 @@ function maskPhone(num) {
 
 // Componente Dropdown para Kanban
 function KanbanDropdown({ theme, funis, funilAtualId, onSelect }) {
-  // Dados fictícios para exemplo
+  const [show, setShow] = useState(false);
   const funisDisponiveis = funis.filter(f => f.id !== funilAtualId);
+  
   return (
-    <Dropdown drop="end">
-      <Dropdown.Toggle
-        variant={theme === 'light' ? 'light' : 'dark'}
-        id="kanban-dropdown"
-        className={`btn btn-2-${theme} btn-sm no-caret`}
+    <div className="dropdown">
+      <button
+        className={`btn btn-2-${theme} btn-sm no-caret dropdown-toggle`}
         style={{ padding: 6, minWidth: 35, minHeight: 35 }}
         title="Alterar funil"
+        onClick={() => setShow(!show)}
       >
         <i className="bi bi-funnel-fill"></i>
-      </Dropdown.Toggle>
-      <Dropdown.Menu variant={theme === 'light' ? 'light' : 'dark'} className={`input-${theme}`}> 
-        <Dropdown.Item disabled style={{ opacity: 1, color: 'var(--placeholder-color)' }}>
-          Mover para...
-        </Dropdown.Item>
-        {funisDisponiveis.length === 0 && (
-          <Dropdown.Item disabled>Nenhum outro funil</Dropdown.Item>
-        )}
-        {funisDisponiveis.map(f => (
-          <Dropdown.Item key={f.id} onClick={() => onSelect(f)}>
-            {f.nome}
-          </Dropdown.Item>
-        ))}
-      </Dropdown.Menu>
-    </Dropdown>
+      </button>
+      {show && (
+        <div 
+          className={`dropdown-menu input-${theme}`}
+          style={{ 
+            display: 'block',
+            position: 'absolute',
+            zIndex: 1000,
+            minWidth: '200px'
+          }}
+        >
+          <div className="dropdown-header" style={{ opacity: 1, color: 'var(--placeholder-color)' }}>
+            Mover para...
+          </div>
+          {funisDisponiveis.length === 0 && (
+            <div className="dropdown-item disabled">Nenhum outro funil</div>
+          )}
+          {funisDisponiveis.map(f => (
+            <button
+              key={f.id}
+              className="dropdown-item"
+              onClick={() => {
+                onSelect(f);
+                setShow(false);
+              }}
+            >
+              {f.nome}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
 // Dropdown de gerenciamento de tags
 function KanbanTagsDropdown({ theme, leadTags, onChange }) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [show, setShow] = useState(false);
+  
   return (
-    <Dropdown drop="end" show={isOpen} onToggle={setIsOpen}>
-      <Dropdown.Toggle
-        variant={theme === 'light' ? 'light' : 'dark'}
-        id="kanban-tags-dropdown"
-        className={`btn btn-2-${theme} btn-sm no-caret`}
+    <div className="dropdown">
+      <button
+        className={`btn btn-2-${theme} btn-sm no-caret dropdown-toggle`}
         style={{ padding: 6, minWidth: 35, minHeight: 35 }}
         title="Gerenciar tags"
-        onClick={e => setIsOpen(!isOpen)}
+        onClick={() => setShow(!show)}
       >
         <i className="bi bi-tags"></i>
-      </Dropdown.Toggle>
-      <Dropdown.Menu variant={theme === 'light' ? 'light' : 'dark'} className={`input-${theme}`}
-        style={{ minWidth: 180 }}>
-        {allTags.map(tag => (
-          <Dropdown.Item key={tag} as="div" className="d-flex align-items-center gap-2" onClick={e => e.stopPropagation()}>
-            <input
-              type="checkbox"
-              className="form-check-input"
-              id={`tag-${tag}`}
-              checked={leadTags.includes(tag)}
-              onChange={e => {
-                onChange(tag, e.target.checked);
-              }}
-              style={{ cursor: 'pointer' }}
-            />
-            <label htmlFor={`tag-${tag}`} className={`form-check-label card-subtitle-${theme} mb-0`} style={{ cursor: 'pointer' }}>{tag}</label>
-          </Dropdown.Item>
-        ))}
-      </Dropdown.Menu>
-    </Dropdown>
+      </button>
+      {show && (
+        <div 
+          className={`dropdown-menu input-${theme}`}
+          style={{ 
+            display: 'block',
+            position: 'absolute',
+            zIndex: 1000,
+            minWidth: '180px'
+          }}
+        >
+          {allTags.map(tag => (
+            <div 
+              key={tag} 
+              className="dropdown-item d-flex align-items-center gap-2"
+              onClick={e => e.stopPropagation()}
+            >
+              <input
+                type="checkbox"
+                className="form-check-input"
+                id={`tag-${tag}`}
+                checked={leadTags.includes(tag)}
+                onChange={e => {
+                  onChange(tag, e.target.checked);
+                }}
+                style={{ cursor: 'pointer' }}
+              />
+              <label 
+                htmlFor={`tag-${tag}`} 
+                className={`form-check-label card-subtitle-${theme} mb-0`} 
+                style={{ cursor: 'pointer' }}
+              >
+                {tag}
+              </label>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -259,11 +303,15 @@ function KanbanPage({ theme }) {
   };
 
   return (
-    <div className={`main-kanban bg-form-${theme} p-3 h-100 w-100`} style={{ minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'column', flex: 1 }}>
+    <div className={`main-kanban bg-form-${theme} px-1 pt-3 h-100 w-100`} style={{ minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'column', flex: 1 }}>
       {/* Seletor de Funil */}
-      <div className="d-flex align-items-center justify-content-between gap-3 mb-4">
-        <h2 className={`header-text-${theme} mb-0 ms-3`}>{funilAtual.nome}</h2>
+      <div className="d-flex align-items-center justify-content-between gap-3 mb-3">
 
+        <div className={`d-flex flex-row align-items-center mb-0 ms-3 header-text-${theme} gap-2`}>
+          <h2 style={{ color: 'var(--placeholder-color)', fontWeight: 400 }}>Kanban</h2>
+          <h2 style={{ fontWeight: 400 }}>{funilAtual.nome}</h2>
+        </div>
+        
         <div className="d-flex gap-2 align-items-center">
             <div className="input-group">
                 <span className={`input-group-text igt-${theme}`}>
@@ -408,7 +456,7 @@ function KanbanPage({ theme }) {
                           <i className="bi bi-pencil"></i>
                         </button>
                         <button
-                          className={`btn btn-sm btn-2-light delete-btn`}
+                          className={`btn btn-sm btn-2-${theme} delete-btn`}
                           title="Excluir etapa"
                           onClick={() => handleDeleteEtapa(etapa)}
                           disabled={etapaTemLeads}
@@ -418,53 +466,60 @@ function KanbanPage({ theme }) {
                       </div>
                     </div>
 
-                    {/* Renderizando os leads filtrados */}
-                    {(leads.filter(lead => lead.funilId === funilSelecionado && lead.etapaId === etapa.id) || []).map(lead => (
-                      <div key={lead.id} className={`kanban-card card-${theme} border border-${theme} mb-2 py-2 px-3`}
-                        draggable
-                        onDragStart={() => onDragStart(lead)}
-                      >
-                        <div className="d-flex justify-content-between align-items-center">
-                          <span className={`fw-bold header-text-${theme}`}>{lead.nome}</span>
-                          <div className="d-flex gap-1">
-                            {/* Dropdown de gerenciamento de tags */}
-                            <KanbanTagsDropdown
-                              theme={theme}
-                              leadTags={lead.tags || []}
-                              onChange={(tag, checked) => {
-                                setLeads(leads => leads.map(l =>
-                                  l.id === lead.id
-                                    ? { ...l, tags: checked
-                                      ? [...(l.tags || []), tag]
-                                      : (l.tags || []).filter(t => t !== tag)
-                                    }
-                                    : l
-                                ));
-                              }}
-                            />
-                            {/* Dropdown de alterar funil */}
-                            <span style={{ display: 'inline-block', verticalAlign: 'middle' }}>
-                              <KanbanDropdown
+                    {/* Container para os leads com scroll */}
+                    <div style={{ 
+                      maxHeight: '580px', // Altura máxima para ~5 cards
+                      overflowY: 'auto',
+                      paddingRight: '4px' // Espaço para a scrollbar
+                    }}>
+                      {/* Renderizando os leads filtrados */}
+                      {(leads.filter(lead => lead.funilId === funilSelecionado && lead.etapaId === etapa.id) || []).map(lead => (
+                        <div key={lead.id} className={`kanban-card card-${theme} border border-${theme} mb-2 py-2 px-3`}
+                          draggable
+                          onDragStart={() => onDragStart(lead)}
+                        >
+                          <div className="d-flex justify-content-between align-items-center mb-2">
+                            <span className={`fw-bold header-text-${theme}`}>{lead.nome}</span>
+                            <div className="d-flex gap-1">
+                              {/* Dropdown de gerenciamento de tags */}
+                              <KanbanTagsDropdown
                                 theme={theme}
-                                funis={funis}
-                                funilAtualId={funilSelecionado}
-                                onSelect={f => alert(`Mover lead para o funil: ${f.nome}`)}
+                                leadTags={lead.tags || []}
+                                onChange={(tag, checked) => {
+                                  setLeads(leads => leads.map(l =>
+                                    l.id === lead.id
+                                      ? { ...l, tags: checked
+                                        ? [...(l.tags || []), tag]
+                                        : (l.tags || []).filter(t => t !== tag)
+                                      }
+                                      : l
+                                  ));
+                                }}
                               />
-                            </span>
-                            <button className="btn btn-sm btn-2-light" title="Abrir chat" style={{ cursor: 'pointer', minWidth: 35, minHeight: 35 }}>
-                              <i className="bi bi-chat-dots"></i>
-                            </button>
+                              {/* Dropdown de alterar funil */}
+                              <span style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+                                <KanbanDropdown
+                                  theme={theme}
+                                  funis={funis}
+                                  funilAtualId={funilSelecionado}
+                                  onSelect={f => alert(`Mover lead para o funil: ${f.nome}`)}
+                                />
+                              </span>
+                              <button className="btn btn-sm btn-2-light" title="Abrir chat" style={{ cursor: 'pointer', minWidth: 35, minHeight: 35 }}>
+                                <i className="bi bi-chat-dots"></i>
+                              </button>
+                            </div>
                           </div>
+                          {/* Exibir tags do lead */}
+                          <div className="mt-1 mb-1 d-flex flex-wrap gap-1">
+                            {(lead.tags || []).map(tag => (
+                              <span key={tag} className="badge bg-secondary">{tag}</span>
+                            ))}
+                          </div>
+                          <div className={`small header-text-${theme}`}>{maskPhone(lead.telefone)}</div>
                         </div>
-                        {/* Exibir tags do lead */}
-                        <div className="mt-1 mb-1 d-flex flex-wrap gap-1">
-                          {(lead.tags || []).map(tag => (
-                            <span key={tag} className="badge bg-secondary">{tag}</span>
-                          ))}
-                        </div>
-                        <div className={`small header-text-${theme}`}>{maskPhone(lead.telefone)}</div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 </div>
               );

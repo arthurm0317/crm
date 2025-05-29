@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import Modal from 'react-bootstrap/Modal';
-import Button from 'react-bootstrap/Button';
+import { Modal } from 'react-bootstrap';
 import InputMask from 'react-input-mask';
 import axios from 'axios';
 
@@ -103,31 +101,29 @@ function WhatsappNovoContatoModal({ theme, show, onHide, onSave }) {
   };
 
   return (
-    <Modal 
-      show={show} 
+    <Modal
+      show={show}
       onHide={onHide}
+      size="lg"
       centered
       backdrop="static"
-      keyboard={false}
-      contentClassName={`bg-form-${theme}`}
-      dialogClassName="custom-modal-width"
-      size="lg"
+      style={{ zIndex: 1060 }}
     >
-      <Modal.Header closeButton>
-        <i className={`bi bi-whatsapp header-text-${theme} me-2`}></i>
-        <Modal.Title className={`header-text-${theme}`}>
-          Novo Contato WhatsApp
-        </Modal.Title>
+      <Modal.Header closeButton style={{ backgroundColor: `var(--bg-color-${theme})` }}>
+        <div className="d-flex align-items-center gap-3">
+          <i className={`bi bi-whatsapp header-text-${theme}`}></i>
+          <h5 className={`modal-title header-text-${theme}`}>Novo Contato WhatsApp</h5>
+        </div>
       </Modal.Header>
       
-      <Modal.Body>
+      <Modal.Body style={{ backgroundColor: `var(--bg-color-${theme})` }}>
         <div className="d-flex flex-column gap-3">
           {/* Botão Voltar */}
           <div>
             <button
               type="button"
               className={`btn btn-2-${theme}`}
-              onClick={handleClose}
+              onClick={onHide}
             >
               <i className="bi bi-arrow-left me-2"></i>
               Voltar
@@ -205,7 +201,7 @@ function WhatsappNovoContatoModal({ theme, show, onHide, onSave }) {
         </div>
       </Modal.Body>
 
-      <Modal.Footer>
+      <Modal.Footer style={{ backgroundColor: `var(--bg-color-${theme})` }}>
         <button
           type="button"
           className={`btn btn-1-${theme}`}

@@ -38,20 +38,57 @@ function UsuariosPage({ theme }) {
     const fetchUsuarios = async () => {
       try {
         const response = await axios.get(`${url}/api/users/${schema}`);
-        console.log(response)
         setUsuarios(response.data.users || []);
-        console.log(response.data.users)
       } catch (error) {
         console.error('Erro ao buscar usuários:', error);
       }
     };
-
     fetchUsuarios();
+
   }, []);
 
+  useEffect(() => {
+  const fetchUsuarios = async () => {
+    try {
+      const response = await axios.get(`${url}/api/users/${schema}`);
+      const usuariosBase = response.data.users || [];
+
+      // Busca as filas de todos os usuários em paralelo
+      const usuariosComFilas = await Promise.all(
+  usuariosBase.map(async (usuario) => {
+    try {
+      const queue = await axios.get(`${url}/queue/get-user-queue/${usuario.id}/${schema}`);
+      let queueNames = '-';
+      if (queue.data?.result) {
+        if (Array.isArray(queue.data.result)) {
+          queueNames = queue.data.result.map(fila => fila.name).filter(Boolean).join(', ') || '-';
+        } else if (typeof queue.data.result === 'object') {
+          queueNames = queue.data.result.name || '-';
+        } else {
+          queueNames = queue.data.result.toString();
+        }
+      }
+      return { ...usuario, queue: queueNames };
+    } catch (error) {
+      return { ...usuario, queue: '-' };
+    }
+  })
+);
+
+      setUsuarios(usuariosComFilas);
+    } catch (error) {
+      console.error('Erro ao buscar usuários:', error);
+    }
+  };
+  fetchUsuarios();
+}, [url, schema]);
+
   return (
-    <div className="h-100 w-100 mx-2">
-      <div className="d-flex justify-content-end align-items-center mb-3">
+    <div className="h-100 w-100 mx-2 pt-3">
+      <div className="d-flex justify-content-between align-items-center mb-3">
+
+        <h2 className={`mb-0 ms-3 header-text-${theme}`} style={{ fontWeight: 400 }}>Usuários</h2>
+        
         <div className="input-group" style={{width: '40%'}}>
           <input
             type="text"
@@ -103,7 +140,7 @@ function UsuariosPage({ theme }) {
 
                   <td>
                     <div className='d-flex justify-content-between'>
-                      {"teste"}
+                      {usuario.queue}
                       <button
                         className={`icon-btn btn-2-${theme} btn-user`}
                         data-bs-toggle="tooltip"

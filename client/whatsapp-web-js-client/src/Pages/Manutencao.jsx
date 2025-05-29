@@ -8,7 +8,7 @@ const Manutencao = ({ theme }) => {
         <div className="card-body text-center p-4">
           <h2 className={`card-title mb-3 header-text-${theme}`}>Página em Desenvolvimento</h2>
           <p className={`card-text header-text-${theme} mb-2`}>
-            Estamos trabalhando para trazer novas funcionalidades e melhorias.
+            Estamos trabalhando assiduamente para trazer atualizações.
           </p>
           <p className={`card-text header-text-${theme}`}>
             Em breve, esta página estará disponível com todas as funcionalidades planejadas.
