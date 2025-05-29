@@ -717,118 +717,85 @@ const handleImageUpload = async (event) => {
                     </div>
                   )}
 
-      <div>
-       <DropdownComponent
-        theme={theme}
-        selectedChat={selectedChat}
-        handleChatClick={handleChatClick}
-        setChats={setChats}
-        setSelectedChat={setSelectedChat}
-        setSelectedMessages={setSelectedMessages}
-      />
-      </div>
+                  <div>
+                    <DropdownComponent
+                      theme={theme}
+                      selectedChat={selectedChat}
+                      handleChatClick={handleChatClick}
+                      setChats={setChats}
+                      setSelectedChat={setSelectedChat}
+                      setSelectedMessages={setSelectedMessages}
+                    />
+                  </div>
+                </div>
+              </div>
 
-    </div>
-
-  </div>
-)}
-  <div
-    style={{
-      height: '100%',
-      maxHeight: '707.61px',
-      overflow: 'hidden auto',
-      border: '1px solid var(--border-color)',
-    }}
-  >
-  
-  <div
-    id="corpoTexto"
-    className="px-3 d-flex flex-column flex-grow-1"
-    style={{
-      whiteSpace: 'pre-wrap',
-      wordBreak: 'break-word',
-      paddingTop: '5px',
-      paddingBottom: '20px',
-    }}
-  >
-
-  {selectedMessages.map((msg, index) => (
-  <div
-    key={msg.id || index}
-    style={{
-      backgroundColor: msg.from_me ? 'var(--hover)' : '#f1f0f0',
-      textAlign: msg.from_me ? 'right' : 'left',
-      padding: '5px 10px',
-      borderRadius: '10px',
-      margin: '5px 0',
-      alignSelf: msg.from_me ? 'flex-end' : 'flex-start',
-      display: 'inline-block',
-      maxWidth: '60%',
-    }}
-  >
-    {msg.message_type === 'audio' || msg.message_type === 'audioMessage' ? (
-      <AudioPlayer base64Audio={msg.base64} audioId={msg.id} />
-    ) : msg.message_type === 'imageMessage' || msg.message_type === 'image' ? (
-      <img
-        src={
-          typeof msg.base64 === 'string'
-            ? msg.base64.startsWith('blob:')
-              ? msg.base64
-              : `data:image/jpeg;base64,${msg.base64}`
-            : msg.base64
-        }
-        alt="imagem"
-        style={{
-          maxWidth: '300px',
-          width: '100%',
-          height: 'auto',
-          borderRadius: '8px',
-          display: 'block',
-          cursor: 'pointer',
-        }}
-        onClick={() => handleImageClick(msg.base64)}
-      />
-    ) : (
-      msg.text
-    )}
-    {/* Horário formatado */}
-    <div style={{ fontSize: '0.75rem', color: '#888', marginTop: 2 }}>
-      {formatHour(msg.timestamp)}
-    </div>
-  </div>
-))}
-
-{/* Renderize o modal de imagem ampliada fora do map */}
-{selectedImage && (
-  <div
-    className="image-modal"
-    onClick={closeImageModal}
-    style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
-      backgroundColor: 'rgba(0, 0, 0, 0.25)',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 1000,
-    }}
-  >
-    <img
-      src={`data:image/jpeg;base64,${selectedImage}`}
-      alt="imagem ampliada"
-      style={{
-        maxWidth: '90%',
-        maxHeight: '90%',
-      }}
-    />
-  </div>
-)}
-      <div ref={messagesEndRef} />
-    </div>
-  </div>
+              <div
+                style={{
+                  height: '100%',
+                  maxHeight: '707.61px',
+                  overflow: 'hidden auto',
+                  border: '1px solid var(--border-color)',
+                }}
+              >
+                <div
+                  id="corpoTexto"
+                  className="px-3 d-flex flex-column flex-grow-1"
+                  style={{
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                    paddingTop: '5px',
+                    paddingBottom: '20px',
+                  }}
+                >
+                  {selectedMessages.map((msg, index) => (
+                    <div
+                      key={msg.id || index}
+                      style={{
+                        backgroundColor: msg.from_me ? 'var(--hover)' : '#f1f0f0',
+                        textAlign: msg.from_me ? 'right' : 'left',
+                        padding: '5px 10px',
+                        borderRadius: '10px',
+                        margin: '5px 0',
+                        alignSelf: msg.from_me ? 'flex-end' : 'flex-start',
+                        display: 'inline-block',
+                        maxWidth: '60%',
+                      }}
+                    >
+                      {msg.message_type === 'audio' || msg.message_type === 'audioMessage' ? (
+                        <AudioPlayer base64Audio={msg.base64} audioId={msg.id} />
+                      ) : msg.message_type === 'imageMessage' || msg.message_type === 'image' ? (
+                        <img
+                          src={
+                            typeof msg.base64 === 'string'
+                              ? msg.base64.startsWith('blob:')
+                                ? msg.base64
+                                : `data:image/jpeg;base64,${msg.base64}`
+                              : msg.base64
+                          }
+                          alt="imagem"
+                          style={{
+                            maxWidth: '300px',
+                            width: '100%',
+                            height: 'auto',
+                            borderRadius: '8px',
+                            display: 'block',
+                            cursor: 'pointer',
+                          }}
+                          onClick={() => handleImageClick(msg.base64)}
+                        />
+                      ) : (
+                        msg.text
+                      )}
+                      {/* Horário formatado */}
+                      <div style={{ fontSize: '0.75rem', color: '#888', marginTop: 2 }}>
+                        {formatHour(msg.timestamp)}
+                      </div>
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} />
+                </div>
+              </div>
 
               {/* Input de Mensagem */}
               <div 
