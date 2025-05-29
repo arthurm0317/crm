@@ -39,12 +39,14 @@ const getCampaingByIdController = async (req, res) => {
 };
 
 const createCampaingController = async (req, res) => {
-  const { name, sector, kanban_stage, connection_id, start_date, schema, mensagem } = req.body;
+  const {campaing_id, name, sector, kanban_stage, connection_id, start_date, schema, mensagem } = req.body;
   try {
-    // 1. Cria a campanha
-    const campaing = await createCampaing(name, sector, kanban_stage, connection_id, start_date, schema);
+    if(campaing_id){
+      const campaing = await createCampaing(campaing_id, name, sector, kanban_stage, connection_id, start_date, schema);
+      return campaing
+    }
+      const campaing = await createCampaing(name, sector, kanban_stage, connection_id, start_date, schema);
 
-    // 2. Cria as mensagens (mensagem pode ser array)
     if (mensagem && Array.isArray(mensagem)) {
       for (const msg of mensagem) {
         await createMessageForBlast(msg, sector, campaing.id, schema);
@@ -53,7 +55,6 @@ const createCampaingController = async (req, res) => {
       await createMessageForBlast(msg, sector, campaing.id, schema);
     }
 
-    // 3. Agenda o disparo
     await scheduleCampaingBlast(campaing, schema);
 
     res.status(201).json(campaing);

@@ -212,11 +212,10 @@ function DisparoModal({ theme, disparo = null }) {
     };
 
     try {
-      // Se disparo existe, é edição, senão é novo
-      const endpoint = disparo ? `${url}/campaing/update/${disparo.id}` : `${url}/campaing/create`;
+      const endpoint = `${url}/campaing/create`;
       const response = await axios.post(endpoint, {
         ...disparoData,
-        ...(disparo ? { id: disparo.id } : {})
+        ...(disparo ? { campaing_id: disparo.id } : {campaing_id: null})
       });
     } catch (error) {
       console.error('Erro ao salvar disparo:', error);
