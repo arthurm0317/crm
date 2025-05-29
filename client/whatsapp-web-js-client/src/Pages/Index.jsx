@@ -17,6 +17,7 @@ import KanbanPage from './Kanban';
 import DisparosPage from './Disparos';
 import WhatsappModal from './modalPages/Whatsapp';
 import Manutencao from './Manutencao';
+import AjudaPage from './Ajuda';
 
 window.addEventListener('error', function (event) {
   if (
@@ -101,6 +102,7 @@ function Painel() {
       case 'agenda': return <AgendaPage theme={theme} />;
       case 'relatorios': return <Manutencao theme={theme} />;
       case 'disparos': return <DisparosPage theme={theme} />;
+      case 'ajuda': return <AjudaPage theme={theme} />;
       default: return <Dashboard theme={theme} />;
     }
   };
@@ -224,6 +226,18 @@ function Painel() {
               <i className="bi bi-bar-chart-line"></i>
               <span className="sidebar-label d-none">Relatórios</span>
             </button>
+            <hr className={`hr-${theme} mx-auto my-0`} style={{ width: '50%' }} />
+            <button
+              id="ajuda"
+              onClick={() => setPage('ajuda')}
+              data-bs-toggle="tooltip"
+              data-bs-placement="right"
+              data-bs-title="Ajuda"
+              className={`btn ${page === 'ajuda' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''}`}
+            >
+              <i className="bi bi-question-circle"></i>
+              <span className="sidebar-label d-none">Ajuda</span>
+            </button>
           </div>
         </div>
         <div className="d-flex flex-column flex-grow-1" style={{ flex: 1, minWidth: 0 }}>
@@ -232,8 +246,8 @@ function Painel() {
               <i className={`bi ${isSidebarExpanded ? 'bi-arrow-bar-left' : 'bi-arrow-bar-right'}`}></i>
             </button>
             <div id="header-title" className="d-flex flex-column align-items-center justify-content-start">
-              <h4 className={`header-text-${theme} mb-0`}>Bem vindo, <span id="username">{username}</span></h4>
-              <h6 className={`header-text-${theme}`}><span id="role">{role}</span> | <span id="empresa">{empresa}</span></h6>
+              <h4 className={`header-text-${theme} mb-0`}><span style={{ fontWeight: 400 }}>Bem vindo</span>, <span id="username">{username}</span></h4>
+              <h6 className={`header-text-${theme}`} style={{ fontWeight: 400 }}><span id="role">{role}</span> | <span id="empresa">{empresa}</span></h6>
             </div>
 
             <div className="d-flex flex-row align-items-center gap-2">
@@ -247,7 +261,7 @@ function Painel() {
                   className={`btn btn-2-${theme} toggle-${theme}`}
                   onClick={() => navigate('/schemas')}
                 >
-                  <i className="bi bi-diagram-3"></i>
+                  <i className="bi bi-bounding-box"></i>
                 </button>
               )}
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import ReactDOM from 'react-dom';
+import { Modal } from 'react-bootstrap';
 import WhatsappNovoContatoModal from './Whatsapp_novoContato';
 import WhatsappDeleteModal from './Whatsapp_delete';
 import WhatsappFilasModal from './Whatsapp_filas';
@@ -34,8 +34,14 @@ function WhatsappModal({ theme, show, onHide }) {
   };
 
   const handleDelete = (contato) => {
-    setContatos(contatos.filter(c => c.id !== contato.id));
-    setShowDeleteModal(false);
+    try {
+      setContatos(contatos.filter(c => c.id !== contato.id));
+    } catch (error) {
+      console.error('Erro ao excluir contato:', error);
+    } finally {
+      setShowDeleteModal(false);
+      setSelectedContato(null);
+    }
   };
 
   const handleVerFilas = (contato) => {
@@ -47,143 +53,142 @@ function WhatsappModal({ theme, show, onHide }) {
     setShowUsuariosModal(true);
   };
 
-  if (!show) return null;
-
-  const modalContent = (
-    <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-      <div className="modal-dialog modal-lg modal-dialog-centered">
-        <div className={`modal-content bg-form-${theme}`}>
-          <div className={`modal-header bg-form-${theme}`}>
-            <h5 className={`modal-title header-text-${theme}`}>
-              <i className="bi bi-whatsapp me-2"></i> Gerenciar Contatos WhatsApp
-            </h5>
-            <button type="button" className="btn-close" onClick={onHide}></button>
+  return (
+    <>
+      <Modal show={show} onHide={onHide} size="lg" centered>
+        <Modal.Header closeButton style={{ backgroundColor: `var(--bg-color-${theme})` }}>
+          <div className="d-flex align-items-center gap-3">
+            <i className={`bi bi-whatsapp header-text-${theme}`}></i>
+            <h5 className={`modal-title header-text-${theme} mb-0`}>Gerenciar Contatos WhatsApp</h5>
           </div>
+        </Modal.Header>
 
-          <div className="modal-body px-4">
-            <div className="d-flex justify-content-end mb-3">
-              <button
-                type="button"
-                className={`btn btn-1-${theme}`}
-                onClick={() => setShowNovoContatoModal(true)}
-              >
-                <i className="bi bi-plus-lg me-2"></i> Novo Contato
-              </button>
-            </div>
-
-            <div className="table-responsive" style={{ maxHeight: 'calc(100vh - 250px)' }}>
-              <table className={`custom-table-${theme} align-middle w-100`}>
-                <thead>
-                  <tr>
-                    <th className="text-start px-3 py-2">Nome</th>
-                    <th className="text-start px-3 py-2">Telefone</th>
-                    {/* <th className="text-start px-3 py-2">Status</th> */}
-                    <th className="text-start px-3 py-2">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {contatos.length === 0 ? (
-                    <tr>
-                      <td colSpan="5" className="text-center px-3 py-2">
-                        <span className={`card-subtitle-${theme}`}>Nenhum contato cadastrado.</span>
-                      </td>
-                    </tr>
-                  ) : (
-                    contatos.map((contato) => (
-                      <tr key={contato.id}>
-                        <td className="px-3 py-2">{contato.name}</td>
-                        <td className="px-3 py-2">{contato.number}</td>
-                        {/*<td className="px-3 py-2">
-                          * <div className="d-flex align-items-center gap-2">
-                            <div
-                              className={`rounded-circle ${contato.status === 'conectado' ? 'bg-success' : 'bg-danger'}`}
-                              style={{ width: '8px', height: '8px' }}
-                            ></div>
-                            <span>{contato.status === 'conectado' ? 'Conectado' : 'Desconectado'}</span>
-                          </div> 
-                        </td>*/}
-                        <td className="px-3 py-2">
-                          <div className="d-flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              className={`btn btn-sm btn-2-${theme}`}
-                              data-bs-toggle="tooltip"
-                              data-bs-placement="top"
-                              title="Editar"
-                              onClick={() => {
-                                setSelectedContato(contato);
-                                setShowNovoContatoModal(true);
-                              }}
-                            >
-                              <i className="bi bi-pencil-fill"></i>
-                            </button>
-                            <button
-                              type="button"
-                              className={`btn btn-sm btn-2-${theme}`}
-                              data-bs-toggle="tooltip"
-                              data-bs-placement="top"
-                              title="Filas"
-                              onClick={() => handleVerFilas(contato)}
-                            >
-                              <i className="bi bi-diagram-3"></i>
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-sm delete-btn"
-                              data-bs-toggle="tooltip"
-                              data-bs-placement="top"
-                              title="Excluir"
-                              onClick={() => {
-                                setSelectedContato(contato);
-                                setShowDeleteModal(true);
-                              }}
-                            >
-                              <i className="bi bi-trash-fill"></i>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className={`modal-footer bg-form-${theme}`}>
-            <button type="button" className={`btn btn-2-${theme}`} onClick={onHide}>
-              Fechar
+        <Modal.Body style={{ backgroundColor: `var(--bg-color-${theme})` }}>
+          <div className="d-flex justify-content-end mb-3">
+            <button
+              type="button"
+              className={`btn btn-1-${theme}`}
+              onClick={() => setShowNovoContatoModal(true)}
+            >
+              <i className="bi bi-plus-lg me-2"></i> Novo Contato
             </button>
           </div>
-        </div>
-      </div>
 
-      <WhatsappNovoContatoModal 
-        theme={theme} 
-        show={showNovoContatoModal}
-        onHide={() => setShowNovoContatoModal(false)}
-        onSave={handleNovoContato} 
-      />
+          <div className="table-responsive" style={{ maxHeight: 'calc(100vh - 250px)' }}>
+            <table className={`custom-table-${theme} align-middle w-100`}>
+              <thead>
+                <tr>
+                  <th className={`text-start px-3 py-2 header-text-${theme}`}>Nome</th>
+                  <th className={`text-start px-3 py-2 header-text-${theme}`}>Telefone</th>
+                  <th className={`text-start px-3 py-2 header-text-${theme}`}>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {contatos.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="text-center px-3 py-2">
+                      <span className={`card-subtitle-${theme}`}>Nenhum contato cadastrado.</span>
+                    </td>
+                  </tr>
+                ) : (
+                  contatos.map((contato) => (
+                    <tr key={contato.id}>
+                      <td className={`px-3 py-2 card-subtitle-${theme}`}>{contato.name}</td>
+                      <td className={`px-3 py-2 card-subtitle-${theme}`}>{contato.number}</td>
+                      <td className="px-3 py-2">
+                        <div className="d-flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            className={`btn btn-sm btn-2-${theme}`}
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
+                            title="Editar"
+                            onClick={() => {
+                              setSelectedContato(contato);
+                              setShowNovoContatoModal(true);
+                            }}
+                          >
+                            <i className="bi bi-pencil-fill"></i>
+                          </button>
+                          <button
+                            type="button"
+                            className={`btn btn-sm btn-2-${theme}`}
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
+                            title="Filas"
+                            onClick={() => handleVerFilas(contato)}
+                          >
+                            <i className="bi bi-diagram-3"></i>
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-sm delete-btn"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="top"
+                            title="Excluir"
+                            onClick={() => {
+                              setSelectedContato(contato);
+                              setShowDeleteModal(true);
+                            }}
+                          >
+                            <i className="bi bi-trash-fill"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Modal.Body>
+
+        <Modal.Footer style={{ backgroundColor: `var(--bg-color-${theme})` }}>
+          <button type="button" className={`btn btn-2-${theme}`} onClick={onHide}>
+            Fechar
+          </button>
+        </Modal.Footer>
+      </Modal>
+
+      {showNovoContatoModal && (
+        <WhatsappNovoContatoModal 
+          theme={theme} 
+          show={showNovoContatoModal}
+          onHide={() => {
+            setShowNovoContatoModal(false);
+            setSelectedContato(null);
+          }}
+          onSave={handleNovoContato} 
+        />
+      )}
       
-      <WhatsappDeleteModal 
-        theme={theme} 
-        show={showDeleteModal}
-        onHide={() => setShowDeleteModal(false)}
-        contato={selectedContato} 
-        onDelete={handleDelete} 
-      />
+      {showDeleteModal && selectedContato && (
+        <WhatsappDeleteModal 
+          theme={theme} 
+          show={showDeleteModal}
+          onHide={() => {
+            setShowDeleteModal(false);
+            setSelectedContato(null);
+          }}
+          contato={selectedContato} 
+          onDelete={handleDelete} 
+        />
+      )}
       
-      <WhatsappFilasModal 
-        theme={theme} 
-        show={showUsuariosModal}
-        onHide={() => setShowUsuariosModal(false)}
-        contato={selectedContato} 
-        filas={filas} 
-      />
-    </div>
+      {showUsuariosModal && selectedContato && (
+        <WhatsappFilasModal 
+          theme={theme} 
+          show={showUsuariosModal}
+          onHide={() => {
+            setShowUsuariosModal(false);
+            setSelectedContato(null);
+          }}
+          contato={selectedContato} 
+          filas={filas} 
+        />
+      )}
+    </>
   );
-
-  return ReactDOM.createPortal(modalContent, document.body);
 }
 
 export default WhatsappModal;

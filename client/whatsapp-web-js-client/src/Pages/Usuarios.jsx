@@ -84,8 +84,11 @@ function UsuariosPage({ theme }) {
 }, [url, schema]);
 
   return (
-    <div className="h-100 w-100 mx-2">
-      <div className="d-flex justify-content-end align-items-center mb-3">
+    <div className="h-100 w-100 mx-2 pt-3">
+      <div className="d-flex justify-content-between align-items-center mb-3">
+
+        <h2 className={`mb-0 ms-3 header-text-${theme}`} style={{ fontWeight: 400 }}>Usuários</h2>
+        
         <div className="input-group" style={{width: '40%'}}>
           <input
             type="text"

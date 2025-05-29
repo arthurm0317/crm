@@ -570,8 +570,11 @@ const handleImageUpload = async (event) => {
   };
 
   return (
-    <div className={`d-flex flex-column h-100 w-100 ms-2`}>
-      <div className="mb-3">
+    <div className={`pt-3 d-flex flex-column h-100 w-100 ms-2`} style={{ maxHeight: '849.61px' }}>
+      
+      <div className="mb-3 d-flex flex-row align-items-center">
+        <h2 className={`mb-0 ms-3 me-5 header-text-${theme}`} style={{ fontWeight: 400 }}>Chats</h2>
+
         <button 
         className={`btn btn-1-${theme} d-flex gap-2`}
         data-bs-toggle="modal"
@@ -585,7 +588,7 @@ const handleImageUpload = async (event) => {
 
         {/* LISTA DE CONTATOS */}
         <div className={`col-3 chat-list-${theme} bg-color-${theme}`}
-          style={{ overflowY: 'auto', height: '100%', maxHeight: '777.61px', width:'100%',maxWidth:'300px',backgroundColor: `var(--bg-color-${theme})`}}>
+          style={{ height: '100%', maxHeight: '761.22px', width:'100%',maxWidth:'300px',backgroundColor: `var(--bg-color-${theme})`}}>
 
           {/* Botões de troca */}
           <div className="d-flex gap-2 p-2">
@@ -606,13 +609,13 @@ const handleImageUpload = async (event) => {
           </div>
 
           {/* Lista filtrada */}
-          <div>
-            <h6 
-              className={`header-text-${theme}`}
-              style={{padding: '8px 0 0 10px'}}
+          <h6 
+              className={`header-text-${theme} mb-0`}
+              style={{padding: '8px 10px'}}
             >
               {selectedTab === 'conversas' ? 'Conversas' : 'Sala de Espera'}
             </h6>
+          <div style={{overflowY: 'auto', height: '100%', maxHeight: '679.03px'}}>
             {chatList
               .filter(chat =>
                 selectedTab === 'conversas'
@@ -667,7 +670,7 @@ const handleImageUpload = async (event) => {
         </div>
 {/* MENSAGENS DO CONTATO SELECIONADO */}
 <div
-  className={`w-100 chat-messages-${theme} d-flex flex-column`} style={{ borderTopRightRadius: '10px' }}
+  className={`w-100 chat-messages-${theme} d-flex flex-column justify-content-between`} style={{ borderTopRightRadius: '10px' }}
 >
 {selectedChat && (
   <div
@@ -677,7 +680,7 @@ const handleImageUpload = async (event) => {
       backgroundColor: `var(--bg-color-${theme})`,
       color: `var(--color-${theme})`,
       borderBottom: `1px solid var(--border-color-${theme})`,
-      minHeight: '80px',
+      minHeight: '82.19px',
       width:'100%',
       maxWidth:'1700px',
     }}
@@ -738,7 +741,7 @@ const handleImageUpload = async (event) => {
       whiteSpace: 'pre-wrap',
       wordBreak: 'break-word',
       paddingTop: '5px',
-      paddingBottom: '5px',
+      paddingBottom: '20px',
     }}
   >
 

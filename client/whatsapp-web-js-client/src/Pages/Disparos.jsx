@@ -135,8 +135,11 @@ function DisparosPage({ theme }) {
   };
 
   return (
-    <div className="h-100 w-100 ms-2">
-      <div className="d-flex justify-content-end align-items-center mb-3">
+    <div className="h-100 w-100 ms-2 py-3">
+      <div className="d-flex justify-content-between align-items-center mb-3">
+
+        <h2 className={`mb-0 ms-3 header-text-${theme}`} style={{ fontWeight: 400 }}>Disparos</h2>
+
         <div className="input-group" style={{ width: '40%' }}>
           <input
             type="header-text"
@@ -155,7 +158,7 @@ function DisparosPage({ theme }) {
 
       <div className={`w-100 h-100 table-responsive custom-table-${theme}`}
         style={{
-          maxHeight: '777.05px',
+          maxHeight: '767px',
           overflowY: 'auto'
         }}
       >
