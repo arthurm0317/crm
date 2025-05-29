@@ -200,7 +200,8 @@ const handleSubmit = (data) => {
     text: data,
     chatId: selectedChat.id,
     from_me: true,
-    schema: schema
+    schema: schema,
+    created_at: new Date(),
   };
 
   if (socketInstance) {
@@ -447,9 +448,10 @@ const handleImageUpload = async (event) => {
           id: newImageUrl,
           text: null,
           from_me: true,
-          timestamp:  new Date().toISOString(),
+          timestamp:  new Date(),
           message_type: 'image',
-          base64:newImageUrl
+          base64:newImageUrl,
+          created_at: new Date(),
           }
       if (socketInstance) {
         socketInstance.emit('message', message);
@@ -511,9 +513,10 @@ const handleImageUpload = async (event) => {
               id: audioBlob,
               text: null,
               from_me: true,
-              timestamp:  new Date().toISOString(),
+              timestamp:  new Date(),
               message_type: 'audio',
-              base64:newAudioUrl
+              base64:newAudioUrl,
+              created_at: new Date()
             }
             if (socketInstance) {
             socketInstance.emit('message', message);
