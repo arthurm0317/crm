@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import EmojiPicker from 'emoji-picker-react';
 import NewContactModal from './modalPages/Chats_novoContato';
@@ -7,6 +7,10 @@ import {Dropdown} from 'react-bootstrap';
 import './assets/style.css';
 import NewQueueModal from './modalPages/Filas_novaFila';
 
+function formatDate(timestamp) {
+  const date = new Date(Number(timestamp));
+  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
 function formatHour(timestamp) {
   const date = new Date(Number(timestamp));
   return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -569,6 +573,8 @@ const handleImageUpload = async (event) => {
     setSelectedImage(null);
   };
 
+  
+
   return (
     <div className={`pt-3 d-flex flex-column h-100 w-100 ms-2`} style={{ maxHeight: '849.61px' }}>
       
@@ -745,51 +751,86 @@ const handleImageUpload = async (event) => {
     }}
   >
 
-  {selectedMessages.map((msg, index) => (
-  <div
-    key={msg.id || index}
-    style={{
-      backgroundColor: msg.from_me ? 'var(--hover)' : '#f1f0f0',
-      textAlign: msg.from_me ? 'right' : 'left',
-      padding: '5px 10px',
-      borderRadius: '10px',
-      margin: '5px 0',
-      alignSelf: msg.from_me ? 'flex-end' : 'flex-start',
-      display: 'inline-block',
-      maxWidth: '60%',
-    }}
-  >
-    {msg.message_type === 'audio' || msg.message_type === 'audioMessage' ? (
-      <AudioPlayer base64Audio={msg.base64} audioId={msg.id} />
-    ) : msg.message_type === 'imageMessage' || msg.message_type === 'image' ? (
-      <img
-        src={
-          typeof msg.base64 === 'string'
-            ? msg.base64.startsWith('blob:')
-              ? msg.base64
-              : `data:image/jpeg;base64,${msg.base64}`
-            : msg.base64
-        }
-        alt="imagem"
-        style={{
-          maxWidth: '300px',
-          width: '100%',
-          height: 'auto',
-          borderRadius: '8px',
-          display: 'block',
-          cursor: 'pointer',
-        }}
-        onClick={() => handleImageClick(msg.base64)}
-      />
-    ) : (
-      msg.text
-    )}
-    {/* Horário formatado */}
-    <div style={{ fontSize: '0.75rem', color: '#888', marginTop: 2 }}>
-      {formatHour(msg.timestamp)}
-    </div>
-  </div>
-))}
+  {(() => {
+  let lastDate = null;
+  return selectedMessages.map((msg, index) => {
+    const msgDate = formatDate(msg.timestamp);
+    const showDate = !lastDate || lastDate !== msgDate;
+    lastDate = msgDate;
+
+    return (
+      <React.Fragment key={msg.id || index}>
+        {showDate && (
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              margin: '16px 0 8px 0',
+              position: 'relative',
+              zIndex: 2,
+            }}
+          >
+            <div
+              style={{
+                background: '#e0e0e0',
+                color: '#333',
+                borderRadius: '12px',
+                padding: '4px 16px',
+                fontSize: '0.95rem',
+                fontWeight: 500,
+                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+              }}
+            >
+              {msgDate}
+            </div>
+          </div>
+        )}
+        <div
+          style={{
+            backgroundColor: msg.from_me ? 'var(--hover)' : '#f1f0f0',
+            textAlign: msg.from_me ? 'right' : 'left',
+            padding: '5px 10px',
+            borderRadius: '10px',
+            margin: '5px 0',
+            alignSelf: msg.from_me ? 'flex-end' : 'flex-start',
+            display: 'inline-block',
+            maxWidth: '60%',
+          }}
+        >
+          {msg.message_type === 'audio' || msg.message_type === 'audioMessage' ? (
+            <AudioPlayer base64Audio={msg.base64} audioId={msg.id} />
+          ) : msg.message_type === 'imageMessage' || msg.message_type === 'image' ? (
+            <img
+              src={
+                typeof msg.base64 === 'string'
+                  ? msg.base64.startsWith('blob:')
+                    ? msg.base64
+                    : `data:image/jpeg;base64,${msg.base64}`
+                  : msg.base64
+              }
+              alt="imagem"
+              style={{
+                maxWidth: '300px',
+                width: '100%',
+                height: 'auto',
+                borderRadius: '8px',
+                display: 'block',
+                cursor: 'pointer',
+              }}
+              onClick={() => handleImageClick(msg.base64)}
+            />
+          ) : (
+            msg.text
+          )}
+          {/* Horário formatado */}
+          <div style={{ fontSize: '0.75rem', color: '#888', marginTop: 2 }}>
+            {formatHour(msg.timestamp)}
+          </div>
+        </div>
+      </React.Fragment>
+    );
+  });
+})()}
 
 {/* Renderize o modal de imagem ampliada fora do map */}
 {selectedImage && (
