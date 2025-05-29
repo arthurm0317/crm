@@ -44,13 +44,9 @@ const addUserinQueue = async (username, queue, schema) => {
     }
 };
 
-const getUserQueues = async(username, schema)=>{
-    const user = await pool.query(
-        `SELECT * FROM ${schema}.users WHERE name=$1`,[username]
-    )
-
+const getUserQueues = async(user_id, schema)=>{
     const queue = await pool.query(
-        `SELECT * FROM ${schema}.queue_users where user_id=$1`,[user.rows[0].id]
+        `SELECT * FROM ${schema}.queue_users where user_id=$1`,[user_id]
     )
 
     const queueData = [];
@@ -88,7 +84,7 @@ const deleteQueue = async(queueId, schema)=>{
     return result.rowCount > 0;
 }
 
-const getConnQueue = async(queue_id, schema)=>{
+const getQueueById = async(queue_id, schema)=>{
     const result = await pool.query(
         `SELECT * FROM ${schema}.queues where id=$1`,[queue_id]
     )
@@ -102,5 +98,5 @@ module.exports = {
     getChatsInQueue,
     getAllQueues,
     deleteQueue,
-    getConnQueue
+    getQueueById
 }
