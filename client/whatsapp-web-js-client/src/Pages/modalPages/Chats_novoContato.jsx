@@ -66,6 +66,8 @@ if (!userData || !userData.id) {
     }
   };
 
+  const isDisabled = !contactName || !contactNumber || !attendant;
+
   return (
     <Modal
       show={show}
@@ -75,15 +77,17 @@ if (!userData || !userData.id) {
     >
       <Modal.Header 
         closeButton 
-        className={`modal-header-${theme}`}
-        style={{ borderBottom: `1px solid var(--border-color-${theme})` }}
+        style={{ backgroundColor: `var(--bg-color-${theme})` }}
       >
-        <Modal.Title className={`text-${theme === 'dark' ? 'light' : 'dark'}`}>
-          Novo Contato
-        </Modal.Title>
+        <div className="d-flex align-items-center gap-3">
+          <i className={`bi bi-person-plus header-text-${theme}`}></i>
+          <h5 className={`modal-title header-text-${theme} mb-0`}>
+            Novo Contato
+          </h5>
+        </div>
       </Modal.Header>
 
-      <Modal.Body className={`modal-body-${theme}`}>
+      <Modal.Body style={{ backgroundColor: `var(--bg-color-${theme})` }}>
         {/* Nome do Contato */}
         <div className="mb-3">
           <label
@@ -146,10 +150,7 @@ if (!userData || !userData.id) {
         </div>
       </Modal.Body>
 
-      <Modal.Footer 
-        className={`modal-footer-${theme}`}
-        style={{ borderTop: `1px solid var(--border-color-${theme})` }}
-      >
+      <Modal.Footer style={{ backgroundColor: `var(--bg-color-${theme})` }}>
         <Button 
           variant="secondary" 
           onClick={onHide}
@@ -161,7 +162,12 @@ if (!userData || !userData.id) {
           variant="primary" 
           onClick={handleSave}
           className={`btn-1-${theme}`}
-          disabled={!contactName || !contactNumber || !attendant}
+          style={{ 
+            backgroundColor: `transparent`, 
+            borderColor: isDisabled ? 'var(--placeholder-color)' : 'var(--primary-color)', 
+            color: isDisabled ? 'var(--placeholder-color)' : 'var(--primary-color)'
+          }}
+          disabled={isDisabled}
         >
           Entrar em Contato
         </Button>
