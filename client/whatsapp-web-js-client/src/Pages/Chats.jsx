@@ -617,49 +617,78 @@ const handleImageUpload = async (event) => {
   };
 
   return (
-    <div className={`d-flex flex-column h-100 w-100 ms-2`}>
-      <div className="mb-3">
+    <div className={`d-flex flex-column w-100 h-100 ms-2`} style={{ overflow: 'hidden' }}>
+      <div className="pt-3 mb-3 d-flex flex-row align-items-center gap-5" style={{ height: '7%' }}>
+        <h2 className={`mb-0 ms-3 header-text-${theme}`} style={{ fontWeight: 400 }}>Chats</h2>
+
         <button 
-        className={`btn btn-1-${theme} d-flex gap-2`}
-        data-bs-toggle="modal"
-        data-bs-target="#NewContactModal"
+          className={`btn btn-sm btn-1-${theme} d-flex align-items-center gap-2`}
+          style={{ height: '90%' }}
+          data-bs-toggle="modal"
+          data-bs-target="#NewContactModal"
         >
           <i className="bi-plus-lg"></i>
           Novo Contato
         </button>
       </div>
-      <div className={`chat chat-${theme} h-100 w-100 d-flex flex-row`}>
-
+      <div 
+        className={`chat chat-${theme} w-100 d-flex flex-row`}
+        style={{ height: '100%', overflow: 'hidden' }}
+      >
         {/* LISTA DE CONTATOS */}
-        <div className={`col-3 chat-list-${theme} bg-color-${theme}`}
-          style={{ overflowY: 'auto', height: '100%', maxHeight: '777.61px', width:'100%',maxWidth:'300px',backgroundColor: `var(--bg-color-${theme})`}}>
+        <div className={`col-3 chat-list-${theme} bg-color-${theme} d-flex flex-column`}
+          style={{ 
+            height: '100%', 
+            width: '100%',
+            maxWidth: '300px',
+            backgroundColor: `var(--bg-color-${theme})`,
+            overflow: 'hidden',
+            position: 'relative'
+          }}>
 
-          {/* Botões de troca */}
-          <div className="d-flex gap-2 p-2">
-            <button
-              className={`d-flex gap-2 btn btn-sm ${selectedTab === 'conversas' ? `btn-1-${theme}` : `btn-2-${theme}`}`}
-              onClick={() => setSelectedTab('conversas')}
-            >
-              <i className="bi bi-chat-left-text"></i>
-              Conversas
-            </button>
-            <button
-              className={`d-flex gap-2 btn btn-sm ${selectedTab === 'aguardando' ? `btn-1-${theme}` : `btn-2-${theme}`}`}
-              onClick={() => setSelectedTab('aguardando')}
-            >
-              <i className="bi bi-alarm"></i>
-              Aguardando
-            </button>
+          <div style={{ 
+            height: '12.5%', 
+            position: 'sticky',
+            top: 0,
+            zIndex: 1,
+            backgroundColor: `var(--bg-color-${theme})`
+          }}>
+            {/* Botões de troca */}
+            <div className="d-flex gap-2 px-2" style={{ paddingTop: '8px' }}>
+              <button
+                className={`d-flex gap-2 btn btn-sm ${selectedTab === 'conversas' ? `btn-1-${theme}` : `btn-2-${theme}`}`}
+                onClick={() => setSelectedTab('conversas')}
+              >
+                <i className="bi bi-chat-left-text"></i>
+                Conversas
+              </button>
+              <button
+                className={`d-flex gap-2 btn btn-sm ${selectedTab === 'aguardando' ? `btn-1-${theme}` : `btn-2-${theme}`}`}
+                onClick={() => setSelectedTab('aguardando')}
+              >
+                <i className="bi bi-alarm"></i>
+                Aguardando
+              </button>
+            </div>
+
+            {/* Lista filtrada */}
+            <div className='px-3 py-3'>
+              <h6 
+                className={`header-text-${theme} m-0`}
+              >
+                {selectedTab === 'conversas' ? 'Conversas' : 'Sala de Espera'}
+              </h6>
+            </div>
+
           </div>
 
-          {/* Lista filtrada */}
-          <div>
-            <h6 
-              className={`header-text-${theme}`}
-              style={{padding: '8px 0 0 10px'}}
-            >
-              {selectedTab === 'conversas' ? 'Conversas' : 'Sala de Espera'}
-            </h6>
+          <div 
+            className={``}
+            style={{ 
+              height: 'auto', 
+              overflowY: 'auto'
+            }}
+          >
             {chatList
               .filter(chat =>
                 selectedTab === 'conversas'

@@ -286,7 +286,7 @@ function Painel() {
               </button>
             </div>
           </div>
-          <div className={`main-${theme} ps-2 pe-3 pb-3`} style={{ flex: 1, overflow: 'auto', minWidth: 0 }} id="main">
+          <div className={`main-${theme} ps-2 pe-3 pb-3`} style={{ flex: 1, overflow: 'auto', minWidth: 0, height: '90%' }} id="main">
             {renderPage()}
           </div>
         </div>
