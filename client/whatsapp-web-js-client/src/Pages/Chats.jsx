@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import EmojiPicker from 'emoji-picker-react';
 import NewContactModal from './modalPages/Chats_novoContato';
+import ChangeQueueModal from './modalPages/Chats_alterarFila';
 import {socket} from '../socket'
 import {Dropdown} from 'react-bootstrap';
 import './assets/style.css';
@@ -13,16 +14,14 @@ function formatHour(timestamp) {
 }
 
 function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, setSelectedChat, setSelectedMessages, onEditName }) {
-
   const url = process.env.REACT_APP_URL
   const userData = JSON.parse(localStorage.getItem('user'));
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [showChangeQueueModal, setShowChangeQueueModal] = useState(false);
 
   const handleToggle = (isOpen) => {
     setIsDropdownOpen(isOpen);
   };
-
-  
 
   const handleCloseChat = async () => {
     try {
@@ -37,6 +36,7 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
       console.error(error)
     }
   };
+
   const handleEditContactName = async (chatId, newName) => {
     if (newName && newName.trim() !== '') {
       try {
@@ -50,26 +50,36 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
       }
     }
   };
-  return (
-    <Dropdown drop="start" onToggle={handleToggle}>
-      <Dropdown.Toggle
-        variant={theme === 'light' ? 'light' : 'dark'}
-        id="dropdown-basic"
-        className={`btn-2-${theme}`}
-      >
-        Opções
-      </Dropdown.Toggle>
 
-      <Dropdown.Menu
-        variant={theme === 'light' ? 'light' : 'dark'}
-        className={`input-${theme}`}>
-        <Dropdown.Item href="#" onClick={handleCloseChat}>Finalizar Atendimento</Dropdown.Item>
-        <Dropdown.Item href="#" onClick={() => onEditName()}>Editar Nome</Dropdown.Item> 
-      </Dropdown.Menu>
-    </Dropdown>
+  return (
+    <>
+      <Dropdown drop="start" onToggle={handleToggle}>
+        <Dropdown.Toggle
+          variant={theme === 'light' ? 'light' : 'dark'}
+          id="dropdown-basic"
+          className={`btn-2-${theme}`}
+        >
+          Opções
+        </Dropdown.Toggle>
+
+        <Dropdown.Menu
+          variant={theme === 'light' ? 'light' : 'dark'}
+          className={`input-${theme}`}>
+          <Dropdown.Item href="#" onClick={() => setShowChangeQueueModal(true)}>Alterar Fila</Dropdown.Item>
+          <Dropdown.Item href="#" onClick={handleCloseChat}>Finalizar Atendimento</Dropdown.Item>
+          <Dropdown.Item href="#" onClick={() => onEditName()}>Editar Nome</Dropdown.Item> 
+        </Dropdown.Menu>
+      </Dropdown>
+
+      <ChangeQueueModal
+        show={showChangeQueueModal}
+        onHide={() => setShowChangeQueueModal(false)}
+        theme={theme}
+        selectedChat={selectedChat}
+      />
+    </>
   );
 }
-
 
 function ChatPage({ theme }) {
   const [chatList, setChats] = useState([]);
@@ -102,12 +112,14 @@ function ChatPage({ theme }) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
   const nomeContatoRef = useRef(null);
+  const [showNewContactModal, setShowNewContactModal] = useState(false);
 
   const [socketInstance] = useState(socket)
   
   const url = process.env.REACT_APP_URL;
 
   const setAsRead = async()=>{
+    if (!selectedChat) return;
     try{
       const res = await axios.post(`${url}/chat/setAsRead`,{
         chat_id: selectedChat.id,
@@ -619,13 +631,12 @@ const handleImageUpload = async (event) => {
   return (
     <div className={`d-flex flex-column w-100 h-100 ms-2`} style={{ overflow: 'hidden' }}>
       <div className="pt-3 mb-3 d-flex flex-row align-items-center gap-5" style={{ height: '7%' }}>
-        <h2 className={`mb-0 ms-3 header-text-${theme}`} style={{ fontWeight: 400 }}>Chats</h2>
+        <h2 className={`mb-0 ms-4 header-text-${theme}`} style={{ fontWeight: 400 }}>Chats</h2>
 
         <button 
           className={`btn btn-sm btn-1-${theme} d-flex align-items-center gap-2`}
           style={{ height: '90%' }}
-          data-bs-toggle="modal"
-          data-bs-target="#NewContactModal"
+          onClick={() => setShowNewContactModal(true)}
         >
           <i className="bi-plus-lg"></i>
           Novo Contato
@@ -1073,7 +1084,11 @@ const handleImageUpload = async (event) => {
   </div>
 </div>
     </div>
-      <NewContactModal theme={theme}/>
+      <NewContactModal 
+        theme={theme} 
+        show={showNewContactModal} 
+        onHide={() => setShowNewContactModal(false)}
+      />
     </div>
   );
 }
