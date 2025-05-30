@@ -10,8 +10,9 @@ function NewContactModal({ theme, show, onHide }) {
   const [attendant, setAttendant] = useState('');
   const [connections, setConnections] = useState([]);
   const userData = JSON.parse(localStorage.getItem('user'));
+  const schema = userData.schema
   const navigate = useNavigate();
-  const url = 'https://landing-page-teste.8rxpnw.easypanel.host'
+  const url = process.env.REACT_APP_URL
   const [formData, setFormData] = useState({
     name: '',
     number: '',
@@ -23,9 +24,7 @@ function NewContactModal({ theme, show, onHide }) {
     const fetchConnections = async () => {
       console.log(userData.id)
       try {
-        const response = await axios.post(`${url}/connection/getAllConnections`,{
-          schema: userData.schema
-        });
+        const response = await axios.get(`${url}/connection/get-all-connections/${schema}`);
         setConnections(response.data);
       } catch (error) {
         console.error('Erro ao buscar conexões:', error);

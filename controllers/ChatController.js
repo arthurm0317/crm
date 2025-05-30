@@ -303,16 +303,6 @@ const setSpecificUserController = async(req, res) => {
   }
 };
 
-const updateContactNameController = async (req, res) => {
-  try {
-    const { chat_id, new_name, schema } = req.body;
-    const result = await updateContactName(chat_id, new_name, schema);
-    res.status(200).json({ success: true, updated: result });
-  } catch (error) {
-    console.error('erro ao atualizar contato', error);
-    res.status(500).json({ success: false, error: 'erro de atualização de contato' });
-  }
-};
   module.exports = {
     setUserChatController,
     getChatsController,
@@ -328,5 +318,4 @@ const updateContactNameController = async (req, res) => {
     setMessageAsReadController,
     closeChatContoller,
     setSpecificUserController,
-    updateContactNameController, 
 };

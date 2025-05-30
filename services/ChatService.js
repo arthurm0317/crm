@@ -127,31 +127,7 @@ const createChat = async (chat, instance, message, etapa, io) => {
     throw new Error('Erro ao criar chat');
   }
 };
-const updateContactName = async (chat_id, new_name, schema) => {
-  try {
-    const chat = await pool.query(
-      `SELECT contact_phone FROM ${schema}.chats WHERE id = $1`,
-      [chat_id]
-    );
-    if (!chat.rows[0]) throw new Error('Chat não encontrado');
-    const contactPhone = chat.rows[0].contact_phone;
 
-    const result = await pool.query(
-      `UPDATE ${schema}.contacts SET contact_name = $1 WHERE number = $2 RETURNING *`,
-      [new_name, contactPhone]
-    );
-    
-    await pool.query(
-      `UPDATE ${schema}.chats SET contact_name = $1 WHERE id = $2`,
-      [new_name, chat_id]
-    );
-    if (!result.rows[0]) throw new Error('Contato não encontrado na tabela contacts');
-    return result.rows[0];
-  } catch (error) {
-    console.error('erro de atualização de nome', error.message);
-    throw error; 
-  }
-};
 const updateChatMessages = async (chat, schema, message) => {
   try {
     const result = await pool.query(
@@ -415,6 +391,16 @@ const setSpecificUser = async(chat_id, user_id, schema)=>{
   }
 }
 
+const updateChatNameByNumber = async(number, newName, user_id, schema)=>{
+  try {
+    await pool.query(
+      `UPDATE ${schema}.chats set contact_name = $1 where contact_phone=$2 and assigned_user=$3` ,[newName, number, user_id]
+    )
+  } catch (error) {
+    console.error(error)
+  }
+}
+
 module.exports = {
   createChat,
   updateChatMessages,
@@ -434,5 +420,5 @@ module.exports = {
   closeChat,
   setSpecificUser,
   getChatIfUserIsNull,
-  updateContactName,
+  updateChatNameByNumber
 };
