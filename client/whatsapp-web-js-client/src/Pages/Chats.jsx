@@ -16,9 +16,9 @@ function formatHour(timestamp) {
 function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, setSelectedChat, setSelectedMessages, onEditName }) {
   const url = process.env.REACT_APP_URL
   const userData = JSON.parse(localStorage.getItem('user'));
+  const schema = userData.schema
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showChangeQueueModal, setShowChangeQueueModal] = useState(false);
-  const schema = userData.schema
 
   const handleToggle = (isOpen) => {
     setIsDropdownOpen(isOpen);
@@ -107,11 +107,10 @@ function ChatPage({ theme }) {
   const [imageUrl, setImageUrl] = useState('')
   const selectedChatIdRef = useRef(null);
   const [selectedTab, setSelectedTab] = useState('conversas'); // novo estado
-const [isEditingName, setIsEditingName] = useState(false);
-const [editedName, setEditedName] = useState('');
-const nomeContatoRef = useRef(null);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState('');
+  const nomeContatoRef = useRef(null);
   const [showNewContactModal, setShowNewContactModal] = useState(false);
-
 
   const [socketInstance] = useState(socket)
   
