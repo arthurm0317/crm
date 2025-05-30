@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import EmojiPicker from 'emoji-picker-react';
 import NewContactModal from './modalPages/Chats_novoContato';
+import ChangeQueueModal from './modalPages/Chats_alterarFila';
 import {socket} from '../socket'
 import {Dropdown} from 'react-bootstrap';
 import './assets/style.css';
@@ -12,18 +13,16 @@ function formatHour(timestamp) {
   return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
-function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, setSelectedChat, setSelectedMessages, onEditName, editedName}) {
-
+function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, setSelectedChat, setSelectedMessages, onEditName }) {
   const url = process.env.REACT_APP_URL
   const userData = JSON.parse(localStorage.getItem('user'));
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [showChangeQueueModal, setShowChangeQueueModal] = useState(false);
   const schema = userData.schema
 
   const handleToggle = (isOpen) => {
     setIsDropdownOpen(isOpen);
   };
-
-
 
   const handleCloseChat = async () => {
     try {
@@ -49,26 +48,36 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
         console.error(error)
       }
   };
-  return (
-    <Dropdown drop="start" onToggle={handleToggle}>
-      <Dropdown.Toggle
-        variant={theme === 'light' ? 'light' : 'dark'}
-        id="dropdown-basic"
-        className={`btn-2-${theme}`}
-      >
-        Opções
-      </Dropdown.Toggle>
 
-      <Dropdown.Menu
-        variant={theme === 'light' ? 'light' : 'dark'}
-        className={`input-${theme}`}>
-        <Dropdown.Item href="#" onClick={handleCloseChat}>Finalizar Atendimento</Dropdown.Item>
-        <Dropdown.Item href="#" onClick={onEditName}>Editar Nome</Dropdown.Item>
-      </Dropdown.Menu>
-    </Dropdown>
+  return (
+    <>
+      <Dropdown drop="start" onToggle={handleToggle}>
+        <Dropdown.Toggle
+          variant={theme === 'light' ? 'light' : 'dark'}
+          id="dropdown-basic"
+          className={`btn-2-${theme}`}
+        >
+          Opções
+        </Dropdown.Toggle>
+
+        <Dropdown.Menu
+          variant={theme === 'light' ? 'light' : 'dark'}
+          className={`input-${theme}`}>
+          <Dropdown.Item href="#" onClick={() => setShowChangeQueueModal(true)}>Alterar Fila</Dropdown.Item>
+          <Dropdown.Item href="#" onClick={handleCloseChat}>Finalizar Atendimento</Dropdown.Item>
+          <Dropdown.Item href="#" onClick={onEditName}>Editar Nome</Dropdown.Item>
+        </Dropdown.Menu>
+      </Dropdown>
+
+      <ChangeQueueModal
+        show={showChangeQueueModal}
+        onHide={() => setShowChangeQueueModal(false)}
+        theme={theme}
+        selectedChat={selectedChat}
+      />
+    </>
   );
 }
-
 
 function ChatPage({ theme }) {
   const [chatList, setChats] = useState([]);
@@ -101,6 +110,7 @@ function ChatPage({ theme }) {
 const [isEditingName, setIsEditingName] = useState(false);
 const [editedName, setEditedName] = useState('');
 const nomeContatoRef = useRef(null);
+  const [showNewContactModal, setShowNewContactModal] = useState(false);
 
 
   const [socketInstance] = useState(socket)
@@ -108,6 +118,7 @@ const nomeContatoRef = useRef(null);
   const url = process.env.REACT_APP_URL;
 
   const setAsRead = async()=>{
+    if (!selectedChat) return;
     try{
       const res = await axios.post(`${url}/chat/setAsRead`,{
         chat_id: selectedChat.id,
@@ -624,49 +635,77 @@ const handleImageUpload = async (event) => {
   };
 
   return (
-    <div className={`d-flex flex-column h-100 w-100 ms-2`}>
-      <div className="mb-3">
+    <div className={`d-flex flex-column w-100 h-100 ms-2`} style={{ overflow: 'hidden' }}>
+      <div className="pt-3 mb-3 d-flex flex-row align-items-center gap-5" style={{ height: '7%' }}>
+        <h2 className={`mb-0 ms-4 header-text-${theme}`} style={{ fontWeight: 400 }}>Chats</h2>
+
         <button 
-        className={`btn btn-1-${theme} d-flex gap-2`}
-        data-bs-toggle="modal"
-        data-bs-target="#NewContactModal"
+          className={`btn btn-sm btn-1-${theme} d-flex align-items-center gap-2`}
+          style={{ height: '90%' }}
+          onClick={() => setShowNewContactModal(true)}
         >
           <i className="bi-plus-lg"></i>
           Novo Contato
         </button>
       </div>
-      <div className={`chat chat-${theme} h-100 w-100 d-flex flex-row`}>
-
+      <div 
+        className={`chat chat-${theme} w-100 d-flex flex-row`}
+        style={{ height: '100%', overflow: 'hidden' }}
+      >
         {/* LISTA DE CONTATOS */}
-        <div className={`col-3 chat-list-${theme} bg-color-${theme}`}
-          style={{ overflowY: 'auto', height: '100%', maxHeight: '777.61px', width:'100%',maxWidth:'300px',backgroundColor: `var(--bg-color-${theme})`}}>
+        <div className={`col-3 chat-list-${theme} bg-color-${theme} d-flex flex-column`}
+          style={{ 
+            height: '100%', 
+            width: '100%',
+            maxWidth: '300px',
+            backgroundColor: `var(--bg-color-${theme})`,
+            overflow: 'hidden',
+            position: 'relative'
+          }}>
 
-          {/* Botões de troca */}
-          <div className="d-flex gap-2 p-2">
-            <button
-              className={`d-flex gap-2 btn btn-sm ${selectedTab === 'conversas' ? `btn-1-${theme}` : `btn-2-${theme}`}`}
-              onClick={() => setSelectedTab('conversas')}
-            >
-              <i className="bi bi-chat-left-text"></i>
-              Conversas
-            </button>
-            <button
-              className={`d-flex gap-2 btn btn-sm ${selectedTab === 'aguardando' ? `btn-1-${theme}` : `btn-2-${theme}`}`}
-              onClick={() => setSelectedTab('aguardando')}
-            >
-              <i className="bi bi-alarm"></i>
-              Aguardando
-            </button>
+          <div style={{ 
+            height: '12.5%', 
+            position: 'sticky',
+            top: 0,
+            zIndex: 1,
+            backgroundColor: `var(--bg-color-${theme})`
+          }}>
+            {/* Botões de troca */}
+            <div className="d-flex gap-2 px-2" style={{ paddingTop: '8px' }}>
+              <button
+                className={`d-flex gap-2 btn btn-sm ${selectedTab === 'conversas' ? `btn-1-${theme}` : `btn-2-${theme}`}`}
+                onClick={() => setSelectedTab('conversas')}
+              >
+                <i className="bi bi-chat-left-text"></i>
+                Conversas
+              </button>
+              <button
+                className={`d-flex gap-2 btn btn-sm ${selectedTab === 'aguardando' ? `btn-1-${theme}` : `btn-2-${theme}`}`}
+                onClick={() => setSelectedTab('aguardando')}
+              >
+                <i className="bi bi-alarm"></i>
+                Aguardando
+              </button>
+            </div>
+
+            {/* Lista filtrada */}
+            <div className='px-3 py-3'>
+              <h6 
+                className={`header-text-${theme} m-0`}
+              >
+                {selectedTab === 'conversas' ? 'Conversas' : 'Sala de Espera'}
+              </h6>
+            </div>
+
           </div>
 
-          {/* Lista filtrada */}
-          <div>
-            <h6 
-              className={`header-text-${theme}`}
-              style={{padding: '8px 0 0 10px'}}
-            >
-              {selectedTab === 'conversas' ? 'Conversas' : 'Sala de Espera'}
-            </h6>
+          <div 
+            className={``}
+            style={{ 
+              height: 'auto', 
+              overflowY: 'auto'
+            }}
+          >
             {chatList
               .filter(chat =>
                 selectedTab === 'conversas'
@@ -1052,7 +1091,11 @@ const handleImageUpload = async (event) => {
   </div>
 </div>
     </div>
-      <NewContactModal theme={theme}/>
+      <NewContactModal 
+        theme={theme} 
+        show={showNewContactModal} 
+        onHide={() => setShowNewContactModal(false)}
+      />
     </div>
   );
 }
