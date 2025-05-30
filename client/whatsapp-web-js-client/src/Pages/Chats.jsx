@@ -16,6 +16,7 @@ function formatHour(timestamp) {
 function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, setSelectedChat, setSelectedMessages, onEditName }) {
   const url = process.env.REACT_APP_URL
   const userData = JSON.parse(localStorage.getItem('user'));
+  const schema = userData.schema
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showChangeQueueModal, setShowChangeQueueModal] = useState(false);
 
@@ -36,19 +37,16 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
       console.error(error)
     }
   };
-
-  const handleEditContactName = async (chatId, newName) => {
-    if (newName && newName.trim() !== '') {
+  const handleEditContactName = async (newName) => {
       try {
-        await axios.post(`${url}/chat/updateContactName`, {
-          chat_id: chatId,
-          new_name: newName,
-          schema: userData.schema
+        await axios.put(`${url}/contact/update-name`, {
+          number:selectedChat.contact_phone,
+          name: newName,
+          schema:schema
         });
       } catch (error) {
-        alert('erro na edição de nome');
+        console.error(error)
       }
-    }
   };
 
   return (
@@ -67,7 +65,7 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
           className={`input-${theme}`}>
           <Dropdown.Item href="#" onClick={() => setShowChangeQueueModal(true)}>Alterar Fila</Dropdown.Item>
           <Dropdown.Item href="#" onClick={handleCloseChat}>Finalizar Atendimento</Dropdown.Item>
-          <Dropdown.Item href="#" onClick={() => onEditName()}>Editar Nome</Dropdown.Item> 
+          <Dropdown.Item href="#" onClick={onEditName}>Editar Nome</Dropdown.Item>
         </Dropdown.Menu>
       </Dropdown>
 
@@ -129,6 +127,45 @@ function ChatPage({ theme }) {
       console.error(error)
     }
   }
+
+  const handleEditNameStart = () => {
+  setIsEditingName(true);
+  setEditedName(selectedChat?.contact_name || '');
+  setTimeout(() => {
+    if (nomeContatoRef.current) nomeContatoRef.current.focus();
+  }, 0);
+};
+
+const handleEditNameFinish = async () => {
+  if (
+    editedName.trim() !== '' &&
+    editedName !== selectedChat.contact_name
+  ) {
+    await handleEditContactName(selectedChat.id, editedName);
+  }
+  setIsEditingName(false);
+};
+
+const handleEditContactName = async (contactId, newName) => {
+  try {
+    await axios.put(`${url}/contact/update-name`, {
+      number: selectedChat.contact_phone,
+      name: newName,
+      user_id:userData.id,
+      schema: userData.schema
+    });
+    // Atualize o nome no chat selecionado (opcional)
+    setSelectedChat(prev => ({ ...prev, contact_name: newName }));
+    // Atualize na lista de chats (opcional)
+    setChats(prev =>
+      prev.map(chat =>
+        chat.id === contactId ? { ...chat, contact_name: newName } : chat
+      )
+    );
+  } catch (error) {
+    console.error(error);
+  }
+};
 
 const handleAcceptChat = async () => {
     try{
@@ -596,38 +633,6 @@ const handleImageUpload = async (event) => {
     setSelectedImage(null);
   };
 
-  const handleEditNameStart = () => {
-    setIsEditingName(true);
-    setEditedName(selectedChat?.contact_name || '');
-    setTimeout(() => {
-      if (nomeContatoRef.current) nomeContatoRef.current.focus();
-    }, 0);
-  };
-
-  const handleEditNameFinish = async () => {
-    if (
-      editedName.trim() !== '' &&
-      editedName !== selectedChat.contact_name
-    ) {
-      await handleEditContactName(selectedChat.id, editedName);
-    }
-    setIsEditingName(false);
-  };
-
-  const handleEditContactName = async (chatId, newName) => {
-    if (newName && newName.trim() !== '') {
-      try {
-        await axios.post(`${url}/chat/updateContactName`, {
-          chat_id: chatId,
-          new_name: newName,
-          schema: userData.schema
-        });
-      } catch (error) {
-        alert('erro na edição de nome');
-      }
-    }
-  };
-
   return (
     <div className={`d-flex flex-column w-100 h-100 ms-2`} style={{ overflow: 'hidden' }}>
       <div className="pt-3 mb-3 d-flex flex-row align-items-center gap-5" style={{ height: '7%' }}>
@@ -771,38 +776,37 @@ const handleImageUpload = async (event) => {
   >
 
     <div>
-      {isEditingName ? (
-        <input
-          ref={nomeContatoRef}
-          id="nomeContato"
-          type="text"
-          value={editedName}
-          onChange={e => setEditedName(e.target.value)}
-          onBlur={handleEditNameFinish}
-          onKeyDown={e => {
-            if (e.key === 'Enter') {
-              handleEditNameFinish();
-            }
-          }}
-          style={{
-            fontWeight: 700,
-            fontSize: '1.1rem',
-            border: '1px solid var(--border-color)',
-            borderRadius: 4,
-            padding: '2px 8px',
-            minWidth: 120,
-            background: 'transparent',
-            color: `var(--color-${theme})`,
-          }}
-        />
-      ) : (
-        <strong
-          id="nomeContato"
-          style={{ fontSize: '1.1rem', fontWeight: 700, cursor: 'pointer' }}
-        >
-          {selectedChat.contact_name || 'Sem Nome'}
-        </strong>
-      )}
+     {isEditingName ? (
+  <input
+    ref={nomeContatoRef}
+    id="nomeContato"
+    type="text"
+    value={editedName}
+    onChange={e => setEditedName(e.target.value)}
+    onBlur={handleEditNameFinish}
+    onKeyDown={e => {
+      if (e.key === 'Enter') handleEditNameFinish();
+    }}
+    style={{
+      fontWeight: 700,
+      fontSize: '1.1rem',
+      border: '1px solid var(--border-color)',
+      borderRadius: 4,
+      padding: '2px 8px',
+      minWidth: 120,
+      background: 'transparent',
+      color: `var(--color-${theme})`,
+    }}
+  />
+) : (
+  <strong
+    id="nomeContato"
+    style={{ fontSize: '1.1rem', fontWeight: 700, cursor: 'pointer' }}
+    onClick={handleEditNameStart}
+  >
+    {selectedChat.contact_name || 'Sem Nome'}
+  </strong>
+)}
       <div style={{ fontSize: '0.95rem', opacity: 0.8 }}>
         {selectedChat.contact_phone || selectedChat.id}
       </div>
@@ -832,6 +836,8 @@ const handleImageUpload = async (event) => {
         setSelectedChat={setSelectedChat}
         setSelectedMessages={setSelectedMessages}
         onEditName={handleEditNameStart}
+        editedName={editedName}
+
       />
       </div>
 
