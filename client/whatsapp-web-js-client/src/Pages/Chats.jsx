@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import EmojiPicker from 'emoji-picker-react';
 import NewContactModal from './modalPages/Chats_novoContato';
+import ChangeQueueModal from './modalPages/Chats_alterarFila';
 import {socket} from '../socket'
 import {Dropdown} from 'react-bootstrap';
 import './assets/style.css';
@@ -12,17 +13,16 @@ function formatHour(timestamp) {
   return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
-function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, setSelectedChat, setSelectedMessages }) {
-
+function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, setSelectedChat, setSelectedMessages, onEditName }) {
   const url = process.env.REACT_APP_URL
   const userData = JSON.parse(localStorage.getItem('user'));
+  const schema = userData.schema
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [showChangeQueueModal, setShowChangeQueueModal] = useState(false);
 
   const handleToggle = (isOpen) => {
     setIsDropdownOpen(isOpen);
   };
-
-  
 
   const handleCloseChat = async () => {
     try {
@@ -37,48 +37,47 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
       console.error(error)
     }
   };
-  const handleEditContactName = async (chatId) => {
-  const newName = window.prompt('mudar nome');
-  if (newName && newName.trim() !== '') {
-    try {
-    await axios.post(`${url}/chat/updateContactName`, {
-      chat_id: chatId,
-      new_name: newName,
-      schema: userData.schema
-    });
-      setChats(prevChats =>
-        prevChats.map(chat =>
-          chat.id === chatId ? { ...chat, contact_name: newName } : chat
-        )
-      );
-      if (selectedChat && selectedChat.id === chatId) {
-        setSelectedChat({ ...selectedChat, contact_name: newName });
+  const handleEditContactName = async (newName) => {
+      try {
+        await axios.put(`${url}/contact/update-name`, {
+          number:selectedChat.contact_phone,
+          name: newName,
+          schema:schema
+        });
+      } catch (error) {
+        console.error(error)
       }
-    } catch (error) {
-      alert('erro na edição de nome');
-    }
-  }
-};
-  return (
-    <Dropdown drop="start" onToggle={handleToggle}>
-      <Dropdown.Toggle
-        variant={theme === 'light' ? 'light' : 'dark'}
-        id="dropdown-basic"
-        className={`btn-2-${theme}`}
-      >
-        Opções
-      </Dropdown.Toggle>
+  };
 
-      <Dropdown.Menu
-        variant={theme === 'light' ? 'light' : 'dark'}
-        className={`input-${theme}`}>
-        <Dropdown.Item href="#" onClick={handleCloseChat}>Finalizar Atendimento</Dropdown.Item>
-        <Dropdown.Item href="#" onClick={handleEditContactName}>Editar Nome</Dropdown.Item> 
-      </Dropdown.Menu>
-    </Dropdown>
+  return (
+    <>
+      <Dropdown drop="start" onToggle={handleToggle}>
+        <Dropdown.Toggle
+          variant={theme === 'light' ? 'light' : 'dark'}
+          id="dropdown-basic"
+          className={`btn-2-${theme}`}
+        >
+          Opções
+        </Dropdown.Toggle>
+
+        <Dropdown.Menu
+          variant={theme === 'light' ? 'light' : 'dark'}
+          className={`input-${theme}`}>
+          <Dropdown.Item href="#" onClick={() => setShowChangeQueueModal(true)}>Alterar Fila</Dropdown.Item>
+          <Dropdown.Item href="#" onClick={handleCloseChat}>Finalizar Atendimento</Dropdown.Item>
+          <Dropdown.Item href="#" onClick={onEditName}>Editar Nome</Dropdown.Item>
+        </Dropdown.Menu>
+      </Dropdown>
+
+      <ChangeQueueModal
+        show={showChangeQueueModal}
+        onHide={() => setShowChangeQueueModal(false)}
+        theme={theme}
+        selectedChat={selectedChat}
+      />
+    </>
   );
 }
-
 
 function ChatPage({ theme }) {
   const [chatList, setChats] = useState([]);
@@ -108,13 +107,17 @@ function ChatPage({ theme }) {
   const [imageUrl, setImageUrl] = useState('')
   const selectedChatIdRef = useRef(null);
   const [selectedTab, setSelectedTab] = useState('conversas'); // novo estado
-
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState('');
+  const nomeContatoRef = useRef(null);
+  const [showNewContactModal, setShowNewContactModal] = useState(false);
 
   const [socketInstance] = useState(socket)
   
   const url = process.env.REACT_APP_URL;
 
   const setAsRead = async()=>{
+    if (!selectedChat) return;
     try{
       const res = await axios.post(`${url}/chat/setAsRead`,{
         chat_id: selectedChat.id,
@@ -124,6 +127,45 @@ function ChatPage({ theme }) {
       console.error(error)
     }
   }
+
+  const handleEditNameStart = () => {
+  setIsEditingName(true);
+  setEditedName(selectedChat?.contact_name || '');
+  setTimeout(() => {
+    if (nomeContatoRef.current) nomeContatoRef.current.focus();
+  }, 0);
+};
+
+const handleEditNameFinish = async () => {
+  if (
+    editedName.trim() !== '' &&
+    editedName !== selectedChat.contact_name
+  ) {
+    await handleEditContactName(selectedChat.id, editedName);
+  }
+  setIsEditingName(false);
+};
+
+const handleEditContactName = async (contactId, newName) => {
+  try {
+    await axios.put(`${url}/contact/update-name`, {
+      number: selectedChat.contact_phone,
+      name: newName,
+      user_id:userData.id,
+      schema: userData.schema
+    });
+    // Atualize o nome no chat selecionado (opcional)
+    setSelectedChat(prev => ({ ...prev, contact_name: newName }));
+    // Atualize na lista de chats (opcional)
+    setChats(prev =>
+      prev.map(chat =>
+        chat.id === contactId ? { ...chat, contact_name: newName } : chat
+      )
+    );
+  } catch (error) {
+    console.error(error);
+  }
+};
 
 const handleAcceptChat = async () => {
     try{
@@ -592,49 +634,77 @@ const handleImageUpload = async (event) => {
   };
 
   return (
-    <div className={`d-flex flex-column h-100 w-100 ms-2`}>
-      <div className="mb-3">
+    <div className={`d-flex flex-column w-100 h-100 ms-2`} style={{ overflow: 'hidden' }}>
+      <div className="pt-3 mb-3 d-flex flex-row align-items-center gap-5" style={{ height: '7%' }}>
+        <h2 className={`mb-0 ms-4 header-text-${theme}`} style={{ fontWeight: 400 }}>Chats</h2>
+
         <button 
-        className={`btn btn-1-${theme} d-flex gap-2`}
-        data-bs-toggle="modal"
-        data-bs-target="#NewContactModal"
+          className={`btn btn-sm btn-1-${theme} d-flex align-items-center gap-2`}
+          style={{ height: '90%' }}
+          onClick={() => setShowNewContactModal(true)}
         >
           <i className="bi-plus-lg"></i>
           Novo Contato
         </button>
       </div>
-      <div className={`chat chat-${theme} h-100 w-100 d-flex flex-row`}>
-
+      <div 
+        className={`chat chat-${theme} w-100 d-flex flex-row`}
+        style={{ height: '100%', overflow: 'hidden' }}
+      >
         {/* LISTA DE CONTATOS */}
-        <div className={`col-3 chat-list-${theme} bg-color-${theme}`}
-          style={{ overflowY: 'auto', height: '100%', maxHeight: '777.61px', width:'100%',maxWidth:'300px',backgroundColor: `var(--bg-color-${theme})`}}>
+        <div className={`col-3 chat-list-${theme} bg-color-${theme} d-flex flex-column`}
+          style={{ 
+            height: '100%', 
+            width: '100%',
+            maxWidth: '300px',
+            backgroundColor: `var(--bg-color-${theme})`,
+            overflow: 'hidden',
+            position: 'relative'
+          }}>
 
-          {/* Botões de troca */}
-          <div className="d-flex gap-2 p-2">
-            <button
-              className={`d-flex gap-2 btn btn-sm ${selectedTab === 'conversas' ? `btn-1-${theme}` : `btn-2-${theme}`}`}
-              onClick={() => setSelectedTab('conversas')}
-            >
-              <i className="bi bi-chat-left-text"></i>
-              Conversas
-            </button>
-            <button
-              className={`d-flex gap-2 btn btn-sm ${selectedTab === 'aguardando' ? `btn-1-${theme}` : `btn-2-${theme}`}`}
-              onClick={() => setSelectedTab('aguardando')}
-            >
-              <i className="bi bi-alarm"></i>
-              Aguardando
-            </button>
+          <div style={{ 
+            height: '12.5%', 
+            position: 'sticky',
+            top: 0,
+            zIndex: 1,
+            backgroundColor: `var(--bg-color-${theme})`
+          }}>
+            {/* Botões de troca */}
+            <div className="d-flex gap-2 px-2" style={{ paddingTop: '8px' }}>
+              <button
+                className={`d-flex gap-2 btn btn-sm ${selectedTab === 'conversas' ? `btn-1-${theme}` : `btn-2-${theme}`}`}
+                onClick={() => setSelectedTab('conversas')}
+              >
+                <i className="bi bi-chat-left-text"></i>
+                Conversas
+              </button>
+              <button
+                className={`d-flex gap-2 btn btn-sm ${selectedTab === 'aguardando' ? `btn-1-${theme}` : `btn-2-${theme}`}`}
+                onClick={() => setSelectedTab('aguardando')}
+              >
+                <i className="bi bi-alarm"></i>
+                Aguardando
+              </button>
+            </div>
+
+            {/* Lista filtrada */}
+            <div className='px-3 py-3'>
+              <h6 
+                className={`header-text-${theme} m-0`}
+              >
+                {selectedTab === 'conversas' ? 'Conversas' : 'Sala de Espera'}
+              </h6>
+            </div>
+
           </div>
 
-          {/* Lista filtrada */}
-          <div>
-            <h6 
-              className={`header-text-${theme}`}
-              style={{padding: '8px 0 0 10px'}}
-            >
-              {selectedTab === 'conversas' ? 'Conversas' : 'Sala de Espera'}
-            </h6>
+          <div 
+            className={``}
+            style={{ 
+              height: 'auto', 
+              overflowY: 'auto'
+            }}
+          >
             {chatList
               .filter(chat =>
                 selectedTab === 'conversas'
@@ -706,9 +776,37 @@ const handleImageUpload = async (event) => {
   >
 
     <div>
-      <strong style={{ fontSize: '1.1rem' }}>
-        {selectedChat.contact_name || 'Sem Nome'}
-      </strong>
+     {isEditingName ? (
+  <input
+    ref={nomeContatoRef}
+    id="nomeContato"
+    type="text"
+    value={editedName}
+    onChange={e => setEditedName(e.target.value)}
+    onBlur={handleEditNameFinish}
+    onKeyDown={e => {
+      if (e.key === 'Enter') handleEditNameFinish();
+    }}
+    style={{
+      fontWeight: 700,
+      fontSize: '1.1rem',
+      border: '1px solid var(--border-color)',
+      borderRadius: 4,
+      padding: '2px 8px',
+      minWidth: 120,
+      background: 'transparent',
+      color: `var(--color-${theme})`,
+    }}
+  />
+) : (
+  <strong
+    id="nomeContato"
+    style={{ fontSize: '1.1rem', fontWeight: 700, cursor: 'pointer' }}
+    onClick={handleEditNameStart}
+  >
+    {selectedChat.contact_name || 'Sem Nome'}
+  </strong>
+)}
       <div style={{ fontSize: '0.95rem', opacity: 0.8 }}>
         {selectedChat.contact_phone || selectedChat.id}
       </div>
@@ -737,6 +835,9 @@ const handleImageUpload = async (event) => {
         setChats={setChats}
         setSelectedChat={setSelectedChat}
         setSelectedMessages={setSelectedMessages}
+        onEditName={handleEditNameStart}
+        editedName={editedName}
+
       />
       </div>
 
@@ -989,7 +1090,11 @@ const handleImageUpload = async (event) => {
   </div>
 </div>
     </div>
-      <NewContactModal theme={theme}/>
+      <NewContactModal 
+        theme={theme} 
+        show={showNewContactModal} 
+        onHide={() => setShowNewContactModal(false)}
+      />
     </div>
   );
 }

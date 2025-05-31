@@ -102,6 +102,7 @@ function Painel() {
       case 'usuarios': return <UsuariosPage theme={theme} />;
       case 'agenda': return <Manutencao theme={theme} />;
       case 'relatorios': return <Manutencao theme={theme} />;
+      case 'insights': return <Manutencao theme={theme} />;
       case 'disparos': return <DisparosPage theme={theme} />;
       case 'ajuda': return <AjudaPage theme={theme} />;
       case 'ChatGPT': return <Chatgpt theme={theme} />;
@@ -228,6 +229,17 @@ function Painel() {
               <i className="bi bi-bar-chart-line"></i>
               <span className="sidebar-label d-none">Relatórios</span>
             </button>
+            <button
+              id="insights"
+              onClick={() => setPage('insights')}
+              data-bs-toggle="tooltip"
+              data-bs-placement="right"
+              data-bs-title="Insights"
+              className={`btn ${page === 'insights' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''}`}
+            >
+              <i className="bi bi-rocket"></i>
+              <span className="sidebar-label d-none">Insights</span>
+            </button>
             <hr className={`hr-${theme} mx-auto my-0`} style={{ width: '50%' }} />
             <button
               id="ajuda"
@@ -289,7 +301,7 @@ function Painel() {
               </button>
             </div>
           </div>
-          <div className={`main-${theme} ps-2 pe-3 pb-3`} style={{ flex: 1, overflow: 'auto', minWidth: 0 }} id="main">
+          <div className={`main-${theme} ps-2 pe-3 pb-3`} style={{ flex: 1, overflow: 'auto', minWidth: 0, height: '90%' }} id="main">
             {renderPage()}
           </div>
         </div>

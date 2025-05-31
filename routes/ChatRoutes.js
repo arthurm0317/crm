@@ -8,7 +8,6 @@ const {
 const { updateContactName } = require('../services/ChatService');
 const router = express.Router();
 
-router.post('/updateContactName', updateContactNameController);
 router.post('/setChat', setUserChatController);
 router.get('/getChats/:schema', getChatsController);
 router.post('/getMessages', getMessagesController);
