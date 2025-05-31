@@ -13,6 +13,7 @@ const webhook = require('./controllers/Webhook');
 const filesRoutes = require('./routes/FilesRoutes');
 const campaingRoutes = require('./routes/CampaingRoutes')
 const bodyParser = require('body-parser');
+const chatgptRoutes = require('./routes/ChatGptRoutes');
 
 const cors = require('cors');
 const configureSocket = require('./config/SocketConfig');
@@ -59,6 +60,7 @@ app.use('/contact', contactRoutes);
 app.use('/kanban', kanbanRoutes);
 app.use('/files', filesRoutes);
 app.use('/campaing', campaingRoutes)
+app.use('/chatgpt', chatgptRoutes);
 
 const axios = require('axios');
 const fs = require('fs');
