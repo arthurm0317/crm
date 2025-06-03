@@ -170,6 +170,11 @@ const createFunil = async (sector, schema) => {
       color text
     )`
   )
+}
+const deleteEtapa = async (etapa_id, sector, schema) => {
+  await pool.query(
+    `DELETE FROM ${schema}.kanban_${sector} where id=$1`, [etapa_id]
+  )
   
 }
 module.exports = {
@@ -182,5 +187,6 @@ module.exports = {
   changeKanbanStage,
   updateStageName,
   updateStageIndex,
-  createFunil
+  createFunil,
+  deleteEtapa
 };

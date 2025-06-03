@@ -1,5 +1,5 @@
 const express = require('express');
-const { createKanbanStageController, createMessageForBlastController, getFunisController, getKanbanStagesController, getChatsInKanbanController, changeKanbanStageController, updateStageNameController, createFunilController } = require('../controllers/KanbanController');
+const { createKanbanStageController, createMessageForBlastController, getFunisController, getKanbanStagesController, getChatsInKanbanController, changeKanbanStageController, updateStageNameController, createFunilController, deleteEtapaController } = require('../controllers/KanbanController');
 const router = express.Router();
 
 router.post('/create-kanban', createKanbanStageController);
@@ -10,4 +10,5 @@ router.get('/get-cards/:sector/:schema', getChatsInKanbanController)
 router.put('/change-stage', changeKanbanStageController)
 router.put('/update-stage-name', updateStageNameController)
 router.post('/create-funil', createFunilController)
+router.delete('/delete-stage', deleteEtapaController)
 module.exports = router;

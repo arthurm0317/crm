@@ -164,7 +164,7 @@ function KanbanPage({ theme }) {
       }
     };
     fetchEtapas();
-  }, [funilSelecionado, url, schema]);
+  }, [funilSelecionado, schema]);
 
   useEffect(()=>{
     const fetchCards = async()=>{
@@ -599,6 +599,7 @@ useEffect(() => {
         onHide={() => setShowExcluirEtapaModal(false)}
         onConfirm={handleConfirmarExcluirEtapa}
         etapa={etapaParaExcluir}
+        funil={funilSelecionado}
         theme={theme}
       />
 
