@@ -1,17 +1,18 @@
 const SocketServer = require("../server");
-const { createKanbanStage, getFunis, getKanbanStages, getChatsInKanban, changeKanbanStage } = require("../services/KanbanService");
+const { createKanbanStage, getFunis, getKanbanStages, getChatsInKanban, changeKanbanStage, updateStageName, updateStageIndex } = require("../services/KanbanService");
 const { createMessageForBlast } = require("../services/MessageBlast");
 const io = SocketServer.io
 
 const createKanbanStageController = async (req, res) => {
     try {
-        const { name } = req.body;
-        const schema = req.body.schema || 'effective_gain';
-        const result = await createKanbanStage(name, schema);
+        const { name, pos, sector, color } = req.body;
+        console.log(req.body)
+        const schema = req.body.schema;
+        const result = await createKanbanStage(name, pos, color, sector, schema);
         
         res.status(201).json(result);
     } catch (err) {
-        console.error("Erro ao criar estágio do Kanban:", err.message);
+        console.error("Erro ao criar estágio do Kanban:", err);
         res.status(500).json({ error: 'Erro ao criar estágio do Kanban' });
     }
 }
@@ -76,11 +77,31 @@ const changeKanbanStageController = async (req, res) => {
         res.status(500).json({ error: 'Erro ao mudar estágio do Kanban' });
     }
 };
+
+const updateStageNameController = async (req, res) => {
+    const {etapa_id, etapa_nome, sector, color, schema, index} = req.body
+    try {
+        if(color){
+            const result = await updateStageName(etapa_id, etapa_nome, color, sector, schema)
+            res.status(200).json(result)
+
+        }else{
+            const result = await updateStageName(etapa_id, etapa_nome, null, sector, schema)
+            res.status(200).json(result)
+
+        }
+    } catch (error) {
+        console.error(error)
+    }finally{
+        updateStageIndex(etapa_id, index, sector, schema)
+    }
+}
 module.exports = {
     createKanbanStageController,
     createMessageForBlastController,
     getFunisController,
     getKanbanStagesController,
     getChatsInKanbanController,
-    changeKanbanStageController
+    changeKanbanStageController,
+    updateStageNameController
 }

@@ -2,17 +2,17 @@ const pool = require("../db/queries");
 const { v4: uuidv4 } = require("uuid");
 const { get } = require("../routes/ConnectionRoutes");
 
-const createKanbanStage = async (name, schema) => {
+const createKanbanStage = async (name, pos, color, sector, schema) => {
   const stageExists = await pool.query(
-    `SELECT * FROM ${schema}.kanban_vendas WHERE etapa=$1`,
+    `SELECT * FROM ${schema}.kanban_${sector} WHERE etapa=$1`,
     [name]
   );
   if (stageExists.rowCount > 0) {
     return stageExists.rows[0];
   } else {
     const result = await pool.query(
-      `INSERT INTO ${schema}.kanban_vendas (id, etapa) VALUES ($1, $2) RETURNING *`,
-      [uuidv4(), name]
+      `INSERT INTO ${schema}.kanban_${sector} (id, etapa, pos, color) VALUES ($1, $2, $3, $4) RETURNING *`,
+      [uuidv4(), name, pos, color]
     );
     return result.rows[0];
   }
@@ -143,6 +143,23 @@ const changeKanbanStage = async (chat_id, stage_id, schema) => {
 
 }
 
+const updateStageName = async (etapa_id, etapa_nome, color, sector, schema) => {
+  if(color){
+    await pool.query(
+    `UPDATE ${schema}.kanban_${sector} set etapa=$1, color=$3 where id=$2`,[etapa_nome, etapa_id, color]
+  )
+  }else{
+    await pool.query(
+        `UPDATE ${schema}.kanban_${sector} set etapa=$1 where id=$2`,[etapa_nome, etapa_id]
+      )
+  }
+}
+
+const updateStageIndex = async (etapa_id, index, sector, schema) => {
+  await pool.query(
+    `UPDATE ${schema}.kanban_${sector} set pos=$1 where id=$2`,[index, etapa_id]
+  )
+}
 
 module.exports = {
   createKanbanStage,
@@ -151,5 +168,7 @@ module.exports = {
   getKanbanStages,
   getFunis,
   getChatsInKanban,
-  changeKanbanStage
+  changeKanbanStage,
+  updateStageName,
+  updateStageIndex
 };

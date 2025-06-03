@@ -215,7 +215,7 @@ function KanbanPage({ theme }) {
     setEditingEtapaId(etapa.id);
     setEditingEtapaNome(etapa.etapa);
   };
-  const handleSaveEditEtapa = (etapa) => {
+  const handleSaveEditEtapa = async(etapa) => {
     setFunis(funis => funis.map(f =>
       f.id === funilSelecionado
         ? { ...f, etapas: f.etapas.map(e =>
@@ -223,6 +223,20 @@ function KanbanPage({ theme }) {
           ) }
         : f
     ));
+    const response = await axios.put(`${url}/kanban/update-stage-name`,{
+      etapa_id:editingEtapaId,
+      etapa_nome:editingEtapaNome,
+      sector: funilSelecionado,
+      schema: schema
+    })
+
+     setEtapas(etapas =>
+    etapas.map(e =>
+      e.id === etapa.id ? { ...e, etapa: editingEtapaNome } : e
+    )
+  );
+
+    
     setEditingEtapaId(null);
     setEditingEtapaNome('');
   };
@@ -301,7 +315,7 @@ function handleLeadMoved({ chat_id, etapa_id, stage_id }) {
       etapas: etapas.map((etapa, idx) => ({
         id: novoId * 100 + idx + 1, // Garante id único
         nome: etapa.etapa,
-        cor: etapa.cor
+        cor: etapa.color
       })),
       contatosVinculados: [],
       usuariosVinculados: [],
@@ -462,7 +476,7 @@ useEffect(() => {
                       style={{
                         width: '100%',
                         height: '6px',
-                        background: `${etapa.cor}`,
+                        background: `${etapa.color}`,
                         borderRadius: '4px',
                         marginBottom: '8px'
                       }}
@@ -576,7 +590,7 @@ useEffect(() => {
         show={showGerirEtapaModal}
         onHide={() => setShowGerirEtapaModal(false)}
         onSave={handleSalvarEtapas}
-        funil={funilAtual}
+        funil={funilSelecionado}
         etapas={etapas}
       />
       {/* Modal de Excluir Etapa */}

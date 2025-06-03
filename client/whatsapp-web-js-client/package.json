@@ -12,6 +12,7 @@
     "animejs": "^3.2.1",
     "lucide-react": "^0.487.0",
     "react": "18.2.0",
+    "react-beautiful-dnd": "^13.1.1",
     "react-bootstrap": "^2.10.1",
     "react-dom": "18.2.0",
     "react-qr-code": "^2.0.15",
