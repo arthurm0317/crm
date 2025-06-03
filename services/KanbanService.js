@@ -161,6 +161,17 @@ const updateStageIndex = async (etapa_id, index, sector, schema) => {
   )
 }
 
+const createFunil = async (sector, schema) => {
+  await pool.query(
+    `CREATE TABLE IF NOT EXISTS ${schema}.kanban_${sector}(
+      id uuid primary key,
+      etapa text not null,
+      pos int,
+      color text
+    )`
+  )
+  
+}
 module.exports = {
   createKanbanStage,
   insertInKanbanStage,
@@ -170,5 +181,6 @@ module.exports = {
   getChatsInKanban,
   changeKanbanStage,
   updateStageName,
-  updateStageIndex
+  updateStageIndex,
+  createFunil
 };

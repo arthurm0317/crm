@@ -1,5 +1,5 @@
 const SocketServer = require("../server");
-const { createKanbanStage, getFunis, getKanbanStages, getChatsInKanban, changeKanbanStage, updateStageName, updateStageIndex } = require("../services/KanbanService");
+const { createKanbanStage, getFunis, getKanbanStages, getChatsInKanban, changeKanbanStage, updateStageName, updateStageIndex, createFunil } = require("../services/KanbanService");
 const { createMessageForBlast } = require("../services/MessageBlast");
 const io = SocketServer.io
 
@@ -96,6 +96,14 @@ const updateStageNameController = async (req, res) => {
         updateStageIndex(etapa_id, index, sector, schema)
     }
 }
+const createFunilController = async (req, res) => {
+    const {sector, schema} = req.body
+    try {
+        const result = await createFunil(sector, schema)
+    } catch (error) {
+        console.error(error)
+    }
+}
 module.exports = {
     createKanbanStageController,
     createMessageForBlastController,
@@ -103,5 +111,6 @@ module.exports = {
     getKanbanStagesController,
     getChatsInKanbanController,
     changeKanbanStageController,
-    updateStageNameController
+    updateStageNameController,
+    createFunilController
 }
