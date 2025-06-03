@@ -1,4 +1,4 @@
-const { createKanbanStage, getFunis, getKanbanStages } = require("../services/KanbanService");
+const { createKanbanStage, getFunis, getKanbanStages, getChatsInKanban, changeKanbanStage } = require("../services/KanbanService");
 const { createMessageForBlast } = require("../services/MessageBlast");
 
 
@@ -42,9 +42,6 @@ const getKanbanStagesController = async (req, res) => {
         const funil = req.params.funil;
         const schema = req.params.schema
 
-        console.log("Funil:", funil);
-        console.log("Schema:", schema);
-
         const stages = await getKanbanStages(funil, schema);
         res.status(200).json(stages);
     } catch (err) {
@@ -52,9 +49,32 @@ const getKanbanStagesController = async (req, res) => {
         res.status(500).json({ error: 'Erro ao buscar estágios do Kanban' });
     }
 }
+
+const getChatsInKanbanController = async (req, res) => {
+    try {
+        const {sector, schema} = req.params
+        const result = await getChatsInKanban(sector, schema)
+        res.status(200).json(result)
+    } catch (error) {
+        console.error(error)
+    }
+}
+
+const changeKanbanStageController = async (req, res) => {
+    try {
+        const { chat_id,stage_id} = req.body
+        const schema = req.body.schema
+        const result = await changeKanbanStage(chat_id, stage_id, schema)
+        res.status(200).json(result)
+    } catch (error) {
+        console.error(error)
+    }
+}
 module.exports = {
     createKanbanStageController,
     createMessageForBlastController,
     getFunisController,
-    getKanbanStagesController
+    getKanbanStagesController,
+    getChatsInKanbanController,
+    changeKanbanStageController
 }

@@ -3,68 +3,9 @@ import NovoFunilModal from './modalPages/Kanban_novoFunil';
 import GerirEtapaModal from './modalPages/Kanban_gerirEtapa';
 import { Dropdown } from 'react-bootstrap';
 import KanbanExcluirEtapaModal from './modalPages/Kanban_excluirEtapa';
+import axios from 'axios';
 
-// Mock inicial de funis, etapas e leads
-const mockFunis = [
-    {
-        id: 1,
-        nome: 'Vendas',
-        etapas: [
-        { id: 1, nome: 'Novos Clientes', cor: '#ff0000' }, // Exemplo de cor
-        { id: 2, nome: 'Proposta Enviada', cor: '#0000ff' },
-        { id: 3, nome: 'Negociação', cor: '#008000' },
-        { id: 4, nome: 'Aguardando Retorno', cor: '#7fffd4' },
-        { id: 5, nome: 'Clientes Fechados', cor: '#2ecc71' },
-        { id: 6, nome: 'Pós-venda', cor: '#1abc9c' },
-        { id: 7, nome: 'Perdidos', cor: '#e74c3c' }
-        ],
-        contatosVinculados: ['+5511999999999', '+5511988888888', '+5511977777777'],
-        usuariosVinculados: [
-            { id: 1, nome: 'Arthur FilhoDeCauan' },
-            { id: 2, nome: 'Cauan FilhoDeArthur' }
-          ],
-        filasVinculadas: [
-            { id: 1, nome: 'Fila 1' },
-            { id: 2, nome: 'Fila 2' }
-        ]
-    },
-    {
-        id: 2,
-        nome: 'Adimplência',
-        etapas: [
-        { id: 8, nome: 'Cobrança 1', cor: '#e67e22' },
-        { id: 9, nome: 'Cobrança 2', cor: '#f1c40f' },
-        { id: 10, nome: 'Pago', cor: '#2ecc71' }
-        ],
-        contatosVinculados: ['+5511966666666'],
-        usuariosVinculados: [
-            { id: 1, nome: 'Vitor FilhoDeChocadeira' },
-          ],
-        filasVinculadas: [
-            { id: 3, nome: 'Fila 3' }
-        ]
-    }
-];
 
-const mockLeads = [
-  { id: 1, nome: 'João Silva', funilId: 1, etapaId: 1, tags: ['VIP', 'Novo'], telefone: '+5511999999999' },
-  { id: 2, nome: 'Maria Souza', funilId: 1, etapaId: 2, tags: ['Retorno'], telefone: '+5511988888888' },
-  { id: 3, nome: 'Empresa X', funilId: 2, etapaId: 4, tags: ['Cobrança'], telefone: '+5511977777777' },
-  { id: 4, nome: 'Carlos Oliveira', funilId: 1, etapaId: 1, tags: ['Lead Quente'], telefone: '+5511966666666' },
-  { id: 5, nome: 'Ana Beatriz', funilId: 1, etapaId: 3, tags: ['Prospect'], telefone: '+5511955555555' },
-  { id: 6, nome: 'Tech Solutions Ltda', funilId: 1, etapaId: 2, tags: ['VIP', 'Lead Quente'], telefone: '+5511944444444' },
-  { id: 7, nome: 'Roberto Santos', funilId: 1, etapaId: 5, tags: ['Cliente Fechado'], telefone: '+5511933333333' },
-  { id: 8, nome: 'Inovação Digital', funilId: 1, etapaId: 4, tags: ['Lead Frio'], telefone: '+5511922222222' },
-  { id: 9, nome: 'Patrícia Lima', funilId: 1, etapaId: 6, tags: ['Pós-venda'], telefone: '+5511911111111' },
-  { id: 10, nome: 'Global Tech', funilId: 1, etapaId: 7, tags: ['Perdido'], telefone: '+5511900000000' },
-  { id: 11, nome: 'Lucas Mendes', funilId: 1, etapaId: 1, tags: ['Novo'], telefone: '+5511899999999' },
-  { id: 12, nome: 'Consultoria ABC', funilId: 1, etapaId: 2, tags: ['Lead Quente'], telefone: '+5511888888888' }
-];
-
-// Lista fictícia de tags globais
-const allTags = [
-  'VIP', 'Novo', 'Retorno', 'Cobrança', 'Prospect', 'Lead Quente', 'Lead Frio', 'Newsletter', 'Abandonou Carrinho'
-];
 
 function maskPhone(num) {
   // Remove tudo que não for dígito
@@ -146,7 +87,7 @@ function KanbanTagsDropdown({ theme, leadTags, onChange }) {
             minWidth: '180px'
           }}
         >
-          {allTags.map(tag => (
+          {/* {allTags.map(tag => (
             <div 
               key={tag} 
               className="dropdown-item d-flex align-items-center gap-2"
@@ -170,7 +111,7 @@ function KanbanTagsDropdown({ theme, leadTags, onChange }) {
                 {tag}
               </label>
             </div>
-          ))}
+          ))} */}
         </div>
       )}
     </div>
@@ -178,21 +119,64 @@ function KanbanTagsDropdown({ theme, leadTags, onChange }) {
 }
 
 function KanbanPage({ theme }) {
-  const [funis, setFunis] = useState(mockFunis);
-  const [leads, setLeads] = useState(mockLeads);
-  const [funilSelecionado, setFunilSelecionado] = useState(mockFunis[0].id);
+  const [funis, setFunis] = useState([]);
+  const [leads, setLeads] = useState([]);
+  const [funilSelecionado, setFunilSelecionado] = useState('');
   const [editingEtapaId, setEditingEtapaId] = useState(null);
   const [editingEtapaNome, setEditingEtapaNome] = useState('');
-
-  // Drag and drop state
+  const [etapas, setEtapas] = useState([])
   const [draggedLead, setDraggedLead] = useState(null);
-
-  // Drag-to-scroll state
+  const [cards, setCards] = useState([])
   const scrollRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
+  const userData = JSON.parse(localStorage.getItem('user'));
+  const schema = userData?.schema;
+  const url = process.env.REACT_APP_URL;
 
+  useEffect(()=>{
+    const fetchFunis = async () => {
+    try {
+      const response = await axios.get(`${url}/kanban/get-funis/${schema}`);
+        setFunis(Array.isArray(response.data.name) ? response.data.name : []);
+        console.log(response.data)
+      } catch (error) {
+        console.error('Erro ao buscar funis:', error);
+      }
+    };
+    
+    fetchFunis();
+  }, [])
+  useEffect(() => {
+    if (!funilSelecionado) {
+      setEtapas([]);
+      return;
+    }
+    const fetchEtapas = async () => {
+      try {
+        const response = await axios.get(`${url}/kanban/get-stages/${funilSelecionado.charAt(0).toLowerCase() + funilSelecionado.slice(1)}/${schema}`);
+        setEtapas(Array.isArray(response.data) ? response.data : []);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    fetchEtapas();
+  }, [funilSelecionado, url, schema]);
+
+  useEffect(()=>{
+    const fetchCards = async()=>{
+    try {
+        const response = await axios.get(`${url}/kanban/get-cards/${funilSelecionado}/${schema}`)
+        setCards(Array.isArray(response.data)?response.data:[response.data])
+        console.log(response.data)
+      }catch (error) {
+      console.error(error)
+    } 
+  }
+  fetchCards()
+  }, [funilSelecionado])
+ 
   // Adiciona/remover listeners globais para mousemove/mouseup
   useEffect(() => {
     if (!isDragging) return;
@@ -222,19 +206,18 @@ function KanbanPage({ theme }) {
   };
 
   const funilAtual = funis.find(f => f.id === funilSelecionado) || { etapas: [], contatosVinculados: [], filasVinculadas: [] };
-  const etapas = funilAtual.etapas;
 
   // CRUD de etapas e tags: placeholders para modais ou menus
   const handleAddEtapa = () => setShowGerirEtapaModal(true);
   const handleEditEtapa = (etapa) => {
     setEditingEtapaId(etapa.id);
-    setEditingEtapaNome(etapa.nome);
+    setEditingEtapaNome(etapa.etapa);
   };
   const handleSaveEditEtapa = (etapa) => {
     setFunis(funis => funis.map(f =>
       f.id === funilSelecionado
         ? { ...f, etapas: f.etapas.map(e =>
-            e.id === etapa.id ? { ...e, nome: editingEtapaNome } : e
+            e.id === etapa.id ? { ...e, name: editingEtapaNome } : e
           ) }
         : f
     ));
@@ -261,16 +244,31 @@ function KanbanPage({ theme }) {
 
   // Drag and drop handlers
   const onDragStart = (lead) => setDraggedLead(lead);
-  const onDrop = (etapaId) => {
-    if (draggedLead) {
-      setLeads(leads.map(l => l.id === draggedLead.id ? { ...l, etapaId } : l));
-      setDraggedLead(null);
+  const onDrop = async(etapaId) => {
+   if (draggedLead) {
+    setCards(cards =>
+      cards.map(l =>
+        l.id === draggedLead.id ? { ...l, etapa_id: etapaId } : l
+      )
+    );
+    setDraggedLead(null);
+    try {
+      const respose = await axios.put(`${url}/kanban/change-stage`,{
+        chat_id: draggedLead.id,
+        stage_id: etapaId,
+        schema: schema
+      })
+    } catch (error) {
+      console.error(error)
     }
+  }
   };
 
   const [showNovoFunilModal, setShowNovoFunilModal] = useState(false);
   const [showGerirEtapaModal, setShowGerirEtapaModal] = useState(false);
 
+  useEffect(() => {
+}, [funilSelecionado]);
   // Salvar novo funil
   const handleSalvarNovoFunil = ({ titulo, etapas }) => {
     const novoId = funis.length > 0 ? Math.max(...funis.map(f => f.id)) + 1 : 1;
@@ -279,7 +277,7 @@ function KanbanPage({ theme }) {
       nome: titulo,
       etapas: etapas.map((etapa, idx) => ({
         id: novoId * 100 + idx + 1, // Garante id único
-        nome: etapa.nome,
+        nome: etapa.etapa,
         cor: etapa.cor
       })),
       contatosVinculados: [],
@@ -289,6 +287,11 @@ function KanbanPage({ theme }) {
     setFunis([...funis, novoFunil]);
     setFunilSelecionado(novoId);
   };
+useEffect(() => {
+  if (funis.length > 0 && !funilSelecionado) {
+    setFunilSelecionado(funis[0]);
+  }
+}, [funis, funilSelecionado]);
 
   // Salvar etapas do funil
   const handleSalvarEtapas = (novasEtapas) => {
@@ -309,7 +312,11 @@ function KanbanPage({ theme }) {
 
         <div className={`d-flex flex-row align-items-center mb-0 ms-3 header-text-${theme} gap-2`}>
           <h2 style={{ color: 'var(--placeholder-color)', fontWeight: 400 }}>Kanban</h2>
-          <h2 style={{ fontWeight: 400 }}>{funilAtual.nome}</h2>
+          <h2 style={{ fontWeight: 400 }}>
+  {funilSelecionado
+    ? funilSelecionado.charAt(0).toUpperCase() + funilSelecionado.slice(1)
+    : ''}
+</h2>
         </div>
         
         <div className="d-flex gap-2 align-items-center">
@@ -318,15 +325,20 @@ function KanbanPage({ theme }) {
                     <i className="bi bi-funnel-fill"></i>
                 </span>
                 <select
-                className={`form-select input-${theme}`}
-                style={{ width: 150 }}
-                value={funilSelecionado}
-                onChange={e => setFunilSelecionado(Number(e.target.value))}
-                >
-                {funis.map(f => (
-                    <option key={f.id} value={f.id}>{f.nome}</option>
-                ))}
-                </select>
+  className={`form-select input-${theme}`}
+  style={{ width: 150 }}
+  value={funilSelecionado}
+   onChange={e => {
+    setFunilSelecionado(e.target.value);
+    console.log('funilSelecionado:', e.target.value);
+  }}
+>
+  {funis.map(nome => (
+    <option key={nome} value={nome}>
+      {nome.charAt(0).toUpperCase() + nome.slice(1)}
+    </option>
+  ))}
+</select>
             </div>
 
             <button className={`btn btn-1-${theme}`} style={{ minWidth: 140 }} onClick={() => setShowNovoFunilModal(true)}>
@@ -415,7 +427,7 @@ function KanbanPage({ theme }) {
         >
           <div className="d-flex flex-row gap-4"
             style={{ minHeight: 0, minWidth: '100%', width: 'max-content' }}>
-            {(funilAtual.etapas || []).map(etapa => {
+            {etapas.map(etapa => {
               const etapaTemLeads = leads.some(lead => lead.funilId === funilSelecionado && lead.etapaId === etapa.id);
               return (
                 <div key={etapa.id} className={`kanban-col card-${theme} border border-${theme} rounded p-2`} style={{ minWidth: 300, maxWidth: 300 }}
@@ -444,7 +456,7 @@ function KanbanPage({ theme }) {
                           onKeyDown={e => { if (e.key === 'Enter') handleSaveEditEtapa(etapa); }}
                         />
                       ) : (
-                        <h6 className={`mb-0 header-text-${theme}`} style={{ fontWeight: 600 }}>{etapa.nome}</h6>
+                        <h6 className={`mb-0 header-text-${theme}`} style={{ fontWeight: 600 }}>{etapa.etapa}</h6>
                       )}
                       <div className="d-flex gap-1">
                         <button
@@ -473,13 +485,13 @@ function KanbanPage({ theme }) {
                       paddingRight: '4px' // Espaço para a scrollbar
                     }}>
                       {/* Renderizando os leads filtrados */}
-                      {(leads.filter(lead => lead.funilId === funilSelecionado && lead.etapaId === etapa.id) || []).map(lead => (
+                      {(cards.filter(lead => lead.etapa_id === etapa.id) || []).map(lead => (
                         <div key={lead.id} className={`kanban-card card-${theme} border border-${theme} mb-2 py-2 px-3`}
                           draggable
                           onDragStart={() => onDragStart(lead)}
                         >
                           <div className="d-flex justify-content-between align-items-center mb-2">
-                            <span className={`fw-bold header-text-${theme}`}>{lead.nome}</span>
+                            <span className={`fw-bold header-text-${theme}`}>{lead.contact_name}</span>
                             <div className="d-flex gap-1">
                               {/* Dropdown de gerenciamento de tags */}
                               <KanbanTagsDropdown
@@ -516,7 +528,7 @@ function KanbanPage({ theme }) {
                               <span key={tag} className="badge bg-secondary">{tag}</span>
                             ))}
                           </div>
-                          <div className={`small header-text-${theme}`}>{maskPhone(lead.telefone)}</div>
+                          <div className={`small header-text-${theme}`}>{maskPhone(lead.contact_phone)}</div>
                         </div>
                       ))}
                     </div>

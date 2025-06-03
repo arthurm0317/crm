@@ -114,11 +114,42 @@ const getFunis = async (schema) => {
     return [];
   }
 }
+const getChatsInKanban = async (sector, schema) => {
+  try {
+    const etapas = await pool.query(
+      `SELECT id FROM ${schema}.kanban_${sector}`
+    );
+    const etapaIds = etapas.rows.map(e => e.id);
+
+    if (etapaIds.length === 0) return [];
+
+    const chats = await pool.query(
+      `SELECT * FROM ${schema}.chats WHERE etapa_id = ANY($1::uuid[]) and status <> 'closed'`,
+      [etapaIds]
+    );
+
+    return chats.rows;
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+};
+
+const changeKanbanStage = async (chat_id, stage_id, schema) => {
+  await pool.query(
+    `UPDATE ${schema}.chats set etapa_id=$1 where id=$2`,
+    [stage_id, chat_id]
+  )
+
+}
+
 
 module.exports = {
   createKanbanStage,
   insertInKanbanStage,
   getChatsInKanbanStage,
   getKanbanStages,
-  getFunis
+  getFunis,
+  getChatsInKanban,
+  changeKanbanStage
 };

@@ -96,7 +96,7 @@ function Painel() {
     switch (page) {
       case 'dashboard': return <Dashboard theme={theme} />;
       case 'chats': return <ChatPage theme={theme} />;
-      case 'kanban': return <Manutencao theme={theme} />;
+      case 'kanban': return <KanbanPage theme={theme} />;
       case 'filas': return <FilaPage theme={theme} />;
       case 'usuarios': return <UsuariosPage theme={theme} />;
       case 'agenda': return <Manutencao theme={theme} />;
