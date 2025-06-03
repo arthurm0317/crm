@@ -4,6 +4,7 @@ import GerirEtapaModal from './modalPages/Kanban_gerirEtapa';
 import { Dropdown } from 'react-bootstrap';
 import KanbanExcluirEtapaModal from './modalPages/Kanban_excluirEtapa';
 import axios from 'axios';
+import { socket } from '../socket';
 
 
 
@@ -134,6 +135,7 @@ function KanbanPage({ theme }) {
   const userData = JSON.parse(localStorage.getItem('user'));
   const schema = userData?.schema;
   const url = process.env.REACT_APP_URL;
+  const [socketInstance] = useState(socket)
 
   useEffect(()=>{
     const fetchFunis = async () => {
@@ -258,11 +260,32 @@ function KanbanPage({ theme }) {
         stage_id: etapaId,
         schema: schema
       })
+      
+      socketInstance.emit('leadMoved',{
+        chat_id: draggedLead.id,
+        stage_id: etapaId,
+        schema: schema
+      })
+      
     } catch (error) {
       console.error(error)
     }
   }
   };
+  useEffect(() => {
+function handleLeadMoved({ chat_id, etapa_id, stage_id }) {
+  const novoEtapaId = etapa_id || stage_id;
+  setCards(cards =>
+    cards.map(l =>
+      l.id === chat_id ? { ...l, etapa_id: novoEtapaId } : l
+    )
+  );
+}
+  socketInstance.on('leadMoved', handleLeadMoved);
+  return () => {
+    socketInstance.off('leadMoved', handleLeadMoved);
+  };
+}, []);
 
   const [showNovoFunilModal, setShowNovoFunilModal] = useState(false);
   const [showGerirEtapaModal, setShowGerirEtapaModal] = useState(false);

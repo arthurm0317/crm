@@ -1,13 +1,14 @@
+const SocketServer = require("../server");
 const { createKanbanStage, getFunis, getKanbanStages, getChatsInKanban, changeKanbanStage } = require("../services/KanbanService");
 const { createMessageForBlast } = require("../services/MessageBlast");
-
+const io = SocketServer.io
 
 const createKanbanStageController = async (req, res) => {
     try {
         const { name } = req.body;
         const schema = req.body.schema || 'effective_gain';
         const result = await createKanbanStage(name, schema);
-
+        
         res.status(201).json(result);
     } catch (err) {
         console.error("Erro ao criar estágio do Kanban:", err.message);
@@ -20,7 +21,7 @@ const createMessageForBlastController = async (req, res) => {
         const { messageValue, sector, campaingId } = req.body;
         const schema = req.body.schema || 'effective_gain';
         const result = await createMessageForBlast(messageValue, sector, campaingId, schema);
-
+        
         res.status(201).json(result);
     } catch (err) {
         console.error("Erro ao criar mensagem para blast:", err.message);
@@ -41,7 +42,7 @@ const getKanbanStagesController = async (req, res) => {
     try {
         const funil = req.params.funil;
         const schema = req.params.schema
-
+        
         const stages = await getKanbanStages(funil, schema);
         res.status(200).json(stages);
     } catch (err) {
@@ -62,14 +63,19 @@ const getChatsInKanbanController = async (req, res) => {
 
 const changeKanbanStageController = async (req, res) => {
     try {
-        const { chat_id,stage_id} = req.body
-        const schema = req.body.schema
-        const result = await changeKanbanStage(chat_id, stage_id, schema)
-        res.status(200).json(result)
+        const { chat_id, stage_id } = req.body;
+        const schema = req.body.schema;
+
+        const result = await changeKanbanStage(chat_id, stage_id, schema);
+
+        SocketServer.io.emit('leadMoved', { chat_id, stage_id });
+
+        res.status(200).json(result);
     } catch (error) {
-        console.error(error)
+        console.error('Erro ao mudar estágio do Kanban:', error.message);
+        res.status(500).json({ error: 'Erro ao mudar estágio do Kanban' });
     }
-}
+};
 module.exports = {
     createKanbanStageController,
     createMessageForBlastController,
