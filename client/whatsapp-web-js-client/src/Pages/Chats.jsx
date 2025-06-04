@@ -79,7 +79,7 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
   );
 }
 
-function ChatPage({ theme }) {
+function ChatPage({ theme, chat_id} ) {
   const [chatList, setChats] = useState([]);
   const [chat] = useState([])
   const [selectedMessages, setSelectedMessages] = useState([]);
@@ -111,11 +111,8 @@ function ChatPage({ theme }) {
   const [editedName, setEditedName] = useState('');
   const nomeContatoRef = useRef(null);
   const [showNewContactModal, setShowNewContactModal] = useState(false);
-
-  const [socketInstance] = useState(socket)
-  
+  const [socketInstance] = useState(socket)  
   const url = process.env.REACT_APP_URL;
-
   const setAsRead = async()=>{
     if (!selectedChat) return;
     try{
@@ -135,6 +132,16 @@ function ChatPage({ theme }) {
     if (nomeContatoRef.current) nomeContatoRef.current.focus();
   }, 0);
 };
+
+useEffect(() => {
+  if (chat_id && chatList.length > 0) {
+    if (!selectedChat || selectedChat.id !== chat_id) {
+      const chat = chatList.find(c => c.id === chat_id);
+      handleChatClick(chat)
+      if (chat) setSelectedChat(chat);
+    }
+  }
+}, [chat_id, chatList, selectedChat]);
 
 const handleEditNameFinish = async () => {
   if (

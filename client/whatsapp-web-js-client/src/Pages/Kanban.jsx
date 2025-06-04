@@ -5,6 +5,7 @@ import { Dropdown } from 'react-bootstrap';
 import KanbanExcluirEtapaModal from './modalPages/Kanban_excluirEtapa';
 import axios from 'axios';
 import { socket } from '../socket';
+import ChatPage from './Chats';
 
 
 
@@ -136,6 +137,7 @@ function KanbanPage({ theme }) {
   const schema = userData?.schema;
   const url = process.env.REACT_APP_URL;
   const [socketInstance] = useState(socket)
+  const [leadSelecionado, setLeadSelecionado] = useState(null);
 
   useEffect(()=>{
     const fetchFunis = async () => {
@@ -342,7 +344,13 @@ useEffect(() => {
     ));
   };
 
-  return (
+  const renderPage = () => {
+  if (!leadSelecionado) return null;
+  return <ChatPage theme={theme} chat_id={leadSelecionado.id} />;
+};
+  return leadSelecionado ? (
+    renderPage()
+  ) :(
     <div className={`main-kanban bg-form-${theme} px-1 pt-3 h-100 w-100`} style={{ minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'column', flex: 1 }}>
       {/* Seletor de Funil */}
       <div className="d-flex align-items-center justify-content-between gap-3 mb-3">
@@ -466,7 +474,7 @@ useEffect(() => {
             style={{ minHeight: 0, minWidth: '100%', width: 'max-content' }}>
             {etapas.map(etapa => {
               const etapaTemLeads = leads.some(lead => lead.funilId === funilSelecionado && lead.etapaId === etapa.id);
-              return (
+              return   (
                 <div key={etapa.id} className={`kanban-col card-${theme} border border-${theme} rounded p-2`} style={{ minWidth: 300, maxWidth: 300 }}
                   onDragOver={e => e.preventDefault()}
                   onDrop={() => onDrop(etapa.id)}
@@ -554,9 +562,14 @@ useEffect(() => {
                                   onSelect={f => alert(`Mover lead para o funil: ${f.nome}`)}
                                 />
                               </span>
-                              <button className="btn btn-sm btn-2-light" title="Abrir chat" style={{ cursor: 'pointer', minWidth: 35, minHeight: 35 }}>
-                                <i className="bi bi-chat-dots"></i>
-                              </button>
+                              <button
+  className="btn btn-sm btn-2-light"
+  title="Abrir chat"
+  style={{ cursor: 'pointer', minWidth: 35, minHeight: 35 }}
+  onClick={() => setLeadSelecionado(lead)}
+>
+  <i className="bi bi-chat-dots"></i>
+</button>
                             </div>
                           </div>
                           {/* Exibir tags do lead */}
