@@ -42,7 +42,7 @@ const createCompany = async (company, schema) => {
             color TEXT,
             users JSONB,
             distribution boolean,
-            superuser uuid REFERENCES ${schema}.users(id) ON DELETE SET NULL,
+            superuser uuid REFERENCES ${schema}.users(id) ON DELETE SET NULL
         );`);
         await pool.query(`
             CREATE TABLE IF NOT EXISTS ${schema}.connections (

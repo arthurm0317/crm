@@ -45,7 +45,6 @@ function Painel() {
   const [showWhatsappModal, setShowWhatsappModal] = useState(false);
   const navigate = useNavigate();
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
-  
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user'));
     if (!userData || !userData.schema) {

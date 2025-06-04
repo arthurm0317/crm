@@ -11,10 +11,12 @@ function SchemasPage({ theme: themeProp }) {
   const [filter, setFilter] = useState('');
   const [theme, setTheme] = useTheme(themeProp);
   const [newSchema, setNewSchema] = useState({
-    schema_name: '',
-    admin_login: '',
-    admin_password: '',
-    admin_name: ''
+    name: '',
+    superAdmin:{
+      email: '',
+      password: '',
+      name: ''
+    }
   });
 
   const url = process.env.REACT_APP_URL;
@@ -63,19 +65,20 @@ function SchemasPage({ theme: themeProp }) {
     document.cookie = `theme=${newTheme}`;
     setTheme(newTheme);
   };
-
-  const handleCreateSchema = async (e) => {
-    e.preventDefault();
-    try {
-      await axios.post(`${url}/company/create`, newSchema);
-      // Refresh schemas list
-      const response = await axios.get(`${url}/company/tecnico`);
-      setSchemas(Array.isArray(response.data) ? response.data : response.data.empresas || []);
-      setNewSchema({ schema_name: '', admin_login: '', admin_password: '', admin_name: '' });
-    } catch (error) {
-      console.error('Erro ao criar schema:', error);
-    }
-  };
+const handleCreateSchema = async (e) => {
+  e.preventDefault();
+  try {
+    await axios.post(`${url}/company/company`, newSchema);
+    const response = await axios.get(`${url}/company/tecnico`);
+    setSchemas(Array.isArray(response.data) ? response.data : response.data.empresas || []);
+    setNewSchema({
+      schema_name: '',
+      superAdmin: { email: '', password: '', name: '' }
+    });
+  } catch (error) {
+    console.error('Erro ao criar schema:', error);
+  }
+};
 
   const toggleNewSchemaPanel = (show) => {
     const panel = document.querySelector('.new-schema-panel');
@@ -181,54 +184,54 @@ function SchemasPage({ theme: themeProp }) {
             </button>
           </div>
           <form onSubmit={handleCreateSchema} className="w-100 d-flex flex-column gap-3">
-            <div className="input-group">
-              <span className={`input-group-text igt-${theme}`}><i className="bi bi-diagram-3"></i></span>
-              <input
-                type="text"
-                className={`form-control input-${theme}`}
-                placeholder="Nome do Schema"
-                value={newSchema.schema_name}
-                onChange={e => setNewSchema({...newSchema, schema_name: e.target.value})}
-                required
-              />
-            </div>
-            <div className="input-group">
-              <span className={`input-group-text igt-${theme}`}><i className="bi bi-person"></i></span>
-              <input
-                type="text"
-                className={`form-control input-${theme}`}
-                placeholder="Login do Admin Primário"
-                value={newSchema.admin_login}
-                onChange={e => setNewSchema({...newSchema, admin_login: e.target.value})}
-                required
-              />
-            </div>
-            <div className="input-group">
-              <span className={`input-group-text igt-${theme}`}><i className="bi bi-key"></i></span>
-              <input
-                type="password"
-                className={`form-control input-${theme}`}
-                placeholder="Senha do Admin Primário"
-                value={newSchema.admin_password}
-                onChange={e => setNewSchema({...newSchema, admin_password: e.target.value})}
-                required
-              />
-            </div>
-            <div className="input-group">
-              <span className={`input-group-text igt-${theme}`}><i className="bi bi-person-badge"></i></span>
-              <input
-                type="text"
-                className={`form-control input-${theme}`}
-                placeholder="Nome do Admin"
-                value={newSchema.admin_name}
-                onChange={e => setNewSchema({...newSchema, admin_name: e.target.value})}
-                required
-              />
-            </div>
-            <button type="submit" className={`btn btn-1-${theme} w-100`}>
-              Criar Schema
-            </button>
-          </form>
+  <div className="input-group">
+    <span className={`input-group-text igt-${theme}`}><i className="bi bi-diagram-3"></i></span>
+    <input
+      type="text"
+      className={`form-control input-${theme}`}
+      placeholder="Nome do Schema"
+      value={newSchema.name}
+      onChange={e => setNewSchema({ ...newSchema, name: e.target.value })}
+      required
+    />
+  </div>
+  <div className="input-group">
+    <span className={`input-group-text igt-${theme}`}><i className="bi bi-person"></i></span>
+    <input
+      type="text"
+      className={`form-control input-${theme}`}
+      placeholder="Nome do Admin"
+      value={newSchema.superAdmin.name}
+      onChange={e => setNewSchema({ ...newSchema, superAdmin: { ...newSchema.superAdmin, name: e.target.value } })}
+      required
+    />
+  </div>
+  <div className="input-group">
+    <span className={`input-group-text igt-${theme}`}><i className="bi bi-envelope"></i></span>
+    <input
+      type="email"
+      className={`form-control input-${theme}`}
+      placeholder="Email do Admin"
+      value={newSchema.superAdmin.email}
+      onChange={e => setNewSchema({ ...newSchema, superAdmin: { ...newSchema.superAdmin, email: e.target.value } })}
+      required
+    />
+  </div>
+  <div className="input-group">
+    <span className={`input-group-text igt-${theme}`}><i className="bi bi-key"></i></span>
+    <input
+      type="password"
+      className={`form-control input-${theme}`}
+      placeholder="Senha do Admin"
+      value={newSchema.superAdmin.password}
+      onChange={e => setNewSchema({ ...newSchema, superAdmin: { ...newSchema.superAdmin, password: e.target.value } })}
+      required
+    />
+  </div>
+  <button type="submit" className={`btn btn-1-${theme} w-100`}>
+    Criar Schema
+  </button>
+</form>
         </div>
       </div>
     </div>
