@@ -16,6 +16,8 @@ function Login() {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const url = process.env.REACT_APP_URL;
+
 
   useEffect(() => {
     const rememberedCredentials = JSON.parse(localStorage.getItem('rememberedCredentials')) || {};
@@ -33,7 +35,7 @@ const handleLogin = async (e) => {
   setLoading(true); 
 
   try {
-    const response = await axios.post('https://landing-page-teste.8rxpnw.easypanel.host/api/login', {
+    const response = await axios.post(`${url}/api/login`, {
       email: username,
       password,
     });
