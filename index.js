@@ -24,7 +24,8 @@ const corsOptions = {
   origin: ['http://localhost:3001',
     'https://landing-page-front.8rxpnw.easypanel.host',
     'https://eg-crm.effectivegain.com',
-    'https://ilhadogovernador.effectivegain.com'
+    'https://ilhadogovernador.effectivegain.com',
+    'https://ilhadogovernador.effectivegain.com/'
   ],
   methods: ['GET', 'POST', 'DELETE', 'PUT'],
 };
@@ -36,7 +37,7 @@ const io = socketIo(server, {
       'https://landing-page-front.8rxpnw.easypanel.host',
       'https://eg-crm.effectivegain.com',
       'https://landing-page-teste.8rxpnw.easypanel.host/',
-      'https://ilhadogovernador.effectivegain.com/'
+      'https://ilhadogovernador.effectivegain.com/',
       'https://ilhadogovernador.effectivegain.com'
     ], 
     methods: ['GET', 'POST', 'DELETE', 'PUT'],
