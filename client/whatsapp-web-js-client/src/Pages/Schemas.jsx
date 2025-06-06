@@ -11,12 +11,9 @@ function SchemasPage({ theme: themeProp }) {
   const [filter, setFilter] = useState('');
   const [theme, setTheme] = useTheme(themeProp);
   const [newSchema, setNewSchema] = useState({
+    schema_name: '',
     name: '',
-    superAdmin:{
-      email: '',
-      password: '',
-      name: ''
-    }
+    superAdmin: { email: '', password: '', name: '' }
   });
 
   const url = process.env.REACT_APP_URL;
@@ -71,8 +68,9 @@ const handleCreateSchema = async (e) => {
     await axios.post(`${url}/company/company`, newSchema);
     const response = await axios.get(`${url}/company/tecnico`);
     setSchemas(Array.isArray(response.data) ? response.data : response.data.empresas || []);
-    setNewSchema({
+   setNewSchema({
       schema_name: '',
+      name: '',
       superAdmin: { email: '', password: '', name: '' }
     });
   } catch (error) {
@@ -94,9 +92,9 @@ const handleCreateSchema = async (e) => {
       className={`d-flex justify-content-center align-items-center bg-screen-${theme}`}
       style={{ height: '100vh', width: '100vw', backgroundSize: 'cover', backgroundPosition: 'center' }}
     >
-      <div className="d-flex flex-row align-items-center justify-content-center" style={{ width: '70vw', maxWidth: 1100, gap: '2rem', height: 500 }}>
+      <div className="d-flex flex-row align-items-center justify-content-center" style={{ width: '70vw', maxWidth: 1100, gap: '2rem', height: 550 }}>
         {/* Escolha de Schema */}
-        <div className={`bg-form-${theme} rounded shadow p-4 d-flex flex-column align-items-center justify-content-evenly`} style={{ width: '60%', minWidth: 320, height: '75%' }}>
+        <div className={`bg-form-${theme} rounded shadow p-4 d-flex flex-column align-items-center justify-content-between`} style={{ width: '60%', minWidth: 320, height: '75%' }}>
           <div className="w-100 d-flex flex-row align-items-center justify-content-between mb-4 mt-2">
             <div className="d-flex align-items-center">
               <i className={`bi bi-bounding-box header-text-${theme} fs-3 me-2`}></i>
@@ -134,7 +132,7 @@ const handleCreateSchema = async (e) => {
           {loading ? (
             <div className={`text-center header-text-${theme}`}>Carregando schemas...</div>
           ) : (
-            <div className="d-flex flex-column gap-3 w-100">
+            <div className="d-flex flex-column gap-3 w-100 overflow-y-auto" style={{ maxHeight: '170px' }}>
               {filteredSchemas.length === 0 ? (
                 <div className="text-center text-muted">Nenhum resultado encontrado</div>
               ) : (
@@ -190,11 +188,22 @@ const handleCreateSchema = async (e) => {
       type="text"
       className={`form-control input-${theme}`}
       placeholder="Nome do Schema"
-      value={newSchema.name}
-      onChange={e => setNewSchema({ ...newSchema, name: e.target.value })}
+      value={newSchema.schema_name}
+      onChange={e => setNewSchema({ ...newSchema, schema_name: e.target.value })}
       required
     />
   </div>
+            <div className="input-group">
+              <span className={`input-group-text igt-${theme}`}><i className="bi bi-briefcase"></i></span>
+              <input
+                type="text"
+                className={`form-control input-${theme}`}
+                placeholder="Nome da Empresa"
+                value={newSchema.name}
+                onChange={e => setNewSchema({...newSchema, name: e.target.value})}
+                required
+              />
+            </div>
   <div className="input-group">
     <span className={`input-group-text igt-${theme}`}><i className="bi bi-person"></i></span>
     <input
