@@ -16,7 +16,9 @@ class SocketServer {
                     "chrome-extension://ophmdkgfcjapomjdpfobjfbihojchbko",
                     "https://landing-page-teste.8rxpnw.easypanel.host",
                     "https://landing-page-front.8rxpnw.easypanel.host",
-                    "https://eg-crm.effectivegain.com"
+                    "https://eg-crm.effectivegain.com",
+                    "https://ilhadogovernador.effectivegain.com/",
+                    "https://ilhadogovernador.effectivegain.com"
                 ],
                 methods: ["GET", "POST", "DELETE"],
                 allowedHeaders: ["Content-Type"],
