@@ -112,6 +112,23 @@ const createCompany = async (company, schema) => {
             )
         `)
         await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.tag(
+            id UUID PRIMARY KEY,
+            name text NOT NULL,
+            color text
+            );
+
+            `)
+        await pool.query(
+            `CREATE TABLE IF NOT EXISTS ${schema}.chat_tag (
+            chat_id UUID NOT NULL,
+            tag_id UUID NOT NULL,
+            PRIMARY KEY (chat_id, tag_id),
+            FOREIGN KEY (chat_id) REFERENCES ${schema}.chats(id) ON DELETE CASCADE,
+            FOREIGN KEY (tag_id) REFERENCES ${schema}.tag(id) ON DELETE CASCADE
+            );`
+        )
+        await pool.query(`
             create table ${schema}.campaing(
             id UUID primary key,
             campaing_name text not null,
