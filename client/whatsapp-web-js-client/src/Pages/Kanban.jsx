@@ -66,9 +66,28 @@ function KanbanDropdown({ theme, funis, funilAtualId, onSelect }) {
 }
 
 // Dropdown de gerenciamento de tags
-function KanbanTagsDropdown({ theme, leadTags, onChange }) {
+function KanbanTagsDropdown({ theme, lead, leadTags, onChange }) {
   const [show, setShow] = useState(false);
-  
+  const [allTags, setAllTags] = useState([]);
+  const [leadTagsState, setLeadTagsState] = useState(leadTags || []);
+  const userData = JSON.parse(localStorage.getItem('user'));
+  const schema = userData?.schema;
+  const url = process.env.REACT_APP_URL;
+
+  useEffect(() => {
+    const fetchTags = async () => {
+      // Busca todas as tags do schema
+      const allTagsResp = await axios.get(`${url}/tag/${schema}`);
+      setAllTags(Array.isArray(allTagsResp.data) ? allTagsResp.data : [allTagsResp.data]);
+      // Busca as tags do lead
+      if (lead?.id) {
+        const leadTagsResp = await axios.get(`${url}/tag/by-chat/${schema}/${lead.id}`);
+        setLeadTagsState(Array.isArray(leadTagsResp.data) ? leadTagsResp.data : [leadTagsResp.data]);
+      }
+    };
+    fetchTags();
+  }, [lead, schema, url]);
+
   return (
     <div className="dropdown">
       <button
@@ -80,40 +99,38 @@ function KanbanTagsDropdown({ theme, leadTags, onChange }) {
         <i className="bi bi-tags"></i>
       </button>
       {show && (
-        <div 
+        <div
           className={`dropdown-menu input-${theme}`}
-          style={{ 
+          style={{
             display: 'block',
             position: 'absolute',
             zIndex: 1000,
             minWidth: '180px'
           }}
         >
-          {/* {allTags.map(tag => (
-            <div 
-              key={tag} 
+          {allTags.map(tag => (
+            <div
+              key={tag.id}
               className="dropdown-item d-flex align-items-center gap-2"
               onClick={e => e.stopPropagation()}
             >
               <input
                 type="checkbox"
                 className="form-check-input"
-                id={`tag-${tag}`}
-                checked={leadTags.includes(tag)}
-                onChange={e => {
-                  onChange(tag, e.target.checked);
-                }}
+                id={`tag-${tag.id}`}
+                checked={leadTagsState.some(t => t.id === tag.id)}
+                onChange={e => onChange(tag, e.target.checked)}
                 style={{ cursor: 'pointer' }}
               />
-              <label 
-                htmlFor={`tag-${tag}`} 
-                className={`form-check-label card-subtitle-${theme} mb-0`} 
+              <label
+                htmlFor={`tag-${tag.id}`}
+                className={`form-check-label card-subtitle-${theme} mb-0`}
                 style={{ cursor: 'pointer' }}
               >
-                {tag}
+                {tag.name}
               </label>
             </div>
-          ))} */}
+          ))}
         </div>
       )}
     </div>
@@ -539,20 +556,32 @@ useEffect(() => {
                             <span className={`fw-bold header-text-${theme}`}>{lead.contact_name}</span>
                             <div className="d-flex gap-1">
                               {/* Dropdown de gerenciamento de tags */}
-                              <KanbanTagsDropdown
-                                theme={theme}
-                                leadTags={lead.tags || []}
-                                onChange={(tag, checked) => {
-                                  setLeads(leads => leads.map(l =>
-                                    l.id === lead.id
-                                      ? { ...l, tags: checked
-                                        ? [...(l.tags || []), tag]
-                                        : (l.tags || []).filter(t => t !== tag)
-                                      }
-                                      : l
-                                  ));
-                                }}
-                              />
+                               <KanbanTagsDropdown
+                                  theme={theme}
+                                  lead={lead} // <-- adicione isso
+                                  leadTags={lead.tags || []}
+                                  onChange={async (tag, checked) => {
+                                    setLeads(leads => leads.map(l =>
+                                      l.id === lead.id
+                                        ? {
+                                            ...l,
+                                            tags: checked
+                                              ? [...(l.tags || []), tag]
+                                              : (l.tags || []).filter(t => t.id !== tag.id)
+                                          }
+                                        : l
+                                    ));
+                                    try {
+                                      await axios.post(`${url}/tag/update-tag`, {
+                                        chat_id: lead.id,
+                                        tag_id: tag.id,
+                                        schema
+                                      });
+                                    } catch (error) {
+                                      console.error('Erro ao atualizar tags:', error);
+                                    }
+                                  }}
+                                />
                               {/* Dropdown de alterar funil */}
                               <span style={{ display: 'inline-block', verticalAlign: 'middle' }}>
                                 <KanbanDropdown
