@@ -7,6 +7,7 @@ const createTagController = async (req, res) => {
     res.status(201).json(tag);
   } catch (error) {
     res.status(500).json({ error: 'erro ao criar tag' });
+    console.error(error)
   }
 };
 
@@ -50,6 +51,23 @@ const removeTagFromChatController = async (req, res) => {
   }
 };
 
+const updateTagsController = async (req, res) => {
+  try {
+  const {chat_id, tag_id, schema} = req.body
+  const tags = await TagService.getTagsByChat(chat_id, schema)
+
+    if (tags.some(tag => tag.id === tag_id)) {
+     await TagService.removeTagFromChat(chat_id, tag_id, schema)
+    }else{
+      await TagService.addTagToChat(chat_id, tag_id, schema)
+    }
+  
+} catch (error) {
+  console.error(error)
+}
+
+}
+
 const getTagsByChatController = async (req, res) => {
   const { chatId, schema } = req.params;
   try {
@@ -67,4 +85,5 @@ module.exports = {
   addTagToChatController,
   removeTagFromChatController,
   getTagsByChatController,
+  updateTagsController
 };

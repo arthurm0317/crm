@@ -10,20 +10,25 @@ class SocketServer {
 
         this.server = http.createServer(this.app);
 
-       this.io = new Server(this.server, {
-        cors: {
-            origin: [
-            "http://localhost:3001", 
-            "chrome-extension://ophmdkgfcjapomjdpfobjfbihojchbko"  ,
-            "https://landing-page-teste.8rxpnw.easypanel.host",
-            "https://landing-page-front.8rxpnw.easypanel.host",
-            "https://eg-crm.effectivegain.com"
-            ],
-        methods: ["GET", "POST", "DELETE"],
-        allowedHeaders: ["Content-Type"],
-        credentials: true
-    }
-});
+        this.io = new Server(this.server, {
+            cors: {
+                origin: [
+                    "http://localhost:3001", 
+                    "chrome-extension://ophmdkgfcjapomjdpfobjfbihojchbko",
+                    "https://landing-page-teste.8rxpnw.easypanel.host",
+                    "https://landing-page-front.8rxpnw.easypanel.host",
+                    "https://eg-crm.effectivegain.com",
+                    "https://ilhadogovernador.effectivegain.com/",
+                    "https://ilhadogovernador.effectivegain.com"
+                ],
+                methods: ["GET", "POST", "DELETE"],
+                allowedHeaders: ["Content-Type"],
+                credentials: true
+            }
+        });
+
+        // 🟩 Exporta o io estaticamente
+        SocketServer.io = this.io;
 
         this.middlewares();
         this.routes();
@@ -44,7 +49,8 @@ class SocketServer {
     sockets() {
         this.io.on('connection', (socket) => {
             console.log('Novo cliente conectado');
-            socket.on('join', (room)=> {
+
+            socket.on('join', (room) => {
                 socket.join(room);
             });
 
@@ -56,11 +62,13 @@ class SocketServer {
                 console.log('Cliente desconectado');
             });
 
-            socket.on('message',(message)=>{
-                socket.broadcast.emit('message', message)
-                console.log(message)
-            }
-            )
+            socket.on('message', (message) => {
+                socket.broadcast.emit('message', message);
+            });
+
+            socket.on('leadMoved', (data) => {
+                socket.broadcast.emit('leadMoved', data);
+            });
         });
     }
 

@@ -12,6 +12,7 @@ const kanbanRoutes = require('./routes/KanbanRoutes');
 const webhook = require('./controllers/Webhook');
 const filesRoutes = require('./routes/FilesRoutes');
 const campaingRoutes = require('./routes/CampaingRoutes')
+const tagRoutes = require('./routes/TagRoutes')
 const bodyParser = require('body-parser');
 const chatgptRoutes = require('./routes/ChatGptRoutes');
 
@@ -24,7 +25,9 @@ const app = express();
 const corsOptions = {
   origin: ['http://localhost:3001',
     'https://landing-page-front.8rxpnw.easypanel.host',
-    'https://eg-crm.effectivegain.com'
+    'https://eg-crm.effectivegain.com',
+    'https://ilhadogovernador.effectivegain.com/',
+    'https://ilhadogovernador.effectivegain.com'
   ],
   methods: ['GET', 'POST', 'DELETE', 'PUT'],
 };
@@ -35,7 +38,9 @@ const io = socketIo(server, {
     origin: ['http://localhost:3001',
       'https://landing-page-front.8rxpnw.easypanel.host',
       'https://eg-crm.effectivegain.com',
-      'https://landing-page-teste.8rxpnw.easypanel.host/'
+      'https://landing-page-teste.8rxpnw.easypanel.host/',
+      'https://ilhadogovernador.effectivegain.com/',
+      'https://ilhadogovernador.effectivegain.com'
     ], 
     methods: ['GET', 'POST', 'DELETE', 'PUT'],
   },
@@ -61,6 +66,7 @@ app.use('/kanban', kanbanRoutes);
 app.use('/files', filesRoutes);
 app.use('/campaing', campaingRoutes)
 app.use('/chatgpt', chatgptRoutes);
+app.use('/tag', tagRoutes)
 
 const axios = require('axios');
 const fs = require('fs');

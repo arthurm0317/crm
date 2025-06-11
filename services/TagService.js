@@ -1,9 +1,11 @@
 const pool = require('../db/queries');
+const { v4: uuidv4 } = require('uuid');
+
 
 const createTag = async (name, color, schema) => {
   const result = await pool.query(
-    `INSERT INTO ${schema}.tag (name, color) VALUES ($1, $2) RETURNING *`,
-    [name, color]
+    `INSERT INTO ${schema}.tag (id, name, color) VALUES ($3, $1, $2) RETURNING *`,
+    [name, color, uuidv4()]
   );
   return result.rows[0];
 };

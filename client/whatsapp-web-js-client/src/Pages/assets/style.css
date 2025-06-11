@@ -731,3 +731,25 @@ input[type="range"]::-moz-range-progress {
 .toast.bg-dark .toast-header {
   border-bottom: 1px solid var(--border-color-dark);
 }
+
+.dp-light {
+    background-color: var(--bg-form-light);
+    color: var(--color-light);
+    cursor: pointer;
+}
+.dp-dark {
+    background-color: var(--bg-form-dark);
+    color: var(--color-dark);
+    cursor: pointer;
+}
+
+.dp-light:hover {
+    background-color: var(--hover);
+    color: var(--color-light);
+    cursor: pointer;
+}
+.dp-dark:hover {
+    background-color: var(--bg-color-light);
+    color: var(--color-light);
+    cursor: pointer;
+}
