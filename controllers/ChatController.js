@@ -175,6 +175,7 @@ const updateQueueController = async (req, res) => {
   }
 };
 
+
 const getChatDataController = async (req, res) => {
   const { schema, chatId } = req.params;
 
