@@ -1,35 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button } from 'react-bootstrap';
+import axios from 'axios';
 import './assets/style.css';
 
-function ChangeQueueModal({ show, onHide, theme, selectedChat }) {
+function ChangeQueueModal({ show, onHide, theme, selectedChat, schema, url, onTransfer }) {
   const [selectedQueue, setSelectedQueue] = useState(null);
+  const [queues, setQueues] = useState([]);
   const [countdown, setCountdown] = useState(10);
   const [isConfirming, setIsConfirming] = useState(false);
 
-  // Dados fictícios de filas
-  const queues = [
-    { id: 1, name: 'Suporte Técnico', color: '#FF5733' },
-    { id: 2, name: 'Vendas', color: '#33FF57' },
-    { id: 3, name: 'Financeiro', color: '#3357FF' },
-    { id: 4, name: 'Atendimento', color: '#F333FF' },
-    { id: 5, name: 'Pós-vendas', color: '#FF33A8' }
-  ];
+  useEffect(() => {
+    if (show && schema && url) {
+      axios.get(`${url}/queue/get-all-queues/${schema}`)
+        .then(res => setQueues(res.data.result || []))
+        .catch(() => setQueues([]));
+    }
+  }, [show, schema, url]);
 
   useEffect(() => {
     let timer;
-    if (show && countdown > 0) {
+    if (show && countdown > 0 && isConfirming) {
       timer = setTimeout(() => {
         setCountdown(prev => prev - 1);
       }, 1000);
     }
     return () => clearTimeout(timer);
-  }, [countdown, show]);
+  }, [countdown, show, isConfirming]);
 
-  // Reset countdown when modal opens
   useEffect(() => {
     if (show) {
       setCountdown(10);
+      setIsConfirming(false);
+      setSelectedQueue(null);
     }
   }, [show]);
 
@@ -38,18 +40,18 @@ function ChangeQueueModal({ show, onHide, theme, selectedChat }) {
     setCountdown(10);
   };
 
-  const handleChangeQueue = () => {
-    // Aqui você implementará a lógica para alterar a fila
-    console.log('Alterando fila para:', selectedQueue);
+  const handleChangeQueue = async () => {
+    if (!selectedQueue) return;
+    await onTransfer(selectedQueue.id);
+    setIsConfirming(false);
+    setSelectedQueue(null);
     onHide();
   };
 
   return (
     <Modal
       show={show}
-      onHide={() => {
-        onHide();
-      }}
+      onHide={onHide}
       centered
       className={`modal-${theme}`}
     >
@@ -57,9 +59,9 @@ function ChangeQueueModal({ show, onHide, theme, selectedChat }) {
         closeButton 
         className={`modal-header-${theme} bg-form-${theme}`}
       >
-        <Modal.Title
-        className={`header-text-${theme}`}
-        >Alterar Fila</Modal.Title>
+        <Modal.Title className={`header-text-${theme}`}>
+          Alterar Fila
+        </Modal.Title>
       </Modal.Header>
 
       <Modal.Body className={`modal-body-${theme} bg-form-${theme}`}>
@@ -83,12 +85,19 @@ function ChangeQueueModal({ show, onHide, theme, selectedChat }) {
                 onClick={() => setSelectedQueue(queue)}
                 style={{
                   border: `2px solid ${queue.color}`,
-                  backgroundColor: selectedQueue?.id === queue.id ? `${queue.color}20` : 'transparent'
+                  backgroundColor: selectedQueue?.id === queue.id ? `${queue.color}20` : 'transparent',
+                  cursor: 'pointer',
+                  marginBottom: 8,
+                  padding: 8,
+                  borderRadius: 6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8
                 }}
               >
                 <div 
                   className="queue-color-indicator"
-                  style={{ backgroundColor: queue.color }}
+                  style={{ backgroundColor: queue.color, width: 16, height: 16, borderRadius: '50%' }}
                 />
                 <span>{queue.name}</span>
               </div>
@@ -98,12 +107,12 @@ function ChangeQueueModal({ show, onHide, theme, selectedChat }) {
 
         {/* Aviso */}
         <div 
-        className={`alert d-flex justify-content-center`}
-        style={{ 
+          className={`alert d-flex justify-content-center`}
+          style={{ 
             backgroundColor: 'transparent',
             border: `1px solid var(--error-color)`,
             color: `var(--error-color)`
-         }}
+          }}
         >
           <i className="bi bi-exclamation-triangle-fill me-2"></i>
           Atenção: Esta alteração não poderá ser desfeita.
@@ -131,28 +140,36 @@ function ChangeQueueModal({ show, onHide, theme, selectedChat }) {
         >
           Cancelar
         </Button>
-        {!isConfirming ? (
-          <Button
-            style={{ backgroundColor: 'transparent' }}
-            variant="primary"
-            onClick={handleConfirm}
-            disabled={!selectedQueue || countdown > 0}
-            className={`btn-2-${theme}`}
-          >
-            {countdown > 0 ? `Aguarde ${countdown}s` : 'Alterar Fila'}
-          </Button>
-        ) : countdown === 0 && (
-          <Button
-            variant="primary"
-            onClick={handleChangeQueue}
-            className={`btn-2-${theme}`}
-          >
-            Confirmar Alteração
-          </Button>
-        )}
+{!isConfirming ? (
+  <Button
+    style={{ backgroundColor: 'transparent' }}
+    variant="primary"
+    onClick={handleConfirm}
+    disabled={!selectedQueue}
+    className={`btn-2-${theme}`}
+  >
+    Alterar Fila
+  </Button>
+) : countdown > 0 ? (
+  <Button
+    variant="danger"
+    disabled
+    className="w-100"
+  >
+    Confirmar alteração em {countdown}s
+  </Button>
+) : (
+  <Button
+    variant="primary"
+    onClick={handleChangeQueue}
+    className={`btn-2-${theme}`}
+  >
+    Confirmar Alteração
+  </Button>
+)}
       </Modal.Footer>
     </Modal>
   );
 }
 
-export default ChangeQueueModal; 
+export default ChangeQueueModal;

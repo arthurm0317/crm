@@ -1,27 +1,44 @@
 const OpenAI = require('openai');
+const pool = require('../db/queries');
 
 const chatgptText = async (req, res) => {
   const { message, prompt } = req.body;
-  const openai = new OpenAI({
-    apiKey: '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'
-  });
+  const openai = new OpenAI({ apiKey: 'SUA_API_KEY_OPENAI' });
 
   try {
-    const messages = [];
-    if (prompt && prompt.trim()) {
-      messages.push({ role: 'system', content: prompt });
-    }
-    messages.push({ role: 'user', content: message });
+    const systemPrompt = `
+      Você é um assistente que responde perguntas sobre o CRM.
+      O banco de dados possui as seguintes tabelas e colunas:
+      - clientes (id, nome, idade, data_entrada, email, telefone, ...)
+      - vendas (id, cliente_id, valor, data_venda, ...)
+      - tag (id, nome, cor)
+      - chat_tag (chat_id, tag_id)
+      Gere apenas a query SQL Postgres correspondente à pergunta do usuário, sem explicação, e nunca faça comandos que não sejam SELECT.
+      Exemplo de resposta: SELECT COUNT(*) FROM clientes WHERE idade = 30 AND data_entrada >= '2024-05-01';
+    `;
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
-      messages,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...(prompt ? [{ role: 'system', content: prompt }] : []),
+        { role: 'user', content: message }
+      ],
     });
 
-    res.json({ response: completion.choices[0].message.content });
+    const sql = completion.choices[0].message.content.trim();
+
+    if (!sql.toLowerCase().startsWith('select')) {
+      return res.status(400).json({ error: 'Apenas SELECTs são permitidos.' });
+    }
+
+    const result = await pool.query(sql);
+
+    res.json({ response: result.rows });
+
   } catch (err) {
     console.error(err.response?.data || err.message);
-    res.status(500).json({ error: 'Erro ao se comunicar com o ChatGPT' });
+    res.status(500).json({ error: 'Erro ao processar a consulta.' });
   }
 };
 

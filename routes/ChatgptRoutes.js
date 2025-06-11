@@ -5,4 +5,4 @@ const router = express.Router();
 router.post('/', chatgptText);
 
 
-module.exports = router;
+module.exports = router;    

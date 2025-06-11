@@ -14,12 +14,13 @@ function formatHour(timestamp) {
 }
 
 function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, setSelectedChat, setSelectedMessages, onEditName }) {
-  const url = process.env.REACT_APP_URL
+  const url = process.env.REACT_APP_URL;
   const userData = JSON.parse(localStorage.getItem('user'));
-  const schema = userData.schema
+  const schema = userData.schema;
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showChangeQueueModal, setShowChangeQueueModal] = useState(false);
-
+  const [queues, setQueues] = useState([]);
+  const [transferLoading, setTransferLoading] = useState(false);
   const handleToggle = (isOpen) => {
     setIsDropdownOpen(isOpen);
   };
@@ -48,10 +49,46 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
         console.error(error)
       }
   };
+  useEffect(() => {
+    async function fetchQueues() {
+      try {
+        const res = await axios.get(`${url}/queue/get-all-queues/${schema}`);
+        console.log('Filas recebidas:', res.data.result);
+        setQueues(res.data.result || []);
+      } catch (err) {
+        setQueues([]);
+      }
+    }
+    if (isDropdownOpen) fetchQueues();
+  }, [isDropdownOpen, url, schema]);
 
+
+  const handleTransferQueue = async (queueId) => {
+    if (!selectedChat) return;
+    setTransferLoading(true);
+    try {
+      await axios.post(`${url}/queue/transfer-queue`, {
+        chatId: selectedChat.id,
+        newQueueId: queueId,
+        schema
+      });
+
+      setChats(prev =>
+        prev.map(chat =>
+          chat.id === selectedChat.id ? { ...chat, queue_id: queueId } : chat
+        )
+      );
+      setSelectedChat(prev =>
+        prev ? { ...prev, queue_id: queueId } : prev
+      );
+    } catch (err) {
+      alert('Erro ao transferir fila');
+    }
+    setTransferLoading(false);
+  };
   return (
     <>
-      <Dropdown drop="start" onToggle={handleToggle}>
+      <Dropdown drop="start" onToggle={setIsDropdownOpen}>
         <Dropdown.Toggle
           variant={theme === 'light' ? 'light' : 'dark'}
           id="dropdown-basic"
@@ -63,18 +100,25 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
         <Dropdown.Menu
           variant={theme === 'light' ? 'light' : 'dark'}
           className={`input-${theme}`}>
+  
+
+          <Dropdown.Divider />
           <Dropdown.Item href="#" onClick={() => setShowChangeQueueModal(true)}>Alterar Fila</Dropdown.Item>
           <Dropdown.Item href="#" onClick={handleCloseChat}>Finalizar Atendimento</Dropdown.Item>
           <Dropdown.Item href="#" onClick={onEditName}>Editar Nome</Dropdown.Item>
+          <Dropdown.Item href="#" onClick={() => setShowTagModal(true)}>Gerenciar Tags</Dropdown.Item>
         </Dropdown.Menu>
       </Dropdown>
 
-      <ChangeQueueModal
-        show={showChangeQueueModal}
-        onHide={() => setShowChangeQueueModal(false)}
-        theme={theme}
-        selectedChat={selectedChat}
-      />
+  <ChangeQueueModal
+    show={showChangeQueueModal}
+    onHide={() => setShowChangeQueueModal(false)}
+    theme={theme}
+    selectedChat={selectedChat}
+    schema={schema}
+    url={url}
+    onTransfer={handleTransferQueue}
+/>
     </>
   );
 }
