@@ -1,8 +1,8 @@
-const express = require('express');
-const { chatgptText } = require('../controllers/ChatgptController');
-const router = express.Router();
+//const express = require('express');
+//const { chatgptText } = require('../controllers/ChatgptController');
+//const router = express.Router();
 
-router.post('/', chatgptText);
+//router.post('/', chatgptText);
 
 
-module.exports = router;    
+//module.exports = router;    
