@@ -613,10 +613,9 @@ useEffect(() => {
                         height: '6px',
                         background: `${etapa.color}`,
                         borderRadius: '4px',
-                        marginBottom: '8px'
                       }}
                     />
-                    <div className="d-flex flex-row justify-content-between align-items-center mb-3">
+                    <div className="d-flex flex-row justify-content-between align-items-center my-2">
                       {editingEtapaId === etapa.id ? (
                         <input
                           className={`form-control input-${theme} mb-0`}
@@ -662,72 +661,70 @@ useEffect(() => {
                           onDragStart={() => onDragStart(lead)}
                         >
                           <div className="d-flex justify-content-between align-items-center mb-2">
-                            <span className={`fw-bold header-text-${theme}`} style={{ fontSize: '0.8rem' }}>{lead.contact_name}</span>
+                            <span className={`fw-bold header-text-${theme} me-1`} style={{ fontSize: '0.8rem' }}>{lead.contact_name}</span>
                             <div className="d-flex gap-1">
                               {/* Dropdown de gerenciamento de tags */}
                               <DropdownButton icon="tags" theme={theme}>
                                 <div>
                                   {allTags.map(tag => (
-                                    <Menu.Item key={tag.id}>
-                                      {({ active }) => (
-                                        <div
-                                          className={`dropdown-item dp-${theme} d-flex align-items-center gap-2 ${active ? 'active' : ''}`}
-                                          onClick={e => e.stopPropagation()}
-                                        >
-                                          <input
-                                            type="checkbox"
-                                            className="form-check-input"
-                                            id={`tag-${tag.id}`}
-                                            checked={(lead.tags || []).some(t => t.id === tag.id)}
-                                            onChange={async (e) => {
-                                              try {
-                                                if (e.target.checked) {
-                                                  await axios.post(`${url}/tag/add-tag`, {
-                                                    chat_id: lead.id,
-                                                    tag_id: tag.id,
-                                                    schema
-                                                  });
-                                                } else {
-                                                  await axios.delete(`${url}/tag/remove-tag`, {
-                                                    data: {
-                                                      chat_id: lead.id,
-                                                      tag_id: tag.id,
-                                                      schema
-                                                    }
-                                                  });
+                                    <div
+                                      key={tag.id}
+                                      className={`dropdown-item dp-${theme} d-flex align-items-center gap-2`}
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        className="form-check-input"
+                                        id={`tag-${tag.id}`}
+                                        checked={(lead.tags || []).some(t => t.id === tag.id)}
+                                        onChange={async (e) => {
+                                          try {
+                                            if (e.target.checked) {
+                                              await axios.post(`${url}/tag/add-tag`, {
+                                                chat_id: lead.id,
+                                                tag_id: tag.id,
+                                                schema
+                                              });
+                                            } else {
+                                              await axios.delete(`${url}/tag/remove-tag`, {
+                                                data: {
+                                                  chat_id: lead.id,
+                                                  tag_id: tag.id,
+                                                  schema
                                                 }
-                                                setCards(cards => cards.map(c =>
-                                                  c.id === lead.id
-                                                    ? {
-                                                        ...c,
-                                                        tags: e.target.checked
-                                                          ? [...(c.tags || []), tag]
-                                                          : (c.tags || []).filter(t => t.id !== tag.id)
-                                                      }
-                                                    : c
-                                                ));
-                                              } catch (error) {
-                                                console.error('Erro ao atualizar tags:', error);
-                                              }
-                                            }}
-                                            style={{ cursor: 'pointer' }}
-                                          />
-                                          <label
-                                            htmlFor={`tag-${tag.id}`}
-                                            className={`form-check-label card-subtitle-${theme} dp-${theme} mb-0`}
-                                            style={{ cursor: 'pointer' }}
-                                          >
-                                            {tag.name}
-                                          </label>
-                                        </div>
-                                      )}
-                                    </Menu.Item>
+                                              });
+                                            }
+                                            setCards(cards => cards.map(c =>
+                                              c.id === lead.id
+                                                ? {
+                                                    ...c,
+                                                    tags: e.target.checked
+                                                      ? [...(c.tags || []), tag]
+                                                      : (c.tags || []).filter(t => t.id !== tag.id)
+                                                }
+                                              : c
+                                            ));
+                                          } catch (error) {
+                                            console.error('Erro ao atualizar tags:', error);
+                                          }
+                                        }}
+                                        style={{ cursor: 'pointer' }}
+                                        onMouseDown={e => e.stopPropagation()}
+                                      />
+                                      <label
+                                        htmlFor={`tag-${tag.id}`}
+                                        className={`form-check-label card-subtitle-${theme} dp-${theme} mb-0`}
+                                        style={{ cursor: 'pointer' }}
+                                        onMouseDown={e => e.stopPropagation()}
+                                      >
+                                        {tag.name}
+                                      </label>
+                                    </div>
                                   ))}
                                 </div>
                               </DropdownButton>
 
                               {/* Dropdown de alterar funil */}
-                              <DropdownButton icon="funnel-fill" theme={theme}>
+                              <DropdownButton icon="funnel-fill" theme={theme} style={{ backgroundColor: 'red' }}>
                                 <div>
                                   <div className="dropdown-header" style={{ opacity: 1, color: 'var(--placeholder-color)' }}>
                                     Mover para...
@@ -828,8 +825,8 @@ useEffect(() => {
         show={showImportarContatosModal}
         onHide={() => setShowImportarContatosModal(false)}
         funil={funilSelecionado}
+        etapas={etapas}
       />
-
     </div>
   );
 }

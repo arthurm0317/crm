@@ -695,7 +695,7 @@ const handleImageUpload = async (event) => {
             </div>
 
             {/* Lista filtrada */}
-            <div className='px-3 py-3'>
+            <div className='p-3'>
               <h6 
                 className={`header-text-${theme} m-0`}
               >
@@ -776,7 +776,7 @@ const handleImageUpload = async (event) => {
       backgroundColor: `var(--bg-color-${theme})`,
       color: `var(--color-${theme})`,
       borderBottom: `1px solid var(--border-color-${theme})`,
-      minHeight: '80px',
+      minHeight: '95.11px',
       width:'100%',
       maxWidth:'1700px',
     }}
