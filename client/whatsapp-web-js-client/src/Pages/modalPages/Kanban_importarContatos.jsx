@@ -207,7 +207,7 @@ function ImportarContatosModal({ theme, show, onHide, funil, etapas = [] }) {
                 </div>
                 <div className="col-md-3">
                   <Form.Group>
-                    <Form.Label className={`card-subtitle-${theme}`}>ID Personalizado (opcional)</Form.Label>
+                    <Form.Label className={`card-subtitle-${theme}`}>ID Personalizado</Form.Label>
                     <Form.Select
                       value={mapping.customId}
                       onChange={(e) => handleMappingChange('customId', e.target.value)}
