@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
+import { Modal } from 'react-bootstrap';
 
 function SortableEtapa({ etapa, idx, theme, handleEtapaChange, handleMoveEtapa, handleRemoveEtapa, etapas, onDragStart }) {
   const handleDragStart = (e) => {
@@ -42,7 +43,15 @@ function SortableEtapa({ etapa, idx, theme, handleEtapaChange, handleMoveEtapa, 
   };
 
   return (
-    <div className="row mb-3 mx-1 d-flex justify-content-between align-items-center" style={{ borderRight: '1px solid var(--placeholder-color)', WebkitBorderTopRightRadius: '8px', WebkitBorderBottomRightRadius: '8px' }}>
+    <div 
+      className="row mb-3 mx-1 d-flex justify-content-between align-items-center" 
+      style={{ 
+        borderRight: '1px solid var(--placeholder-color)', 
+        WebkitBorderTopRightRadius: '8px', 
+        WebkitBorderBottomRightRadius: '8px',
+        position: 'relative'
+      }}
+    >
       <div 
         className="col-auto d-flex align-items-center"
         draggable
@@ -56,7 +65,8 @@ function SortableEtapa({ etapa, idx, theme, handleEtapaChange, handleMoveEtapa, 
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          borderRadius: '4px'
+          borderRadius: '4px',
+          zIndex: 1
         }}
         title="Arrastar para reordenar"
       >
@@ -72,7 +82,7 @@ function SortableEtapa({ etapa, idx, theme, handleEtapaChange, handleMoveEtapa, 
           placeholder={`Nome da etapa ${idx + 1}`}
         />
       </div>
-      <div className="col-3 d-flex align-items-center" >
+      <div className="col-3 d-flex align-items-center">
         <div className="w-100">
           <label className={`form-label card-subtitle-${theme}`}>Cor</label>
           <input
@@ -128,16 +138,20 @@ function GerirEtapaModal({ theme, show, onHide, onSave, funil, etapas: etapasPro
 
   useEffect(() => {
     const fetchEtapas = async () => {
-      const response = await axios.get(`${url}/kanban/get-stages/${funil}/${schema}`);
-      const etapasConvertidas = (Array.isArray(response.data) ? response.data : [response.data]).map((e, i) => ({
-        ...e,
-        cor: e.cor ?? e.color ?? '#2ecc71',
-        index: e.pos ?? i
-      }));
-      setEtapas(etapasConvertidas);
+      try {
+        const response = await axios.get(`${url}/kanban/get-stages/${funil}/${schema}`);
+        const etapasConvertidas = (Array.isArray(response.data) ? response.data : [response.data]).map((e, i) => ({
+          ...e,
+          cor: e.cor ?? e.color ?? '#2ecc71',
+          index: e.pos ?? i
+        }));
+        setEtapas(etapasConvertidas);
+      } catch (error) {
+        console.error('Erro ao buscar etapas:', error);
+      }
     };
     if (show) fetchEtapas();
-  }, [funil, show]);
+  }, [funil, show, schema, url]);
 
   const handleDragStart = (etapa) => {
     setDraggedEtapa(etapa);
@@ -227,59 +241,64 @@ function GerirEtapaModal({ theme, show, onHide, onSave, funil, etapas: etapasPro
     if (onHide) onHide();
   };
 
-  if (!show) return null;
-
   return (
-    <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-      <div className="modal-dialog modal-lg modal-dialog-centered">
-        <div className="modal-content" style={{ backgroundColor: `var(--bg-color-${theme})` }}>
-          <div className="modal-header gap-3">
-            <i className={`bi bi-layout-sidebar-inset header-text-${theme}`}></i>
-            <h5 className={`modal-title header-text-${theme}`}>Gerir Etapas do Funil</h5>
-            <button type="button" className="btn-close" onClick={onHide}></button>
-          </div>
-          <div className="modal-body">
-            <div className="mb-3">
-              <label className={`form-label card-subtitle-${theme}`}>Funil Selecionado</label>
-              <input
-                type="text"
-                className={`form-control input-${theme}`}
-                style={{ backgroundColor: 'transparent' }}
-                value={funil.charAt(0).toUpperCase() + funil.slice(1) || ''}
-                disabled
+    <Modal
+      show={show}
+      onHide={onHide}
+      size="lg"
+      centered
+      backdrop="static"
+      className={`modal-${theme}`}
+    >
+      <Modal.Header closeButton className={`bg-form-${theme}`}>
+        <div className="d-flex align-items-center gap-3">
+          <i className={`bi bi-layout-sidebar-inset header-text-${theme}`}></i>
+          <h5 className={`modal-title header-text-${theme}`}>Gerir Etapas do Funil</h5>
+        </div>
+      </Modal.Header>
+
+      <Modal.Body className={`bg-form-${theme}`}>
+        <div className="mb-3">
+          <label className={`form-label card-subtitle-${theme}`}>Funil Selecionado</label>
+          <input
+            type="text"
+            className={`form-control input-${theme}`}
+            style={{ backgroundColor: 'transparent' }}
+            value={funil.charAt(0).toUpperCase() + funil.slice(1) || ''}
+            disabled
+          />
+        </div>
+        <div className="d-flex flex-column gap-2" style={{ position: 'relative' }}>
+          {etapas.map((etapa, idx) => (
+            <div
+              key={etapa.uid || etapa.id}
+              onDragOver={handleDragOver}
+              onDrop={() => handleDrop(idx)}
+              style={{ position: 'relative' }}
+            >
+              <SortableEtapa
+                etapa={etapa}
+                idx={idx}
+                theme={theme}
+                handleEtapaChange={handleEtapaChange}
+                handleMoveEtapa={handleMoveEtapa}
+                handleRemoveEtapa={handleRemoveEtapa}
+                etapas={etapas}
+                onDragStart={handleDragStart}
               />
             </div>
-            <div className="d-flex flex-column gap-2">
-              {etapas.map((etapa, idx) => (
-                <div
-                  key={etapa.uid}
-                  onDragOver={handleDragOver}
-                  onDrop={() => handleDrop(idx)}
-                >
-                  <SortableEtapa
-                    etapa={etapa}
-                    idx={idx}
-                    theme={theme}
-                    handleEtapaChange={handleEtapaChange}
-                    handleMoveEtapa={handleMoveEtapa}
-                    handleRemoveEtapa={handleRemoveEtapa}
-                    etapas={etapas}
-                    onDragStart={handleDragStart}
-                  />
-                </div>
-              ))}
-            </div>
-            <button className={`btn btn-2-${theme} w-100 mb-2 mt-3`} onClick={handleAddEtapa}>
-              <i className="bi bi-plus-circle me-2"></i>Nova Etapa
-            </button>
-          </div>
-          <div className="modal-footer">
-            <button type="button" className={`btn btn-2-${theme}`} onClick={onHide}>Cancelar</button>
-            <button type="button" className={`btn btn-1-${theme}`} onClick={handleSave}>Salvar Etapas</button>
-          </div>
+          ))}
         </div>
-      </div>
-    </div>
+        <button className={`btn btn-2-${theme} w-100 mb-2 mt-3`} onClick={handleAddEtapa}>
+          <i className="bi bi-plus-circle me-2"></i>Nova Etapa
+        </button>
+      </Modal.Body>
+
+      <Modal.Footer className={`bg-form-${theme}`}>
+        <button type="button" className={`btn btn-2-${theme}`} onClick={onHide}>Cancelar</button>
+        <button type="button" className={`btn btn-1-${theme}`} onClick={handleSave}>Salvar Etapas</button>
+      </Modal.Footer>
+    </Modal>
   );
 }
 
