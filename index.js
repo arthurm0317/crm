@@ -14,6 +14,7 @@ const filesRoutes = require('./routes/FilesRoutes');
 const campaingRoutes = require('./routes/CampaingRoutes')
 const tagRoutes = require('./routes/TagRoutes')
 const bodyParser = require('body-parser');
+const chatgptRoutes = require('./routes/ChatGptRoutes');
 
 const cors = require('cors');
 const configureSocket = require('./config/SocketConfig');
@@ -64,6 +65,7 @@ app.use('/contact', contactRoutes);
 app.use('/kanban', kanbanRoutes);
 app.use('/files', filesRoutes);
 app.use('/campaing', campaingRoutes)
+app.use('/chatgpt', chatgptRoutes);
 app.use('/tag', tagRoutes)
 
 const axios = require('axios');

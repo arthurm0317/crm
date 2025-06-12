@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 
+
 class SocketServer {
     constructor(port = 3333) {
         this.app = express();
@@ -44,6 +45,7 @@ class SocketServer {
         });
     }
 
+    
     sockets() {
         this.io.on('connection', (socket) => {
             console.log('Novo cliente conectado');

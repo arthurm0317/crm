@@ -18,6 +18,7 @@ import DisparosPage from './Disparos';
 import WhatsappModal from './modalPages/Whatsapp';
 import Manutencao from './Manutencao';
 import AjudaPage from './Ajuda';
+import Chatgpt from './Chatgpt';
 
 window.addEventListener('error', function (event) {
   if (
@@ -103,6 +104,7 @@ function Painel() {
       case 'insights': return <Manutencao theme={theme} />;
       case 'disparos': return <DisparosPage theme={theme} />;
       case 'ajuda': return <AjudaPage theme={theme} />;
+      case 'ChatGPT': return <Chatgpt theme={theme} />;
       default: return <Dashboard theme={theme} />;
     }
   };
@@ -249,6 +251,19 @@ function Painel() {
               <i className="bi bi-question-circle"></i>
               <span className="sidebar-label d-none">Ajuda</span>
             </button>
+
+            <button
+            id="chatgpt"
+          onClick={() => setPage('ChatGPT')}
+          data-bs-toggle="tooltip"
+          data-bs-placement="right"
+          data-bs-title="ChatGPT"
+          className={`btn ${page === 'ChatGPT' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''}`}
+>
+          <i className="bi bi-robot"></i>
+          <span className="sidebar-label d-none">ChatGPT</span>
+        </button>
+
           </div>
         </div>
         <div className="d-flex flex-column flex-grow-1" style={{ flex: 1, minWidth: 0 }}>

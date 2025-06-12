@@ -91,6 +91,14 @@ const getQueueById = async(queue_id, schema)=>{
     return result.rows
 }
 
+const transferQueue = async (chatId, newQueueId, schema) => {
+  const result = await pool.query(
+    `UPDATE ${schema}.chats SET queue_id = $1 WHERE id = $2 RETURNING *`,
+    [newQueueId, chatId]
+  );
+  return result.rows[0];
+};
+
 module.exports = {
     createQueue,
     addUserinQueue,
@@ -98,5 +106,6 @@ module.exports = {
     getChatsInQueue,
     getAllQueues,
     deleteQueue,
-    getQueueById
-}
+    getQueueById,
+    transferQueue,
+};
