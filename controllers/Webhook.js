@@ -82,6 +82,8 @@ module.exports = (broadcastMessage) => {
       const chatDb = await getChatService(createChats.chat.id, createChats.chat.connection_id, createChats.schema);
       const schema = createChats.schema
 
+      console.log('CHAT DB',chatDb)
+
       if(chatDb.assigned_user===null){
         await setUserChat(chatDb.id, schema)
       }

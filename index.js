@@ -12,6 +12,7 @@ const kanbanRoutes = require('./routes/KanbanRoutes');
 const webhook = require('./controllers/Webhook');
 const filesRoutes = require('./routes/FilesRoutes');
 const campaingRoutes = require('./routes/CampaingRoutes')
+const tagRoutes = require('./routes/TagRoutes')
 const bodyParser = require('body-parser');
 
 const cors = require('cors');
@@ -24,8 +25,8 @@ const corsOptions = {
   origin: ['http://localhost:3001',
     'https://landing-page-front.8rxpnw.easypanel.host',
     'https://eg-crm.effectivegain.com',
-    'https://ilhadogovernador.effectivegain.com',
-    'https://ilhadogovernador.effectivegain.com/'
+    'https://ilhadogovernador.effectivegain.com/',
+    'https://ilhadogovernador.effectivegain.com'
   ],
   methods: ['GET', 'POST', 'DELETE', 'PUT'],
 };
@@ -63,6 +64,7 @@ app.use('/contact', contactRoutes);
 app.use('/kanban', kanbanRoutes);
 app.use('/files', filesRoutes);
 app.use('/campaing', campaingRoutes)
+app.use('/tag', tagRoutes)
 
 const axios = require('axios');
 const fs = require('fs');

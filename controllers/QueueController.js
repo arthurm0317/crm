@@ -1,6 +1,7 @@
 const Queue = require("../entities/Queue");
 const { v4: uuidv4 } = require('uuid');
-const { createQueue, addUserinQueue, getUserQueues, getAllQueues, deleteQueue, getQueueById } = require("../services/QueueService");
+const { createQueue, addUserinQueue, getUserQueues, getAllQueues, deleteQueue, getQueueById, transferQueue } = require("../services/QueueService");
+
 
 const createQueueController = async(req, res)=>{
     try{
@@ -52,19 +53,18 @@ const getUserQueuesController=async(req,res)=>{
     
 }
 
-const getAllQueuesControllers = async(req, res)=>{
+const getAllQueuesControllers = async(req, res)=> {
     try{
         const {schema} = req.params
-
+        console.log('Schema recebido:', schema);
         const result = await getAllQueues(schema)
-
+        console.log('Filas encontradas:', result);
         res.status(201).json({
             result
         })
     }catch(error){
         console.log(error)
     }
-
 }
 const deleteQueueController = async(req, res)=>{
     try{
@@ -75,7 +75,7 @@ const deleteQueueController = async(req, res)=>{
         res.status(500).json({ error: 'Erro ao deletar fila' });
 }
 }
-const getQueueByIdController = async(req, res)=>{
+const getQueueByIdController = async(req, res)=> {
     try{
         const {queue_id, schema} = req.params
         console.log(queue_id, schema)
@@ -86,13 +86,27 @@ const getQueueByIdController = async(req, res)=>{
     }catch(error){
         console.log(error)
         res.status(500).json({ error: 'Erro ao buscar fila' });
+    }
 }
-}
+
+
+const transferQueueController = async (req, res) => {
+  try {
+    const { chatId, newQueueId, schema } = req.body;
+    const result = await transferQueue(chatId, newQueueId, schema || 'effective_gain');
+    res.status(200).json({ result });
+  } catch (error) {
+    console.error('Erro ao transferir fila:', error.message);
+    res.status(500).json({ error: 'Erro ao transferir fila' });
+  }
+};
+
 module.exports = {
     createQueueController,
     addUserinQueueController,
     getUserQueuesController,
     getAllQueuesControllers,
     deleteQueueController,
-    getQueueByIdController
+    getQueueByIdController,
+    transferQueueController,
 }

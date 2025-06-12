@@ -18,6 +18,8 @@ import DisparosPage from './Disparos';
 import WhatsappModal from './modalPages/Whatsapp';
 import Manutencao from './Manutencao';
 import AjudaPage from './Ajuda';
+import Chatgpt from './Chatgpt';
+import LembretesPage from './Lembretes';
 
 window.addEventListener('error', function (event) {
   if (
@@ -45,7 +47,6 @@ function Painel() {
   const [showWhatsappModal, setShowWhatsappModal] = useState(false);
   const navigate = useNavigate();
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
-  
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user'));
     if (!userData || !userData.schema) {
@@ -96,14 +97,15 @@ function Painel() {
     switch (page) {
       case 'dashboard': return <Dashboard theme={theme} />;
       case 'chats': return <ChatPage theme={theme} />;
-      case 'kanban': return <Manutencao theme={theme} />;
+      case 'kanban': return <KanbanPage theme={theme} />;
       case 'filas': return <FilaPage theme={theme} />;
       case 'usuarios': return <UsuariosPage theme={theme} />;
-      case 'agenda': return <Manutencao theme={theme} />;
-      case 'relatorios': return <Manutencao theme={theme} />;
+      case 'agenda': return <LembretesPage theme={theme} />;
+      case 'relatorios': return <RelatorioPage theme={theme} />;
       case 'insights': return <Manutencao theme={theme} />;
       case 'disparos': return <DisparosPage theme={theme} />;
       case 'ajuda': return <AjudaPage theme={theme} />;
+      case 'ChatGPT': return <Chatgpt theme={theme} />;
       default: return <Dashboard theme={theme} />;
     }
   };
@@ -250,6 +252,19 @@ function Painel() {
               <i className="bi bi-question-circle"></i>
               <span className="sidebar-label d-none">Ajuda</span>
             </button>
+
+            <button
+            id="chatgpt"
+          onClick={() => setPage('ChatGPT')}
+          data-bs-toggle="tooltip"
+          data-bs-placement="right"
+          data-bs-title="ChatGPT"
+          className={`btn ${page === 'ChatGPT' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''}`}
+>
+          <i className="bi bi-robot"></i>
+          <span className="sidebar-label d-none">ChatGPT</span>
+        </button>
+
           </div>
         </div>
         <div className="d-flex flex-column flex-grow-1" style={{ flex: 1, minWidth: 0 }}>

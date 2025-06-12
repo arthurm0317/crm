@@ -1,5 +1,5 @@
 import axios from 'axios';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 function DisparoModal({ theme, disparo = null }) {
   const [titulo, setTitulo] = useState('');
@@ -17,6 +17,9 @@ function DisparoModal({ theme, disparo = null }) {
   const [intervaloTempo, setIntervaloTempo] = useState(30);
   const [intervaloUnidade, setIntervaloUnidade] = useState('segundos');
   const [conexao, setConexao] = useState([]);
+  const [customFields ,setCustomFields] = useState([])
+  const textAreasRef = useRef([]);
+
 
   const userData = JSON.parse(localStorage.getItem('user'));
   const schema = userData?.schema;
@@ -71,6 +74,8 @@ function DisparoModal({ theme, disparo = null }) {
   carregarDisparo();
 }, [disparo, url, schema]);
 
+ 
+
   useEffect(() => {
     const fetchConn = async () => {
       try {
@@ -119,17 +124,14 @@ function DisparoModal({ theme, disparo = null }) {
   if (!disparo) {
     setEtapa('');
   }
+  const fetchCustomFields = async () => {
+  const response = await axios.get(`${url}/kanban/get-custom-fields/${schema}`)
+  setCustomFields(Array.isArray(response.data) ? response.data : [response.data])
+  console.log(response.data)
+  }
+  fetchCustomFields()
 }, [etapas, disparo]);
 
-  // Lista fictícia de tags
-  const tags = [
-    { id: 1, nome: "Cliente VIP" },
-    { id: 2, nome: "Prospect" },
-    { id: 3, nome: "Lead Quente" },
-    { id: 4, nome: "Lead Frio" },
-    { id: 5, nome: "Abandonou Carrinho" },
-    { id: 6, nome: "Newsletter" }
-  ];
 
   // Atualiza array de mensagens quando o número de mensagens muda
   useEffect(() => {
@@ -182,6 +184,28 @@ function DisparoModal({ theme, disparo = null }) {
     setTagsSelecionadas(selectedOptions);
   };
 
+  const insertVariable = (index, variable) => {
+  const textarea = textAreasRef.current[index];
+  if (!textarea) return;
+
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const textoAtual = mensagens[index];
+  const novaMensagem = 
+    textoAtual.slice(0, start) + `{{${variable.field_name}}}` + textoAtual.slice(end);
+
+  const novasMensagens = [...mensagens];
+  novasMensagens[index] = novaMensagem;
+  setMensagens(novasMensagens);
+
+  setTimeout(() => {
+    const novaPos = start + `{{${variable.field_name}}}`.length;
+    textarea.focus();
+    textarea.setSelectionRange(novaPos, novaPos);
+  }, 0);
+};
+
+
   const handleSave = async () => {
     if (!titulo || !canal || !dataInicio || !horaInicio || mensagens.some(msg => !msg)) {
       console.error('Preencha todos os campos obrigatórios.');
@@ -221,6 +245,11 @@ function DisparoModal({ theme, disparo = null }) {
       console.error('Erro ao salvar disparo:', error);
     }
   };
+
+  const variaveisFixas = [
+  { id: 'contact_name', label: 'Nome', field_name: 'contact_name' },
+  { id: 'contact_phone', label: 'Telefone', field_name: 'number' },
+    ];
 
   return (
     <div className="modal fade" id="DisparoModal" tabIndex="-1" aria-labelledby="DisparoModalLabel" aria-hidden="true">
@@ -270,6 +299,7 @@ function DisparoModal({ theme, disparo = null }) {
                   Modelo de mensagem {index + 1}
                 </label>
                 <textarea
+                  ref={(el) => textAreasRef.current[index] = el}
                   className={`form-control input-${theme}`}
                   id={`mensagem${index}`}
                   value={mensagem}
@@ -281,7 +311,19 @@ function DisparoModal({ theme, disparo = null }) {
                   rows="3"
                   placeholder={`Digite a mensagem ${index + 1}`}
                 />
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {[...variaveisFixas, ...customFields].map((variable) => (
+                    <button
+                      key={variable.id}
+                      onClick={() => insertVariable(index, variable)}
+                      className="px-3 py-1 bg-blue-100 text-blue-800 rounded hover:bg-blue-200"
+                    >
+                      {`${variable.label}`}
+                    </button>
+                  ))}
+                </div>
               </div>
+              
             ))}
             {/* Grid de 2 colunas para Canal/Tipo e Data/Hora/Intervalo */}
             <div className="row">

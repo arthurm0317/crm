@@ -1,11 +1,11 @@
-const { scheduleCampaingBlast, getCampaings, getCampaingById, createCampaing } = require("../services/CampaingService");
+const { scheduleCampaingBlast, getCampaings, getCampaingById, createCampaing, startCampaing } = require("../services/CampaingService");
 const { createMessageForBlast, getAllBlastMessages } = require("../services/MessageBlast");
 
 const startCampaingController = async (req, res) => {
   const { campaing_id, timer } = req.body;
   const schema = req.body.schema;
   try {
-    const result = await startCampaingRedis(campaing_id, timer, schema);
+    const result = await startCampaing(campaing_id, timer, schema);
     res.status(201).json(result);
   } catch (error) {
     console.log(error);
@@ -40,12 +40,15 @@ const getCampaingByIdController = async (req, res) => {
 
 const createCampaingController = async (req, res) => {
   const {campaing_id, name, sector, kanban_stage, connection_id, start_date, schema, mensagem } = req.body;
+  if (!schema) {
+    return res.status(400).json({ erro: 'Schema não informado!' });
+  }
   try {
     if(campaing_id){
       const campaing = await createCampaing(campaing_id, name, sector, kanban_stage, connection_id, start_date, schema);
       return campaing
     }
-      const campaing = await createCampaing(name, sector, kanban_stage, connection_id, start_date, schema);
+      const campaing = await createCampaing(null, name, sector, kanban_stage, connection_id, start_date, schema);
 
     if (mensagem && Array.isArray(mensagem)) {
       for (const msg of mensagem) {
@@ -55,7 +58,9 @@ const createCampaingController = async (req, res) => {
       await createMessageForBlast(msg, sector, campaing.id, schema);
     }
 
-    await scheduleCampaingBlast(campaing, schema);
+
+    console.log(campaing, sector, schema)
+    await scheduleCampaingBlast(campaing, sector, schema);
 
     res.status(201).json(campaing);
   } catch (error) {

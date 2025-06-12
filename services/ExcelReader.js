@@ -8,7 +8,7 @@ const { insertInKanbanStage } = require('./KanbanService');
 
 const folderPath = path.join(__dirname, '..', 'uploads');
 
-function processExcelFile() {
+function processExcelFile(connection_id, sector, schema) {
   const files = fs.readdirSync(folderPath).filter(file => file.endsWith('.xlsx'));
 
   if (files.length === 0) {
@@ -23,7 +23,7 @@ function processExcelFile() {
 
   console.log('Dados processados do Excel:', data);
 
-  getInformationFromExcel(data, 'effective_gain') 
+  getInformationFromExcel(data, connection_id,sector, schema) 
 
   return data;
 
@@ -31,7 +31,7 @@ function processExcelFile() {
   
 }
 
-const getInformationFromExcel = async (data, connection, schema) => {
+const getInformationFromExcel = async (data, connection, sector, schema) => {
   for (const row of data) {
     let numero = row.numero?.toString();
     const nomeSeparado = row.nome.split(' ');
@@ -62,7 +62,7 @@ const getInformationFromExcel = async (data, connection, schema) => {
         }
       }
       if (etapa) {
-        await insertInKanbanStage(etapa, connection, numero, schema);
+        await insertInKanbanStage(etapa, connection, sector, numero, schema);
         console.log(`Contato ${numero} inserido na etapa ${etapa}`);
       }
     } catch (error) {

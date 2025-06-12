@@ -6,7 +6,7 @@ const createCompanyController = async (req, res) => {
     try {
         const { name, superAdmin } = req.body;
         const schemaName = req.body.schema_name;
-        
+        console.log(req.body)
 
         const newCompany = new Company(uuidv4(), name, superAdmin);
         const result = await createCompany(newCompany, schemaName); 

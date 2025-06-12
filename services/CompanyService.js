@@ -42,7 +42,7 @@ const createCompany = async (company, schema) => {
             color TEXT,
             users JSONB,
             distribution boolean,
-            superuser uuid REFERENCES ${schema}.users(id) ON DELETE SET NULL,
+            superuser uuid REFERENCES ${schema}.users(id) ON DELETE SET NULL
         );`);
         await pool.query(`
             CREATE TABLE IF NOT EXISTS ${schema}.connections (
@@ -108,9 +108,26 @@ const createCompany = async (company, schema) => {
             id uuid primary key not null,
             value text not null,
             sector text not null,
-            kanban_id uuid
+            campaing_id uuid
             )
         `)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.tag(
+            id UUID PRIMARY KEY,
+            name text NOT NULL,
+            color text
+            );
+
+            `)
+        await pool.query(
+            `CREATE TABLE IF NOT EXISTS ${schema}.chat_tag (
+            chat_id UUID NOT NULL,
+            tag_id UUID NOT NULL,
+            PRIMARY KEY (chat_id, tag_id),
+            FOREIGN KEY (chat_id) REFERENCES ${schema}.chats(id) ON DELETE CASCADE,
+            FOREIGN KEY (tag_id) REFERENCES ${schema}.tag(id) ON DELETE CASCADE
+            );`
+        )
         await pool.query(`
             create table ${schema}.campaing(
             id UUID primary key,

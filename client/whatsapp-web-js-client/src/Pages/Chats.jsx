@@ -14,12 +14,13 @@ function formatHour(timestamp) {
 }
 
 function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, setSelectedChat, setSelectedMessages, onEditName }) {
-  const url = process.env.REACT_APP_URL
+  const url = process.env.REACT_APP_URL;
   const userData = JSON.parse(localStorage.getItem('user'));
-  const schema = userData.schema
+  const schema = userData.schema;
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showChangeQueueModal, setShowChangeQueueModal] = useState(false);
-
+  const [queues, setQueues] = useState([]);
+  const [transferLoading, setTransferLoading] = useState(false);
   const handleToggle = (isOpen) => {
     setIsDropdownOpen(isOpen);
   };
@@ -48,10 +49,46 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
         console.error(error)
       }
   };
+  useEffect(() => {
+    async function fetchQueues() {
+      try {
+        const res = await axios.get(`${url}/queue/get-all-queues/${schema}`);
+        console.log('Filas recebidas:', res.data.result);
+        setQueues(res.data.result || []);
+      } catch (err) {
+        setQueues([]);
+      }
+    }
+    if (isDropdownOpen) fetchQueues();
+  }, [isDropdownOpen, url, schema]);
 
+
+  const handleTransferQueue = async (queueId) => {
+    if (!selectedChat) return;
+    setTransferLoading(true);
+    try {
+      await axios.post(`${url}/queue/transfer-queue`, {
+        chatId: selectedChat.id,
+        newQueueId: queueId,
+        schema
+      });
+
+      setChats(prev =>
+        prev.map(chat =>
+          chat.id === selectedChat.id ? { ...chat, queue_id: queueId } : chat
+        )
+      );
+      setSelectedChat(prev =>
+        prev ? { ...prev, queue_id: queueId } : prev
+      );
+    } catch (err) {
+      alert('Erro ao transferir fila');
+    }
+    setTransferLoading(false);
+  };
   return (
     <>
-      <Dropdown drop="start" onToggle={handleToggle}>
+      <Dropdown drop="start" onToggle={setIsDropdownOpen}>
         <Dropdown.Toggle
           variant={theme === 'light' ? 'light' : 'dark'}
           id="dropdown-basic"
@@ -63,23 +100,30 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
         <Dropdown.Menu
           variant={theme === 'light' ? 'light' : 'dark'}
           className={`input-${theme}`}>
+  
+
+          <Dropdown.Divider />
           <Dropdown.Item href="#" onClick={() => setShowChangeQueueModal(true)}>Alterar Fila</Dropdown.Item>
           <Dropdown.Item href="#" onClick={handleCloseChat}>Finalizar Atendimento</Dropdown.Item>
           <Dropdown.Item href="#" onClick={onEditName}>Editar Nome</Dropdown.Item>
+          <Dropdown.Item href="#" onClick={() => setShowTagModal(true)}>Gerenciar Tags</Dropdown.Item>
         </Dropdown.Menu>
       </Dropdown>
 
-      <ChangeQueueModal
-        show={showChangeQueueModal}
-        onHide={() => setShowChangeQueueModal(false)}
-        theme={theme}
-        selectedChat={selectedChat}
-      />
+  <ChangeQueueModal
+    show={showChangeQueueModal}
+    onHide={() => setShowChangeQueueModal(false)}
+    theme={theme}
+    selectedChat={selectedChat}
+    schema={schema}
+    url={url}
+    onTransfer={handleTransferQueue}
+/>
     </>
   );
 }
 
-function ChatPage({ theme }) {
+function ChatPage({ theme, chat_id} ) {
   const [chatList, setChats] = useState([]);
   const [chat] = useState([])
   const [selectedMessages, setSelectedMessages] = useState([]);
@@ -111,11 +155,8 @@ function ChatPage({ theme }) {
   const [editedName, setEditedName] = useState('');
   const nomeContatoRef = useRef(null);
   const [showNewContactModal, setShowNewContactModal] = useState(false);
-
-  const [socketInstance] = useState(socket)
-  
+  const [socketInstance] = useState(socket)  
   const url = process.env.REACT_APP_URL;
-
   const setAsRead = async()=>{
     if (!selectedChat) return;
     try{
@@ -135,6 +176,16 @@ function ChatPage({ theme }) {
     if (nomeContatoRef.current) nomeContatoRef.current.focus();
   }, 0);
 };
+
+useEffect(() => {
+  if (chat_id && chatList.length > 0) {
+    if (!selectedChat || selectedChat.id !== chat_id) {
+      const chat = chatList.find(c => c.id === chat_id);
+      handleChatClick(chat)
+      if (chat) setSelectedChat(chat);
+    }
+  }
+}, [chat_id, chatList, selectedChat]);
 
 const handleEditNameFinish = async () => {
   if (
@@ -266,6 +317,7 @@ const handleSubmit = (data) => {
     text: data,
     chatId: selectedChat.id,
     from_me: true,
+    timestamp: Date.now(),
     schema: schema
   };
 
@@ -688,7 +740,7 @@ const handleImageUpload = async (event) => {
             </div>
 
             {/* Lista filtrada */}
-            <div className='px-3 py-3'>
+            <div className='p-3'>
               <h6 
                 className={`header-text-${theme} m-0`}
               >
@@ -769,7 +821,7 @@ const handleImageUpload = async (event) => {
       backgroundColor: `var(--bg-color-${theme})`,
       color: `var(--color-${theme})`,
       borderBottom: `1px solid var(--border-color-${theme})`,
-      minHeight: '80px',
+      minHeight: '95.11px',
       width:'100%',
       maxWidth:'1700px',
     }}
