@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import * as bootstrap from 'bootstrap';
-import anime from 'animejs';
 import LembreteNovoLembrete from './modalPages/Lembrete_novoLembrete';
 import LembreteDeletarLembrete from './modalPages/Lembrete_deletarLembrete';
 
