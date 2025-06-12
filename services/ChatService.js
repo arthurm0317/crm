@@ -168,9 +168,11 @@ const setUserChat = async (chatId, schema) => {
       [chatId]
     );
     const queueId = chatDb.rows[0].queue_id;
+    console.log(queueId)
     const isDistributionOn = await pool.query(
       `SELECT * FROM ${schema}.queues WHERE id=$1 `, [queueId]
     )
+    console.log(isDistributionOn.rows)
     if (isDistributionOn.rows[0].distribution === true) {
       const onlineUsers = await getOnlineUsers(schema);
       const queueUsersQuery = await pool.query(

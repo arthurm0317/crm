@@ -18,9 +18,9 @@ const createKanbanStage = async (name, pos, color, sector, schema) => {
   }
 };
 
-const insertInKanbanStage = async (stageName, connection_id, number, schema) => {
+const insertInKanbanStage = async (stageName, connection_id, sector, number, schema) => {
   const stageId = await pool.query(
-    `SELECT id FROM ${schema}.kanban_vendas WHERE etapa=$1`,
+    `SELECT id FROM ${schema}.kanban_${sector} WHERE etapa=$1`,
     [stageName]
   );
 

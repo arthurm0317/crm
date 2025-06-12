@@ -50,9 +50,10 @@ const createMessageForBlast = async (messageValue, sector, campaingId, schema) =
   }
 };
 
-const sendBlastMessage = async (instanceId,messageValue, number, schema) => {
+const sendBlastMessage = async (instanceId, messageValue, number, schema) => {
   try {
     const instance = await searchConnById(instanceId, schema);
+    console.log('INSTANCIA ------------------',instance)
     const processedMessage = await replacePlaceholders(messageValue, number, schema);
 
     await sendTextMessage(instance.name, processedMessage, number);

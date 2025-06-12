@@ -169,6 +169,27 @@ function KanbanPage({ theme }) {
     
     fetchFunis();
   }, [])
+
+useEffect(() => {
+  function handleTagUpdated({ chat_id, tag, checked }) {
+    setLeads(leads => leads.map(l =>
+      l.id === chat_id
+        ? {
+            ...l,
+            tags: checked
+              ? [...(l.tags || []), tag]
+              : (l.tags || []).filter(t => t.id !== tag.id)
+          }
+        : l
+    ));
+  }
+  socketInstance.on('tagUpdated', handleTagUpdated);
+  console.log('tag updated')
+  return () => {
+    socketInstance.off('tagUpdated', handleTagUpdated);
+  };
+}, []);
+
   useEffect(() => {
     if (!funilSelecionado) {
       setEtapas([]);

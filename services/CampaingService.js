@@ -9,20 +9,44 @@ const { Queue, Worker } = require('bullmq');
 const bullConn = createRedisConnection();
 const blastQueue = new Queue("Campanha", { connection: bullConn });
 
-new Worker("Campanha", async (job) => {
-  try {
-    await sendBlastMessage(
-      job.data.instance,
-      job.data.message,
-      job.data.number,
-      job.data.schema
-    );
-    await sleep(30000);
-    console.log('Mensagem enviada com sucesso!');
-  } catch (err) {
-    console.error('Erro ao enviar mensagem:', err.message);
+const worker = new Worker(
+  'Campanha',
+  async (job) => {
+    console.log('Job recebido:', job.data);
+    try {
+      await sendBlastMessage(
+        job.data.instance,
+        job.data.message,
+        job.data.number,
+        job.data.schema
+      );
+      console.log('Mensagem enviada com sucesso!');
+    } catch (err) {
+      console.error('Erro ao enviar mensagem dentro do job handler:', err.message);
+      throw err; 
+    }
+  },
+  {
+    connection: {
+      host: '31.97.29.7',
+      port: 6379,
+      password: 'ilhadogovernadorredis'
+    },
+    autorun: true,
   }
-}, { connection: bullConn });
+);
+
+worker.on('completed', (job) => {
+  console.log(` Job ${job.id} concluído com sucesso.`);
+});
+
+worker.on('failed', (job, err) => {
+  console.error(`Job ${job.id} falhou. Erro:`, err.message);
+});
+
+worker.on('error', (err) => {
+  console.error('Erro geral no worker:', err.message);
+});
 
 const createCampaing = async (campaing_id, campName, sector, kanbanStage, connectionId, startDate, schema) => {
   try {
@@ -30,6 +54,7 @@ const createCampaing = async (campaing_id, campName, sector, kanbanStage, connec
 
     let result;
     let campaing;
+
 
     if (campaing_id) {
       result = await pool.query(
@@ -42,12 +67,12 @@ const createCampaing = async (campaing_id, campName, sector, kanbanStage, connec
     } else {
       result = await pool.query(
         `INSERT INTO ${schema}.campaing (id, campaing_name, sector, kanban_stage, connection_id, start_date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-        [uuidv4(), campName, sector, kanban_id.rows[0].id, connectionId, unixStartDate]
+        [uuidv4(), campName, sector, kanbanStage, connectionId, unixStartDate]
       );
       campaing = result.rows[0];
     }
 
-    await scheduleCampaingBlast(campaing, schema);
+    await scheduleCampaingBlast(campaing, campaing.sector, schema);
 
     return campaing;
   } catch (error) {
@@ -56,7 +81,8 @@ const createCampaing = async (campaing_id, campName, sector, kanbanStage, connec
   }
 };
 
-const scheduleCampaingBlast = async (campaing, schema) => {
+const scheduleCampaingBlast = async (campaing, sector, schema) => {
+
   try {
     const startDate = Number(campaing.start_date);
     const now = Date.now();
@@ -64,12 +90,12 @@ const scheduleCampaingBlast = async (campaing, schema) => {
     if (startDate < now) {
       return;
     }
-
+    
     const kanban = await pool.query(
-      `SELECT * FROM ${schema}.kanban_vendas WHERE id=$1`, [campaing.kanban_stage]
+      `SELECT * FROM ${schema}.kanban_${sector} WHERE id=$1`, [campaing.kanban_stage]
     );
-    const chatIds = await getChatsInKanbanStage(kanban.rows[0].etapa, schema);
-
+    const chatIds = await getChatsInKanbanStage(kanban.rows[0].etapa, sector,schema);
+    
     const messages = await pool.query(
       `SELECT * FROM ${schema}.message_blast WHERE campaing_id=$1`, [campaing.id]
     );
@@ -79,10 +105,10 @@ const scheduleCampaingBlast = async (campaing, schema) => {
     }
     const messageList = messages.rows;
     let messageIndex = 0;
-
+    
     const baseDelay = Math.max(0, startDate - now);
     const timer = 30; 
-
+    
     for (let i = 0; i < chatIds.length; i++) {
       const instanceId = await pool.query(
         `SELECT * FROM ${schema}.chats WHERE id=$1`, [chatIds[i].id]
@@ -90,17 +116,21 @@ const scheduleCampaingBlast = async (campaing, schema) => {
       const instance = await pool.query(
         `SELECT * FROM ${schema}.connections WHERE id=$1`, [campaing.connection_id]
       );
+      if (!instanceId.rows[0] || !instanceId.rows[0].contact_phone) {
+          console.warn(`Chat inválido ou número não encontrado para chat ID ${chatIds[i].id}`);
+      }
       const message = messageList[messageIndex];
       messageIndex = (messageIndex + 1) % messageList.length;
 
       const messageDelay = baseDelay + (i * (timer * 1000));
-
-      await blastQueue.add('sendMessage', {
-        instance: instance.rows[0].name,
+      console.log('Agendando mensagem para:', new Date(Date.now() + messageDelay).toLocaleString());
+      const job = await blastQueue.add('sendMessage', {
+        instance: instance.rows[0].id,
         number: instanceId.rows[0].contact_phone,
         message: message.value,
         schema: schema
-      }, { delay: messageDelay });
+      }, { delay: messageDelay, attempts:3 });
+      console.log('jobb add', job.id)
     }
   } catch (error) {
     console.error('Erro ao agendar disparo da campanha:', error);
@@ -135,7 +165,7 @@ const startCampaing = async (campaing_id, timer, schema) => {
       const message = messageList[messageIndex];
       messageIndex = (messageIndex + 1) % messageList.length;
       await sendBlastMessage(
-        instance.rows[0].name,
+        instance.rows[0].id,
         message.value,
         instanceId.rows[0].contact_phone,
         schema

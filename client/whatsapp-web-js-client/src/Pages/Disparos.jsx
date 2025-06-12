@@ -47,8 +47,7 @@ function DisparosPage({ theme }) {
     await axios.post(`${url}/campaing/start`, { 
         campaing_id:id,
         schema:schema,
-        timer:1000 });
-    // Opcional: atualizar lista ou mostrar feedback
+        timer:3000});
     alert('Campanha iniciada!');
   } catch (error) {
     console.error('Erro ao iniciar disparo:', error);

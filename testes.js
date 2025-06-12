@@ -1,6 +1,9 @@
-const { getKanbanStages } = require("./services/KanbanService");
-function teste(){
+const { getInformationFromExcel, processExcelFile } = require("./services/ExcelReader");
 
-    getKanbanStages('kanban_vendas', 'effective_gain')
+
+const teste = async () => {
+    const planilha = await processExcelFile('025de7b9-619d-49ce-a6df-25e79f6043ca', 'relacionamento','ilha_do_gov')
+    console.log(planilha)
 }
+
 teste()
