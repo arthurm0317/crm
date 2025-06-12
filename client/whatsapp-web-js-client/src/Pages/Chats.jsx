@@ -317,6 +317,7 @@ const handleSubmit = (data) => {
     text: data,
     chatId: selectedChat.id,
     from_me: true,
+    timestamp: Date.now(),
     schema: schema
   };
 

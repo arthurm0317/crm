@@ -19,6 +19,7 @@ import WhatsappModal from './modalPages/Whatsapp';
 import Manutencao from './Manutencao';
 import AjudaPage from './Ajuda';
 import Chatgpt from './Chatgpt';
+import LembretesPage from './Lembretes';
 
 window.addEventListener('error', function (event) {
   if (
@@ -99,8 +100,8 @@ function Painel() {
       case 'kanban': return <KanbanPage theme={theme} />;
       case 'filas': return <FilaPage theme={theme} />;
       case 'usuarios': return <UsuariosPage theme={theme} />;
-      case 'agenda': return <Manutencao theme={theme} />;
-      case 'relatorios': return <Manutencao theme={theme} />;
+      case 'agenda': return <LembretesPage theme={theme} />;
+      case 'relatorios': return <RelatorioPage theme={theme} />;
       case 'insights': return <Manutencao theme={theme} />;
       case 'disparos': return <DisparosPage theme={theme} />;
       case 'ajuda': return <AjudaPage theme={theme} />;

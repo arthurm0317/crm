@@ -1,5 +1,5 @@
 const SocketServer = require("../server");
-const { createKanbanStage, getFunis, getKanbanStages, getChatsInKanban, changeKanbanStage, updateStageName, updateStageIndex, createFunil, deleteEtapa } = require("../services/KanbanService");
+const { createKanbanStage, getFunis, getKanbanStages, getChatsInKanban, changeKanbanStage, updateStageName, updateStageIndex, createFunil, deleteEtapa, getCustomFields } = require("../services/KanbanService");
 const { createMessageForBlast } = require("../services/MessageBlast");
 const io = SocketServer.io
 
@@ -116,6 +116,15 @@ const deleteEtapaController = async (req, res) => {
         console.error(error)
     }
 }
+const getCustomFieldsController = async (req, res) => {
+    const {schema} = req.params
+    try {
+        const result = await getCustomFields(schema)
+        res.status(200).json(result)
+    } catch (error) {
+        console.error(error)
+    }
+}
 module.exports = {
     createKanbanStageController,
     createMessageForBlastController,
@@ -125,5 +134,6 @@ module.exports = {
     changeKanbanStageController,
     updateStageNameController,
     createFunilController,
-    deleteEtapaController
+    deleteEtapaController,
+    getCustomFieldsController
 }

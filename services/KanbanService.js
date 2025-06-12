@@ -58,7 +58,7 @@ const insertInKanbanStage = async (stageName, connection_id, sector, number, sch
           false,
           contactName.rows[0]?.contact_name ?? 'Sem nome',
           null,
-          null,
+          'open',
           new Date().getTime(), 
           JSON.stringify([]),
           number,
@@ -177,6 +177,12 @@ const deleteEtapa = async (etapa_id, sector, schema) => {
   )
   
 }
+const getCustomFields = async (schema) => {
+  const result = await pool.query(
+    `SELECT * FROM ${schema}.custom_fields`
+  )
+  return result.rows
+}
 module.exports = {
   createKanbanStage,
   insertInKanbanStage,
@@ -188,5 +194,6 @@ module.exports = {
   updateStageName,
   updateStageIndex,
   createFunil,
-  deleteEtapa
+  deleteEtapa,
+  getCustomFields
 };
