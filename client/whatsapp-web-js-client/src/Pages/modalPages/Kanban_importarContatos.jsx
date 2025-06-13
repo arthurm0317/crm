@@ -11,7 +11,7 @@ function ImportarContatosModal({ theme, show, onHide, funil, etapas = [] }) {
   const [requiredFields, setRequiredFields] = useState({
     phone: '',
     name: '',
-    customId: '' // Campo personalizado que pode servir como ID para disparos
+    customId: ''
   });
   const [errorMsg, setErrorMsg] = useState('');
   const fileInputRef = useRef(null);
@@ -93,8 +93,9 @@ function ImportarContatosModal({ theme, show, onHide, funil, etapas = [] }) {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('mapping', JSON.stringify(mapping));
+      formData.append('connection_id',)
+      formData.append('sector', funil);
       formData.append('schema', schema);
-      formData.append('funil', funil);
 
       const response = await axios.post(`${url}/kanban/import-contacts`, formData, {
         headers: {
