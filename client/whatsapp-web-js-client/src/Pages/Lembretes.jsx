@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import * as bootstrap from 'bootstrap';
-import anime from 'animejs';
 import LembreteNovoLembrete from './modalPages/Lembrete_novoLembrete';
 import LembreteDeletarLembrete from './modalPages/Lembrete_deletarLembrete';
+import anime from 'animejs';
 
 const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
