@@ -433,7 +433,7 @@ function DisparoModal({ theme, disparo = null }) {
                         gap: '10px'
                       }}
                     >
-                      {tags.map((tag) => (
+                      {/* {tags.map((tag) => (
                         <div key={tag.id} className="form-check">
                           <input
                             type="checkbox"
@@ -456,7 +456,7 @@ function DisparoModal({ theme, disparo = null }) {
                             {tag.nome}
                           </label>
                         </div>
-                      ))}
+                      ))} */}
                     </div>
                   </div>
                 )}
