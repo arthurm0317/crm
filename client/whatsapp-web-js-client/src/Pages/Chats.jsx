@@ -106,7 +106,7 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
           <Dropdown.Item href="#" onClick={() => setShowChangeQueueModal(true)}>Alterar Fila</Dropdown.Item>
           <Dropdown.Item href="#" onClick={handleCloseChat}>Finalizar Atendimento</Dropdown.Item>
           <Dropdown.Item href="#" onClick={onEditName}>Editar Nome</Dropdown.Item>
-          <Dropdown.Item href="#" onClick={() => setShowTagModal(true)}>Gerenciar Tags</Dropdown.Item>
+          {/* <Dropdown.Item href="#" onClick={() => setShowTagModal(true)}>Gerenciar Tags</Dropdown.Item> */}
         </Dropdown.Menu>
       </Dropdown>
 
