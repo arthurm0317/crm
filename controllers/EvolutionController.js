@@ -93,13 +93,11 @@ const sendTextMessageController = async (req, res) => {
             message.quote = body.replyTo;
         }
 
-        console.log("message", message);
-
         await saveMessage(chatId, message, schema);
 
         res.status(200).json({ result });
     } catch (error) {
-        console.error('Erro ao enviar mensagem:', error.message);
+        console.error('Erro ao enviar mensagem:', error);
         res.status(500).json({ error: 'Erro ao enviar mensagem' });
     }
 };

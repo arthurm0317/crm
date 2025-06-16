@@ -2,6 +2,9 @@ const { v4: uuidv4 } = require('uuid');
 const pool = require("../db/queries");
 const { sendTextMessage } = require('../requests/evolution');
 const { searchConnById } = require('./ConnectionService');
+const { Message } = require('../entities/Message');
+const { getCurrentTimestamp } = require('./getCurrentTimestamp');
+const { saveMessage } = require('./MessageService');
 
 const replacePlaceholders = async (message, number, schema) => {
   try {
@@ -50,15 +53,16 @@ const createMessageForBlast = async (messageValue, sector, campaingId, schema) =
   }
 };
 
-const sendBlastMessage = async (instanceId, messageValue, number, schema) => {
+const sendBlastMessage = async (instanceId, messageValue, number, chat_id, schema) => {
   try {
     const instance = await searchConnById(instanceId, schema);
-    console.log('INSTANCIA ------------------',instance)
     const processedMessage = await replacePlaceholders(messageValue, number, schema);
+
+    const message = new Message(uuidv4(), processedMessage, true, chat_id, getCurrentTimestamp())
+    await saveMessage(chat_id, message, schema)
 
     await sendTextMessage(instance.name, processedMessage, number);
 
-    console.log(`Mensagem enviada para ${number}: ${processedMessage}`);
   } catch (error) {
     console.error(`Erro ao enviar mensagem para ${number}:`, error.message);
     throw error;

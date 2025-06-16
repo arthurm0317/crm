@@ -42,7 +42,7 @@ function Painel() {
   const [role, setRole] = useState('');
   const [empresa, setEmpresa] = useState('');
   const [theme, setTheme] = useTheme();
-  const [page, setPage] = useState('dashboard');
+  const [page, setPage] = useState('chats');
   const [showWhatsappModal, setShowWhatsappModal] = useState(false);
   const navigate = useNavigate();
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
@@ -131,12 +131,12 @@ function Painel() {
               data-bs-toggle="tooltip"
               data-bs-placement="right"
               data-bs-title="Dashboard"
-              className={`btn ${page === 'dashboard' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''}`}
+              className={`btn ${page === 'dashboard' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''} d-none`}
             >
               <i className="bi bi-speedometer2"></i>
               <span className="sidebar-label d-none">Dashboard</span>
             </button>
-            <hr className={`hr-${theme} mx-auto my-0`} style={{ width: '50%' }} />
+            <hr className={`hr-${theme} mx-auto my-0 d-none`} style={{ width: '50%' }} />
             <button
               id="chats"
               onClick={() => setPage('chats')}
@@ -210,7 +210,7 @@ function Painel() {
               data-bs-toggle="tooltip"
               data-bs-placement="right"
               data-bs-title="Lembretes"
-              className={`btn ${page === 'agenda' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''}`}
+              className={`btn ${page === 'agenda' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''} d-none`}
             >
               <i className="bi bi-bell"></i>
               <span className="sidebar-label d-none">Lembretes</span>
@@ -222,7 +222,7 @@ function Painel() {
               data-bs-toggle="tooltip"
               data-bs-placement="right"
               data-bs-title="Relatórios"
-              className={`btn ${page === 'relatorios' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''}`}
+              className={`btn ${page === 'relatorios' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''} d-none`}
             >
               <i className="bi bi-bar-chart-line"></i>
               <span className="sidebar-label d-none">Relatórios</span>
@@ -233,12 +233,12 @@ function Painel() {
               data-bs-toggle="tooltip"
               data-bs-placement="right"
               data-bs-title="Insights"
-              className={`btn ${page === 'insights' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''}`}
+              className={`btn ${page === 'insights' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''} d-none`}
             >
               <i className="bi bi-rocket"></i>
               <span className="sidebar-label d-none">Insights</span>
             </button>
-            <hr className={`hr-${theme} mx-auto my-0`} style={{ width: '50%' }} />
+            <hr className={`hr-${theme} mx-auto my-0 d-none`} style={{ width: '50%' }} />
             <button
               id="ajuda"
               onClick={() => setPage('ajuda')}

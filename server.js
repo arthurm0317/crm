@@ -18,10 +18,9 @@ class SocketServer {
                     "https://landing-page-teste.8rxpnw.easypanel.host",
                     "https://landing-page-front.8rxpnw.easypanel.host",
                     "https://eg-crm.effectivegain.com",
-                    "https://ilhadogovernador.effectivegain.com/",
                     "https://ilhadogovernador.effectivegain.com"
                 ],
-                methods: ["GET", "POST", "DELETE"],
+                methods: ["GET", "POST", "DELETE", "PUT"],
                 allowedHeaders: ["Content-Type"],
                 credentials: true
             }

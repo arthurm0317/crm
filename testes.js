@@ -3,7 +3,6 @@ const { getInformationFromExcel, processExcelFile } = require("./services/ExcelR
 
 const teste = async () => {
     const planilha = await processExcelFile('025de7b9-619d-49ce-a6df-25e79f6043ca', 'relacionamento','ilha_do_gov')
-    console.log(planilha)
 }
 
 teste()

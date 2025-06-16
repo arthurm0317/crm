@@ -5,6 +5,9 @@ const { sendTextMessage } = require('../requests/evolution');
 const { sendBlastMessage } = require('./MessageBlast');
 const createRedisConnection = require('../config/Redis');
 const { Queue, Worker } = require('bullmq');
+const { saveMessage } = require('./MessageService');
+const { Message } = require('../entities/Message');
+const { getCurrentTimestamp } = require('./getCurrentTimestamp');
 
 const bullConn = createRedisConnection();
 const blastQueue = new Queue("Campanha", { connection: bullConn });
@@ -12,15 +15,14 @@ const blastQueue = new Queue("Campanha", { connection: bullConn });
 const worker = new Worker(
   'Campanha',
   async (job) => {
-    console.log('Job recebido:', job.data);
     try {
       await sendBlastMessage(
         job.data.instance,
         job.data.message,
         job.data.number,
+        job.data.chat_id,
         job.data.schema
       );
-      console.log('Mensagem enviada com sucesso!');
     } catch (err) {
       console.error('Erro ao enviar mensagem dentro do job handler:', err.message);
       throw err; 
@@ -113,6 +115,7 @@ const scheduleCampaingBlast = async (campaing, sector, schema) => {
       const instanceId = await pool.query(
         `SELECT * FROM ${schema}.chats WHERE id=$1`, [chatIds[i].id]
       );
+      console.log(instanceId.rows)
       const instance = await pool.query(
         `SELECT * FROM ${schema}.connections WHERE id=$1`, [campaing.connection_id]
       );
@@ -127,6 +130,7 @@ const scheduleCampaingBlast = async (campaing, sector, schema) => {
       const job = await blastQueue.add('sendMessage', {
         instance: instance.rows[0].id,
         number: instanceId.rows[0].contact_phone,
+        chat_id:instanceId.rows[0].id,
         message: message.value,
         schema: schema
       }, { delay: messageDelay, attempts:3 });
