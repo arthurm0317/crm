@@ -19,6 +19,7 @@ function ImportarContatosModal({ theme, show, onHide, funil, etapas = [] }) {
   const schema = userData?.schema;
   const url = process.env.REACT_APP_URL;
   const [coluna, setColuna] = useState('');
+  const [msg, setMsg] = useState('');
 
   const handleFileChange = (event) => {
     setErrorMsg('');
@@ -96,17 +97,16 @@ function ImportarContatosModal({ theme, show, onHide, funil, etapas = [] }) {
       formData.append('schema', schema);
       formData.append('funil', funil);
 
-      const response = await axios.post(`${url}/kanban/import-contacts`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+const res = await axios.post('http://localhost:3002/excel/upload', formData, {
+  headers: { 'Content-Type': 'multipart/form-data' }
+});
+setMsg(res.data.message); 
 
-      if (response.data.success) {
+      if (res.data.success) {
         alert('Contatos importados com sucesso!');
         onHide();
       } else {
-        setErrorMsg('Erro ao importar contatos: ' + response.data.message);
+        setErrorMsg('Erro ao importar contatos: ' + res.data.message);
       }
     } catch (error) {
       console.error('Erro na importação:', error);
