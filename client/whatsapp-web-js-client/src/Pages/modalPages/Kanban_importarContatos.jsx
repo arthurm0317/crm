@@ -85,35 +85,37 @@ function ImportarContatosModal({ theme, show, onHide, funil, etapas = [] }) {
   };
 
   const handleImport = async () => {
-    if (!file || mapping.phone === -1 || mapping.name === -1) {
-      setErrorMsg('É necessário mapear os campos de telefone e nome.');
-      return;
-    }
-    setErrorMsg('');
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('mapping', JSON.stringify(mapping));
-      formData.append('connection_id',)
-      formData.append('sector', funil);
-      formData.append('schema', schema);
+  if (!file || mapping.phone === -1 || mapping.name === -1) {
+    setErrorMsg('É necessário mapear os campos de telefone e nome.');
+    return;
+  }
+  setErrorMsg('');
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('mapping', JSON.stringify(mapping));
+    formData.append('sector', funil);
+    formData.append('schema', schema);
+    // formData.append('connection_id', selectedConnectionId); // descomente e defina se quiser usar
 
-const res = await axios.post('http://localhost:3002/excel/upload', formData, {
-  headers: { 'Content-Type': 'multipart/form-data' }
-});
-setMsg(res.data.message); 
+    const res = await axios.post(`${url}/excel/upload`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
 
-      if (res.data.success) {
-        alert('Contatos importados com sucesso!');
-        onHide();
-      } else {
-        setErrorMsg('Erro ao importar contatos: ' + res.data.message);
-      }
-    } catch (error) {
-      console.error('Erro na importação:', error);
-      setErrorMsg('Erro ao importar contatos. Verifique o console para mais detalhes.');
+    setMsg(res.data.message);
+
+    if (res.data.success) {
+      alert('Contatos importados com sucesso!');
+      onHide();
+    } else {
+      setErrorMsg('Erro ao importar contatos: ' + res.data.message);
     }
-  };
+  } catch (error) {
+    console.error('Erro na importação:', error);
+    setErrorMsg('Erro ao importar contatos. Verifique o console para mais detalhes.');
+  }
+};
+
 
   const handleDownloadModelo = () => {
     // Gera um arquivo modelo simples

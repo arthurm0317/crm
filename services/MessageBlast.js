@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const pool = require("../db/queries");
-const { sendTextMessage } = require('../requests/evolution');
+const { sendTextMessage, sendMediaForBlast } = require('../requests/evolution');
 const { searchConnById } = require('./ConnectionService');
 const { Message } = require('../entities/Message');
 const { getCurrentTimestamp } = require('./getCurrentTimestamp');
@@ -39,21 +39,36 @@ const replacePlaceholders = async (message, number, schema) => {
   }
 };
 
-const createMessageForBlast = async (messageValue, sector, campaingId, schema) => {
+const createMessageForBlast = async (id, messageValue, sector, campaingId, schema, image = null) => {
   try {
-    const result = await pool.query(
-      `INSERT INTO ${schema}.message_blast (id, value, sector, campaing_id) VALUES ($1, $2, $3, $4) RETURNING *`,
-      [uuidv4(), messageValue, sector, campaingId]
-    );
-
-    return result.rows[0];
+    if (id) {
+      // Se tem ID, atualiza
+      const result = await pool.query(
+        `UPDATE ${schema}.message_blast
+         SET value = $1, sector = $2, image = $3
+         WHERE id = $4 AND campaing_id = $5
+         RETURNING *`,
+        [messageValue, sector, image, id, campaingId]
+      );
+      return result.rows[0];
+    } else {
+      // Senão, insere nova mensagem
+      const result = await pool.query(
+        `INSERT INTO ${schema}.message_blast (id, value, sector, campaing_id, image)
+         VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+        [uuidv4(), messageValue, sector, campaingId, image]
+      );
+      return result.rows[0];
+    }
   } catch (error) {
-    console.error('Erro ao criar mensagem:', error.message);
+    console.error('Erro ao salvar mensagem:', error.message);
     throw error;
   }
 };
 
+
 const sendBlastMessage = async (instanceId, messageValue, number, chat_id, schema) => {
+  console.log('entrou text')
   try {
     const instance = await searchConnById(instanceId, schema);
     const processedMessage = await replacePlaceholders(messageValue, number, schema);
@@ -68,6 +83,34 @@ const sendBlastMessage = async (instanceId, messageValue, number, chat_id, schem
     throw error;
   }
 };
+
+// const deleteBlastMessages = async (message_id, campaing_id, schema) => {
+//   const messages = await pool.query(
+//     `SELECT * FROM ${schema}.message_blast where campaing_id = $1`,[campaing_id]
+//   )
+//   for(message of messages){
+//     if (message.id === message_id){
+//     }else{
+//       await pool.query(
+//         `DELETE FROM ${schema}.message_blast where campaing_id=campaing_id and `
+//       )
+//     }
+//   }
+// }
+
+const sendMediaBlastMessage = async (instanceId, text, number, chat_id, image, schema) => {
+  try {
+    const instance = await searchConnById(instanceId, schema)
+    const processedMessage = await replacePlaceholders(text, number, schema)
+
+    const message = new Message(uuidv4(), processedMessage, true, chat_id, getCurrentTimestamp())
+    await saveMessage(chat_id, message, schema)
+    
+    await sendMediaForBlast(instance.name, processedMessage, image, number)
+  } catch (error) {
+    console.error(error)
+  }
+}
 const getAllBlastMessages = async(campaing_id, schema)=>{
   try {
     const result = await pool.query(
@@ -81,5 +124,6 @@ const getAllBlastMessages = async(campaing_id, schema)=>{
 module.exports = {
   createMessageForBlast,
   sendBlastMessage,
-  getAllBlastMessages
+  getAllBlastMessages,
+  sendMediaBlastMessage
 };

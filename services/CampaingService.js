@@ -2,7 +2,7 @@ const pool = require('../db/queries');
 const { v4: uuidv4 } = require('uuid');
 const { getChatsInKanbanStage } = require('./KanbanService');
 const { sendTextMessage } = require('../requests/evolution');
-const { sendBlastMessage } = require('./MessageBlast');
+const { sendBlastMessage, sendMediaBlastMessage } = require('./MessageBlast');
 const createRedisConnection = require('../config/Redis');
 const { Queue, Worker } = require('bullmq');
 const { saveMessage } = require('./MessageService');
@@ -15,25 +15,33 @@ const blastQueue = new Queue("Campanha", { connection: bullConn });
 const worker = new Worker(
   'Campanha',
   async (job) => {
+    console.log('JOB NO WORKER',job.data)
     try {
-      await sendBlastMessage(
-        job.data.instance,
-        job.data.message,
-        job.data.number,
-        job.data.chat_id,
-        job.data.schema
-      );
+      if(job.data.image){
+        await sendMediaBlastMessage(
+          job.data.instance,
+          job.data.message,
+          job.data.number,
+          job.data.chat_id,
+          job.data.image,
+          job.data.schema
+        )
+      }else{
+        await sendBlastMessage(
+          job.data.instance,
+          job.data.message,
+          job.data.number,
+          job.data.chat_id,
+          job.data.schema
+        );
+      }
     } catch (err) {
       console.error('Erro ao enviar mensagem dentro do job handler:', err.message);
       throw err; 
     }
   },
   {
-    connection: {
-      host: '31.97.29.7',
-      port: 6379,
-      password: 'ilhadogovernadorredis'
-    },
+    connection: bullConn,
     autorun: true,
   }
 );
@@ -84,7 +92,6 @@ const createCampaing = async (campaing_id, campName, sector, kanbanStage, connec
 };
 
 const scheduleCampaingBlast = async (campaing, sector, schema) => {
-
   try {
     const startDate = Number(campaing.start_date);
     const now = Date.now();
@@ -115,7 +122,6 @@ const scheduleCampaingBlast = async (campaing, sector, schema) => {
       const instanceId = await pool.query(
         `SELECT * FROM ${schema}.chats WHERE id=$1`, [chatIds[i].id]
       );
-      console.log(instanceId.rows)
       const instance = await pool.query(
         `SELECT * FROM ${schema}.connections WHERE id=$1`, [campaing.connection_id]
       );
@@ -132,9 +138,10 @@ const scheduleCampaingBlast = async (campaing, sector, schema) => {
         number: instanceId.rows[0].contact_phone,
         chat_id:instanceId.rows[0].id,
         message: message.value,
+        image:message.image,
         schema: schema
       }, { delay: messageDelay, attempts:3 });
-      console.log('jobb add', job.id)
+      console.log('job add', job.id)
     }
   } catch (error) {
     console.error('Erro ao agendar disparo da campanha:', error);

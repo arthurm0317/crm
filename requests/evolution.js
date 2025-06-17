@@ -209,6 +209,35 @@ const deleteInstance=async (instanceName) => {
   
 }
 
+const sendMediaForBlast = async (instanceId, text, image, number) => {
+
+  const requestBody = { 
+    number: number,
+    mediatype: 'image',
+    caption: text,
+    media: image 
+  };
+
+  const options = {
+    method: 'POST',
+    headers: {
+      apikey: process.env.EVOLUTION_API_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody) 
+  };
+
+  try {
+    const response = await fetch(`${process.env.EVOLUTION_SERVER_URL}/message/sendMedia/${instanceId}`, options)
+    const result = await response.json();
+    console.log(result);
+    return result;
+
+  } catch (error) {
+    console.error('Erro ao enviar mensagem:', error);
+  }
+};
+
 module.exports = {
   createInstance,
   fetchInstanceEvo,
@@ -217,8 +246,8 @@ module.exports = {
   sendAudioToWhatsApp,
   getBase64FromMediaMessage,
   sendImageToWhatsApp,
-  deleteInstance
-
+  deleteInstance,
+  sendMediaForBlast
 };
 
 

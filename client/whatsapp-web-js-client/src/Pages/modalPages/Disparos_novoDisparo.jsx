@@ -4,7 +4,9 @@ import React, { useState, useEffect, useRef } from 'react';
 function DisparoModal({ theme, disparo = null }) {
   const [titulo, setTitulo] = useState('');
   const [numMensagens, setNumMensagens] = useState(1);
-  const [mensagens, setMensagens] = useState(['']); 
+  const [mensagens, setMensagens] = useState([
+  { text: '', image: null },
+]); 
   const [canal, setCanal] = useState('');
   const [tipoAlvo, setTipoAlvo] = useState('Funil');
   const [funilSelecionado, setFunilSelecionado] = useState('');
@@ -19,57 +21,97 @@ function DisparoModal({ theme, disparo = null }) {
   const [conexao, setConexao] = useState([]);
   const [customFields ,setCustomFields] = useState([])
   const textAreasRef = useRef([]);
+  const [mensagensImagens, setMensagensImagens] = useState([]);
 
 
   const userData = JSON.parse(localStorage.getItem('user'));
   const schema = userData?.schema;
   const url = process.env.REACT_APP_URL;
 
+
+
+  const handleImageUpload = (event, index) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result;
+      const novasImagens = [...mensagensImagens];
+      novasImagens[index] = base64;
+      setMensagensImagens(novasImagens);
+    };
+    reader.readAsDataURL(file);
+  };
+
+const limparBase64 = (base64ComPrefixo) => {
+  return base64ComPrefixo.replace(/^data:image\/\w+;base64,/, '');
+};
+
+
   useEffect(() =>   {
   const carregarDisparo = async () => {
-    if (disparo) {
-      if (disparo.start_date) {
-        const dateObj = new Date(Number(disparo.start_date));
-        setDataInicio(dateObj.toISOString().slice(0, 10));
-        setHoraInicio(dateObj.toTimeString().slice(0, 5));
-      } else {
-        setDataInicio('');
-        setHoraInicio('');
-      }
-      setTitulo(disparo.campaing_name || '');
-      setCanal(disparo.connection_id || '');
-      setTipoAlvo(disparo.tipoAlvo || 'Funil');
-      setFunilSelecionado(disparo.sector || '');
-      setEtapa(disparo.kanban_stage);
-      setTagsSelecionadas(disparo.tags || []);
-      setIntervaloTempo(disparo.intervaloTempo || 30);
-      setIntervaloUnidade(disparo.intervaloUnidade || 'segundos');
-
-      try {
-        const response = await axios.get(`${url}/campaing/get-messages/${disparo.id}/${schema}`);
-        const msgs = Array.isArray(response.data.result) ? response.data.result : [response.data.result];
-        const mensagensStrings = msgs.map(msg => typeof msg === 'object' ? msg.value || msg.mensagem || JSON.stringify(msg) : msg);
-        setMensagens(mensagensStrings);
-        setNumMensagens(mensagensStrings.length);
-      } catch (error) {
-        setMensagens(['']);
-        setNumMensagens(1);
-      }
+  if (disparo) {
+    if (disparo.start_date) {
+      const dateObj = new Date(Number(disparo.start_date));
+      setDataInicio(dateObj.toISOString().slice(0, 10));
+      setHoraInicio(dateObj.toTimeString().slice(0, 5));
     } else {
-      setTitulo('');
-      setNumMensagens(1);
-      setMensagens(['']);
-      setCanal('');
-      setTipoAlvo('Funil');
-      setFunilSelecionado('');
-      setEtapa('');
-      setTagsSelecionadas([]);
       setDataInicio('');
       setHoraInicio('');
-      setIntervaloTempo(30);
-      setIntervaloUnidade('segundos');
     }
-  };
+
+    setTitulo(disparo.campaing_name || '');
+    setCanal(disparo.connection_id || '');
+    setTipoAlvo(disparo.tipoAlvo || 'Funil');
+    setFunilSelecionado(disparo.sector || '');
+    setEtapa(disparo.kanban_stage);
+    setTagsSelecionadas(disparo.tags || []);
+    setIntervaloTempo(disparo.intervaloTempo || 30);
+    setIntervaloUnidade(disparo.intervaloUnidade || 'segundos');
+
+    try {
+      const response = await axios.get(`${url}/campaing/get-messages/${disparo.id}/${schema}`);
+      const msgs = Array.isArray(response.data.result) ? response.data.result : [response.data.result];
+
+      const mensagensFormatadas = msgs.map(msg => ({
+        id: msg.id || null,
+        text: msg.text || msg.value || '',
+        image: msg.image || null
+      }));
+      console.log('msg',mensagensFormatadas)
+      
+      const imagensFormatadas = mensagensFormatadas.map(msg =>
+        msg.image ? `data:image/jpeg;base64,${msg.image}` : null
+      );
+
+      setMensagens(mensagensFormatadas);
+      setMensagensImagens(imagensFormatadas);
+      setNumMensagens(mensagensFormatadas.length);
+      
+    } catch (error) {
+      console.error('Erro ao carregar mensagens:', error);
+      setMensagens(['']);
+      setMensagensImagens([null]);
+      setNumMensagens(1);
+    }
+  } else {
+    setTitulo('');
+    setNumMensagens(1);
+    setMensagens(['']);
+    setMensagensImagens([null]);
+    setCanal('');
+    setTipoAlvo('Funil');
+    setFunilSelecionado('');
+    setEtapa('');
+    setTagsSelecionadas([]);
+    setDataInicio('');
+    setHoraInicio('');
+    setIntervaloTempo(30);
+    setIntervaloUnidade('segundos');
+  }
+};
+
 
   carregarDisparo();
 }, [disparo, url, schema]);
@@ -127,7 +169,6 @@ function DisparoModal({ theme, disparo = null }) {
   const fetchCustomFields = async () => {
   const response = await axios.get(`${url}/kanban/get-custom-fields/${schema}`)
   setCustomFields(Array.isArray(response.data) ? response.data : [response.data])
-  console.log(response.data)
   }
   fetchCustomFields()
 }, [etapas, disparo]);
@@ -218,22 +259,37 @@ function DisparoModal({ theme, disparo = null }) {
     const start_date = dataInicio && horaInicio
       ? `${dataInicio}T${horaInicio}:00`
       : '';
+      
+    const mensagensParaSalvar = mensagens.map((msg, index) => {
+  const imagem = mensagensImagens[index];
 
-    const disparoData = {
-      name: titulo,
-      connection_id: canal,
-      sector: funilSelecionado.charAt(0).toLowerCase() + funilSelecionado.slice(1),
-      kanban_stage: etapa,
-      start_date,
-      schema,
-      tipoAlvo,
-      ...(tipoAlvo === 'Funil' ? { etapa } : { tags: tagsSelecionadas }),
-      mensagem: mensagens,
-      intervalo: {
-        timer: intervaloTempo,
-        unidade: intervaloUnidade
-      }
-    };
+  const base = msg && typeof msg === 'object' && 'text' in msg
+    ? msg
+    : { text: msg, id: null };
+
+  return {
+    id: base.id || null,
+    text: base.text,
+    image: imagem ? limparBase64(imagem) : base.image || null,
+  };
+});
+
+
+  const disparoData = {
+    name: titulo,
+    connection_id: canal,
+    sector: funilSelecionado.charAt(0).toLowerCase() + funilSelecionado.slice(1),
+    kanban_stage: etapa,
+    start_date,
+    schema,
+    tipoAlvo,
+    ...(tipoAlvo === 'Funil' ? { etapa } : { tags: tagsSelecionadas }),
+    mensagem: mensagensParaSalvar,
+    intervalo: {
+      timer: intervaloTempo,
+      unidade: intervaloUnidade
+    }
+};
 
     try {
       const endpoint = `${url}/campaing/create`;
@@ -293,38 +349,79 @@ function DisparoModal({ theme, disparo = null }) {
               />
             </div>
             {/* Campos de Mensagens */}
-            {Array.isArray(mensagens) && mensagens.map((mensagem, index) => (
-              <div className="mb-3" key={index}>
-                <label htmlFor={`mensagem${index}`} className={`form-label card-subtitle-${theme}`}>
-                  Modelo de mensagem {index + 1}
-                </label>
-                <textarea
-                  ref={(el) => textAreasRef.current[index] = el}
-                  className={`form-control input-${theme}`}
-                  id={`mensagem${index}`}
-                  value={mensagem}
-                  onChange={(e) => {
-                    const novasMensagens = [...mensagens];
-                    novasMensagens[index] = e.target.value;
-                    setMensagens(novasMensagens);
-                  }}
-                  rows="3"
-                  placeholder={`Digite a mensagem ${index + 1}`}
-                />
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {[...variaveisFixas, ...customFields].map((variable) => (
-                    <button
-                      key={variable.id}
-                      onClick={() => insertVariable(index, variable)}
-                      className="px-3 py-1 bg-blue-100 text-blue-800 rounded hover:bg-blue-200"
-                    >
-                      {`${variable.label}`}
-                    </button>
-                  ))}
-                </div>
+           {Array.isArray(mensagens) && mensagens.map((mensagem, index) => (
+            <div className="mb-3" key={index}>
+              <div>
+
+            <label htmlFor={`mensagem${index}`} className={`form-label card-subtitle-${theme}`}>
+            Modelo de mensagem {index + 1}
+          </label>
               </div>
-              
-            ))}
+
+          {/* Preview da imagem abaixo do label, mas acima da textarea */}
+          {mensagensImagens[index] && (
+            <img
+              src={mensagensImagens[index]}
+              alt={`Preview ${index}`}
+              className="mb-2 rounded shadow-sm"
+              style={{ width: '128px', height: '128px', objectFit: 'cover' }}
+            />
+          )}
+
+          <textarea
+  ref={(el) => textAreasRef.current[index] = el}
+  className={`form-control input-${theme}`}
+  id={`mensagem${index}`}
+  value={mensagem.text}
+  onChange={(e) => {
+    const novasMensagens = [...mensagens];
+    const mensagemAtual = mensagens[index];
+
+    novasMensagens[index] = {
+      ...mensagemAtual,         // mantém id, image e outros
+      text: e.target.value      // atualiza apenas o text
+    };
+
+    setMensagens(novasMensagens);
+  }}
+  rows="3"
+  placeholder={`Digite a mensagem ${index + 1}`}
+/>
+
+    {/* Botão de imagem */}
+    <div className="mt-2 flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        className={`btn btn-2-${theme}`}
+        onClick={() => document.getElementById(`imageInput-${index}`).click()}
+      >
+        <i className="bi bi-image"></i>
+      </button>
+
+        <input
+      id={`imageInput-${index}`}
+      type="file"
+      accept="image/*"
+      style={{ display: 'none' }}
+      onChange={(e) => handleImageUpload(e, index)}
+    />
+    </div>
+
+    {/* Botões de variáveis */}
+    <div className="mt-2 flex flex-wrap gap-2">
+      {[...variaveisFixas, ...customFields].map((variable) => (
+        <button
+          key={variable.id}
+          onClick={() => insertVariable(index, variable)}
+          className="px-3 py-1 bg-blue-100 text-blue-800 rounded hover:bg-blue-200"
+        >
+          {`${variable.label}`}
+        </button>
+      ))}
+    </div>
+  </div>
+))}
+
             {/* Grid de 2 colunas para Canal/Tipo e Data/Hora/Intervalo */}
             <div className="row">
               {/* Coluna da Esquerda */}
@@ -433,30 +530,6 @@ function DisparoModal({ theme, disparo = null }) {
                         gap: '10px'
                       }}
                     >
-                      {/* {tags.map((tag) => (
-                        <div key={tag.id} className="form-check">
-                          <input
-                            type="checkbox"
-                            className="form-check-input"
-                            id={`tag-${tag.id}`}
-                            checked={tagsSelecionadas.includes(tag.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setTagsSelecionadas([...tagsSelecionadas, tag.id]);
-                              } else {
-                                setTagsSelecionadas(tagsSelecionadas.filter(id => id !== tag.id));
-                              }
-                            }}
-                          />
-                          <label
-                            className={`form-check-label card-subtitle-${theme}`}
-                            htmlFor={`tag-${tag.id}`}
-                            style={{ cursor: 'pointer' }}
-                          >
-                            {tag.nome}
-                          </label>
-                        </div>
-                      ))} */}
                     </div>
                   </div>
                 )}

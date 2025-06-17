@@ -1,34 +1,34 @@
-
 const fs = require('fs');
 const path = require('path');
 const xlsx = require('xlsx');
 const pool = require("../db/queries")
+const multer = require('multer');
 const { insertValueCustomField } = require('./ContactService');
 const { insertInKanbanStage } = require('./KanbanService');
 
 const folderPath = path.join(__dirname, '..', 'uploads');
 
+function processExcelFile(connection_id, sector, schema) {
+  const files = fs.readdirSync(folderPath).filter(file => file.endsWith('.xlsx'));
 
-const XLSX = require('xlsx');
-
-async function processExcelFile(filePath, mapping, schema, funil) {
-  const XLSX = require('xlsx');
-  const workbook = XLSX.readFile(filePath);
-  const sheetName = workbook.SheetNames[0];
-  const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
-
-  const headers = data[0];
-  const rows = data.slice(1);
-
-  for (const row of rows) {
-    let contato = {};
-    Object.entries(mapping).forEach(([colIdx, crmField]) => {
-      if (crmField) {
-        contato[crmField] = row[colIdx];
-      }
-    });
-
+  if (files.length === 0) {
+    console.log('Nenhum arquivo .xlsx encontrado.');
+    return [];
   }
+
+  const filePath = path.join(folderPath, files[0]); 
+  const workbook = xlsx.readFile(filePath);
+  const sheetName = workbook.SheetNames[0]; 
+  const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+  console.log('Dados processados do Excel:', data);
+
+  getInformationFromExcel(data, connection_id,sector, schema) 
+
+  return data;
+
+  // fs.unlinkSync(filePath);
+  
 }
 
 const getInformationFromExcel = async (data, connection, sector, schema) => {
