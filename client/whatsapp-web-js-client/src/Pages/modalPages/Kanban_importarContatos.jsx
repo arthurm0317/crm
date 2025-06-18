@@ -42,22 +42,6 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
   };
 
   const handleImport = async () => {
-<<<<<<< HEAD
-    if (!file) {
-      setErrorMsg('Selecione um arquivo para importar.');
-      return;
-    }
-    setErrorMsg('');
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('sector', funil);
-      formData.append('schema', schema);
-
-      const res = await axios.post('http://localhost:3002/excel/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-=======
   if (!file || mapping.phone === -1 || mapping.name === -1) {
     setErrorMsg('É necessário mapear os campos de telefone e nome.');
     return;
@@ -74,7 +58,6 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
     const res = await axios.post(`${url}/excel/upload`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
->>>>>>> 1c5a5b54d81d5dc1893b42cd67d1eb76bb1cbaaa
 
     setMsg(res.data.message);
 

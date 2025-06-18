@@ -1,6 +1,7 @@
 const Queue = require("../entities/Queue");
 const { v4: uuidv4 } = require('uuid');
 const { createQueue, addUserinQueue, getUserQueues, getAllQueues, deleteQueue, getQueueById, transferQueue } = require("../services/QueueService");
+const { setUserChat } = require("../services/ChatService");
 
 
 const createQueueController = async(req, res)=>{
@@ -93,7 +94,8 @@ const getQueueByIdController = async(req, res)=> {
 const transferQueueController = async (req, res) => {
   try {
     const { chatId, newQueueId, schema } = req.body;
-    const result = await transferQueue(chatId, newQueueId, schema || 'effective_gain');
+    const result = await transferQueue(chatId, newQueueId, schema);
+    await setUserChat(chatId, schema)
     res.status(200).json({ result });
   } catch (error) {
     console.error('Erro ao transferir fila:', error.message);
