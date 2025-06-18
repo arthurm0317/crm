@@ -1,8 +1,7 @@
-
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const { processExcelFile } = require('../services/ExcelReader');
+const ExcelController = require('../controllers/ExcelController');
 
 const router = express.Router();
 
@@ -17,16 +16,6 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-router.post('/upload', upload.single('file'), async (req, res) => {
-  try {
-    const mapping = JSON.parse(req.body.mapping); 
-    const schema = req.body.schema;
-    const funil = req.body.funil;
-    await processExcelFile(req.file.path, mapping, schema, funil);
-    res.status(200).json({ message: 'Arquivo enviado com sucesso!', file: req.file.filename });
-  } catch (error) {
-    res.status(500).json({ error: 'Erro ao processar arquivo.' });
-  }
-});
+router.post('/upload', upload.single('file'), ExcelController.uploadExcel);
 
 module.exports = router;
