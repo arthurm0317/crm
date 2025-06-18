@@ -42,22 +42,20 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
   };
 
   const handleImport = async () => {
-  if (!file || mapping.phone === -1 || mapping.name === -1) {
-    setErrorMsg('É necessário mapear os campos de telefone e nome.');
-    return;
-  }
-  setErrorMsg('');
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('mapping', JSON.stringify(mapping));
-    formData.append('sector', funil);
-    formData.append('schema', schema);
-    // formData.append('connection_id', selectedConnectionId); // descomente e defina se quiser usar
+    if (!file) {
+      setErrorMsg('Selecione um arquivo para importar.');
+      return;
+    }
+    setErrorMsg('');
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('sector', funil);
+      formData.append('schema', schema);
 
-    const res = await axios.post(`${url}/excel/upload`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+      const res = await axios.post('http://localhost:3002/excel/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
 
     setMsg(res.data.message);
 
