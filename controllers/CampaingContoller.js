@@ -44,25 +44,28 @@ const createCampaingController = async (req, res) => {
     return res.status(400).json({ erro: 'Schema não informado!' });
   }
   try {
+    let campaing;
+
     if(campaing_id){
-      const campaing = await createCampaing(campaing_id, name, sector, kanban_stage, connection_id, start_date, schema);
-      return campaing
+      campaing = await createCampaing(campaing_id, name, sector, kanban_stage, connection_id, start_date, schema);
+    } else {
+      campaing = await createCampaing(null, name, sector, kanban_stage, connection_id, start_date, schema);
     }
-      const campaing = await createCampaing(null, name, sector, kanban_stage, connection_id, start_date, schema);
 
     if (mensagem && Array.isArray(mensagem)) {
-      for (const msg of mensagem) {
-        await createMessageForBlast(msg, sector, campaing.id, schema);
+      for (const [index, item] of mensagem.entries()) {
+        const id = mensagem[index]?.id || null;
+        const texto = typeof item === 'object' ? item.text : item;
+        const imagem = typeof item === 'object' ? item.image : null;
+        
+        await createMessageForBlast(id, texto, sector, campaing.id, schema, imagem);
       }
-    } else if (mensagem) {
-      await createMessageForBlast(msg, sector, campaing.id, schema);
+    }else if (mensagem) {
+      await createMessageForBlast(mensagem.id || null, mensagem, sector, campaing.id, schema);
     }
 
-
-    console.log(campaing, sector, schema)
-    await scheduleCampaingBlast(campaing, sector, schema);
-
-    res.status(201).json(campaing);
+    return res.status(201).json(campaing);
+    
   } catch (error) {
     console.error('Erro ao criar campanha:', error);
     res.status(500).json({
@@ -70,6 +73,7 @@ const createCampaingController = async (req, res) => {
     });
   }
 };
+
 
 const getAllBlastMessagesController = async(req, res)=>{
   try {
