@@ -3,44 +3,50 @@ import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { Modal } from 'react-bootstrap';
 
-function SortableEtapa({ etapa, idx, theme, handleEtapaChange, handleMoveEtapa, handleRemoveEtapa, etapas, onDragStart }) {
+function SortableEtapa({ etapa, idx, theme, handleEtapaChange, handleMoveEtapa, handleRemoveEtapa, etapas, onDragStart, isDragging, dragOverIndex }) {
   const handleDragStart = (e) => {
     onDragStart(etapa);
     
-    // Obter valores computados das variáveis CSS
-    const root = document.documentElement;
-    const bgColor = getComputedStyle(root).getPropertyValue(`--bg-color-${theme}`) || '#222';
-    const textColor = getComputedStyle(root).getPropertyValue(`--text-color-${theme}`) || '#fff';
-    const borderColor = getComputedStyle(root).getPropertyValue('--placeholder-color') || '#888';
-
+    // Criar um elemento de drag mais robusto
     const dragElement = document.createElement('div');
     dragElement.style.position = 'absolute';
     dragElement.style.top = '-1000px';
-    dragElement.style.padding = '8px 16px';
-    dragElement.style.background = bgColor.trim();
-    dragElement.style.border = `1px solid ${borderColor.trim()}`;
-    dragElement.style.borderRadius = '4px';
-    dragElement.style.color = textColor.trim();
+    dragElement.style.left = '-1000px';
+    dragElement.style.padding = '12px 20px';
+    dragElement.style.background = theme === 'light' ? '#ffffff' : '#2c2c2c';
+    dragElement.style.border = '1px solid #007bff';
+    dragElement.style.borderRadius = '8px';
+    dragElement.style.color = theme === 'light' ? '#333333' : '#ffffff';
     dragElement.style.fontSize = '14px';
-    dragElement.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+    dragElement.style.fontWeight = '500';
+    dragElement.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
     dragElement.style.zIndex = '9999';
     dragElement.style.pointerEvents = 'none';
+    dragElement.style.minWidth = '150px';
+    dragElement.style.textAlign = 'center';
+    dragElement.style.fontFamily = 'Arial, sans-serif';
     
     // Garantir que temos o nome da etapa
     const etapaNome = etapa.nome || etapa.etapa || 'Nova Etapa';
     dragElement.textContent = etapaNome;
     
-    // Adicionar o elemento ao DOM antes de definir o drag image
+    // Adicionar o elemento ao DOM
     document.body.appendChild(dragElement);
     
     // Definir o drag image
     e.dataTransfer.setDragImage(dragElement, dragElement.offsetWidth / 2, dragElement.offsetHeight / 2);
     
     // Remover o elemento após o drag começar
-    requestAnimationFrame(() => {
-      document.body.removeChild(dragElement);
-    });
+    setTimeout(() => {
+      if (document.body.contains(dragElement)) {
+        document.body.removeChild(dragElement);
+      }
+    }, 0);
   };
+
+  const etapaId = etapa.uid || etapa.id || `temp-${idx}`;
+  const isBeingDragged = isDragging && (isDragging.uid === etapaId || isDragging.id === etapaId);
+  const showDropIndicator = dragOverIndex === idx && !isBeingDragged;
 
   return (
     <div 
@@ -49,9 +55,28 @@ function SortableEtapa({ etapa, idx, theme, handleEtapaChange, handleMoveEtapa, 
         borderRight: '1px solid var(--placeholder-color)', 
         WebkitBorderTopRightRadius: '8px', 
         WebkitBorderBottomRightRadius: '8px',
-        position: 'relative'
+        position: 'relative',
+        opacity: isBeingDragged ? 0.5 : 1,
+        transform: isBeingDragged ? 'scale(0.95)' : 'scale(1)',
+        transition: 'all 0.2s ease'
       }}
     >
+      {/* Indicador de drop */}
+      {showDropIndicator && (
+        <div 
+          style={{
+            position: 'absolute',
+            top: '-8px',
+            left: '0',
+            right: '0',
+            height: '2px',
+            background: '#007bff',
+            borderRadius: '1px',
+            zIndex: 10
+          }}
+        />
+      )}
+      
       <div 
         className="col-auto d-flex align-items-center"
         draggable
@@ -128,6 +153,7 @@ function SortableEtapa({ etapa, idx, theme, handleEtapaChange, handleMoveEtapa, 
 function GerirEtapaModal({ theme, show, onHide, onSave, funil, etapas: etapasProp }) {
   const [etapas, setEtapas] = useState(etapasProp || []);
   const [draggedEtapa, setDraggedEtapa] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
   const userData = JSON.parse(localStorage.getItem('user'));
   const schema = userData?.schema;
   const url = process.env.REACT_APP_URL;
@@ -143,7 +169,8 @@ function GerirEtapaModal({ theme, show, onHide, onSave, funil, etapas: etapasPro
         const etapasConvertidas = (Array.isArray(response.data) ? response.data : [response.data]).map((e, i) => ({
           ...e,
           cor: e.cor ?? e.color ?? '#2ecc71',
-          index: e.pos ?? i
+          index: e.pos ?? i,
+          uid: e.uid || e.id || `etapa-${i}`
         }));
         setEtapas(etapasConvertidas);
       } catch (error) {
@@ -157,11 +184,24 @@ function GerirEtapaModal({ theme, show, onHide, onSave, funil, etapas: etapasPro
     setDraggedEtapa(etapa);
   };
 
+  const handleDragEnd = () => {
+    setDraggedEtapa(null);
+    setDragOverIndex(null);
+  };
+
   const handleDrop = (targetIdx) => {
     if (!draggedEtapa) return;
     
-    const draggedIdx = etapas.findIndex(e => e.uid === draggedEtapa.uid);
-    if (draggedIdx === targetIdx) return;
+    const draggedIdx = etapas.findIndex(e => {
+      const draggedId = draggedEtapa.uid || draggedEtapa.id;
+      const currentId = e.uid || e.id;
+      return draggedId === currentId;
+    });
+    
+    if (draggedIdx === -1 || draggedIdx === targetIdx) {
+      setDragOverIndex(null);
+      return;
+    }
 
     const newEtapas = [...etapas];
     const [removed] = newEtapas.splice(draggedIdx, 1);
@@ -171,10 +211,28 @@ function GerirEtapaModal({ theme, show, onHide, onSave, funil, etapas: etapasPro
     newEtapas.forEach((etapa, i) => etapa.index = i);
     setEtapas(newEtapas);
     setDraggedEtapa(null);
+    setDragOverIndex(null);
   };
 
-  const handleDragOver = (e) => {
+  const handleDragOver = (e, idx) => {
     e.preventDefault();
+    if (draggedEtapa) {
+      setDragOverIndex(idx);
+    }
+  };
+
+  const handleDragEnter = (e, idx) => {
+    e.preventDefault();
+    if (draggedEtapa) {
+      setDragOverIndex(idx);
+    }
+  };
+
+  const handleDragLeave = (e) => {
+    // Só limpa se realmente saiu da área de drop
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setDragOverIndex(null);
+    }
   };
 
   const handleMoveEtapa = (idx, direction) => {
@@ -233,11 +291,30 @@ function GerirEtapaModal({ theme, show, onHide, onSave, funil, etapas: etapasPro
           });
         }
       }
+      
+      // Busca as etapas atualizadas do backend para garantir que os IDs estejam corretos
+      try {
+        const response = await axios.get(`${url}/kanban/get-stages/${funil}/${schema}`);
+        const etapasAtualizadas = (Array.isArray(response.data) ? response.data : [response.data]).map((e, i) => ({
+          ...e,
+          cor: e.cor ?? e.color ?? '#2ecc71',
+          index: e.pos ?? i,
+          uid: e.uid || e.id || `etapa-${i}`,
+          nome: e.nome || e.etapa
+        }));
+        
+        if (onSave) onSave(etapasAtualizadas);
+      } catch (error) {
+        console.error('Erro ao buscar etapas atualizadas:', error);
+        // Se falhar ao buscar, usa as etapas locais
+        if (onSave) onSave(etapas);
+      }
     } catch (error) {
       console.error(error);
       alert('Erro ao salvar etapas!');
+      return;
     }
-    if (onSave) onSave(etapas);
+    
     if (onHide) onHide();
   };
 
@@ -268,13 +345,23 @@ function GerirEtapaModal({ theme, show, onHide, onSave, funil, etapas: etapasPro
             disabled
           />
         </div>
-        <div className="d-flex flex-column gap-2" style={{ position: 'relative' }}>
+        <div 
+          className="d-flex flex-column gap-2" 
+          style={{ position: 'relative' }}
+          onDragEnd={handleDragEnd}
+        >
           {etapas.map((etapa, idx) => (
             <div
-              key={etapa.uid || etapa.id}
-              onDragOver={handleDragOver}
+              key={etapa.uid || etapa.id || `etapa-${idx}`}
+              onDragOver={(e) => handleDragOver(e, idx)}
+              onDragEnter={(e) => handleDragEnter(e, idx)}
+              onDragLeave={(e) => handleDragLeave(e)}
               onDrop={() => handleDrop(idx)}
-              style={{ position: 'relative' }}
+              style={{ 
+                position: 'relative',
+                minHeight: '20px',
+                padding: '4px 0'
+              }}
             >
               <SortableEtapa
                 etapa={etapa}
@@ -285,9 +372,43 @@ function GerirEtapaModal({ theme, show, onHide, onSave, funil, etapas: etapasPro
                 handleRemoveEtapa={handleRemoveEtapa}
                 etapas={etapas}
                 onDragStart={handleDragStart}
+                isDragging={draggedEtapa}
+                dragOverIndex={dragOverIndex}
               />
             </div>
           ))}
+          
+          {/* Área de drop no final da lista */}
+          <div
+            onDragOver={(e) => handleDragOver(e, etapas.length)}
+            onDragEnter={(e) => handleDragEnter(e, etapas.length)}
+            onDragLeave={(e) => handleDragLeave(e)}
+            onDrop={() => handleDrop(etapas.length)}
+            style={{
+              position: 'relative',
+              minHeight: '20px',
+              padding: '4px 0',
+              border: dragOverIndex === etapas.length ? '2px dashed #007bff' : '2px dashed transparent',
+              borderRadius: '8px',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            {dragOverIndex === etapas.length && (
+              <div 
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  color: '#007bff',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
+              >
+                Soltar aqui para adicionar ao final
+              </div>
+            )}
+          </div>
         </div>
         <button className={`btn btn-2-${theme} w-100 mb-2 mt-3`} onClick={handleAddEtapa}>
           <i className="bi bi-plus-circle me-2"></i>Nova Etapa

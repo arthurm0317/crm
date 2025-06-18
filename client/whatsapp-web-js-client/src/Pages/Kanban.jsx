@@ -403,6 +403,7 @@ useEffect(() => {
 
   // Salvar etapas do funil
   const handleSalvarEtapas = (novasEtapas) => {
+    // Atualiza o estado funis
     setFunis(funis.map(f =>
       f.id === funilSelecionado
         ? { ...f, etapas: novasEtapas.map((etapa, idx) => ({
@@ -411,6 +412,15 @@ useEffect(() => {
           })) }
         : f
     ));
+    
+    // Atualiza o estado etapas para refletir as mudanças imediatamente
+    setEtapas(novasEtapas.map((etapa, idx) => ({
+      ...etapa,
+      id: etapa.id || (Date.now() + idx), // Usa timestamp + índice para garantir ID único
+      etapa: etapa.nome || etapa.etapa, // Garante que o nome seja salvo em etapa.etapa
+      color: etapa.cor || etapa.color,
+      pos: etapa.index || idx
+    })));
   };
 
   // Add this useEffect to fetch tags
