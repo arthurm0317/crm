@@ -21,13 +21,12 @@ function processExcelFile(connection_id, sector, schema) {
   const sheetName = workbook.SheetNames[0]; 
   const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-  console.log('Dados processados do Excel:', data);
 
-  getInformationFromExcel(data, connection_id,sector, schema) 
-
+  getInformationFromExcel(data, connection_id, sector, schema) 
+  
+  fs.unlinkSync(filePath);
   return data;
 
-  // fs.unlinkSync(filePath);
   
 }
 

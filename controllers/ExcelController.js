@@ -4,7 +4,7 @@ const { getInformationFromExcel } = require('../services/ExcelReader');
 
 
 exports.uploadExcel = async (req, res) => {
-  const { setor, schema } = req.body;
+  const { sector, schema } = req.body;
   try {
     const filePath = req.file.path;
     const workbook = XLSX.readFile(filePath);
@@ -20,7 +20,8 @@ exports.uploadExcel = async (req, res) => {
       }))
       .filter(contato => contato.nome && contato.numero && contato.etapa);
 
-    await processExcelFile('025de7b9-619d-49ce-a6df-25e79f6043ca', setor, schema);
+
+    await processExcelFile('4091dc13-9658-452d-b507-e6e67bb90d4f', sector, schema);
 
     res.status(200).json({ message: 'Arquivo enviado e processado com sucesso!', file: req.file.filename });
   } catch (error) {

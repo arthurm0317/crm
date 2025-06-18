@@ -11,6 +11,7 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
   const fileInputRef = useRef(null);
   const userData = JSON.parse(localStorage.getItem('user'));
   const schema = userData?.schema;
+  const url = process.env.REACT_APP_URL
 
   const handleFileChange = (event) => {
     setErrorMsg('');
@@ -53,11 +54,10 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
       formData.append('sector', funil);
       formData.append('schema', schema);
 
-      const res = await axios.post('http://localhost:3002/excel/upload', formData, {
+      const res = await axios.post(`${url}/excel/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
-    setMsg(res.data.message);
 
     if (res.data.success) {
       alert('Contatos importados com sucesso!');
