@@ -13,6 +13,69 @@ function formatHour(timestamp) {
   return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
+function formatDate(timestamp) {
+  const date = new Date(Number(timestamp));
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  
+  // Verifica se é hoje
+  if (date.toDateString() === today.toDateString()) {
+    return 'Hoje';
+  }
+  // Verifica se é ontem
+  else if (date.toDateString() === yesterday.toDateString()) {
+    return 'Ontem';
+  }
+  // Outros dias
+  else {
+    return date.toLocaleDateString('pt-BR', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric' 
+    });
+  }
+}
+
+function groupMessagesByDate(messages) {
+  const grouped = [];
+  let currentDate = null;
+  let currentGroup = [];
+
+  messages.forEach((message, index) => {
+    const messageDate = formatDate(message.timestamp);
+    
+    if (messageDate !== currentDate) {
+      // Salva o grupo anterior se existir
+      if (currentGroup.length > 0) {
+        grouped.push({
+          type: 'date',
+          date: currentDate,
+          messages: currentGroup
+        });
+      }
+      
+      // Inicia novo grupo
+      currentDate = messageDate;
+      currentGroup = [message];
+    } else {
+      // Adiciona à mensagem ao grupo atual
+      currentGroup.push(message);
+    }
+    
+    // Se for a última mensagem, salva o grupo
+    if (index === messages.length - 1) {
+      grouped.push({
+        type: 'date',
+        date: currentDate,
+        messages: currentGroup
+      });
+    }
+  });
+
+  return grouped;
+}
+
 function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, setSelectedChat, setSelectedMessages, onEditName }) {
   const url = process.env.REACT_APP_URL;
   const userData = JSON.parse(localStorage.getItem('user'));
@@ -917,51 +980,86 @@ const handleImageUpload = async (event) => {
     }}
   >
 
-  {selectedMessages.map((msg, index) => (
-  <div
-    key={msg.id || index}
-    style={{
-      backgroundColor: msg.from_me ? 'var(--hover)' : '#f1f0f0',
-      textAlign: msg.from_me ? 'right' : 'left',
-      padding: '5px 10px',
-      borderRadius: '10px',
-      margin: '5px 0',
-      alignSelf: msg.from_me ? 'flex-end' : 'flex-start',
-      display: 'inline-block',
-      maxWidth: '60%',
-    }}
-  >
-    {msg.message_type === 'audio' || msg.message_type === 'audioMessage' ? (
-      <AudioPlayer base64Audio={msg.base64} audioId={msg.id} />
-    ) : msg.message_type === 'imageMessage' || msg.message_type === 'image' ? (
-      <img
-        src={
-          typeof msg.base64 === 'string'
-            ? msg.base64.startsWith('blob:')
-              ? msg.base64
-              : `data:image/jpeg;base64,${msg.base64}`
-            : msg.base64
-        }
-        alt="imagem"
+  {groupMessagesByDate(selectedMessages).map((group, groupIndex) => (
+    <div key={groupIndex}>
+      {/* Cabeçalho da data */}
+      <div
         style={{
-          maxWidth: '300px',
-          width: '100%',
-          height: 'auto',
-          borderRadius: '8px',
-          display: 'block',
-          cursor: 'pointer',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          margin: '12px 0 12px 0',
         }}
-        onClick={() => handleImageClick(msg.base64)}
-      />
-    ) : (
-      msg.text
-    )}
-    {/* Horário formatado */}
-    <div style={{ fontSize: '0.75rem', color: '#888', marginTop: 2 }}>
-      {formatHour(msg.timestamp)}
+      >
+        <div
+          style={{
+            backgroundColor: '#f0f0f0',
+            color: '#666',
+            padding: '4px 12px',
+            borderRadius: '12px',
+            fontSize: '0.75rem',
+            fontWeight: '500',
+            textAlign: 'center',
+          }}
+        >
+          {group.date}
+        </div>
+      </div>
+
+      {/* Mensagens do grupo */}
+      {group.messages.map((msg, index) => (
+        <div
+          key={msg.id || index}
+          style={{
+            display: 'flex',
+            justifyContent: msg.from_me ? 'flex-end' : 'flex-start',
+            margin: '5px 0',
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: msg.from_me ? 'var(--hover)' : '#f1f0f0',
+              textAlign: msg.from_me ? 'right' : 'left',
+              padding: '5px 10px',
+              borderRadius: '10px',
+              maxWidth: '60%',
+              width: 'fit-content',
+            }}
+          >
+            {msg.message_type === 'audio' || msg.message_type === 'audioMessage' ? (
+              <AudioPlayer base64Audio={msg.base64} audioId={msg.id} />
+            ) : msg.message_type === 'imageMessage' || msg.message_type === 'image' ? (
+              <img
+                src={
+                  typeof msg.base64 === 'string'
+                    ? msg.base64.startsWith('blob:')
+                      ? msg.base64
+                      : `data:image/jpeg;base64,${msg.base64}`
+                    : msg.base64
+                }
+                alt="imagem"
+                style={{
+                  maxWidth: '300px',
+                  width: '100%',
+                  height: 'auto',
+                  borderRadius: '8px',
+                  display: 'block',
+                  cursor: 'pointer',
+                }}
+                onClick={() => handleImageClick(msg.base64)}
+              />
+            ) : (
+              msg.text
+            )}
+            {/* Horário formatado */}
+            <div style={{ fontSize: '0.75rem', color: '#888', marginTop: 2 }}>
+              {formatHour(msg.timestamp)}
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
-  </div>
-))}
+  ))}
 
 {/* Renderize o modal de imagem ampliada fora do map */}
 {selectedImage && (
