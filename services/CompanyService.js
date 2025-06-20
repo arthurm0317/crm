@@ -140,6 +140,15 @@ const createCompany = async (company, schema) => {
             status text
             )
             `)
+        await pool.query(
+            `create table ${schema}.lembretes(
+            id uuid primary key not null,
+            lembrete_name text not null,
+            tag text,
+            message text,
+            date bigint
+            )`
+        )
 
     const superAdmin = new Users(
         superAdminId,

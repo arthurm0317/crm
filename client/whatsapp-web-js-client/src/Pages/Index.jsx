@@ -210,7 +210,7 @@ function Painel() {
               data-bs-toggle="tooltip"
               data-bs-placement="right"
               data-bs-title="Lembretes"
-              className={`btn ${page === 'agenda' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''} d-none`}
+              className={`btn ${page === 'agenda' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''}`}
             >
               <i className="bi bi-bell"></i>
               <span className="sidebar-label d-none">Lembretes</span>

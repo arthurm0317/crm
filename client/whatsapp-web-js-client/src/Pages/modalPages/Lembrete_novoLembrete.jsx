@@ -24,7 +24,9 @@ function LembreteNovoLembrete({ show, onHide, onSave, tipoDefault = 'geral', fil
   const [mensagem, setMensagem] = useState(lembreteEdit ? lembreteEdit.mensagem : '');
   const [icone, setIcone] = useState(lembreteEdit ? lembreteEdit.icone : iconesPessoais[0]);
   const [data, setData] = useState(lembreteEdit ? lembreteEdit.data : '');
-  const [filasSelecionadas, setFilasSelecionadas] = useState(lembreteEdit && lembreteEdit.filas ? lembreteEdit.filas : []);
+const [filasSelecionadas, setFilasSelecionadas] = useState(
+  lembreteEdit?.filas ?? []
+);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef();
   const [hoveredIcon, setHoveredIcon] = useState(null);
@@ -35,6 +37,19 @@ function LembreteNovoLembrete({ show, onHide, onSave, tipoDefault = 'geral', fil
   const [filasDropdownOpen, setFilasDropdownOpen] = useState(false);
   const filasDropdownRef = useRef();
   const [hoveredFila, setHoveredFila] = useState(null);
+
+  const formatUnixToDatetimeLocal = (unix) => {
+  if (!unix) return '';
+  const date = new Date(Number(unix) * 1000); // transforma segundos em milissegundos
+  const pad = n => n.toString().padStart(2, '0');
+  const yyyy = date.getFullYear();
+  const mm = pad(date.getMonth() + 1);
+  const dd = pad(date.getDate());
+  const hh = pad(date.getHours());
+  const min = pad(date.getMinutes());
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+};
+
 
   // Buscar filas do backend
   useEffect(() => {
@@ -69,12 +84,12 @@ function LembreteNovoLembrete({ show, onHide, onSave, tipoDefault = 'geral', fil
   // Atualizar campos ao abrir para edição
   useEffect(() => {
     if (lembreteEdit) {
-      setTipo(lembreteEdit.tipo);
-      setTitulo(lembreteEdit.titulo);
-      setMensagem(lembreteEdit.mensagem);
+      setTipo(lembreteEdit.tag);
+      setTitulo(lembreteEdit.lembrete_name);
+      setMensagem(lembreteEdit.message);
       setIcone(lembreteEdit.icone);
-      setData(lembreteEdit.data);
-      setFilasSelecionadas(lembreteEdit.filas || []);
+      setData(formatUnixToDatetimeLocal(lembreteEdit.date));
+      setFilasSelecionadas(lembreteEdit?.filas ?? []);
     } else {
       setTipo(tipoDefault);
       setTitulo('');
@@ -104,12 +119,52 @@ function LembreteNovoLembrete({ show, onHide, onSave, tipoDefault = 'geral', fil
     setMensagem(val);
   };
 
-  const handleSalvar = () => {
-    if (!titulo.trim() || !mensagem.trim() || !data) return;
-    onSave && onSave({ tipo, titulo, mensagem, icone, data, filas: filasSelecionadas });
-    setTitulo(''); setMensagem(''); setIcone(iconesPessoais[0]); setData(''); setFilasSelecionadas([]);
-    onHide && onHide();
-  };
+  const handleSalvar = async() => {
+  if (!titulo.trim() || !mensagem.trim() || !data) return;
+
+  const dataUnix = Math.floor(new Date(data).getTime() / 1000);
+  
+  onSave && onSave({
+    tag: tipo,
+    lembrete_name:titulo,
+    message:mensagem,
+    icone:icone,
+    date: dataUnix,
+    filas: filasSelecionadas
+  });
+  if(lembreteEdit){
+    const response = await axios.put(`${url}/lembretes/update-lembretes`,{
+    id: lembreteEdit.id,
+    tag: tipo,
+    lembrete_name:titulo,
+    message:mensagem,
+    icone:icone,
+    date: dataUnix,
+    filas: filasSelecionadas,
+    schema: schema
+  })
+  }else{
+    const response = await axios.post(`${url}/lembretes/create-lembrete`,{
+    tag: tipo,
+    lembrete_name:titulo,
+    message:mensagem,
+    icone:icone,
+    date: dataUnix,
+    filas: filasSelecionadas,
+    schema: schema
+  })
+  }
+
+  
+
+  setTitulo('');
+  setMensagem('');
+  setIcone(iconesPessoais[0]);
+  setData('');
+  setFilasSelecionadas([]);
+
+  onHide && onHide();
+};
 
   // Permissões atualizadas
   const podeGeral = ['admin', 'tecnico'].includes(userRole);
@@ -169,13 +224,14 @@ function LembreteNovoLembrete({ show, onHide, onSave, tipoDefault = 'geral', fil
                     onClick={() => setFilasDropdownOpen(v => !v)}
                   >
                     <span className="d-flex align-items-center gap-2">
-                      <i className="bi bi-diagram-3"></i>
-                      {filasSelecionadas.length === 0 
-                        ? 'Selecione as filas' 
-                        : filasSelecionadas.length === 1 
-                          ? filasDisponiveis.find(f => f.id === filasSelecionadas[0])?.nome 
-                          : `${filasSelecionadas.length} filas selecionadas`}
-                    </span>
+                  <i className="bi bi-diagram-3"></i>
+                  {Array.isArray(filasSelecionadas) && filasSelecionadas.length === 0
+                    ? 'Selecione as filas'
+                    : filasSelecionadas.length === 1
+                      ? filasDisponiveis.find(f => f.id === filasSelecionadas[0])?.nome
+                      : `${filasSelecionadas.length} filas selecionadas`}
+
+                </span>
                     <i className={`bi bi-chevron-${filasDropdownOpen ? 'up' : 'down'}`}></i>
                   </button>
                   {filasDropdownOpen && (
@@ -305,9 +361,10 @@ function LembreteNovoLembrete({ show, onHide, onSave, tipoDefault = 'geral', fil
                 placeholder="Digite a mensagem do lembrete"
               />
               <div className="d-flex justify-content-end mt-1">
-                <small style={{ color: mensagem.length >= maxMsgLen ? 'var(--error-color)' : undefined }}>
-                  {maxMsgLen - mensagem.length} caracteres restantes
-                </small>
+                <small style={{ color: (mensagem?.length ?? 0) >= maxMsgLen ? 'var(--error-color)' : undefined }}>
+                {maxMsgLen - (mensagem?.length ?? 0)} caracteres restantes
+              </small>
+
               </div>
             </div>
             {/* Data de disparo */}

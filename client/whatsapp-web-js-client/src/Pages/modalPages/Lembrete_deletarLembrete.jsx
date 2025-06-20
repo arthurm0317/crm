@@ -1,6 +1,36 @@
+import axios from 'axios';
 import React from 'react';
 
 function LembreteDeletarLembrete({ theme, lembrete, onDelete }) {
+  const userData = JSON.parse(localStorage.getItem('user'));
+  const schema = userData?.schema;
+  const url = process.env.REACT_APP_URL;
+
+  const formatUnixToDatetimeLocal = (unix) => {
+  if (!unix) return '';
+  const date = new Date(Number(unix) * 1000); // transforma segundos em milissegundos
+  const pad = n => n.toString().padStart(2, '0');
+  const yyyy = date.getFullYear();
+  const mm = pad(date.getMonth() + 1);
+  const dd = pad(date.getDate());
+  const hh = pad(date.getHours());
+  const min = pad(date.getMinutes());
+  return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
+};
+
+  const handleDelete = async () => {
+  try {
+    await axios.delete(`${url}/lembretes/delete-lembrete`, {
+      data: {
+        id: lembrete.id,
+        schema: schema,
+      },
+    });
+    onDelete(lembrete.id); 
+  } catch (error) {
+    console.error('Erro ao deletar lembrete:', error);
+  }
+};
   if (!lembrete) return null;
 
   return (
@@ -22,19 +52,19 @@ function LembreteDeletarLembrete({ theme, lembrete, onDelete }) {
             <p className="text-danger-true fw-bold mb-1">
               Título:
               <span className={`fw-bold header-text-${theme} ms-1`}>
-                {lembrete.titulo}
+                {lembrete.lembrete_name}
               </span>
             </p>
             <p className="text-danger-true fw-bold mb-1">
               Data:
               <span className={`fw-bold header-text-${theme} ms-1`}>
-                {new Date(lembrete.data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                {formatUnixToDatetimeLocal(lembrete.date)}
               </span>
             </p>
             <p className="text-danger-true fw-bold mb-1">
               Tipo:
               <span className={`fw-bold header-text-${theme} ms-1`}>
-                {lembrete.tipo.charAt(0).toUpperCase() + lembrete.tipo.slice(1)}
+                {lembrete.tag.charAt(0).toUpperCase() + lembrete.tag.slice(1)}
               </span>
             </p>
             <p className={`card-subtitle-${theme}`}>
@@ -54,7 +84,7 @@ function LembreteDeletarLembrete({ theme, lembrete, onDelete }) {
             <button
               type="button"
               className={`btn btn-1-${theme}`}
-              onClick={onDelete}
+              onClick={handleDelete}
               data-bs-dismiss="modal"
             >
               Excluir

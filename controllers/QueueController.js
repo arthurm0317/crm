@@ -57,9 +57,7 @@ const getUserQueuesController=async(req,res)=>{
 const getAllQueuesControllers = async(req, res)=> {
     try{
         const {schema} = req.params
-        console.log('Schema recebido:', schema);
         const result = await getAllQueues(schema)
-        console.log('Filas encontradas:', result);
         res.status(201).json({
             result
         })

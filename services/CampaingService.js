@@ -15,7 +15,6 @@ const blastQueue = new Queue("Campanha", { connection: bullConn });
 const worker = new Worker(
   'Campanha',
   async (job) => {
-    console.log('JOB NO WORKER',job.data)
     try {
       if(job.data.image){
         await sendMediaBlastMessage(
@@ -67,7 +66,6 @@ const createCampaing = async (campaing_id, campName, sector, kanbanStage, connec
 
 
     if (campaing_id) {
-      console.log('entrou if')
       result = await pool.query(
         `UPDATE ${schema}.campaing 
          SET campaing_name=$1, sector=$2, kanban_stage=$3, connection_id=$4, start_date=$5
@@ -102,7 +100,7 @@ const scheduleCampaingBlast = async (campaing, sector, schema) => {
     const kanban = await pool.query(
       `SELECT * FROM ${schema}.kanban_${sector} WHERE id=$1`, [campaing.kanban_stage]
     );
-
+    
     if (kanban.rowCount === 0) {
       console.error(`Erro: Etapa Kanban com ID ${campaing.kanban_stage} não encontrada para o setor ${sector}.`);
       return; 
