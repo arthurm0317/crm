@@ -121,7 +121,7 @@ function Painel() {
     <div className={`bg-screen-${theme}`} style={{ height: '100vh', overflow: 'hidden' }}>
       <div className="d-flex h-100">
         <div id="sidebar" className={`bg-form-${theme} h-100 sidebar ${isSidebarExpanded ? 'sidebar-expanded' : 'sidebar-collapsed'} border-end border-${theme} card-${theme}`}>
-          <div id="sidebar-top" style={{ height: '10%', width: '100%' }} className="p-2 d-flex flex-row align-items-center justify-content-evenly">
+          <div id="sidebar-top" style={{ height: '10%', width: '100%', transition: '0.01s' }} className="p-2 d-flex flex-row align-items-center justify-content-evenly">
             <img src={isSidebarExpanded ? logo : shortlogo} alt="Logo" className="img-fluid" style={{ height: 'auto', width: isSidebarExpanded ? '80%' : '65%' }} />
           </div>
           <div style={{ flexGrow: 1, width: '100%' }} id="sidebar-body" className="d-flex flex-column align-items-center justify-content-start my-5 gap-3">
