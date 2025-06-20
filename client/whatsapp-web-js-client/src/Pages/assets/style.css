@@ -753,3 +753,13 @@ input[type="range"]::-moz-range-progress {
     color: var(--color-light);
     cursor: pointer;
 }
+
+::part(progress){
+    height: 35px;
+}
+::part(wrapper){
+    display: grid;
+}
+::part(scroll){
+    display: flex;
+}
