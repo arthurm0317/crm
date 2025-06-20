@@ -108,7 +108,8 @@ const createCompany = async (company, schema) => {
             id uuid primary key not null,
             value text not null,
             sector text not null,
-            campaing_id uuid
+            campaing_id uuid,
+            image text
             )
         `)
         await pool.query(`
