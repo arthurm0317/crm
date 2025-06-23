@@ -44,7 +44,9 @@ const io = socketIo(server, {
       'https://eg-crm.effectivegain.com',
       'https://landing-page-teste.8rxpnw.easypanel.host/',
       'https://ilhadogovernador.effectivegain.com/',
-      'https://ilhadogovernador.effectivegain.com'
+      'https://ilhadogovernador.effectivegain.com',
+      'https://barreiras.effectivegain.com',
+      'https://barreiras.effectivegain.com/'
     ], 
     methods: ['GET', 'POST', 'DELETE', 'PUT'],
   },
