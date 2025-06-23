@@ -598,6 +598,7 @@ const AudioPlayer = ({ audioSrc, audioId, theme, isActive, onPlayClick }) => {
             display: 'block',
           }}
           onMouseDown={handleMouseDown}
+          className="waveform"
         >
         </div>
 
