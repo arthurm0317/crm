@@ -51,17 +51,22 @@ const [filasSelecionadas, setFilasSelecionadas] = useState(
 };
 
 
-  // Buscar filas do backend
-  useEffect(() => {
+    useEffect(() => {
     const fetchFilas = async () => {
       try {
         const response = await axios.get(`${url}/queue/get-all-queues/${schema}`);
-        if (response.data && Array.isArray(response.data)) {
-          setFilasDisponiveis(response.data);
-        } else {
-          console.warn('Resposta da API não é um array de filas:', response.data);
-          setFilasDisponiveis(mockFilas);
+        let filas = response.data.result;
+        // Garante que seja array e que cada item tenha id e nome
+        if (!Array.isArray(filas)) {
+          filas = [filas];
         }
+        filas = filas
+          .filter(f => f && (f.id || f._id)) // filtra objetos válidos
+          .map(f => ({
+            id: f.id || f._id || '', // aceita id ou _id
+            nome: f.nome || f.name || f.label || 'Fila'
+          }));
+        setFilasDisponiveis(filas.length ? filas : mockFilas);
       } catch (error) {
         console.error('Erro ao buscar filas:', error);
         setFilasDisponiveis(mockFilas);
@@ -119,52 +124,63 @@ const [filasSelecionadas, setFilasSelecionadas] = useState(
     setMensagem(val);
   };
 
-  const handleSalvar = async() => {
-  if (!titulo.trim() || !mensagem.trim() || !data) return;
-
-  const dataUnix = Math.floor(new Date(data).getTime() / 1000);
+    const handleSalvar = async () => {
+    if (!titulo.trim() || !mensagem.trim() || !data) return;
   
-  onSave && onSave({
-    tag: tipo,
-    lembrete_name:titulo,
-    message:mensagem,
-    icone:icone,
-    date: dataUnix,
-    filas: filasSelecionadas
-  });
-  if(lembreteEdit){
-    const response = await axios.put(`${url}/lembretes/update-lembretes`,{
-    id: lembreteEdit.id,
-    tag: tipo,
-    lembrete_name:titulo,
-    message:mensagem,
-    icone:icone,
-    date: dataUnix,
-    filas: filasSelecionadas,
-    schema: schema
-  })
-  }else{
-    const response = await axios.post(`${url}/lembretes/create-lembrete`,{
-    tag: tipo,
-    lembrete_name:titulo,
-    message:mensagem,
-    icone:icone,
-    date: dataUnix,
-    filas: filasSelecionadas,
-    schema: schema
-  })
-  }
-
+    const dataUnix = Math.floor(new Date(data).getTime() / 1000);
   
+    let lembreteCriado = null;
+  
+    if (lembreteEdit) {
+      // Atualiza no backend
+      const response = await axios.put(`${url}/lembretes/update-lembretes`, {
+        id: lembreteEdit.id,
+        tag: tipo,
+        lembrete_name: titulo,
+        message: mensagem,
+        icone: icone,
+        date: dataUnix,
+        filas: filasSelecionadas,
+        schema: schema
+      });
+      lembreteCriado = response.data;
+    } else {
+      // Cria no backend
+      const response = await axios.post(`${url}/lembretes/create-lembrete`, {
+        tag: tipo,
+        lembrete_name: titulo,
+        message: mensagem,
+        icone: icone,
+        date: dataUnix,
+        filas: filasSelecionadas,
+        schema: schema
+      });
 
-  setTitulo('');
-  setMensagem('');
-  setIcone(iconesPessoais[0]);
-  setData('');
-  setFilasSelecionadas([]);
+      console.log(tipo, titulo, mensagem, icone, dataUnix, filasSelecionadas, schema);
 
-  onHide && onHide();
-};
+      lembreteCriado = response.data;
+    }
+  
+    const lembreteFrontend = {
+    ...lembreteCriado,
+    titulo: lembreteCriado.lembrete_name || lembreteCriado.titulo,
+    mensagem: lembreteCriado.message || lembreteCriado.mensagem,
+    icone: lembreteCriado.icone,
+    data: lembreteCriado.date, 
+    tag: lembreteCriado.tag || lembreteCriado.tipo,
+    filas: lembreteCriado.filas || [],
+  };
+
+  onSave && onSave(lembreteFrontend);
+  
+    setTitulo('');
+    setMensagem('');
+    setIcone(iconesPessoais[0]);
+    setData('');
+    setFilasSelecionadas([]);
+  
+    onHide && onHide();
+  };
 
   // Permissões atualizadas
   const podeGeral = ['admin', 'tecnico'].includes(userRole);

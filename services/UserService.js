@@ -34,15 +34,17 @@ const searchUser = async (userMail, userPassword) => {
       FROM information_schema.schemata
       WHERE schema_name NOT IN ('pg_catalog', 'information_schema', 'pg_toast')
     `);
+    console.log(availableSchemas)
   
     const schemaNames = availableSchemas.rows.map(row => row.schema_name);
-  
+  console.log(schemaNames, 'NAMES')
     for (const schema of schemaNames) {
       try {
         const result = await pool.query(
           `SELECT * FROM ${schema}.users WHERE email = $1 AND password = $2`,
           [userMail, userPassword]
         );
+        console.log(result.rows, 'RESULT')
         
         if (result.rows.length > 0) {
           const companyName = await pool.query(

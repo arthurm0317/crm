@@ -8,6 +8,7 @@ import './assets/style.css';
 import { useTheme } from './assets/js/useTheme';
 import { useNavigate } from 'react-router-dom';
 import Dashboard from './Dashboard';
+import {socket} from '../socket'
 import ChatPage from './Chats';
 import AgendaPage from './Lembretes';
 import RelatorioPage from './Relatorios';
@@ -19,6 +20,7 @@ import WhatsappModal from './modalPages/Whatsapp';
 import Manutencao from './Manutencao';
 import AjudaPage from './Ajuda';
 import LembretesPage from './Lembretes';
+import axios from 'axios';
 
 window.addEventListener('error', function (event) {
   if (
@@ -37,7 +39,33 @@ window.addEventListener('unhandledrejection', function (event) {
   }
 });
 
+const getReminderIconClass = (lembrete) => {
+  if (lembrete.tag === 'geral') return 'bi-globe-americas';
+  if (lembrete.tag === 'setorial') return 'bi-diagram-3';
+  if (lembrete.icone) return lembrete.icone;
+  if (lembrete.tag === 'pessoal') return 'bi-alarm';
+  return 'bi-info-circle';
+};
+
+const getReminderTitle = (lembrete) => {
+  return lembrete.lembrete_name || lembrete.titulo || 'Sem Título';
+};
+
+const getReminderMessage = (lembrete) => {
+  return lembrete.message || lembrete.mensagem || 'Sem Mensagem';
+};
+
+const formatarFilas = (filas) => {
+  if (!filas || filas.length === 0) return '';
+  const nomesFilas = {
+    '1': 'Suporte', '2': 'Vendas', '3': 'Financeiro', '4': 'Marketing', '5': 'RH'
+  };
+  const filasFormatadas = filas.map(id => nomesFilas[id] || id);
+  return filasFormatadas.length === 1 ? filasFormatadas[0] : filasFormatadas.join(' | ');
+};
+
 function Painel() {
+  const [lembretes, setLembretes] = useState([]);
   const [username, setUsername] = useState('');
   const [role, setRole] = useState('');
   const [empresa, setEmpresa] = useState('');
@@ -46,6 +74,31 @@ function Painel() {
   const [showWhatsappModal, setShowWhatsappModal] = useState(false);
   const navigate = useNavigate();
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [shownToasts, setShownToasts] = useState([]);
+  const userData = JSON.parse(localStorage.getItem('user'));
+  const schema = userData?.schema;
+  const url = process.env.REACT_APP_URL;
+  const [socketInstance] = useState(() => socket());
+
+
+useEffect(() => {
+    console.log('Socket instance:', socketInstance);
+
+  if (!socketInstance) return;
+
+  const handleLembrete = (lembrete) => {
+    showToast(lembrete);
+    console.log('Lembrete recebido:', lembrete);
+  };
+
+  socketInstance.on('lembrete', handleLembrete);
+
+  return () => {
+    socketInstance.off('lembrete', handleLembrete);
+  };
+}, [socketInstance]);
+
+
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user'));
     if (!userData || !userData.schema) {
@@ -92,6 +145,60 @@ function Painel() {
   };
 }, [page]);
 
+const fetchLembretes = async () => {
+  try {
+    const response = await axios.get(`${url}/lembretes/get-lembretes/${schema}`);
+    setLembretes(Array.isArray(response.data) ? response.data : [response.data]);
+  } catch (error) {
+    setLembretes([]); // ou mockLembretes se quiser
+  }
+};
+useEffect(() => {
+    fetchLembretes();
+  }, [schema, url]);
+  
+
+  const showToast = (lembrete) => {
+          const toastId = `toast-${lembrete.id}-${Date.now()}`;
+          const isLight = theme === 'light';
+          const bgClass = isLight ? 'bg-light' : 'bg-dark';
+          const textClass = isLight ? 'text-dark' : 'text-light';
+          const iconColor = isLight ? '#212529' : '#E0E0E0';
+          const toastElement = document.createElement('div');
+          toastElement.className = `toast align-items-center border-0 ${bgClass}`;
+          toastElement.setAttribute('role', 'alert');
+          toastElement.setAttribute('aria-live', 'assertive');
+          toastElement.setAttribute('aria-atomic', 'true');
+          toastElement.id = toastId;
+  
+          toastElement.innerHTML = `
+              <div class="toast-header ${bgClass} ${textClass}" style="background-color: var(--input-bg-color-${theme}); border-bottom: 1px solid var(--border-color-${theme});">
+                  <i class="bi ${getReminderIconClass(lembrete)} me-2" style="color: ${iconColor}"></i>
+                  <strong class="me-auto">${getReminderTitle(lembrete)}</strong>
+                  <button type="button" class="btn-close ms-2 mb-1" data-bs-dismiss="toast" aria-label="Close"></button>
+              </div>
+              <div class="toast-body ${textClass}">
+                  ${getReminderMessage(lembrete)}
+                  ${(lembrete.tag === 'setorial' || lembrete.tipo === 'setorial') && lembrete.filas && lembrete.filas.length > 0 ?
+                  `<div style="font-size: 0.85rem; color: var(--placeholder-color); margin-top: 4px;">${formatarFilas(lembrete.filas)}</div>`
+                  : ''}
+              </div>
+          `;
+          const toastContainer = document.getElementById('toast-container');
+          if (toastContainer) {
+              toastContainer.appendChild(toastElement);
+              const toast = new bootstrap.Toast(toastElement, {
+                  autohide: true,
+                  delay: 10000
+              });
+              toast.show();
+              toastElement.addEventListener('hidden.bs.toast', () => {
+                  toastElement.remove();
+              });
+          }
+      };
+
+
   const renderPage = () => {
     switch (page) {
       case 'dashboard': return <Dashboard theme={theme} />;
@@ -99,7 +206,11 @@ function Painel() {
       case 'kanban': return <KanbanPage theme={theme} />;
       case 'filas': return <FilaPage theme={theme} />;
       case 'usuarios': return <UsuariosPage theme={theme} />;
-      case 'agenda': return <LembretesPage theme={theme} />;
+      case 'agenda': return <LembretesPage
+  theme={theme}
+  lembretes={lembretes}
+  atualizarLembretes={fetchLembretes}
+/>;
       case 'relatorios': return <RelatorioPage theme={theme} />;
       case 'insights': return <Manutencao theme={theme} />;
       case 'disparos': return <DisparosPage theme={theme} />;
@@ -119,6 +230,7 @@ function Painel() {
 
   return (
     <div className={`bg-screen-${theme}`} style={{ height: '100vh', overflow: 'hidden' }}>
+      <div id="toast-container" className="toast-container position-fixed bottom-0 end-0 p-3" style={{ zIndex: 1060 }}></div>
       <div className="d-flex h-100">
         <div id="sidebar" className={`bg-form-${theme} h-100 sidebar ${isSidebarExpanded ? 'sidebar-expanded' : 'sidebar-collapsed'} border-end border-${theme} card-${theme}`}>
           <div id="sidebar-top" style={{ height: '10%', width: '100%', transition: '0.01s' }} className="p-2 d-flex flex-row align-items-center justify-content-evenly">

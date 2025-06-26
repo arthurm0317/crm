@@ -66,6 +66,10 @@ class SocketServer {
                 socket.broadcast.emit('message', message);
             });
 
+            socket.on('lembrete', (data)=>{
+                socket.broadcast.emit('lembrete', data);
+            })
+
             socket.on('leadMoved', (data) => {
                 socket.broadcast.emit('leadMoved', data);
             });

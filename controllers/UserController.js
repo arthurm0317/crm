@@ -60,6 +60,7 @@ const searchUserController = async (req, res) => {
     const result = await searchUser(email, password);
 
     if (!result) {
+      console.log("Usuário não encontrado");
       return res.status(404).json({});
     }
 

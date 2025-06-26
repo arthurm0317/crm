@@ -40,20 +40,23 @@ function getFirstDayOfWeek(year, month) {
     return new Date(year, month, 1).getDay();
 }
 
-function LembretesPage({ theme }) {
+
+function LembretesPage({ theme, lembretes, atualizarLembretes }) {
     const [showNovoLembrete, setShowNovoLembrete] = useState(false);
-    const [lembretes, setLembretes] = useState([]); // Inicia com array vazio, será preenchido pelo fetch
     const hoje = new Date();
     const [mesAtual, setMesAtual] = useState(hoje.getMonth());
     const [anoAtual, setAnoAtual] = useState(hoje.getFullYear());
     const [popoverDia, setPopoverDia] = useState(null); // {dia, anchor}
     const [lembreteEditando, setLembreteEditando] = useState(null);
     const [lembreteDeletando, setLembreteDeletando] = useState(null);
+    const [lembretesState, setLembretesState] = useState(lembretes);
     const [shownToasts, setShownToasts] = useState([]);
     const buttonRefs = useRef({});
     const userData = JSON.parse(localStorage.getItem('user'));
     const schema = userData?.schema;
     const url = process.env.REACT_APP_URL;
+    
+    
 
     // --- Funções Auxiliares para lidar com a inconsistência de dados ---
     const getReminderIconClass = (lembrete) => {
@@ -75,21 +78,6 @@ function LembretesPage({ theme }) {
         return lembrete.message || lembrete.mensagem || 'Sem Mensagem';
     };
     // --- Fim das Funções Auxiliares ---
-
-    useEffect(() => {
-        const fetchLembretes = async () => {
-            try {
-                const response = await axios.get(`${url}/lembretes/get-lembretes/${schema}`);
-                // Garante que response.data é um array, mesmo que venha um único objeto
-                setLembretes(Array.isArray(response.data) ? response.data : [response.data]);
-            } catch (error) {
-                console.error("Erro ao buscar lembretes:", error);
-                // Em caso de erro, usa os dados mock para que a interface não fique vazia
-                setLembretes(mockLembretes);
-            }
-        };
-        fetchLembretes();
-    }, [schema, url]); // Depende de schema e url para refazer o fetch se mudarem
 
     // Navegação do calendário
     const handlePrevMonth = () => {
@@ -114,15 +102,31 @@ function LembretesPage({ theme }) {
         setAnoAtual(hoje.getFullYear());
     };
 
-    // Adicionar/Atualizar lembrete
-    const handleSalvarLembrete = (novo) => {
-        if (lembreteEditando) {
-            setLembretes(lembretes.map(l => l.id === lembreteEditando.id ? { ...l, ...novo } : l));
-        } else {
-            // Garante que novos lembretes tenham um ID único (temporário se não vier do backend)
-            setLembretes([...lembretes, { ...novo, id: Date.now() }]);
-        }
+    
+
+const handleSalvarLembrete = (lembreteCriadoOuEditado) => {
+  setLembretesState(prev => {
+    // Se for edição, substitui; se for novo, adiciona
+    const idx = prev.findIndex(l => l.id === lembreteCriadoOuEditado.id);
+    if (idx !== -1) {
+      const novoArr = [...prev];
+      novoArr[idx] = lembreteCriadoOuEditado;
+      return novoArr;
+    }
+    return [...prev, lembreteCriadoOuEditado];
+  });
+  setShowNovoLembrete(false);
+  setLembreteEditando(null);
+};
+ useEffect(() => {
+        setLembretesState(lembretes);
+    }, [lembretes]);
+
+    const handleDeleteLembrete = (id) => {
+        setLembretesState(prev => prev.filter(l => l.id !== id));
+        setLembreteDeletando(null);
     };
+
 
     // Renderização do calendário
     const diasNoMes = getDaysInMonth(anoAtual, mesAtual);
@@ -131,9 +135,7 @@ function LembretesPage({ theme }) {
     for (let i = 0; i < primeiroDiaSemana; i++) dias.push(null);
     for (let d = 1; d <= diasNoMes; d++) dias.push(d);
 
-    // Agrupar lembretes por dia
-    const lembretesPorDia = lembretes.reduce((acc, l) => {
-        // Converte o timestamp Unix (l.date) ou o ISO string (l.data) para milissegundos
+    const lembretesPorDia = lembretesState.reduce((acc, l) => {
         const data = new Date(Number(l.date || l.data) * 1000); 
         if (data.getMonth() === mesAtual && data.getFullYear() === anoAtual) {
             const dia = data.getDate();
@@ -143,9 +145,8 @@ function LembretesPage({ theme }) {
         return acc;
     }, {});
 
-    // Ordenar lembretes do mais antigo para o mais recente para a lista lateral
-    const lembretesOrdenados = [...lembretes].sort((a, b) => {
-        // Garante que a data seja um número (Unix timestamp) antes de converter para Date
+
+    const lembretesOrdenados = [...lembretesState].sort((a, b) => {
         const dateA = new Date(Number(a.date || a.data) * 1000); 
         const dateB = new Date(Number(b.date || b.data) * 1000);
         return dateA - dateB;
@@ -246,12 +247,6 @@ function LembretesPage({ theme }) {
         });
     };
 
-    // Configura o intervalo para verificar lembretes
-    useEffect(() => {
-        checkDueReminders(); // Executa uma vez ao montar
-        const interval = setInterval(checkDueReminders, 30000); // Verifica a cada 30 segundos
-        return () => clearInterval(interval); // Limpa o intervalo ao desmontar
-    }, [lembretes, shownToasts]); // Depende de lembretes e shownToasts
 
     return (
         <div className="h-100 w-100 pt-3">
@@ -524,7 +519,7 @@ function LembretesPage({ theme }) {
                 onSave={handleSalvarLembrete}
                 theme={theme}
                 userRole="admin"
-                filas={[]} // Pode precisar ser dinâmico dependendo do contexto do usuário
+                filas={[]}
                 {...(lembreteEditando ? {
                     tipoDefault: lembreteEditando.tag || lembreteEditando.tipo, // Prioriza 'tag' para edição
                     lembreteEdit: lembreteEditando
@@ -532,13 +527,10 @@ function LembretesPage({ theme }) {
                 onTestToast={showToast}
             />
             <LembreteDeletarLembrete
-        theme={theme}
-        lembrete={lembreteDeletando}
-        onDelete={() => {
-          setLembretes(lembretes.filter(l => l.id !== lembreteDeletando.id));
-          setLembreteDeletando(null);
-        }}
-      />
+    theme={theme}
+    lembrete={lembreteDeletando}
+   onDelete={handleDeleteLembrete}
+/>
         </div>
     );
 }
