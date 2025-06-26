@@ -126,7 +126,6 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
     if (isDropdownOpen) fetchQueues();
   }, [isDropdownOpen, url, schema]);
 
-
   const handleTransferQueue = async (queueId) => {
     if (!selectedChat) return;
     setTransferLoading(true);
@@ -217,6 +216,7 @@ function ChatPage({ theme, chat_id} ) {
   const [selectedTab, setSelectedTab] = useState('conversas'); // novo estado
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
+  const [connections, setConnections] = useState([]);
   const nomeContatoRef = useRef(null);
   const [showNewContactModal, setShowNewContactModal] = useState(false);
   const [socketInstance] = useState(socket)  
@@ -260,6 +260,23 @@ const handleEditNameFinish = async () => {
     await handleEditContactName(selectedChat.id, editedName);
   }
   setIsEditingName(false);
+};
+
+useEffect(() => {
+  const fetchConnections = async () => {
+    try {
+      const res = await axios.get(`${url}/connection/get-all-connections/${schema}`);
+      setConnections(res.data || []);
+    } catch (err) {
+      setConnections([]);
+    }
+  };
+  fetchConnections();
+}, [url, schema]);
+
+const getConnectionName = (connectionId) => {
+  const conn = connections.find(c => c.id === connectionId);
+  return conn?.name || connectionId;
 };
 
 const handleEditContactName = async (contactId, newName) => {
@@ -895,7 +912,40 @@ const handleImageUpload = async (event) => {
                     onClick={() => handleChatClick(chat)}
                     style={{ cursor: 'pointer', padding: '10px', borderBottom: `1px solid var(--border-color-${theme})` }}
                   >
-                    <strong>{chat.contact_name || chat.id || 'Sem Nome'}</strong>
+                    <div
+  style={{
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 2,
+  }}
+>
+  <strong>{chat.contact_name || chat.id || 'Sem Nome'}</strong>
+  <span
+  title={getConnectionName(chat.connection_id)}
+  style={{
+    background: '#e0e0e0',
+    color: '#333',
+    borderRadius: '6px',
+    padding: '0 6px',
+    fontSize: '0.65rem',
+    marginLeft: '6px',
+    whiteSpace: 'nowrap',
+    fontWeight: 500,
+    maxWidth: '80px',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    display: 'inline-block',
+    lineHeight: '18px',
+    height: '18px',
+    verticalAlign: 'middle'
+  }}
+>
+  {getConnectionName(chat.connection_id)}
+</span>
+</div>
+
                     <div className='d-flex flex-column align-items-center justify-content-center'>
                       {chat.unreadmessages && selectedChatId !== chat.id && (
                         <span style={{
