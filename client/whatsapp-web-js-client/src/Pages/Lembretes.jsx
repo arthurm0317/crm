@@ -222,7 +222,6 @@ const handleSalvarLembrete = (lembreteCriadoOuEditado) => {
                 toastElement.remove();
             });
         }
-        console.log('Toast disparado:', lembrete);
     };
 
     // Função para verificar lembretes com data de vencimento

@@ -40,7 +40,6 @@ function EditUserModal({ theme, user }) {
           schema: schema
         }
       );
-      console.log('Usuário editado:', response.data);
       // Aqui você pode fechar o modal ou atualizar a lista de usuários, se necessário
     } catch (error) {
       console.error('Erro ao editar usuário:', error);

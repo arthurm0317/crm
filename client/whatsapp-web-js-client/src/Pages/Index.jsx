@@ -99,13 +99,11 @@ function Painel() {
 
 
 useEffect(() => {
-    console.log('Socket instance:', socketInstance);
 
   if (!socketInstance) return;
 
   const handleLembrete = (lembrete) => {
     showToast(lembrete);
-    console.log('Lembrete recebido:', lembrete);
   };
 
   socketInstance.on('lembrete', handleLembrete);
@@ -126,23 +124,19 @@ const setupUserQueues = async () => {
     
     // Fazer join na sala pessoal do usuário
     socketInstance.emit('join', `user_${userData.id}`);
-    console.log(`Joined personal room: user_${userData.id}`);
     
     // Fazer join nas salas das filas que o usuário pertence
     if (Array.isArray(userQueues)) {
       userQueues.forEach(queue => {
         const roomName = `fila_${queue.id}`;
         socketInstance.emit('join', roomName);
-        console.log(`Joined queue room: ${roomName} (${queue.name})`);
       });
     } else if (userQueues.id) {
       // Se for apenas uma fila
       const roomName = `fila_${userQueues.id}`;
       socketInstance.emit('join', roomName);
-      console.log(`Joined queue room: ${roomName} (${userQueues.name})`);
     }
     
-    console.log('User queues setup completed');
   } catch (error) {
     console.error('Erro ao buscar filas do usuário:', error);
   }
@@ -156,7 +150,6 @@ const cleanupUserQueues = () => {
   socketInstance.emit('leave', `user_${userData.id}`);
   
   // As filas serão limpas automaticamente quando o socket desconectar
-  console.log('User queues cleanup completed');
 };
 
 useEffect(() => {

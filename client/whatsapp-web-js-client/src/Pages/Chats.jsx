@@ -117,7 +117,6 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
     async function fetchQueues() {
       try {
         const res = await axios.get(`${url}/queue/get-all-queues/${schema}`);
-        console.log('Filas recebidas:', res.data.result);
         setQueues(res.data.result || []);
       } catch (err) {
         setQueues([]);
@@ -713,7 +712,6 @@ const handleImageUpload = async (event) => {
 
         setSelectedMessages((prev) => [...prev, message]);
       } else {
-        console.log('Sem socket');
       }
 
     } catch (error) {
@@ -777,7 +775,6 @@ const handleImageUpload = async (event) => {
             const formattedMessage = formatMessage(message);
             setSelectedMessages((prev) => [...prev, formattedMessage]);
           } else {
-            console.log('Sem socket');
           }
           }catch (error) {
             console.error('Erro ao enviar áudio:', error);

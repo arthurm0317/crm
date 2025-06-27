@@ -18,7 +18,7 @@ const mockFilas = [
   { id: '5', nome: 'RH' }
 ];
 
-function LembreteNovoLembrete({ show, onHide, onSave, tipoDefault = 'geral', filas = mockFilas, userRole = 'user', theme, lembreteEdit, onTestToast }) {
+function LembreteNovoLembrete({ show, onHide, onSave, tipoDefault = 'geral', filas = mockFilas, theme, lembreteEdit, onTestToast }) {
   const [tipo, setTipo] = useState(lembreteEdit ? lembreteEdit.tipo : tipoDefault);
   const [titulo, setTitulo] = useState(lembreteEdit ? lembreteEdit.titulo : '');
   const [mensagem, setMensagem] = useState(lembreteEdit ? lembreteEdit.mensagem : '');
@@ -37,6 +37,8 @@ const [filasSelecionadas, setFilasSelecionadas] = useState(
   const [filasDropdownOpen, setFilasDropdownOpen] = useState(false);
   const filasDropdownRef = useRef();
   const [hoveredFila, setHoveredFila] = useState(null);
+  const [filasSuperUser, setFilasSuperUser] = useState([]);
+  const userRole = userData?.role
 
 
   const now = new Date();
@@ -57,27 +59,41 @@ const [filasSelecionadas, setFilasSelecionadas] = useState(
 
 
     useEffect(() => {
-    const fetchFilas = async () => {
-      try {
-        const response = await axios.get(`${url}/queue/get-all-queues/${schema}`);
-        let filas = response.data.result;
-        if (!Array.isArray(filas)) {
-          filas = [filas];
-        }
-        filas = filas
-          .filter(f => f && (f.id || f._id)) // filtra objetos válidos
-          .map(f => ({
-            id: f.id || f._id || '', // aceita id ou _id
-            nome: f.nome || f.name || f.label || 'Fila'
-          }));
-        setFilasDisponiveis(filas.length ? filas : mockFilas);
-      } catch (error) {
-        console.error('Erro ao buscar filas:', error);
-        setFilasDisponiveis(mockFilas);
+  const fetchFilas = async () => {
+    try {
+      const response = await axios.get(`${url}/queue/get-all-queues/${schema}`);
+      let filas = response.data.result;
+      if (!Array.isArray(filas)) {
+        filas = [filas];
       }
-    };
-    fetchFilas();
-  }, [schema, url]);
+      filas = filas
+        .filter(f => f && (f.id || f._id))
+        .map(f => ({
+          id: f.id || f._id || '',
+          nome: f.nome || f.name || f.label || 'Fila',
+          super_user: f.superuser 
+        }));
+      setFilasDisponiveis(filas.length ? filas : mockFilas);
+
+      const minhasFilasSuperUser = filas.filter(f => f.super_user === userData?.id);
+      setFilasSuperUser(minhasFilasSuperUser);
+    } catch (error) {
+      console.error('Erro ao buscar filas:', error);
+      setFilasDisponiveis(mockFilas);
+      setFilasSuperUser([]);
+    }
+  };
+  fetchFilas();
+}, [schema, url, userData?.id]);
+
+const isAdmin = userRole === 'admin' || userRole === 'tecnico';
+const isSuperUserEmAlgumaFila = filasSuperUser.length > 0;
+
+const podeGeral = isAdmin;
+const podeSetorial = isAdmin || isSuperUserEmAlgumaFila;
+const podePessoal = true;
+
+const filasParaSetorial = isAdmin ? filasDisponiveis : filasSuperUser;
 
   useEffect(() => {
     if (!dropdownOpen) return;
@@ -211,11 +227,6 @@ const filasInvalidas = () => {
     onHide && onHide();
   };
 
-  // Permissões atualizadas
-  const podeGeral = ['admin', 'tecnico'].includes(userRole);
-  const podeSetorial = ['admin', 'tecnico', 'superuser'].includes(userRole);
-  const podePessoal = true; // Todos podem criar lembretes pessoais
-
   // Função para alternar seleção de fila
   const toggleFila = (filaId) => {
     setFilasSelecionadas(prev => {
@@ -226,6 +237,7 @@ const filasInvalidas = () => {
       }
     });
   };
+
 
   return (
     <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
@@ -241,6 +253,7 @@ const filasInvalidas = () => {
           <div className="modal-body">
             {/* Tipo de Lembrete */}
             <div className="mb-3 d-flex gap-2">
+              
               {podeGeral && (
                 <button className={`btn btn-sm ${tipo === 'geral' ? 'btn-1-' + theme : 'btn-2-' + theme}`} onClick={() => setTipo('geral')}>
                   <i className="bi bi-globe-americas me-1"></i>Geral
@@ -251,79 +264,75 @@ const filasInvalidas = () => {
                   <i className="bi bi-diagram-3 me-1"></i>Setorial
                 </button>
               )}
-              {podePessoal && (
-                <button className={`btn btn-sm ${tipo === 'pessoal' ? 'btn-1-' + theme : 'btn-2-' + theme}`} onClick={() => setTipo('pessoal')}>
-                  <i className={`bi ${icone} me-1`}></i>Pessoal
-                </button>
-              )}
+              <button className={`btn btn-sm ${tipo === 'pessoal' ? 'btn-1-' + theme : 'btn-2-' + theme}`} onClick={() => setTipo('pessoal')}>
+                <i className={`bi ${icone} me-1`}></i>Pessoal
+              </button>
             </div>
             {/* Seleção de Filas para Setorial */}
-            {tipo === 'setorial' && (
-              <div className="mb-3">
-                <label className={`form-label card-subtitle-${theme}`}>
-                  Filas <span style={{ color: 'var(--error-color)' }}>*</span>
-                </label>
-                <div className="position-relative" ref={filasDropdownRef}>
-                  <button
-                    type="button"
-                    className={`form-control d-flex align-items-center justify-content-between input-${theme} header-text-${theme}`}
-                    style={{ cursor: 'pointer', minHeight: 38 }}
-                    onClick={() => setFilasDropdownOpen(v => !v)}
+           {tipo === 'setorial' && (
+            <div className="mb-3">
+              <label className={`form-label card-subtitle-${theme}`}>
+                Filas <span style={{ color: 'var(--error-color)' }}>*</span>
+              </label>
+              <div className="position-relative" ref={filasDropdownRef}>
+                <button
+                  type="button"
+                  className={`form-control d-flex align-items-center justify-content-between input-${theme} header-text-${theme}`}
+                  style={{ cursor: 'pointer', minHeight: 38 }}
+                  onClick={() => setFilasDropdownOpen(v => !v)}
+                >
+                  <span className="d-flex align-items-center gap-2">
+                    <i className="bi bi-diagram-3"></i>
+                    {Array.isArray(filasSelecionadas) && filasSelecionadas.length === 0
+                      ? 'Selecione as filas'
+                      : filasSelecionadas.length === 1
+                        ? filasParaSetorial.find(f => f.id === filasSelecionadas[0])?.nome
+                        : `${filasSelecionadas.length} filas selecionadas`}
+                  </span>
+                  <i className={`bi bi-chevron-${filasDropdownOpen ? 'up' : 'down'}`}></i>
+                </button>
+                {filasDropdownOpen && (
+                  <div
+                    className={`position-absolute w-100 border rounded shadow-sm mt-1 header-text-${theme}`}
+                    style={{
+                      zIndex: 20,
+                      background: `var(--bg-color-${theme})`,
+                      color: `var(--text-color-${theme})`,
+                      border: `1px solid var(--border-color-${theme}) !important`,
+                      maxHeight: 220,
+                      overflowY: 'auto',
+                    }}
                   >
-                    <span className="d-flex align-items-center gap-2">
-                  <i className="bi bi-diagram-3"></i>
-                  {Array.isArray(filasSelecionadas) && filasSelecionadas.length === 0
-                    ? 'Selecione as filas'
-                    : filasSelecionadas.length === 1
-                      ? filasDisponiveis.find(f => f.id === filasSelecionadas[0])?.nome
-                      : `${filasSelecionadas.length} filas selecionadas`}
-
-                </span>
-                    <i className={`bi bi-chevron-${filasDropdownOpen ? 'up' : 'down'}`}></i>
-                  </button>
-                  {filasDropdownOpen && (
-                    <div
-                      className={`position-absolute w-100 border rounded shadow-sm mt-1 header-text-${theme}`}
-                      style={{
-                        zIndex: 20,
-                        background: `var(--bg-color-${theme})`,
-                        color: `var(--text-color-${theme})`,
-                        border: `1px solid var(--border-color-${theme}) !important`,
-                        maxHeight: 220,
-                        overflowY: 'auto',
-                      }}
-                    >
-                      {Array.isArray(filasDisponiveis) && filasDisponiveis.map(fila => {
-                        const isSelected = filasSelecionadas.includes(fila.id);
-                        const isHovered = fila.id === hoveredFila;
-                        let bg = 'transparent';
-                        if (isSelected) bg = 'var(--placeholder-color)';
-                        else if (isHovered) bg = theme === 'dark' ? 'var(--bs-gray-700)' : 'var(--bs-gray-200)';
-                        
-                        return (
-                          <div
-                            key={fila.id}
-                            className={`d-flex align-items-center gap-2 px-2 py-1 ${isSelected ? 'header-text-light' : 'header-text-' + theme}`}
-                            style={{
-                              cursor: 'pointer',
-                              background: bg,
-                              transition: 'background 0.15s',
-                            }}
-                            onClick={() => toggleFila(fila.id)}
-                            onMouseEnter={() => setHoveredFila(fila.id)}
-                            onMouseLeave={() => setHoveredFila(null)}
-                          >
-                            <i className={`bi ${isSelected ? 'bi-check2-square' : 'bi-square'}`}></i>
-                            <span>{fila.nome}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-                <small className={`header-text-${theme}`}>Selecione uma ou mais filas entre as que você possui permissão.</small>
+                    {Array.isArray(filasParaSetorial) && filasParaSetorial.map(fila => {
+                      const isSelected = filasSelecionadas.includes(fila.id);
+                      const isHovered = fila.id === hoveredFila;
+                      let bg = 'transparent';
+                      if (isSelected) bg = 'var(--placeholder-color)';
+                      else if (isHovered) bg = theme === 'dark' ? 'var(--bs-gray-700)' : 'var(--bs-gray-200)';
+                      return (
+                        <div
+                          key={fila.id}
+                          className={`d-flex align-items-center gap-2 px-2 py-1 ${isSelected ? 'header-text-light' : 'header-text-' + theme}`}
+                          style={{
+                            cursor: 'pointer',
+                            background: bg,
+                            transition: 'background 0.15s',
+                          }}
+                          onClick={() => toggleFila(fila.id)}
+                          onMouseEnter={() => setHoveredFila(fila.id)}
+                          onMouseLeave={() => setHoveredFila(null)}
+                        >
+                          <i className={`bi ${isSelected ? 'bi-check2-square' : 'bi-square'}`}></i>
+                          <span>{fila.nome}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            )}
+              <small className={`header-text-${theme}`}>Selecione uma ou mais filas entre as que você possui permissão.</small>
+            </div>
+          )}
             {/* Ícone para Pessoal - Dropdown customizado */}
             {tipo === 'pessoal' && (
               <div className="mb-3">
@@ -452,4 +461,4 @@ const filasInvalidas = () => {
   );
 }
 
-export default LembreteNovoLembrete; 
+export default LembreteNovoLembrete;

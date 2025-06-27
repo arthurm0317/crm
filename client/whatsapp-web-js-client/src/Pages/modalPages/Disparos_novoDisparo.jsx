@@ -79,7 +79,6 @@ const limparBase64 = (base64ComPrefixo) => {
         text: msg.text || msg.value || '',
         image: msg.image || null
       }));
-      console.log('msg',mensagensFormatadas)
       
       const imagensFormatadas = mensagensFormatadas.map(msg =>
         msg.image ? `data:image/jpeg;base64,${msg.image}` : null

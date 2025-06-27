@@ -9,7 +9,6 @@ function DeleteDisparoModal({ theme, disparo, onDelete }) {
   const handleDelete = async () => {
     try {
       // Simulando a chamada da API
-      console.log('Simulando exclusão do disparo:', disparo?.id);
       // Chama o callback para atualizar a lista
       onDelete(); 
     } catch (error) {

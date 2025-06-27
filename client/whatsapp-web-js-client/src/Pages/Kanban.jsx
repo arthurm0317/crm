@@ -190,7 +190,6 @@ function KanbanPage({ theme }) {
     try {
       const response = await axios.get(`${url}/kanban/get-funis/${schema}`);
         setFunis(Array.isArray(response.data.name) ? response.data.name : []);
-        console.log(response.data)
       } catch (error) {
         console.error('Erro ao buscar funis:', error);
       }
@@ -213,7 +212,6 @@ useEffect(() => {
     ));
   }
   socketInstance.on('tagUpdated', handleTagUpdated);
-  console.log('tag updated')
   return () => {
     socketInstance.off('tagUpdated', handleTagUpdated);
   };
@@ -240,7 +238,6 @@ useEffect(() => {
     try {
         const response = await axios.get(`${url}/kanban/get-cards/${funilSelecionado}/${schema}`)
         setCards(Array.isArray(response.data)?response.data:[response.data])
-        console.log(response.data)
       }catch (error) {
       console.error(error)
     } 
@@ -522,7 +519,6 @@ useEffect(() => {
   value={funilSelecionado}
    onChange={e => {
     setFunilSelecionado(e.target.value);
-    console.log('funilSelecionado:', e.target.value);
   }}
 >
   {funis.map(nome => (
