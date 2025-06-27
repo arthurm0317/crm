@@ -106,7 +106,6 @@ function LembretesPage({ theme, lembretes, atualizarLembretes }) {
 
 const handleSalvarLembrete = (lembreteCriadoOuEditado) => {
   setLembretesState(prev => {
-    // Se for edição, substitui; se for novo, adiciona
     const idx = prev.findIndex(l => l.id === lembreteCriadoOuEditado.id);
     if (idx !== -1) {
       const novoArr = [...prev];
@@ -267,39 +266,47 @@ const handleSalvarLembrete = (lembreteCriadoOuEditado) => {
                             <div className="text-muted">Nenhum lembrete cadastrado.</div>
                         )}
                         {lembretesOrdenados.map(l => {
-                            return (
-                                <div key={l.id} className={`d-flex align-items-center gap-2 mb-2 rounded px-3`} style={{ background: 'var(--input-bg-color-' + theme + ')', border: '1px solid var(--border-color-' + theme + ')', minHeight: 44, paddingTop: 8, paddingBottom: 8 }}>
-                                    <i className={`bi ${getReminderIconClass(l)} fs-5 header-text-${theme}`}></i>
-                                    <div className={`flex-grow-1 header-text-${theme}`}>
-                                        <div className="fw-semibold">{getReminderTitle(l)}</div>
-                                        <div className="small">
-                                            {/* Formata a data (Unix ou ISO) */}
-                                            {new Date(Number(l.date || l.data) * 1000).toLocaleString('pt-BR', {
-                                                day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit'
-                                            })}
-                                            {' • '}
-                                            {l.tag ? l.tag.charAt(0).toUpperCase() + l.tag.slice(1) : (l.tipo ? l.tipo.charAt(0).toUpperCase() + l.tipo.slice(1) : '')}
-                                        </div>
-                                    </div>
-                                    <button
-                                        className={`btn btn-sm btn-2-${theme}`}
-                                        style={{ maxWidth: '38px' }}
-                                        title="Editar"
-                                        onClick={() => { setLembreteEditando(l); setShowNovoLembrete(true); }}
-                                    >
-                                        <i className="bi bi-pencil-fill"></i>
-                                    </button>
-                                    <button
-                                        className={`btn btn-sm delete-btn`}
-                                        style={{ maxWidth: '38px' }}
-                                        title="Excluir"
-                                        onClick={() => setLembreteDeletando(l)}
-                                    >
-                                        <i className="bi bi-trash"></i>
-                                    </button>
-                                </div>
-                            )
-                        })}
+        const podeExcluir =
+        userData?.role === 'admin' ||
+        userData?.role === 'tecnico' ||
+        l.user_id === userData?.id;
+
+    return (
+        <div key={l.id} className={`d-flex align-items-center gap-2 mb-2 rounded px-3`} style={{ background: 'var(--input-bg-color-' + theme + ')', border: '1px solid var(--border-color-' + theme + ')', minHeight: 44, paddingTop: 8, paddingBottom: 8 }}>
+            <i className={`bi ${getReminderIconClass(l)} fs-5 header-text-${theme}`}></i>
+            <div className={`flex-grow-1 header-text-${theme}`}>
+                <div className="fw-semibold">{getReminderTitle(l)}</div>
+                <div className="small">
+                    {new Date(Number(l.date || l.data) * 1000).toLocaleString('pt-BR', {
+                        day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit'
+                    })}
+                    {' • '}
+                    {l.tag ? l.tag.charAt(0).toUpperCase() + l.tag.slice(1) : (l.tipo ? l.tipo.charAt(0).toUpperCase() + l.tipo.slice(1) : '')}
+                </div>
+            </div>
+            {podeExcluir && (
+                <button
+                className={`btn btn-sm btn-2-${theme}`}
+                style={{ maxWidth: '38px' }}
+                title="Editar"
+                onClick={() => { setLembreteEditando(l); setShowNovoLembrete(true); }}
+            >
+                <i className="bi bi-pencil-fill"></i>
+            </button>
+            )}
+            {podeExcluir && (
+                <button
+                    className={`btn btn-sm delete-btn`}
+                    style={{ maxWidth: '38px' }}
+                    title="Excluir"
+                    onClick={() => setLembreteDeletando(l)}
+                >
+                    <i className="bi bi-trash"></i>
+                </button>
+            )}
+        </div>
+    )
+})}
                     </div>
                 </div>
                 {/* Calendário à direita */}

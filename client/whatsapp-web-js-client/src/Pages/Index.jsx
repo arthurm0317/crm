@@ -55,13 +55,30 @@ const getReminderMessage = (lembrete) => {
   return lembrete.message || lembrete.mensagem || 'Sem Mensagem';
 };
 
-const formatarFilas = (filas) => {
+const formatarFilas = async (filas) => {
   if (!filas || filas.length === 0) return '';
-  const nomesFilas = {
-    '1': 'Suporte', '2': 'Vendas', '3': 'Financeiro', '4': 'Marketing', '5': 'RH'
-  };
-  const filasFormatadas = filas.map(id => nomesFilas[id] || id);
-  return filasFormatadas.length === 1 ? filasFormatadas[0] : filasFormatadas.join(' | ');
+  const userData = JSON.parse(localStorage.getItem('user'));
+  const schema = userData?.schema;
+  
+  try {
+    const response = await axios.get(`${process.env.REACT_APP_URL}/queue/get-all-queues/${schema}`);
+    const todasFilas = response.data?.result || [];
+    
+    const nomesFilas = filas.map(filaId => {
+      const fila = todasFilas.find(f => f.id === filaId);
+      return fila ? fila.name : filaId;
+    });
+    
+    return nomesFilas.length === 1 ? nomesFilas[0] : nomesFilas.join(' | ');
+  } catch (error) {
+    console.error('Erro ao buscar nomes das filas:', error);
+    // Fallback para os nomes mock
+    const nomesFilas = {
+      '1': 'Suporte', '2': 'Vendas', '3': 'Financeiro', '4': 'Marketing', '5': 'RH'
+    };
+    const filasFormatadas = filas.map(id => nomesFilas[id] || id);
+    return filasFormatadas.length === 1 ? filasFormatadas[0] : filasFormatadas.join(' | ');
+  }
 };
 
 function Painel() {
@@ -98,6 +115,60 @@ useEffect(() => {
   };
 }, [socketInstance]);
 
+// Função para buscar as filas do usuário e fazer join nas salas
+const setupUserQueues = async () => {
+  if (!socketInstance || !userData?.id) return;
+  
+  try {
+    // Buscar as filas do usuário
+    const response = await axios.get(`${url}/queue/get-user-queue/${userData.id}/${schema}`);
+    const userQueues = response.data?.result || [];
+    
+    // Fazer join na sala pessoal do usuário
+    socketInstance.emit('join', `user_${userData.id}`);
+    console.log(`Joined personal room: user_${userData.id}`);
+    
+    // Fazer join nas salas das filas que o usuário pertence
+    if (Array.isArray(userQueues)) {
+      userQueues.forEach(queue => {
+        const roomName = `fila_${queue.id}`;
+        socketInstance.emit('join', roomName);
+        console.log(`Joined queue room: ${roomName} (${queue.name})`);
+      });
+    } else if (userQueues.id) {
+      // Se for apenas uma fila
+      const roomName = `fila_${userQueues.id}`;
+      socketInstance.emit('join', roomName);
+      console.log(`Joined queue room: ${roomName} (${userQueues.name})`);
+    }
+    
+    console.log('User queues setup completed');
+  } catch (error) {
+    console.error('Erro ao buscar filas do usuário:', error);
+  }
+};
+
+// Função para fazer leave das salas quando desconectar
+const cleanupUserQueues = () => {
+  if (!socketInstance || !userData?.id) return;
+  
+  // Leave da sala pessoal
+  socketInstance.emit('leave', `user_${userData.id}`);
+  
+  // As filas serão limpas automaticamente quando o socket desconectar
+  console.log('User queues cleanup completed');
+};
+
+useEffect(() => {
+  if (socketInstance && userData?.id) {
+    setupUserQueues();
+    
+    // Cleanup quando o componente for desmontado
+    return () => {
+      cleanupUserQueues();
+    };
+  }
+}, [socketInstance, userData?.id, schema, url]);
 
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem('user'));
@@ -158,12 +229,19 @@ useEffect(() => {
   }, [schema, url]);
   
 
-  const showToast = (lembrete) => {
+  const showToast = async (lembrete) => {
           const toastId = `toast-${lembrete.id}-${Date.now()}`;
           const isLight = theme === 'light';
           const bgClass = isLight ? 'bg-light' : 'bg-dark';
           const textClass = isLight ? 'text-dark' : 'text-light';
           const iconColor = isLight ? '#212529' : '#E0E0E0';
+          
+          // Formatar filas se for setorial
+          let filasFormatadas = '';
+          if ((lembrete.tag === 'setorial' || lembrete.tipo === 'setorial') && lembrete.filas && lembrete.filas.length > 0) {
+            filasFormatadas = await formatarFilas(lembrete.filas);
+          }
+          
           const toastElement = document.createElement('div');
           toastElement.className = `toast align-items-center border-0 ${bgClass}`;
           toastElement.setAttribute('role', 'alert');
@@ -179,9 +257,7 @@ useEffect(() => {
               </div>
               <div class="toast-body ${textClass}">
                   ${getReminderMessage(lembrete)}
-                  ${(lembrete.tag === 'setorial' || lembrete.tipo === 'setorial') && lembrete.filas && lembrete.filas.length > 0 ?
-                  `<div style="font-size: 0.85rem; color: var(--placeholder-color); margin-top: 4px;">${formatarFilas(lembrete.filas)}</div>`
-                  : ''}
+                  ${filasFormatadas ? `<div style="font-size: 0.85rem; color: var(--placeholder-color); margin-top: 4px;">${filasFormatadas}</div>` : ''}
               </div>
           `;
           const toastContainer = document.getElementById('toast-container');

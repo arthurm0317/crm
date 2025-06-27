@@ -38,6 +38,11 @@ const [filasSelecionadas, setFilasSelecionadas] = useState(
   const filasDropdownRef = useRef();
   const [hoveredFila, setHoveredFila] = useState(null);
 
+
+  const now = new Date();
+  const pad = n => n.toString().padStart(2, '0');
+  const minDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
   const formatUnixToDatetimeLocal = (unix) => {
   if (!unix) return '';
   const date = new Date(Number(unix) * 1000); // transforma segundos em milissegundos
@@ -56,7 +61,6 @@ const [filasSelecionadas, setFilasSelecionadas] = useState(
       try {
         const response = await axios.get(`${url}/queue/get-all-queues/${schema}`);
         let filas = response.data.result;
-        // Garante que seja array e que cada item tenha id e nome
         if (!Array.isArray(filas)) {
           filas = [filas];
         }
@@ -123,9 +127,35 @@ const [filasSelecionadas, setFilasSelecionadas] = useState(
     const val = e.target.value.slice(0, maxMsgLen);
     setMensagem(val);
   };
+  const isDataInvalida = () => {
+  if (!data) return true;
+  const agora = new Date();
+  const dataSelecionada = new Date(data);
+  return dataSelecionada < agora;
+};
+
+// Função para validar se as filas selecionadas existem nas filas disponíveis
+const filasInvalidas = () => {
+  if (tipo !== 'setorial') return false;
+  if (!Array.isArray(filasSelecionadas) || filasSelecionadas.length === 0) return true;
+  const disponiveisIds = filasDisponiveis.map(f => f.id);
+  return !filasSelecionadas.every(id => disponiveisIds.includes(id));
+};
 
     const handleSalvar = async () => {
     if (!titulo.trim() || !mensagem.trim() || !data) return;
+
+  const agora = new Date();
+  const dataSelecionada = new Date(data);
+  if (dataSelecionada < agora) {
+    alert('A data do lembrete não pode ser anterior ao momento atual.');
+    return;
+  }
+
+  if (tipo === 'setorial' && (!filasSelecionadas || filasSelecionadas.length === 0)) {
+    alert('Para lembretes setoriais, é necessário selecionar pelo menos uma fila.');
+    return;
+  }
   
     const dataUnix = Math.floor(new Date(data).getTime() / 1000);
   
@@ -145,18 +175,17 @@ const [filasSelecionadas, setFilasSelecionadas] = useState(
       });
       lembreteCriado = response.data;
     } else {
-      // Cria no backend
       const response = await axios.post(`${url}/lembretes/create-lembrete`, {
         tag: tipo,
         lembrete_name: titulo,
         message: mensagem,
-        icone: icone,
+        icone: icone || null,
         date: dataUnix,
         filas: filasSelecionadas,
+        user_id: userData.id,
         schema: schema
       });
 
-      console.log(tipo, titulo, mensagem, icone, dataUnix, filasSelecionadas, schema);
 
       lembreteCriado = response.data;
     }
@@ -231,7 +260,9 @@ const [filasSelecionadas, setFilasSelecionadas] = useState(
             {/* Seleção de Filas para Setorial */}
             {tipo === 'setorial' && (
               <div className="mb-3">
-                <label className={`form-label card-subtitle-${theme}`}>Filas</label>
+                <label className={`form-label card-subtitle-${theme}`}>
+                  Filas <span style={{ color: 'var(--error-color)' }}>*</span>
+                </label>
                 <div className="position-relative" ref={filasDropdownRef}>
                   <button
                     type="button"
@@ -391,6 +422,7 @@ const [filasSelecionadas, setFilasSelecionadas] = useState(
                 className={`form-control input-${theme}`}
                 value={data}
                 onChange={e => setData(e.target.value)}
+                min={minDate}
               />
             </div>
           </div>
@@ -399,7 +431,18 @@ const [filasSelecionadas, setFilasSelecionadas] = useState(
             <button type="button" className={`btn btn-2-${theme}`} onClick={() => onTestToast && onTestToast({ tipo, titulo, mensagem, icone, data, filas: filasSelecionadas })}>
               Testar Lembrete
             </button>
-            <button type="button" className={`btn btn-1-${theme}`} onClick={handleSalvar} disabled={!titulo.trim() || !mensagem.trim() || !data}>
+            <button
+              type="button"
+              className={`btn btn-1-${theme}`}
+              onClick={handleSalvar}
+              disabled={
+                !titulo.trim() ||
+                !mensagem.trim() ||
+                !data ||
+                isDataInvalida() ||
+                (tipo === 'setorial' && filasInvalidas())
+              }
+            >
               Salvar
             </button>
           </div>

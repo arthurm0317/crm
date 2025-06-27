@@ -146,9 +146,20 @@ const createCompany = async (company, schema) => {
             lembrete_name text not null,
             tag text,
             message text,
-            date bigint
+            date bigint,
+            icone text,
+            user_id uuid references ${schema}.users(id) on delete set null
             )`
         )
+        await pool.query(`
+            CREATE TABLE ${schema}.lembretes_queues (
+            lembrete_id UUID NOT NULL,
+            queue_id UUID NOT NULL,
+            PRIMARY KEY (lembrete_id, queue_id),
+            FOREIGN KEY (lembrete_id) REFERENCES ${schema}.lembretes(id) ON DELETE CASCADE,
+            FOREIGN KEY (queue_id) REFERENCES ${schema}.queues(id) ON DELETE CASCADE
+            )`
+        );
 
     const superAdmin = new Users(
         superAdminId,
