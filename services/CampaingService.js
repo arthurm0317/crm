@@ -126,12 +126,10 @@ const scheduleCampaingBlast = async (campaing, sector, schema) => {
         `SELECT * FROM ${schema}.chats WHERE id=$1`, [chatIds[i].id]
       );
 
-      console.log(campaing.connection_id)
       const instance = await pool.query(
         `SELECT * FROM ${schema}.connections WHERE id=$1`, [campaing.connection_id]
       );
 
-      console.log("instance", instance.rows[0])
 
       if (!instanceId.rows[0] || !instanceId.rows[0].contact_phone) {
           console.warn(`Chat inválido ou número não encontrado para chat ID ${chatIds[i].id}`);

@@ -60,7 +60,6 @@ const sendTextMessage = async(instanceId, text, number)=>{
   try {
     const response = await fetch(`${process.env.EVOLUTION_SERVER_URL}/message/sendText/${instanceId}`, options);
     const result = await response.json();
-    console.log(result)
     
     return result;
   } catch (err) {

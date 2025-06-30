@@ -1,5 +1,5 @@
 
-const { setUserChat, getChats, getMessages, getChatData, getChatByUser, updateQueue, getChatById, saveMediaMessage, setMessageAsRead, closeChat, setSpecificUser } = require('../services/ChatService');
+const { setUserChat, getChats, getMessages, getChatData, getChatByUser, updateQueue, getChatById, saveMediaMessage, setMessageAsRead, closeChat, setSpecificUser, scheduleMessage } = require('../services/ChatService');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
@@ -237,7 +237,6 @@ const sendAudioController = async (req, res) => {
     }
 
     const chat_id = await getChatById(chatId, connectionId, schema);
-    console.log('Resultado de getChatById:', chat_id);
 
     if (!chat_id || !chat_id.contact_phone) {
       throw new Error('O chat_id ou contact_phone não foi encontrado.');
@@ -289,6 +288,20 @@ const closeChatContoller = async(req, res)=>{
   }
 }
 
+const scheduleMessageController = async (req, res) => {
+  try {
+    const {chat_id, instance, message, contact_phone, timestamp, schema} = req.body
+    const connection =await searchConnById(instance, schema)
+    await scheduleMessage(chat_id, connection, message, contact_phone, timestamp, schema);
+    res.status(200).json({
+      success:true,
+      message: 'Mensagem agendada com sucesso',
+    })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
 const setSpecificUserController = async(req, res) => {
   try {
     const {user_id, chat_id} = req.body
@@ -303,6 +316,7 @@ const setSpecificUserController = async(req, res) => {
     console.log(error)
   }
 };
+
 
   module.exports = {
     setUserChatController,
@@ -319,4 +333,5 @@ const setSpecificUserController = async(req, res) => {
     setMessageAsReadController,
     closeChatContoller,
     setSpecificUserController,
+    scheduleMessageController
 };

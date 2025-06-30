@@ -3,6 +3,7 @@ import axios from 'axios';
 import EmojiPicker from 'emoji-picker-react';
 import NewContactModal from './modalPages/Chats_novoContato';
 import ChangeQueueModal from './modalPages/Chats_alterarFila';
+import AgendarMensagemModal from './modalPages/Chats_agendarMensagem';
 import {socket} from '../socket'
 import {Dropdown} from 'react-bootstrap';
 import './assets/style.css';
@@ -83,6 +84,7 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
   const schema = userData.schema;
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showChangeQueueModal, setShowChangeQueueModal] = useState(false);
+  const [showAgendarMensagemModal, setShowAgendarMensagemModal] = useState(false);
   const [queues, setQueues] = useState([]);
   const [transferLoading, setTransferLoading] = useState(false);
   const handleToggle = (isOpen) => {
@@ -168,6 +170,7 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
           <Dropdown.Item href="#" onClick={() => setShowChangeQueueModal(true)}>Alterar Fila</Dropdown.Item>
           <Dropdown.Item href="#" onClick={handleCloseChat}>Finalizar Atendimento</Dropdown.Item>
           <Dropdown.Item href="#" onClick={onEditName}>Editar Nome</Dropdown.Item>
+          <Dropdown.Item href="#" onClick={() => setShowAgendarMensagemModal(true)}>Agendar mensagem</Dropdown.Item>
           {/* <Dropdown.Item href="#" onClick={() => setShowTagModal(true)}>Gerenciar Tags</Dropdown.Item> */}
         </Dropdown.Menu>
       </Dropdown>
@@ -181,6 +184,13 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
     url={url}
     onTransfer={handleTransferQueue}
 />
+
+  <AgendarMensagemModal
+    show={showAgendarMensagemModal}
+    onHide={() => setShowAgendarMensagemModal(false)}
+    theme={theme}
+    selectedChat={selectedChat}
+  />
     </>
   );
 }

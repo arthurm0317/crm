@@ -2,6 +2,33 @@ const pool = require('../db/queries');
 const { v4: uuid4 } = require('uuid');
 const { getOnlineUsers, updateLastAssignedUser, getLastAssignedUser } = require('./UserService');
 const { getCurrentTimestamp } = require('./getCurrentTimestamp');
+const { Queue, Worker } = require('bullmq');
+const createRedisConnection = require('../config/Redis');
+const { sendTextMessage } = require('../requests/evolution');
+const { saveMessage } = require('./MessageService');
+const { Message } = require('../entities/Message');
+
+const bullConn = createRedisConnection()
+const messageQueue = new Queue('message', {connection: bullConn});
+
+const worker = new Worker(
+  'message',
+  async (job) => {
+    try {
+      await sendTextMessage(
+        job.data.instance,
+        job.data.message,
+        job.data.contact_phone
+      )
+      await saveMessage(job.data.chat_id, job.data.messageDB, job.data.schema)
+      await deleteScheduledMessage(job.data.id, job.data.schema);
+    } catch (error) {
+      console.error(error)
+    }
+  },{
+    connection: bullConn,
+  }
+)
 
 const createChat = async (chat, instance, message, etapa, io) => {
   let schema;
@@ -168,11 +195,9 @@ const setUserChat = async (chatId, schema) => {
       [chatId]
     );
     const queueId = chatDb.rows[0].queue_id;
-    console.log(queueId)
     const isDistributionOn = await pool.query(
       `SELECT * FROM ${schema}.queues WHERE id=$1 `, [queueId]
     )
-    console.log(isDistributionOn.rows)
     if (isDistributionOn.rows[0].distribution === true) {
       const onlineUsers = await getOnlineUsers(schema);
       const queueUsersQuery = await pool.query(
@@ -290,7 +315,6 @@ const getChatByUser = async (userId, role, schema) => {
   }
 };
 const getChatIfUserIsNull = async(connection, permission, schema)=>{
-  console.log(permission)
   try{
      if (permission === 'admin' || permission ==='tecnico') {
       const result = await pool.query(
@@ -403,6 +427,52 @@ const updateChatNameByNumber = async(number, newName, user_id, schema)=>{
   }
 }
 
+const scheduleMessage = async (chat_id, connection, message, contact_phone, timestamp, schema) => {
+  try{
+   if (typeof timestamp !== 'number' || isNaN(timestamp)) {
+      console.error('Timestamp inválido:', timestamp);
+      return;
+    }
+    const now = Math.floor(Date.now() / 1000);
+    let delay = (timestamp - now) * 1000;
+    if (isNaN(delay) || delay < 0) {
+      console.error('A data de agendamento deve ser futura e válida');
+      return;
+    }
+
+    const result = await pool.query(`
+      INSERT INTO ${schema}.scheduled_message(id, message, chat_id, scheduled_date) VALUES ($1, $2, $3, $4) RETURNING *
+      `, [uuid4(), message, chat_id, timestamp])
+
+    const messageDB = new Message(uuid4(), message, true, chat_id, timestamp )
+    console.log('Mensagem agendada:', messageDB);
+    await messageQueue.add('sendMessage',{
+      id: result.rows[0].id,
+      instance: connection.name,
+      chat_id: chat_id,
+      message: message,
+      messageDB: messageDB,
+      contact_phone: contact_phone,
+      schema:schema
+    }, {delay: delay});
+    return result.rows[0]
+
+  }catch(error){
+    console.error(error)
+  }
+}
+
+const deleteScheduledMessage = async (id, schema) => {
+  try {
+    await pool.query(
+      `DELETE FROM ${schema}.scheduled_message WHERE id = $1`,
+      [id]
+    )
+  } catch (error) {
+    console.error(error)
+  }
+}
+
 module.exports = {
   createChat,
   updateChatMessages,
@@ -422,5 +492,7 @@ module.exports = {
   closeChat,
   setSpecificUser,
   getChatIfUserIsNull,
-  updateChatNameByNumber
+  updateChatNameByNumber,
+  scheduleMessage,
+  deleteScheduledMessage
 };
