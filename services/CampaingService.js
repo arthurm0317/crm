@@ -15,7 +15,6 @@ const blastQueue = new Queue("Campanha", { connection: bullConn });
 const worker = new Worker(
   'Campanha',
   async (job) => {
-    console.log('JOB NO WORKER',job.data)
     try {
       if(job.data.image){
         await sendMediaBlastMessage(
@@ -81,7 +80,6 @@ const createCampaing = async (campaing_id, campName, sector, kanbanStage, connec
       );
       campaing = result.rows[0];
     }
-
     await scheduleCampaingBlast(campaing, campaing.sector, schema);
 
     return campaing;
@@ -99,10 +97,15 @@ const scheduleCampaingBlast = async (campaing, sector, schema) => {
     if (startDate < now) {
       return;
     }
-    
     const kanban = await pool.query(
       `SELECT * FROM ${schema}.kanban_${sector} WHERE id=$1`, [campaing.kanban_stage]
     );
+    
+    if (kanban.rowCount === 0) {
+      console.error(`Erro: Etapa Kanban com ID ${campaing.kanban_stage} não encontrada para o setor ${sector}.`);
+      return; 
+    }
+    
     const chatIds = await getChatsInKanbanStage(kanban.rows[0].etapa, sector,schema);
     
     const messages = await pool.query(
@@ -122,9 +125,14 @@ const scheduleCampaingBlast = async (campaing, sector, schema) => {
       const instanceId = await pool.query(
         `SELECT * FROM ${schema}.chats WHERE id=$1`, [chatIds[i].id]
       );
+
+      console.log(campaing.connection_id)
       const instance = await pool.query(
         `SELECT * FROM ${schema}.connections WHERE id=$1`, [campaing.connection_id]
       );
+
+      console.log("instance", instance.rows[0])
+
       if (!instanceId.rows[0] || !instanceId.rows[0].contact_phone) {
           console.warn(`Chat inválido ou número não encontrado para chat ID ${chatIds[i].id}`);
       }
@@ -147,7 +155,6 @@ const scheduleCampaingBlast = async (campaing, sector, schema) => {
     console.error('Erro ao agendar disparo da campanha:', error);
   }
 };
-
 const startCampaing = async (campaing_id, timer, schema) => {
   try {
     const campaing = await pool.query(

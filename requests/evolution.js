@@ -218,6 +218,8 @@ const sendMediaForBlast = async (instanceId, text, image, number) => {
     media: image 
   };
 
+  console.log(requestBody)
+
   const options = {
     method: 'POST',
     headers: {
@@ -230,7 +232,6 @@ const sendMediaForBlast = async (instanceId, text, image, number) => {
   try {
     const response = await fetch(`${process.env.EVOLUTION_SERVER_URL}/message/sendMedia/${instanceId}`, options)
     const result = await response.json();
-    console.log(result);
     return result;
 
   } catch (error) {

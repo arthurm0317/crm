@@ -22,7 +22,6 @@ function NewContactModal({ theme, show, onHide }) {
 
   useEffect(() => {
     const fetchConnections = async () => {
-      console.log(userData.id)
       try {
         const response = await axios.get(`${url}/connection/get-all-connections/${schema}`);
         setConnections(response.data);
@@ -55,7 +54,6 @@ if (!userData || !userData.id) {
         schema: userData.schema,
       });
   
-      console.log('Contato criado com sucesso:', newContact.data);
   
       setContactName('');
       setContactNumber('');

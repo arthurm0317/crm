@@ -44,7 +44,6 @@ function WhatsappNovoContatoModal({ theme, show, onHide, onSave }) {
     setQrCode(null);
 
     try {
-      console.log(nome, numeroLimpo)
       const response = await axios.post(`${url}/evo/instance`, {
         instanceName: nome,
         number: numeroLimpo,

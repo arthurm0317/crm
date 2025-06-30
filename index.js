@@ -17,6 +17,7 @@ const bodyParser = require('body-parser');
 const excelRoutes = require('./routes/ExcelRoutes');
 const chatInternoRoute = require('./routes/ChatInternoRoute');
 const ChatInternoService = require('./services/ChatInternoService');
+const lembreteRoutes = require('./routes/LembretesRoutes');
 
 
 const cors = require('cors');
@@ -26,61 +27,30 @@ const app = express();
 
 
 const corsOptions = {
-  origin: function (origin, callback) {
-    // Permitir requisições sem origin (como mobile apps ou Postman)
-    if (!origin) return callback(null, true);
-    
-    const allowedOrigins = [
-      'http://localhost:3001',
-      'http://localhost:3000',
-      'http://127.0.0.1:3001',
-      'http://127.0.0.1:3000',
-      'https://landing-page-front.8rxpnw.easypanel.host',
-      'https://eg-crm.effectivegain.com',
-      'https://ilhadogovernador.effectivegain.com/',
-      'https://ilhadogovernador.effectivegain.com'
-    ];
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.log('Origin bloqueada:', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  methods: ['GET', 'POST', 'DELETE', 'PUT', 'OPTIONS'],
-  credentials: true,
-  optionsSuccessStatus: 200
+  origin: ['http://localhost:3001',
+    'https://landing-page-front.8rxpnw.easypanel.host',
+    'https://eg-crm.effectivegain.com',
+    'https://ilhadogovernador.effectivegain.com/',
+    'https://ilhadogovernador.effectivegain.com',
+    'https://barreiras.effectivegain.com',
+    'https://barreiras.effectivegain.com/'
+  ],
+  methods: ['GET', 'POST', 'DELETE', 'PUT'],
 };
 
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: function (origin, callback) {
-      // Permitir requisições sem origin
-      if (!origin) return callback(null, true);
-      
-      const allowedOrigins = [
-        'http://localhost:3001',
-        'http://localhost:3000',
-        'http://127.0.0.1:3001',
-        'http://127.0.0.1:3000',
-        'https://landing-page-front.8rxpnw.easypanel.host',
-        'https://eg-crm.effectivegain.com',
-        'https://landing-page-teste.8rxpnw.easypanel.host/',
-        'https://ilhadogovernador.effectivegain.com/',
-        'https://ilhadogovernador.effectivegain.com'
-      ];
-      
-      if (allowedOrigins.indexOf(origin) !== -1) {
-        callback(null, true);
-      } else {
-        console.log('Socket.IO - Origin bloqueada:', origin);
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    methods: ['GET', 'POST', 'DELETE', 'PUT', 'OPTIONS'],
-    credentials: true
+    origin: ['http://localhost:3001',
+      'https://landing-page-front.8rxpnw.easypanel.host',
+      'https://eg-crm.effectivegain.com',
+      'https://landing-page-teste.8rxpnw.easypanel.host/',
+      'https://ilhadogovernador.effectivegain.com/',
+      'https://ilhadogovernador.effectivegain.com',
+      'https://barreiras.effectivegain.com',
+      'https://barreiras.effectivegain.com/'
+    ], 
+    methods: ['GET', 'POST', 'DELETE', 'PUT'],
   },
   transports: ['websocket', 'polling'],
   allowEIO3: true
@@ -135,6 +105,7 @@ app.use('/campaing', campaingRoutes)
 app.use('/tag', tagRoutes)
 app.use('/excel', excelRoutes);
 app.use('/internal-chat', chatInternoRoute);
+app.use('/lembretes', lembreteRoutes)
 
 const axios = require('axios');
 const fs = require('fs');

@@ -12,9 +12,7 @@ function DeleteUserModal({ theme, usuario }) {
       const deletion = await axios.delete(`${url}/api/delete-user`, {
     data: { user_id: usuario.id, schema:userData.schema },
     });
-      console.log(deletion)
     }catch(error){
-      console.log('não foi possivel excluir o usuario')
     }
   }
     

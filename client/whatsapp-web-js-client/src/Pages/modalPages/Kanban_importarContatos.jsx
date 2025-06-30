@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Modal, Button, Form } from 'react-bootstrap';
 import * as XLSX from 'xlsx';
 import axios from 'axios';
@@ -8,9 +8,26 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
   const [preview, setPreview] = useState([]);
   const [availableColumns, setAvailableColumns] = useState([]);
   const [errorMsg, setErrorMsg] = useState('');
+  const [canal, setCanal] = useState('');
+  const [conexao, setConexao] = useState([]);
   const fileInputRef = useRef(null);
   const userData = JSON.parse(localStorage.getItem('user'));
   const schema = userData?.schema;
+  const url = process.env.REACT_APP_URL
+
+  // Buscar conexões disponíveis
+  useEffect(() => {
+    const fetchConn = async () => {
+      try {
+        const response = await axios.get(`${url}/connection/get-all-connections/${schema}`);
+        setConexao(Array.isArray(response.data) ? response.data : []);
+      } catch (error) {
+        console.error('Erro ao buscar conexões:', error);
+        setConexao([]);
+      }
+    };
+    fetchConn();
+  }, [url, schema]);
 
   const handleFileChange = (event) => {
     setErrorMsg('');
@@ -46,18 +63,22 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
       setErrorMsg('Selecione um arquivo para importar.');
       return;
     }
+    if (!canal) {
+      setErrorMsg('Selecione um canal para importar.');
+      return;
+    }
     setErrorMsg('');
     try {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('sector', funil);
       formData.append('schema', schema);
+      formData.append('connection_id', canal);
 
-      const res = await axios.post('http://localhost:3002/excel/upload', formData, {
+      const res = await axios.post(`${url}/excel/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
-    setMsg(res.data.message);
 
     if (res.data.success) {
       alert('Contatos importados com sucesso!');
@@ -88,20 +109,43 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
         <Modal.Title className={`header-text-${theme}`}>Importar Contatos</Modal.Title>
       </Modal.Header>
       <Modal.Body className={`bg-form-${theme}`}>
-        <div className="mb-4">
-          <Form.Group>
-            <Form.Label className={`header-text-${theme}`}>Arquivo</Form.Label>
-            <Form.Control
-              type="file"
-              accept=".xlsx,.xls,.csv"
-              onChange={handleFileChange}
-              ref={fileInputRef}
-              className={`input-${theme} mb-1`}
-            />
-            <Form.Text className={`card-subtitle-${theme}`}>
-              Suporta arquivos Excel (.xlsx, .xls) e CSV
-            </Form.Text>
-          </Form.Group>
+        <div className="d-flex justify-content-between gap-4">
+          <div style={{ width: '60%' }}>
+            <Form.Group>
+              <Form.Label className={`header-text-${theme}`}>Arquivo</Form.Label>
+              <Form.Control
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={handleFileChange}
+                ref={fileInputRef}
+                className={`input-${theme} mb-1`}
+              />
+              <Form.Text className={`card-subtitle-${theme}`}>
+                Suporta arquivos Excel (.xlsx, .xls) e CSV
+              </Form.Text>
+            </Form.Group>
+          </div>
+
+          <div style={{ width: '40%' }}>
+            <Form.Group>
+              <Form.Label className={`header-text-${theme}`}>Canal</Form.Label>
+              <Form.Select
+                value={canal}
+                onChange={(e) => setCanal(e.target.value)}
+                className={`input-${theme}`}
+              >
+                <option value="" disabled>Selecione um canal</option>
+                {Array.isArray(conexao) && conexao.map((conn) => (
+                  <option key={conn.number} value={conn.id}>
+                    {conn.name}
+                  </option>
+                ))}
+              </Form.Select>
+              <Form.Text className={`card-subtitle-${theme}`}>
+                Contato nosso para interação
+              </Form.Text>
+            </Form.Group>
+          </div>
         </div>
 
         {errorMsg && (
@@ -149,8 +193,8 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
           <Button
             onClick={handleImport}
             className={`btn-1-${theme}`}
-            disabled={!file}
-            style={!file ? { backgroundColor: 'transparent' } : {}}
+            disabled={!file || !canal}
+            style={(!file || !canal) ? { backgroundColor: 'transparent' } : {}}
           >
             Importar
           </Button>

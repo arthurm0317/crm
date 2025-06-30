@@ -18,13 +18,15 @@ const mockFilas = [
   { id: '5', nome: 'RH' }
 ];
 
-function LembreteNovoLembrete({ show, onHide, onSave, tipoDefault = 'geral', filas = mockFilas, userRole = 'user', theme, lembreteEdit, onTestToast }) {
+function LembreteNovoLembrete({ show, onHide, onSave, tipoDefault = 'geral', filas = mockFilas, theme, lembreteEdit, onTestToast }) {
   const [tipo, setTipo] = useState(lembreteEdit ? lembreteEdit.tipo : tipoDefault);
   const [titulo, setTitulo] = useState(lembreteEdit ? lembreteEdit.titulo : '');
   const [mensagem, setMensagem] = useState(lembreteEdit ? lembreteEdit.mensagem : '');
   const [icone, setIcone] = useState(lembreteEdit ? lembreteEdit.icone : iconesPessoais[0]);
   const [data, setData] = useState(lembreteEdit ? lembreteEdit.data : '');
-  const [filasSelecionadas, setFilasSelecionadas] = useState(lembreteEdit && lembreteEdit.filas ? lembreteEdit.filas : []);
+const [filasSelecionadas, setFilasSelecionadas] = useState(
+  lembreteEdit?.filas ?? []
+);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef();
   const [hoveredIcon, setHoveredIcon] = useState(null);
@@ -35,25 +37,63 @@ function LembreteNovoLembrete({ show, onHide, onSave, tipoDefault = 'geral', fil
   const [filasDropdownOpen, setFilasDropdownOpen] = useState(false);
   const filasDropdownRef = useRef();
   const [hoveredFila, setHoveredFila] = useState(null);
+  const [filasSuperUser, setFilasSuperUser] = useState([]);
+  const userRole = userData?.role
 
-  // Buscar filas do backend
-  useEffect(() => {
-    const fetchFilas = async () => {
-      try {
-        const response = await axios.get(`${url}/queue/get-all-queues/${schema}`);
-        if (response.data && Array.isArray(response.data)) {
-          setFilasDisponiveis(response.data);
-        } else {
-          console.warn('Resposta da API não é um array de filas:', response.data);
-          setFilasDisponiveis(mockFilas);
-        }
-      } catch (error) {
-        console.error('Erro ao buscar filas:', error);
-        setFilasDisponiveis(mockFilas);
+
+  const now = new Date();
+  const pad = n => n.toString().padStart(2, '0');
+  const minDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+  const formatUnixToDatetimeLocal = (unix) => {
+  if (!unix) return '';
+  const date = new Date(Number(unix) * 1000); // transforma segundos em milissegundos
+  const pad = n => n.toString().padStart(2, '0');
+  const yyyy = date.getFullYear();
+  const mm = pad(date.getMonth() + 1);
+  const dd = pad(date.getDate());
+  const hh = pad(date.getHours());
+  const min = pad(date.getMinutes());
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+};
+
+
+    useEffect(() => {
+  const fetchFilas = async () => {
+    try {
+      const response = await axios.get(`${url}/queue/get-all-queues/${schema}`);
+      let filas = response.data.result;
+      if (!Array.isArray(filas)) {
+        filas = [filas];
       }
-    };
-    fetchFilas();
-  }, [schema, url]);
+      filas = filas
+        .filter(f => f && (f.id || f._id))
+        .map(f => ({
+          id: f.id || f._id || '',
+          nome: f.nome || f.name || f.label || 'Fila',
+          super_user: f.superuser 
+        }));
+      setFilasDisponiveis(filas.length ? filas : mockFilas);
+
+      const minhasFilasSuperUser = filas.filter(f => f.super_user === userData?.id);
+      setFilasSuperUser(minhasFilasSuperUser);
+    } catch (error) {
+      console.error('Erro ao buscar filas:', error);
+      setFilasDisponiveis(mockFilas);
+      setFilasSuperUser([]);
+    }
+  };
+  fetchFilas();
+}, [schema, url, userData?.id]);
+
+const isAdmin = userRole === 'admin' || userRole === 'tecnico';
+const isSuperUserEmAlgumaFila = filasSuperUser.length > 0;
+
+const podeGeral = isAdmin;
+const podeSetorial = isAdmin || isSuperUserEmAlgumaFila;
+const podePessoal = true;
+
+const filasParaSetorial = isAdmin ? filasDisponiveis : filasSuperUser;
 
   useEffect(() => {
     if (!dropdownOpen) return;
@@ -69,12 +109,12 @@ function LembreteNovoLembrete({ show, onHide, onSave, tipoDefault = 'geral', fil
   // Atualizar campos ao abrir para edição
   useEffect(() => {
     if (lembreteEdit) {
-      setTipo(lembreteEdit.tipo);
-      setTitulo(lembreteEdit.titulo);
-      setMensagem(lembreteEdit.mensagem);
+      setTipo(lembreteEdit.tag);
+      setTitulo(lembreteEdit.lembrete_name);
+      setMensagem(lembreteEdit.message);
       setIcone(lembreteEdit.icone);
-      setData(lembreteEdit.data);
-      setFilasSelecionadas(lembreteEdit.filas || []);
+      setData(formatUnixToDatetimeLocal(lembreteEdit.date));
+      setFilasSelecionadas(lembreteEdit?.filas ?? []);
     } else {
       setTipo(tipoDefault);
       setTitulo('');
@@ -103,18 +143,89 @@ function LembreteNovoLembrete({ show, onHide, onSave, tipoDefault = 'geral', fil
     const val = e.target.value.slice(0, maxMsgLen);
     setMensagem(val);
   };
+  const isDataInvalida = () => {
+  if (!data) return true;
+  const agora = new Date();
+  const dataSelecionada = new Date(data);
+  return dataSelecionada < agora;
+};
 
-  const handleSalvar = () => {
+// Função para validar se as filas selecionadas existem nas filas disponíveis
+const filasInvalidas = () => {
+  if (tipo !== 'setorial') return false;
+  if (!Array.isArray(filasSelecionadas) || filasSelecionadas.length === 0) return true;
+  const disponiveisIds = filasDisponiveis.map(f => f.id);
+  return !filasSelecionadas.every(id => disponiveisIds.includes(id));
+};
+
+    const handleSalvar = async () => {
     if (!titulo.trim() || !mensagem.trim() || !data) return;
-    onSave && onSave({ tipo, titulo, mensagem, icone, data, filas: filasSelecionadas });
-    setTitulo(''); setMensagem(''); setIcone(iconesPessoais[0]); setData(''); setFilasSelecionadas([]);
-    onHide && onHide();
+
+  const agora = new Date();
+  const dataSelecionada = new Date(data);
+  if (dataSelecionada < agora) {
+    alert('A data do lembrete não pode ser anterior ao momento atual.');
+    return;
+  }
+
+  if (tipo === 'setorial' && (!filasSelecionadas || filasSelecionadas.length === 0)) {
+    alert('Para lembretes setoriais, é necessário selecionar pelo menos uma fila.');
+    return;
+  }
+  
+    const dataUnix = Math.floor(new Date(data).getTime() / 1000);
+  
+    let lembreteCriado = null;
+  
+    if (lembreteEdit) {
+      // Atualiza no backend
+      const response = await axios.put(`${url}/lembretes/update-lembretes`, {
+        id: lembreteEdit.id,
+        tag: tipo,
+        lembrete_name: titulo,
+        message: mensagem,
+        icone: icone,
+        date: dataUnix,
+        filas: filasSelecionadas,
+        schema: schema
+      });
+      lembreteCriado = response.data;
+    } else {
+      const response = await axios.post(`${url}/lembretes/create-lembrete`, {
+        tag: tipo,
+        lembrete_name: titulo,
+        message: mensagem,
+        icone: icone || null,
+        date: dataUnix,
+        filas: filasSelecionadas,
+        user_id: userData.id,
+        schema: schema
+      });
+
+
+      lembreteCriado = response.data;
+    }
+  
+    const lembreteFrontend = {
+    ...lembreteCriado,
+    titulo: lembreteCriado.lembrete_name || lembreteCriado.titulo,
+    mensagem: lembreteCriado.message || lembreteCriado.mensagem,
+    icone: lembreteCriado.icone,
+    data: lembreteCriado.date, 
+    tag: lembreteCriado.tag || lembreteCriado.tipo,
+    filas: lembreteCriado.filas || [],
   };
 
-  // Permissões atualizadas
-  const podeGeral = ['admin', 'tecnico'].includes(userRole);
-  const podeSetorial = ['admin', 'tecnico', 'superuser'].includes(userRole);
-  const podePessoal = true; // Todos podem criar lembretes pessoais
+  onSave && onSave(lembreteFrontend);
+  
+    setTitulo('');
+    setMensagem('');
+    setIcone(iconesPessoais[0]);
+    setData('');
+    setFilasSelecionadas([]);
+  
+    onHide && onHide();
+  };
 
   // Função para alternar seleção de fila
   const toggleFila = (filaId) => {
@@ -126,6 +237,7 @@ function LembreteNovoLembrete({ show, onHide, onSave, tipoDefault = 'geral', fil
       }
     });
   };
+
 
   return (
     <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
@@ -141,6 +253,7 @@ function LembreteNovoLembrete({ show, onHide, onSave, tipoDefault = 'geral', fil
           <div className="modal-body">
             {/* Tipo de Lembrete */}
             <div className="mb-3 d-flex gap-2">
+              
               {podeGeral && (
                 <button className={`btn btn-sm ${tipo === 'geral' ? 'btn-1-' + theme : 'btn-2-' + theme}`} onClick={() => setTipo('geral')}>
                   <i className="bi bi-globe-americas me-1"></i>Geral
@@ -151,76 +264,75 @@ function LembreteNovoLembrete({ show, onHide, onSave, tipoDefault = 'geral', fil
                   <i className="bi bi-diagram-3 me-1"></i>Setorial
                 </button>
               )}
-              {podePessoal && (
-                <button className={`btn btn-sm ${tipo === 'pessoal' ? 'btn-1-' + theme : 'btn-2-' + theme}`} onClick={() => setTipo('pessoal')}>
-                  <i className={`bi ${icone} me-1`}></i>Pessoal
-                </button>
-              )}
+              <button className={`btn btn-sm ${tipo === 'pessoal' ? 'btn-1-' + theme : 'btn-2-' + theme}`} onClick={() => setTipo('pessoal')}>
+                <i className={`bi ${icone} me-1`}></i>Pessoal
+              </button>
             </div>
             {/* Seleção de Filas para Setorial */}
-            {tipo === 'setorial' && (
-              <div className="mb-3">
-                <label className={`form-label card-subtitle-${theme}`}>Filas</label>
-                <div className="position-relative" ref={filasDropdownRef}>
-                  <button
-                    type="button"
-                    className={`form-control d-flex align-items-center justify-content-between input-${theme} header-text-${theme}`}
-                    style={{ cursor: 'pointer', minHeight: 38 }}
-                    onClick={() => setFilasDropdownOpen(v => !v)}
+           {tipo === 'setorial' && (
+            <div className="mb-3">
+              <label className={`form-label card-subtitle-${theme}`}>
+                Filas <span style={{ color: 'var(--error-color)' }}>*</span>
+              </label>
+              <div className="position-relative" ref={filasDropdownRef}>
+                <button
+                  type="button"
+                  className={`form-control d-flex align-items-center justify-content-between input-${theme} header-text-${theme}`}
+                  style={{ cursor: 'pointer', minHeight: 38 }}
+                  onClick={() => setFilasDropdownOpen(v => !v)}
+                >
+                  <span className="d-flex align-items-center gap-2">
+                    <i className="bi bi-diagram-3"></i>
+                    {Array.isArray(filasSelecionadas) && filasSelecionadas.length === 0
+                      ? 'Selecione as filas'
+                      : filasSelecionadas.length === 1
+                        ? filasParaSetorial.find(f => f.id === filasSelecionadas[0])?.nome
+                        : `${filasSelecionadas.length} filas selecionadas`}
+                  </span>
+                  <i className={`bi bi-chevron-${filasDropdownOpen ? 'up' : 'down'}`}></i>
+                </button>
+                {filasDropdownOpen && (
+                  <div
+                    className={`position-absolute w-100 border rounded shadow-sm mt-1 header-text-${theme}`}
+                    style={{
+                      zIndex: 20,
+                      background: `var(--bg-color-${theme})`,
+                      color: `var(--text-color-${theme})`,
+                      border: `1px solid var(--border-color-${theme}) !important`,
+                      maxHeight: 220,
+                      overflowY: 'auto',
+                    }}
                   >
-                    <span className="d-flex align-items-center gap-2">
-                      <i className="bi bi-diagram-3"></i>
-                      {filasSelecionadas.length === 0 
-                        ? 'Selecione as filas' 
-                        : filasSelecionadas.length === 1 
-                          ? filasDisponiveis.find(f => f.id === filasSelecionadas[0])?.nome 
-                          : `${filasSelecionadas.length} filas selecionadas`}
-                    </span>
-                    <i className={`bi bi-chevron-${filasDropdownOpen ? 'up' : 'down'}`}></i>
-                  </button>
-                  {filasDropdownOpen && (
-                    <div
-                      className={`position-absolute w-100 border rounded shadow-sm mt-1 header-text-${theme}`}
-                      style={{
-                        zIndex: 20,
-                        background: `var(--bg-color-${theme})`,
-                        color: `var(--text-color-${theme})`,
-                        border: `1px solid var(--border-color-${theme}) !important`,
-                        maxHeight: 220,
-                        overflowY: 'auto',
-                      }}
-                    >
-                      {Array.isArray(filasDisponiveis) && filasDisponiveis.map(fila => {
-                        const isSelected = filasSelecionadas.includes(fila.id);
-                        const isHovered = fila.id === hoveredFila;
-                        let bg = 'transparent';
-                        if (isSelected) bg = 'var(--placeholder-color)';
-                        else if (isHovered) bg = theme === 'dark' ? 'var(--bs-gray-700)' : 'var(--bs-gray-200)';
-                        
-                        return (
-                          <div
-                            key={fila.id}
-                            className={`d-flex align-items-center gap-2 px-2 py-1 ${isSelected ? 'header-text-light' : 'header-text-' + theme}`}
-                            style={{
-                              cursor: 'pointer',
-                              background: bg,
-                              transition: 'background 0.15s',
-                            }}
-                            onClick={() => toggleFila(fila.id)}
-                            onMouseEnter={() => setHoveredFila(fila.id)}
-                            onMouseLeave={() => setHoveredFila(null)}
-                          >
-                            <i className={`bi ${isSelected ? 'bi-check2-square' : 'bi-square'}`}></i>
-                            <span>{fila.nome}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-                <small className={`header-text-${theme}`}>Selecione uma ou mais filas entre as que você possui permissão.</small>
+                    {Array.isArray(filasParaSetorial) && filasParaSetorial.map(fila => {
+                      const isSelected = filasSelecionadas.includes(fila.id);
+                      const isHovered = fila.id === hoveredFila;
+                      let bg = 'transparent';
+                      if (isSelected) bg = 'var(--placeholder-color)';
+                      else if (isHovered) bg = theme === 'dark' ? 'var(--bs-gray-700)' : 'var(--bs-gray-200)';
+                      return (
+                        <div
+                          key={fila.id}
+                          className={`d-flex align-items-center gap-2 px-2 py-1 ${isSelected ? 'header-text-light' : 'header-text-' + theme}`}
+                          style={{
+                            cursor: 'pointer',
+                            background: bg,
+                            transition: 'background 0.15s',
+                          }}
+                          onClick={() => toggleFila(fila.id)}
+                          onMouseEnter={() => setHoveredFila(fila.id)}
+                          onMouseLeave={() => setHoveredFila(null)}
+                        >
+                          <i className={`bi ${isSelected ? 'bi-check2-square' : 'bi-square'}`}></i>
+                          <span>{fila.nome}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            )}
+              <small className={`header-text-${theme}`}>Selecione uma ou mais filas entre as que você possui permissão.</small>
+            </div>
+          )}
             {/* Ícone para Pessoal - Dropdown customizado */}
             {tipo === 'pessoal' && (
               <div className="mb-3">
@@ -305,9 +417,10 @@ function LembreteNovoLembrete({ show, onHide, onSave, tipoDefault = 'geral', fil
                 placeholder="Digite a mensagem do lembrete"
               />
               <div className="d-flex justify-content-end mt-1">
-                <small style={{ color: mensagem.length >= maxMsgLen ? 'var(--error-color)' : undefined }}>
-                  {maxMsgLen - mensagem.length} caracteres restantes
-                </small>
+                <small style={{ color: (mensagem?.length ?? 0) >= maxMsgLen ? 'var(--error-color)' : undefined }}>
+                {maxMsgLen - (mensagem?.length ?? 0)} caracteres restantes
+              </small>
+
               </div>
             </div>
             {/* Data de disparo */}
@@ -318,6 +431,7 @@ function LembreteNovoLembrete({ show, onHide, onSave, tipoDefault = 'geral', fil
                 className={`form-control input-${theme}`}
                 value={data}
                 onChange={e => setData(e.target.value)}
+                min={minDate}
               />
             </div>
           </div>
@@ -326,7 +440,18 @@ function LembreteNovoLembrete({ show, onHide, onSave, tipoDefault = 'geral', fil
             <button type="button" className={`btn btn-2-${theme}`} onClick={() => onTestToast && onTestToast({ tipo, titulo, mensagem, icone, data, filas: filasSelecionadas })}>
               Testar Lembrete
             </button>
-            <button type="button" className={`btn btn-1-${theme}`} onClick={handleSalvar} disabled={!titulo.trim() || !mensagem.trim() || !data}>
+            <button
+              type="button"
+              className={`btn btn-1-${theme}`}
+              onClick={handleSalvar}
+              disabled={
+                !titulo.trim() ||
+                !mensagem.trim() ||
+                !data ||
+                isDataInvalida() ||
+                (tipo === 'setorial' && filasInvalidas())
+              }
+            >
               Salvar
             </button>
           </div>
@@ -336,4 +461,4 @@ function LembreteNovoLembrete({ show, onHide, onSave, tipoDefault = 'geral', fil
   );
 }
 
-export default LembreteNovoLembrete; 
+export default LembreteNovoLembrete;

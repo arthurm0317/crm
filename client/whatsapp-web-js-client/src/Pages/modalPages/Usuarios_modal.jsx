@@ -40,7 +40,6 @@ function NewUserModal({ theme, type }) {
         schema: schema
       });
 
-      console.log('Usuário criado:', response.data);
 
       setUserName('');
       setUserEmail('');

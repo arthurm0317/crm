@@ -19,7 +19,8 @@ class SocketServer {
                     "https://landing-page-teste.8rxpnw.easypanel.host",
                     "https://landing-page-front.8rxpnw.easypanel.host",
                     "https://eg-crm.effectivegain.com",
-                    "https://ilhadogovernador.effectivegain.com"
+                    "https://ilhadogovernador.effectivegain.com",
+                    "https://barreiras.effectivegain.com"
                 ],
                 methods: ["GET", "POST", "DELETE", "PUT"],
                 allowedHeaders: ["Content-Type"],
@@ -87,6 +88,10 @@ class SocketServer {
             socket.on('message', (message) => {
                 socket.broadcast.emit('message', message);
             });
+
+            socket.on('lembrete', (data)=>{
+                socket.broadcast.emit('lembrete', data);
+            })
 
             socket.on('leadMoved', (data) => {
                 socket.broadcast.emit('leadMoved', data);

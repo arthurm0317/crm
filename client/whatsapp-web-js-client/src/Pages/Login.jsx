@@ -35,7 +35,6 @@ const handleLogin = async (e) => {
   setLoading(true); 
 
   try {
-    console.log(url)
     const response = await axios.post(`${url}/api/login`, {
       email: username,
       password,

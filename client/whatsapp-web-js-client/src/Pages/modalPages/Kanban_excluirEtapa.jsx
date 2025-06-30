@@ -16,7 +16,6 @@ function KanbanExcluirEtapaModal({ show, onHide, onConfirm, etapa, funil, theme 
         schema: schema
       }
     })
-      console.log('entrou', etapa.id, funil, schema)
     } catch (error) {
       console.error(error)
     }

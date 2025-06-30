@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback, useLayoutEffect } from 'react';
 import axios from 'axios';
 import EmojiPicker from 'emoji-picker-react';
 import NewContactModal from './modalPages/Chats_novoContato';
@@ -7,10 +7,74 @@ import {socket} from '../socket'
 import {Dropdown} from 'react-bootstrap';
 import './assets/style.css';
 import NewQueueModal from './modalPages/Filas_novaFila';
+import WaveSurfer from 'wavesurfer.js';
 
 function formatHour(timestamp) {
   const date = new Date(Number(timestamp));
   return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatDate(timestamp) {
+  const date = new Date(Number(timestamp));
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  
+  // Verifica se é hoje
+  if (date.toDateString() === today.toDateString()) {
+    return 'Hoje';
+  }
+  // Verifica se é ontem
+  else if (date.toDateString() === yesterday.toDateString()) {
+    return 'Ontem';
+  }
+  // Outros dias
+  else {
+    return date.toLocaleDateString('pt-BR', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric' 
+    });
+  }
+}
+
+function groupMessagesByDate(messages) {
+  const grouped = [];
+  let currentDate = null;
+  let currentGroup = [];
+
+  messages.forEach((message, index) => {
+    const messageDate = formatDate(message.timestamp);
+    
+    if (messageDate !== currentDate) {
+      // Salva o grupo anterior se existir
+      if (currentGroup.length > 0) {
+        grouped.push({
+          type: 'date',
+          date: currentDate,
+          messages: currentGroup
+        });
+      }
+      
+      // Inicia novo grupo
+      currentDate = messageDate;
+      currentGroup = [message];
+    } else {
+      // Adiciona à mensagem ao grupo atual
+      currentGroup.push(message);
+    }
+    
+    // Se for a última mensagem, salva o grupo
+    if (index === messages.length - 1) {
+      grouped.push({
+        type: 'date',
+        date: currentDate,
+        messages: currentGroup
+      });
+    }
+  });
+
+  return grouped;
 }
 
 function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, setSelectedChat, setSelectedMessages, onEditName }) {
@@ -53,7 +117,6 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
     async function fetchQueues() {
       try {
         const res = await axios.get(`${url}/queue/get-all-queues/${schema}`);
-        console.log('Filas recebidas:', res.data.result);
         setQueues(res.data.result || []);
       } catch (err) {
         setQueues([]);
@@ -61,7 +124,6 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
     }
     if (isDropdownOpen) fetchQueues();
   }, [isDropdownOpen, url, schema]);
-
 
   const handleTransferQueue = async (queueId) => {
     if (!selectedChat) return;
@@ -143,7 +205,7 @@ function ChatPage({ theme, chat_id} ) {
   const [recordingTime, setRecordingTime] = useState(0);
   const recordingIntervalRef = useRef(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [activeAudio, setActiveAudio] = useState(null); 
+  const [activeAudioId, setActiveAudioId] = useState(null);
   const [audioProgress, setAudioProgress] = useState({});
   const [selectedImage, setSelectedImage] = useState(null);
   const [messages, setMessages] = useState([])
@@ -153,10 +215,12 @@ function ChatPage({ theme, chat_id} ) {
   const [selectedTab, setSelectedTab] = useState('conversas'); // novo estado
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
+  const [connections, setConnections] = useState([]);
   const nomeContatoRef = useRef(null);
   const [showNewContactModal, setShowNewContactModal] = useState(false);
   const [socketInstance] = useState(socket)  
   const url = process.env.REACT_APP_URL;
+
   const setAsRead = async()=>{
     if (!selectedChat) return;
     try{
@@ -195,6 +259,23 @@ const handleEditNameFinish = async () => {
     await handleEditContactName(selectedChat.id, editedName);
   }
   setIsEditingName(false);
+};
+
+useEffect(() => {
+  const fetchConnections = async () => {
+    try {
+      const res = await axios.get(`${url}/connection/get-all-connections/${schema}`);
+      setConnections(res.data || []);
+    } catch (err) {
+      setConnections([]);
+    }
+  };
+  fetchConnections();
+}, [url, schema]);
+
+const getConnectionName = (connectionId) => {
+  const conn = connections.find(c => c.id === connectionId);
+  return conn?.name || connectionId;
 };
 
 const handleEditContactName = async (contactId, newName) => {
@@ -393,100 +474,157 @@ useEffect(() => {
     };
   }, []);
 
-  const AudioPlayer = ({ base64Audio, audioId }) => {
-    const audioRef = useRef(null);
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [currentTime, setCurrentTime] = useState(0);
-    const [duration, setDuration] = useState(0);
+const AudioPlayer = ({ audioSrc, audioId, theme, isActive, onPlayClick }) => {
+  const containerRef = useRef(null);
+  const wavesurferRef = useRef(null);
+  const isSeekingRef = useRef(false);
+
+  const [isReady, setIsReady] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+
+  const formatTime = (time) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60).toString().padStart(2, '0');
+    return `${minutes}:${seconds}`;
+  };
+
+  const handleSeek = useCallback((e) => {
+    if (!wavesurferRef.current || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const progress = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    wavesurferRef.current.seekTo(progress);
+  }, []);
+
+  const handleMouseDown = useCallback((e) => {
+    if (!isReady) return;
+    isSeekingRef.current = true;
+    handleSeek(e);
+  }, [isReady, handleSeek]);
+
+  const handleMouseMove = useCallback((e) => {
+    if (isSeekingRef.current) {
+      handleSeek(e);
+    }
+  }, [handleSeek]);
+
+  const handleMouseUp = useCallback(() => {
+    isSeekingRef.current = false;
+  }, []);
   
-    const togglePlay = () => {
-      if (audioRef.current.paused) {
-        audioRef.current.play().catch((err) => {
-          console.error('Erro ao reproduzir áudio:', err);
-        });
-        setIsPlaying(true);
-      } else {
-        audioRef.current.pause();
-        setIsPlaying(false);
-      }
+  useEffect(() => {
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
     };
-  
-    const handleTimeUpdate = () => {
-      setCurrentTime(audioRef.current.currentTime);
-    };
-  
-    const handleLoadedMetadata = () => {
-      const audioDuration = audioRef.current.duration;
+  }, [handleMouseMove, handleMouseUp]);
+
+  useLayoutEffect(() => {
+    if (!containerRef.current) return;
+
+    const source = audioSrc.startsWith('blob:') ? audioSrc : `data:audio/ogg;base64,${audioSrc}`;
+
+    const ws = WaveSurfer.create({
+      container: containerRef.current,
+      waveColor: theme === 'light' ? '#E0E0E0' : '#555555',
+      progressColor: '#34B7F1',
+      barWidth: 2,
+      barGap: 1.5,
+      barRadius: 2,
+      height: 'auto',
+      cursorWidth: 0,
+      url: source,
+      dragToSeek: true,
+      fillParent: true,
+    });
+    wavesurferRef.current = ws;
+
+    ws.on('ready', () => {
+      setDuration(ws.getDuration());
+      setIsReady(true);
+      // Força o WaveSurfer a se redesenhar com o tamanho correto do contêiner
+      window.dispatchEvent(new Event('resize'));
+    });
+
+    ws.on('audioprocess', (time) => setCurrentTime(time));
+    ws.on('seek', (progress) => setCurrentTime(progress * ws.getDuration()));
     
-      if (isNaN(audioDuration)) {
-        console.error('Erro ao carregar a duração do áudio. Verifique o formato do arquivo.');
-        setDuration(0); 
-      } else {
-        setDuration(audioDuration); 
+    ws.on('play', () => setIsPlaying(true));
+    ws.on('pause', () => setIsPlaying(false));
+    
+    ws.on('finish', () => {
+      onPlayClick(null);
+    });
+
+    return () => {
+      if (wavesurferRef.current) {
+        wavesurferRef.current.destroy();
+        wavesurferRef.current = null;
       }
     };
+  }, [audioSrc, theme, onPlayClick]);
+
+  useEffect(() => {
+    if (!isReady) return;
+    if (isActive) {
+      wavesurferRef.current?.play();
+    } else {
+      wavesurferRef.current?.pause();
+    }
+  }, [isActive, isReady]);
+
+  const handlePlayButtonClick = () => {
+    if (isReady) {
+      onPlayClick(isActive ? null : audioId);
+    }
+  };
   
-    const formatTime = (time) => {
-      const minutes = Math.floor(time / 60);
-      const seconds = Math.floor(time % 60).toString().padStart(2, '0');
-      return `${minutes}:${seconds}`;
-    };
-  
-    const handleSeek = (e) => {
-      const seekTime = (e.target.value / 100) * duration;
-      audioRef.current.currentTime = seekTime;
-      setCurrentTime(seekTime);
-    };
-     const audioSrc = base64Audio && base64Audio.startsWith('blob:')
-        ? base64Audio
-        : `data:audio/ogg;base64,${base64Audio}`;
-  
-    return (
-      <div className="audio-player d-flex align-items-center gap-3">
-        {/* Botão Play/Pause */}
+  const cursorPosition = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  return (
+    <div className="audio-player-container" style={{ width: '100%' }}>
+      <div className="audio-player d-flex align-items-center gap-3 flex-grow-1" style={{width: '100%'}}>
         <button
-          className={`btn btn-sm btn-${isPlaying ? 'pause' : 'play'}`}
-          onClick={togglePlay}
-          style={{ 
-            width: '30px', 
-            height: '30px', 
-            borderRadius: '50%' 
+          className={`btn btn-sm`}
+          onClick={handlePlayButtonClick}
+          disabled={!isReady}
+          style={{
+            width: '35px', height: '35px', borderRadius: '50%',
+            backgroundColor: 'var(--primary-color)', color: 'white',
+            flexShrink: 0, opacity: isReady ? 1 : 0.5,
+            cursor: isReady ? 'pointer' : 'not-allowed',
           }}
         >
-          <i className={`bi ${isPlaying ? 'bi-pause-fill' : 'bi-play-fill'}`}></i>
+          <i className={`bi ${isPlaying ? 'bi-pause-fill' : 'bi-play-fill'}`} style={{ fontSize: '1.1rem' }}></i>
         </button>
-  
-        {/* Barra de Progresso */}
-        <div className="d-flex mt-2 flex-column flex-grow-1">
-        <input
-          type="range"
-          className="form-range"
-          min="0"
-          max="100"
-          value={(currentTime / duration) * 100 || 0}
-          onChange={handleSeek}
-          style={{
-            cursor: 'pointer',
-            }}
-          />
-          <div className="mt-2 d-flex justify-content-between">
-            <small>{formatTime(currentTime)}</small>
-            <small>{formatTime(duration)}</small>
-          </div>
+
+        <div
+          id={`waveform-container-${audioId}`}
+          ref={containerRef}
+          style={{ 
+            flexGrow: 1, 
+            height: '35px',
+            maxHeight: '35px', 
+            position: 'relative', 
+            cursor: isReady ? 'pointer' : 'default', 
+            width: '100%',
+            display: 'block',
+          }}
+          onMouseDown={handleMouseDown}
+          className="waveform"
+        >
         </div>
-  
-        {/* Áudio */}
-        <audio
-          ref={audioRef}
-          src={audioSrc}
-          preload="auto"
-          onTimeUpdate={handleTimeUpdate}
-          onLoadedMetadata={handleLoadedMetadata}
-          onEnded={() => setIsPlaying(false)}
-        />
+
+        <small className="text-muted" style={{ minWidth: '80px', textAlign: 'center' }}>
+          {isReady ? `${formatTime(currentTime)} / ${formatTime(duration)}` : '0:00 / 0:00'}
+        </small>
       </div>
-    );
-  };
+    </div>
+  );
+};
 
   const handleEmojiClick = (emojiObject) => {
     setNewMessage((prevMessage) => prevMessage + emojiObject.emoji);
@@ -574,7 +712,6 @@ const handleImageUpload = async (event) => {
 
         setSelectedMessages((prev) => [...prev, message]);
       } else {
-        console.log('Sem socket');
       }
 
     } catch (error) {
@@ -638,7 +775,6 @@ const handleImageUpload = async (event) => {
             const formattedMessage = formatMessage(message);
             setSelectedMessages((prev) => [...prev, formattedMessage]);
           } else {
-            console.log('Sem socket');
           }
           }catch (error) {
             console.error('Erro ao enviar áudio:', error);
@@ -773,7 +909,40 @@ const handleImageUpload = async (event) => {
                     onClick={() => handleChatClick(chat)}
                     style={{ cursor: 'pointer', padding: '10px', borderBottom: `1px solid var(--border-color-${theme})` }}
                   >
-                    <strong>{chat.contact_name || chat.id || 'Sem Nome'}</strong>
+                    <div
+  style={{
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 2,
+  }}
+>
+  <strong>{chat.contact_name || chat.id || 'Sem Nome'}</strong>
+  <span
+  title={getConnectionName(chat.connection_id)}
+  style={{
+    background: '#e0e0e0',
+    color: '#333',
+    borderRadius: '6px',
+    padding: '0 6px',
+    fontSize: '0.65rem',
+    marginLeft: '6px',
+    whiteSpace: 'nowrap',
+    fontWeight: 500,
+    maxWidth: '80px',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    display: 'inline-block',
+    lineHeight: '18px',
+    height: '18px',
+    verticalAlign: 'middle'
+  }}
+>
+  {getConnectionName(chat.connection_id)}
+</span>
+</div>
+
                     <div className='d-flex flex-column align-items-center justify-content-center'>
                       {chat.unreadmessages && selectedChatId !== chat.id && (
                         <span style={{
@@ -917,51 +1086,103 @@ const handleImageUpload = async (event) => {
     }}
   >
 
-  {selectedMessages.map((msg, index) => (
-  <div
-    key={msg.id || index}
-    style={{
-      backgroundColor: msg.from_me ? 'var(--hover)' : '#f1f0f0',
-      textAlign: msg.from_me ? 'right' : 'left',
-      padding: '5px 10px',
-      borderRadius: '10px',
-      margin: '5px 0',
-      alignSelf: msg.from_me ? 'flex-end' : 'flex-start',
-      display: 'inline-block',
-      maxWidth: '60%',
-    }}
-  >
-    {msg.message_type === 'audio' || msg.message_type === 'audioMessage' ? (
-      <AudioPlayer base64Audio={msg.base64} audioId={msg.id} />
-    ) : msg.message_type === 'imageMessage' || msg.message_type === 'image' ? (
-      <img
-        src={
-          typeof msg.base64 === 'string'
-            ? msg.base64.startsWith('blob:')
-              ? msg.base64
-              : `data:image/jpeg;base64,${msg.base64}`
-            : msg.base64
-        }
-        alt="imagem"
+  {groupMessagesByDate(selectedMessages).map((group, groupIndex) => (
+    <div key={groupIndex}>
+      {/* Cabeçalho da data */}
+      <div
         style={{
-          maxWidth: '300px',
-          width: '100%',
-          height: 'auto',
-          borderRadius: '8px',
-          display: 'block',
-          cursor: 'pointer',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          margin: '12px 0 12px 0',
         }}
-        onClick={() => handleImageClick(msg.base64)}
-      />
-    ) : (
-      msg.text
-    )}
-    {/* Horário formatado */}
-    <div style={{ fontSize: '0.75rem', color: '#888', marginTop: 2 }}>
-      {formatHour(msg.timestamp)}
+      >
+        <div
+          style={{
+            backgroundColor: '#f0f0f0',
+            color: '#666',
+            padding: '4px 12px',
+            borderRadius: '12px',
+            fontSize: '0.75rem',
+            fontWeight: '500',
+            textAlign: 'center',
+          }}
+        >
+          {group.date}
+        </div>
+      </div>
+
+      {/* Mensagens do grupo */}
+      {group.messages.map((msg, index) => (
+        <div
+          key={msg.id || index}
+          style={{
+            display: 'flex',
+            justifyContent: msg.from_me ? 'flex-end' : 'flex-start',
+            margin: '5px 0',
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: msg.from_me ? 'var(--hover)' : '#f1f0f0',
+              textAlign: msg.from_me ? 'right' : 'left',
+              padding: '10px 10px 5px 10px',
+              borderRadius: '10px',
+              maxWidth: '100%',
+              width: (msg.message_type === 'audio' || msg.message_type === 'audioMessage') ? '50%' : 'fit-content',
+            }}
+          >
+            {(msg.message_type === 'audio' || msg.message_type === 'audioMessage') ? (
+              <AudioPlayer 
+                audioSrc={msg.base64} 
+                audioId={msg.id} 
+                theme={theme} 
+                isActive={activeAudioId === msg.id}
+                onPlayClick={setActiveAudioId}
+              />
+            ) : (msg.message_type === 'imageMessage' || msg.message_type === 'image') ? (
+              <>
+                {msg.text && (
+                  <div style={{ marginBottom: '5px' }}>
+                    {msg.text}
+                  </div>
+                )}
+                <img
+                  src={
+                    typeof msg.base64 === 'string'
+                      ? msg.base64.startsWith('blob:')
+                        ? msg.base64
+                        : `data:image/jpeg;base64,${msg.base64}`
+                      : msg.base64
+                  }
+                  alt="imagem"
+                  style={{
+                    maxWidth: '300px',
+                    width: '100%',
+                    height: 'auto',
+                    borderRadius: '8px',
+                    display: 'block',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => handleImageClick(msg.base64)}
+                />
+              </>
+            ) : (
+              msg.text && (
+                <div>
+                  {msg.text}
+                </div>
+              )
+            )}
+            {/* Horário formatado */}
+            <div style={{ fontSize: '0.75rem', color: '#888'}}>
+              {formatHour(msg.timestamp)}
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
-  </div>
-))}
+  ))}
 
 {/* Renderize o modal de imagem ampliada fora do map */}
 {selectedImage && (

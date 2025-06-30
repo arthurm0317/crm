@@ -35,16 +35,10 @@ function NewQueueModal({ theme, superUsers = [] }) {
         schema: schema,
         distribution: autoDistribution,
       })
-      console.log(response.data)
     }catch(error){
       console.error('Erro ao salvar a fila:', error);
       return;
     }
-    console.log({
-      title,
-      superUser,
-      autoDistribution,
-    });
     setTitle('');
     setSuperUser('');
     setAutoDistribution(false);

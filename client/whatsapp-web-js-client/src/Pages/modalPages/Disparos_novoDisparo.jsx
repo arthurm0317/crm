@@ -80,7 +80,6 @@ const limparBase64 = (base64ComPrefixo) => {
         text: msg.text || msg.value || '',
         image: msg.image || null
       }));
-      console.log('msg',mensagensFormatadas)
       
       const imagensFormatadas = mensagensFormatadas.map(msg =>
         msg.image ? `data:image/jpeg;base64,${msg.image}` : null
@@ -177,16 +176,16 @@ const limparBase64 = (base64ComPrefixo) => {
 
   // Atualiza array de mensagens quando o número de mensagens muda
   useEffect(() => {
-    const novasMensagens = [...mensagens];
-    if (numMensagens > mensagens.length) {
-      while (novasMensagens.length < numMensagens) {
-        novasMensagens.push('');
-      }
-    } else {
-      novasMensagens.splice(numMensagens);
-    }
-    setMensagens(novasMensagens);
-  }, [numMensagens]);
+    const novasMensagens = [...mensagens];
+    if (numMensagens > mensagens.length) {
+      while (novasMensagens.length < numMensagens) {
+       novasMensagens.push({ text: '', image: null }); 
+      }
+    } else {
+      novasMensagens.splice(numMensagens);
+    }
+    setMensagens(novasMensagens);
+  }, [numMensagens]);
 
   useEffect(() => {
     if (tipoAlvo === 'Funil') {
@@ -227,24 +226,24 @@ const limparBase64 = (base64ComPrefixo) => {
   };
 
   const insertVariable = (index, variable) => {
-  const textarea = textAreasRef.current[index];
-  if (!textarea) return;
+  const textarea = textAreasRef.current[index];
+  if (!textarea) return;
 
-  const start = textarea.selectionStart;
-  const end = textarea.selectionEnd;
-  const textoAtual = mensagens[index];
-  const novaMensagem = 
-    textoAtual.slice(0, start) + `{{${variable.field_name}}}` + textoAtual.slice(end);
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const textoAtual = mensagens[index].text; 
+  const novaMensagem = 
+    textoAtual.slice(0, start) + `{{${variable.field_name}}}` + textoAtual.slice(end);
 
-  const novasMensagens = [...mensagens];
-  novasMensagens[index] = novaMensagem;
-  setMensagens(novasMensagens);
+  const novasMensagens = [...mensagens];
+  novasMensagens[index] = { ...mensagens[index], text: novaMensagem };
+  setMensagens(novasMensagens);
 
-  setTimeout(() => {
-    const novaPos = start + `{{${variable.field_name}}}`.length;
-    textarea.focus();
-    textarea.setSelectionRange(novaPos, novaPos);
-  }, 0);
+  setTimeout(() => {
+    const novaPos = start + `{{${variable.field_name}}}`.length;
+    textarea.focus();
+    textarea.setSelectionRange(novaPos, novaPos);
+  }, 0);
 };
 
 
@@ -360,67 +359,90 @@ const limparBase64 = (base64ComPrefixo) => {
           </label>
               </div>
 
-          {/* Preview da imagem abaixo do label, mas acima da textarea */}
-          {mensagensImagens[index] && (
-            <img
-              src={mensagensImagens[index]}
-              alt={`Preview ${index}`}
-              className="mb-2 rounded shadow-sm"
-              style={{ width: '128px', height: '128px', objectFit: 'cover' }}
-            />
-          )}
+          {/* Container para textarea e preview da imagem lado a lado */}
+          <div className="d-flex gap-3">
+            {/* Preview da imagem ao lado da textarea */}
+            {mensagensImagens[index] && (
+              <div className="d-flex flex-column align-items-center">
+                <img
+                  src={mensagensImagens[index]}
+                  alt={`Preview ${index}`}
+                  className="rounded shadow-sm"
+                  style={{ width: '128px', height: '128px', objectFit: 'cover' }}
+                />
+              </div>
+            )}
 
-          <textarea
-  ref={(el) => textAreasRef.current[index] = el}
-  className={`form-control input-${theme}`}
-  id={`mensagem${index}`}
-  value={mensagem.text}
-  onChange={(e) => {
-    const novasMensagens = [...mensagens];
-    const mensagemAtual = mensagens[index];
+            {/* Textarea */}
+            <div className="flex-grow-1">
+              <textarea
+                ref={(el) => textAreasRef.current[index] = el}
+                className={`form-control input-${theme}`}
+                id={`mensagem${index}`}
+                value={mensagem.text}
+                onChange={(e) => {
+                  const novasMensagens = [...mensagens];
+                  const mensagemAtual = mensagens[index];
 
-    novasMensagens[index] = {
-      ...mensagemAtual,         // mantém id, image e outros
-      text: e.target.value      // atualiza apenas o text
-    };
+                  novasMensagens[index] = {
+                    ...mensagemAtual,         // mantém id, image e outros
+                    text: e.target.value      // atualiza apenas o text
+                  };
 
-    setMensagens(novasMensagens);
-  }}
-  rows="3"
-  placeholder={`Digite a mensagem ${index + 1}`}
-/>
-
-    {/* Botão de imagem */}
-    <div className="mt-2 flex flex-wrap items-center gap-2">
+                  setMensagens(novasMensagens);
+                }}
+                rows="3"
+                placeholder={`Digite a mensagem ${index + 1}`}
+              />
+            </div>
+          </div>
+  
+    {/* Botões - Separados com divisor vertical */}
+    <div className="mt-2 d-flex flex-row items-center gap-1">
+      {/* Botão de imagem separado */}
       <button
         type="button"
         className={`btn btn-2-${theme}`}
         onClick={() => document.getElementById(`imageInput-${index}`).click()}
       >
-        <i className="bi bi-image"></i>
+        <i className="bi bi-image me-2"></i>
+        Anexar Imagem
       </button>
 
-        <input
-      id={`imageInput-${index}`}
-      type="file"
-      accept="image/*"
-      style={{ display: 'none' }}
-      onChange={(e) => handleImageUpload(e, index)}
-    />
-    </div>
+      <input
+        id={`imageInput-${index}`}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={(e) => handleImageUpload(e, index)}
+      />
 
-    {/* Botões de variáveis */}
-    <div className="mt-2 flex flex-wrap gap-2">
-      {[...variaveisFixas, ...customFields].map((variable) => (
-        <button
-          key={variable.id}
-          onClick={() => insertVariable(index, variable)}
-          className="px-3 py-1 bg-blue-100 text-blue-800 rounded hover:bg-blue-200"
-        >
-          {`${variable.label}`}
-        </button>
-      ))}
+      {/* Divisor vertical */}
+      <div 
+        className="mx-2" 
+        style={{ 
+          width: '1px', 
+          height: '24px', 
+          backgroundColor: `var(--border-color-${theme})`,
+          alignSelf: 'center' 
+        }}
+      ></div>
+
+      {/* Botões de variáveis mapeadas */}
+      <div className="d-flex gap-1">
+        <p className={`card-subtitle-${theme} d-flex align-items-center me-2`}> Personalizados</p>
+        {[...variaveisFixas, ...customFields].map((variable) => (
+          <button
+            key={variable.id}
+            onClick={() => insertVariable(index, variable)}
+            className={`btn btn-2-${theme}`}
+          >
+            {`${variable.label}`}
+          </button>
+        ))}
+      </div>
     </div>
+    
   </div>
 ))}
 

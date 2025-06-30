@@ -190,7 +190,6 @@ function KanbanPage({ theme }) {
     try {
       const response = await axios.get(`${url}/kanban/get-funis/${schema}`);
         setFunis(Array.isArray(response.data.name) ? response.data.name : []);
-        console.log(response.data)
       } catch (error) {
         console.error('Erro ao buscar funis:', error);
       }
@@ -213,7 +212,6 @@ useEffect(() => {
     ));
   }
   socketInstance.on('tagUpdated', handleTagUpdated);
-  console.log('tag updated')
   return () => {
     socketInstance.off('tagUpdated', handleTagUpdated);
   };
@@ -240,7 +238,6 @@ useEffect(() => {
     try {
         const response = await axios.get(`${url}/kanban/get-cards/${funilSelecionado}/${schema}`)
         setCards(Array.isArray(response.data)?response.data:[response.data])
-        console.log(response.data)
       }catch (error) {
       console.error(error)
     } 
@@ -403,6 +400,7 @@ useEffect(() => {
 
   // Salvar etapas do funil
   const handleSalvarEtapas = (novasEtapas) => {
+    // Atualiza o estado funis
     setFunis(funis.map(f =>
       f.id === funilSelecionado
         ? { ...f, etapas: novasEtapas.map((etapa, idx) => ({
@@ -411,6 +409,15 @@ useEffect(() => {
           })) }
         : f
     ));
+    
+    // Atualiza o estado etapas para refletir as mudanças imediatamente
+    setEtapas(novasEtapas.map((etapa, idx) => ({
+      ...etapa,
+      id: etapa.id || (Date.now() + idx), // Usa timestamp + índice para garantir ID único
+      etapa: etapa.nome || etapa.etapa, // Garante que o nome seja salvo em etapa.etapa
+      color: etapa.cor || etapa.color,
+      pos: etapa.index || idx
+    })));
   };
 
   // Add this useEffect to fetch tags
@@ -512,7 +519,6 @@ useEffect(() => {
   value={funilSelecionado}
    onChange={e => {
     setFunilSelecionado(e.target.value);
-    console.log('funilSelecionado:', e.target.value);
   }}
 >
   {funis.map(nome => (
