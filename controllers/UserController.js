@@ -64,8 +64,6 @@ const searchUserController = async (req, res) => {
       return res.status(404).json({});
     }
 
-    console.log("Usuário encontrado:", result);
-
     changeOnline(result.user.id, result.company.schema_name);
 
     res.status(200).json({
