@@ -45,7 +45,7 @@ function ListaAgendamentosModal({ show, onHide, theme, selectedChat, onAgendarNo
     if (!agendamentoParaExcluir) return;
     setLoading(true);
     try {
-      await axios.delete(`${url}/chat/scheduled-message`, {
+      await axios.delete(`${url}/chat/scheduled-message/${agendamentoParaExcluir.id}/${schema}`, {
         data: {
           id: agendamentoParaExcluir.id,
           schema: schema
@@ -191,7 +191,17 @@ function ListaAgendamentosModal({ show, onHide, theme, selectedChat, onAgendarNo
                 <div className="modal-body">
                   <p>Tem certeza que deseja excluir este agendamento?</p>
                   <div className="mb-2"><b>Mensagem:</b> {agendamentoParaExcluir?.message}</div>
-                  <div className="mb-2"><b>Data:</b> {agendamentoParaExcluir ? new Date(agendamentoParaExcluir.timestamp * 1000).toLocaleString('pt-BR') : ''}</div>
+                  <div className="mb-2">
+                  <b>Data:</b>{" "}
+                  {agendamentoParaExcluir
+                    ? (() => {
+                        const rawDate = agendamentoParaExcluir.scheduled_date ?? agendamentoParaExcluir.timestamp;
+                        if (!rawDate || isNaN(rawDate)) return '';
+                        const ms = Number(rawDate) < 20000000000 ? Number(rawDate) * 1000 : Number(rawDate);
+                        return new Date(ms).toLocaleString('pt-BR');
+                      })()
+                    : ''}
+                </div>
                 </div>
                 <div className="modal-footer">
                   <button className="btn btn-danger" onClick={handleConfirmarExclusao} disabled={loading}>Confirmar</button>

@@ -1,5 +1,5 @@
 
-const { setUserChat, getChats, getMessages, getChatData, getChatByUser, updateQueue, getChatById, saveMediaMessage, setMessageAsRead, closeChat, setSpecificUser, scheduleMessage, getScheduledMessages } = require('../services/ChatService');
+const { setUserChat, getChats, getMessages, getChatData, getChatByUser, updateQueue, getChatById, saveMediaMessage, setMessageAsRead, closeChat, setSpecificUser, scheduleMessage, getScheduledMessages, deleteScheduledMessage } = require('../services/ChatService');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
@@ -325,6 +325,18 @@ const scheduleMessageController = async (req, res) => {
       console.error(error)
     }
   }
+
+const deleteScheduledMessageController = async (req, res) => {
+  try {
+    const {id, schema} = req.params
+    await deleteScheduledMessage(id, schema)
+    res.status(200).json({
+      success:true
+    })
+  } catch (error) {
+    console.error(error)
+  }
+}
   
   module.exports = {
     setUserChatController,
@@ -342,5 +354,6 @@ const scheduleMessageController = async (req, res) => {
     closeChatContoller,
     setSpecificUserController,
     scheduleMessageController,
-    getScheduledMessagesController
+    getScheduledMessagesController,
+    deleteScheduledMessageController,
 };

@@ -440,14 +440,11 @@ const scheduleMessage = async (chat_id, connection, message, contact_phone, time
       return;
     }
 
-    const result = await pool.query(`
-      INSERT INTO ${schema}.scheduled_message(id, message, chat_id, scheduled_date) VALUES ($1, $2, $3, $4) RETURNING *
-      `, [uuid4(), message, chat_id, timestamp])
+    
 
     const messageDB = new Message(uuid4(), message, true, chat_id, timestamp )
-    console.log('Mensagem agendada:', messageDB);
-    await messageQueue.add('sendMessage',{
-      id: result.rows[0].id,
+
+    const job = await messageQueue.add('sendMessage',{
       instance: connection.name,
       chat_id: chat_id,
       message: message,
@@ -455,6 +452,11 @@ const scheduleMessage = async (chat_id, connection, message, contact_phone, time
       contact_phone: contact_phone,
       schema:schema
     }, {delay: delay});
+
+    const result = await pool.query(`
+      INSERT INTO ${schema}.scheduled_message(id, message, chat_id, scheduled_date, bull_job_id) VALUES ($1, $2, $3, $4, $5) RETURNING *
+      `, [uuid4(), message, chat_id, timestamp, job.id])
+
     return result.rows[0]
 
   }catch(error){
@@ -477,12 +479,22 @@ const getScheduledMessages = async (chat_id, schema) => {
 
 const deleteScheduledMessage = async (id, schema) => {
   try {
+    const result = await pool.query(
+      `SELECT bull_job_id FROM ${schema}.scheduled_message WHERE id = $1`,
+      [id]
+    );
+    const bullJobId = result.rows[0]?.bull_job_id;
+
     await pool.query(
       `DELETE FROM ${schema}.scheduled_message WHERE id = $1`,
       [id]
-    )
+    );
+
+    if (bullJobId) {
+      await messageQueue.remove(bullJobId);
+    }
   } catch (error) {
-    console.error(error)
+    console.error(error);
   }
 }
 
