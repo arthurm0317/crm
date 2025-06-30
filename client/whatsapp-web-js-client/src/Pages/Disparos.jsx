@@ -7,6 +7,9 @@ import { Card, Button } from 'react-bootstrap';
 import DisparoModal from './modalPages/Disparos_novoDisparo';
 import DeleteDisparoModal from './modalPages/Disparos_delete';
 
+const userData = JSON.parse(localStorage.getItem('user'));
+const isAdmin = userData?.type === 'admin';
+
 function formatDateHour(timestamp) {
   let ts = Number(timestamp);
   if (ts < 1000000000000) {
@@ -148,6 +151,8 @@ function DisparosPage({ theme }) {
           <button 
             className={`btn btn-1-${theme} d-flex gap-2`}
             onClick={handleNovoDisparo}
+            disabled={!isAdmin}
+
           >
             <i className="bi-plus-lg"></i>
             Novo Disparo
@@ -192,6 +197,8 @@ function DisparosPage({ theme }) {
         data-bs-placement="left"
         data-bs-title="Editar"
         onClick={() => handleEdit(disparo.id)}
+        disabled={!isAdmin}
+
       >
         <i className="bi bi-pencil-fill"></i>
       </button>
@@ -202,6 +209,8 @@ function DisparosPage({ theme }) {
         data-bs-placement="left"
         data-bs-title="Excluir"
         onClick={() => handleDelete(disparo.id)}
+        disabled={!isAdmin}
+
       >
         <i className="bi bi-trash-fill"></i>
       </button>
@@ -213,6 +222,8 @@ function DisparosPage({ theme }) {
         onClick={() =>{
           handleStartDisparo(disparo.id)
         }} 
+        disabled={!isAdmin}
+
       >
         <i className="bi bi-play-fill"></i>
       </button>

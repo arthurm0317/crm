@@ -1,6 +1,7 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const ChatInternoService = require('./services/ChatInternoService');
 
 
 class SocketServer {
@@ -50,11 +51,33 @@ class SocketServer {
             console.log('Novo cliente conectado');
 
             socket.on('join', (room) => {
+                console.log('Cliente entrou na sala:', room);
                 socket.join(room);
+                
+                // Se for um userId (não uma sala geral), também adiciona à sala do usuário
+                if (room && typeof room === 'string' && room.length > 10) {
+                    socket.join(`user_${room}`);
+                    console.log('Usuário também entrou na sala pessoal:', `user_${room}`);
+                }
             });
 
             socket.on('leave', (roomId) => {
                 socket.leave(roomId);
+            });
+
+            // Chat interno - mensagem
+            socket.on('internal_message', async (data) => {
+                try {
+                    const saved = await ChatInternoService.saveMessage(data.sender_id, data.receiver_id, data.message, data.schema);
+                    
+                    // Enviar para o destinatário
+                    this.io.to(`user_${data.receiver_id}`).emit('internal_message', saved);
+                    
+                    // Enviar para o remetente (confirmação)
+                    this.io.to(`user_${data.sender_id}`).emit('internal_message', saved);
+                } catch (error) {
+                    console.error('Erro ao salvar mensagem:', error);
+                }
             });
 
             socket.on('disconnect', () => {

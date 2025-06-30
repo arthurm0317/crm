@@ -15,39 +15,106 @@ const campaingRoutes = require('./routes/CampaingRoutes')
 const tagRoutes = require('./routes/TagRoutes')
 const bodyParser = require('body-parser');
 const excelRoutes = require('./routes/ExcelRoutes');
+const chatInternoRoute = require('./routes/ChatInternoRoute');
+const ChatInternoService = require('./services/ChatInternoService');
+
 
 const cors = require('cors');
-const configureSocket = require('./config/SocketConfig');
+// const configureSocket = require('./config/SocketConfig');
 
 const app = express();
 
 
 const corsOptions = {
-  origin: ['http://localhost:3001',
-    'https://landing-page-front.8rxpnw.easypanel.host',
-    'https://eg-crm.effectivegain.com',
-    'https://ilhadogovernador.effectivegain.com/',
-    'https://ilhadogovernador.effectivegain.com'
-  ],
-  methods: ['GET', 'POST', 'DELETE', 'PUT'],
+  origin: function (origin, callback) {
+    // Permitir requisições sem origin (como mobile apps ou Postman)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:3001',
+      'http://localhost:3000',
+      'http://127.0.0.1:3001',
+      'http://127.0.0.1:3000',
+      'https://landing-page-front.8rxpnw.easypanel.host',
+      'https://eg-crm.effectivegain.com',
+      'https://ilhadogovernador.effectivegain.com/',
+      'https://ilhadogovernador.effectivegain.com'
+    ];
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('Origin bloqueada:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'DELETE', 'PUT', 'OPTIONS'],
+  credentials: true,
+  optionsSuccessStatus: 200
 };
 
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: ['http://localhost:3001',
-      'https://landing-page-front.8rxpnw.easypanel.host',
-      'https://eg-crm.effectivegain.com',
-      'https://landing-page-teste.8rxpnw.easypanel.host/',
-      'https://ilhadogovernador.effectivegain.com/',
-      'https://ilhadogovernador.effectivegain.com'
-    ], 
-    methods: ['GET', 'POST', 'DELETE', 'PUT'],
+    origin: function (origin, callback) {
+      // Permitir requisições sem origin
+      if (!origin) return callback(null, true);
+      
+      const allowedOrigins = [
+        'http://localhost:3001',
+        'http://localhost:3000',
+        'http://127.0.0.1:3001',
+        'http://127.0.0.1:3000',
+        'https://landing-page-front.8rxpnw.easypanel.host',
+        'https://eg-crm.effectivegain.com',
+        'https://landing-page-teste.8rxpnw.easypanel.host/',
+        'https://ilhadogovernador.effectivegain.com/',
+        'https://ilhadogovernador.effectivegain.com'
+      ];
+      
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        console.log('Socket.IO - Origin bloqueada:', origin);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    methods: ['GET', 'POST', 'DELETE', 'PUT', 'OPTIONS'],
+    credentials: true
   },
+  transports: ['websocket', 'polling'],
+  allowEIO3: true
 });
 
 io.on('connection', (socket) => {
-  socket.on('disconnect', () => {});
+  console.log('Cliente conectado:', socket.id);
+  
+  socket.on('join', (userId) => {
+    console.log('Usuário entrou na sala:', userId);
+    socket.join(`user_${userId}`);
+  });
+
+  socket.on('internal_message', async (data) => {
+    console.log('Mensagem interna recebida:', data);
+    try {
+      const saved = await ChatInternoService.saveMessage(data.sender_id, data.receiver_id, data.message, data.schema);
+      console.log('Mensagem salva:', saved);
+      
+      // Enviar para o destinatário
+      io.to(`user_${data.receiver_id}`).emit('internal_message', saved);
+      console.log('Mensagem enviada para destinatário:', data.receiver_id);
+      
+      // Enviar para o remetente (confirmação)
+      io.to(`user_${data.sender_id}`).emit('internal_message', saved);
+      console.log('Mensagem enviada para remetente:', data.sender_id);
+    } catch (error) {
+      console.error('Erro ao salvar mensagem:', error);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log('Cliente desconectado:', socket.id);
+  });
 });
 
 app.use(cors(corsOptions));
@@ -67,6 +134,7 @@ app.use('/files', filesRoutes);
 app.use('/campaing', campaingRoutes)
 app.use('/tag', tagRoutes)
 app.use('/excel', excelRoutes);
+app.use('/internal-chat', chatInternoRoute);
 
 const axios = require('axios');
 const fs = require('fs');
@@ -112,7 +180,7 @@ app.post('/webhook/audio', async (req, res) => {
   }
 });
 
-configureSocket(io, server);
+// configureSocket(io, server);
 
 const PORT = 3002;
 

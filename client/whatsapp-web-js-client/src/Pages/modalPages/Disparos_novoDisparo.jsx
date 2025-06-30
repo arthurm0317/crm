@@ -27,6 +27,7 @@ function DisparoModal({ theme, disparo = null }) {
   const userData = JSON.parse(localStorage.getItem('user'));
   const schema = userData?.schema;
   const url = process.env.REACT_APP_URL;
+  const isAdmin = userData?.type === 'admin'; // ou 'role', conforme seu sistema
 
 
 
@@ -331,6 +332,7 @@ const limparBase64 = (base64ComPrefixo) => {
                 value={titulo}
                 onChange={(e) => setTitulo(e.target.value)}
                 placeholder="Digite o título do disparo"
+                disabled={!isAdmin}
               />
             </div>
             {/* Número de Mensagens */}
@@ -436,6 +438,7 @@ const limparBase64 = (base64ComPrefixo) => {
                     id="canal"
                     value={canal}
                     onChange={(e) => setCanal(e.target.value)}
+                    disabled={!isAdmin}
                   >
                     <option value="" disabled>Selecione um canal</option>
                     {Array.isArray(conexao) && conexao.map((conn) => (

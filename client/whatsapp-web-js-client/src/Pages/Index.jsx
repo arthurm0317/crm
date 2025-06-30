@@ -19,6 +19,7 @@ import WhatsappModal from './modalPages/Whatsapp';
 import Manutencao from './Manutencao';
 import AjudaPage from './Ajuda';
 import LembretesPage from './Lembretes';
+import ChatInterno from './ChatInterno';
 
 window.addEventListener('error', function (event) {
   if (
@@ -104,6 +105,7 @@ function Painel() {
       case 'insights': return <Manutencao theme={theme} />;
       case 'disparos': return <DisparosPage theme={theme} />;
       case 'ajuda': return <AjudaPage theme={theme} />;
+      case 'ChatInterno': return <ChatInterno theme={theme} />;
       default: return <Dashboard theme={theme} />;
     }
   };
@@ -250,7 +252,17 @@ function Painel() {
               <i className="bi bi-question-circle"></i>
               <span className="sidebar-label d-none">Ajuda</span>
             </button>
-
+<button
+  id="chatinterno"
+  onClick={() => setPage('ChatInterno')}
+  data-bs-toggle="tooltip"
+  data-bs-placement="right"
+  data-bs-title="Chat Interno"
+  className={`btn ${page === 'ChatInterno' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''}`}
+>
+  <i className="bi bi-chat-left-text"></i>
+  <span className="sidebar-label d-none">Chat Interno</span>
+</button>
            
 
           </div>
