@@ -20,11 +20,8 @@ import WhatsappModal from './modalPages/Whatsapp';
 import Manutencao from './Manutencao';
 import AjudaPage from './Ajuda';
 import LembretesPage from './Lembretes';
-<<<<<<< HEAD
 import ChatInterno from './ChatInterno';
-=======
 import axios from 'axios';
->>>>>>> 1a93448a99824c6612574eaed3e4adb971c42c48
 
 window.addEventListener('error', function (event) {
   if (

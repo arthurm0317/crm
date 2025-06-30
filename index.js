@@ -19,7 +19,6 @@ const chatInternoRoute = require('./routes/ChatInternoRoute');
 const ChatInternoService = require('./services/ChatInternoService');
 const lembreteRoutes = require('./routes/LembretesRoutes');
 
-
 const cors = require('cors');
 // const configureSocket = require('./config/SocketConfig');
 
@@ -105,7 +104,7 @@ app.use('/campaing', campaingRoutes)
 app.use('/tag', tagRoutes)
 app.use('/excel', excelRoutes);
 app.use('/internal-chat', chatInternoRoute);
-app.use('/lembretes', lembreteRoutes)
+app.use('/lembretes', lembreteRoutes);
 
 const axios = require('axios');
 const fs = require('fs');
