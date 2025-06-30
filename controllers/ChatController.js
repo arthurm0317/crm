@@ -1,5 +1,5 @@
 
-const { setUserChat, getChats, getMessages, getChatData, getChatByUser, updateQueue, getChatById, saveMediaMessage, setMessageAsRead, closeChat, setSpecificUser, scheduleMessage } = require('../services/ChatService');
+const { setUserChat, getChats, getMessages, getChatData, getChatByUser, updateQueue, getChatById, saveMediaMessage, setMessageAsRead, closeChat, setSpecificUser, scheduleMessage, getScheduledMessages } = require('../services/ChatService');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
@@ -76,9 +76,6 @@ const sendImageController = async (req, res) => {
     }
     
     const instanceId = await searchConnById(connectionId, schema);
-
-    console.log('-------- chat ---------')
-    console.log(chat_id)
     
     const evolutionResponse = await sendImageToWhatsApp(chat_id.contact_phone, imageBase64, instanceId.name);
     
@@ -288,27 +285,13 @@ const closeChatContoller = async(req, res)=>{
   }
 }
 
-const scheduleMessageController = async (req, res) => {
-  try {
-    const {chat_id, instance, message, contact_phone, timestamp, schema} = req.body
-    const connection =await searchConnById(instance, schema)
-    await scheduleMessage(chat_id, connection, message, contact_phone, timestamp, schema);
-    res.status(200).json({
-      success:true,
-      message: 'Mensagem agendada com sucesso',
-    })
-  } catch (error) {
-    console.error(error)
-  }
-}
-
 const setSpecificUserController = async(req, res) => {
   try {
     const {user_id, chat_id} = req.body
     const schema = req.body.schema
-
+    
     const result = await setSpecificUser(chat_id, user_id, schema)
-
+    
     res.status(200).json({
       result: result
     })
@@ -317,7 +300,32 @@ const setSpecificUserController = async(req, res) => {
   }
 };
 
-
+const getScheduledMessagesController = async (req, res) => {
+  try {
+    const {chat_id, schema}=req.params
+    const result = await getScheduledMessages(chat_id, schema);
+    res.status(200).json({
+      success: true,
+      result: result
+    });
+  } catch (error) {
+    console.error(error)
+  }
+}
+const scheduleMessageController = async (req, res) => {
+    try {
+      const {chat_id, instance, message, contact_phone, timestamp, schema} = req.body
+      const connection =await searchConnById(instance, schema)
+      await scheduleMessage(chat_id, connection, message, contact_phone, timestamp, schema);
+      res.status(200).json({
+        success:true,
+        message: 'Mensagem agendada com sucesso',
+      })
+    } catch (error) {
+      console.error(error)
+    }
+  }
+  
   module.exports = {
     setUserChatController,
     getChatsController,
@@ -333,5 +341,6 @@ const setSpecificUserController = async(req, res) => {
     setMessageAsReadController,
     closeChatContoller,
     setSpecificUserController,
-    scheduleMessageController
+    scheduleMessageController,
+    getScheduledMessagesController
 };

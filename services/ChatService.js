@@ -462,6 +462,19 @@ const scheduleMessage = async (chat_id, connection, message, contact_phone, time
   }
 }
 
+const getScheduledMessages = async (chat_id, schema) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM ${schema}.scheduled_message WHERE chat_id=$1 ORDER BY scheduled_date ASC`,
+      [chat_id]
+    );
+    return result.rows;
+  } catch (error) {
+    console.error(error);
+    throw new Error('Erro ao buscar mensagens agendadas');
+  }
+};
+
 const deleteScheduledMessage = async (id, schema) => {
   try {
     await pool.query(
@@ -494,5 +507,6 @@ module.exports = {
   getChatIfUserIsNull,
   updateChatNameByNumber,
   scheduleMessage,
+  getScheduledMessages,
   deleteScheduledMessage
 };
