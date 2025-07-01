@@ -99,6 +99,29 @@ const transferQueue = async (chatId, newQueueId, schema) => {
   return result.rows[0];
 };
 
+const updateUserQueues = async (userId, queueIds, schema) => {
+  try {
+    await pool.query(
+      `DELETE FROM ${schema}.queue_users WHERE user_id = $1`,
+      [userId]
+    );
+
+    if (queueIds && queueIds.length > 0) {
+      for (const queueId of queueIds) {
+        await pool.query(
+          `INSERT INTO ${schema}.queue_users (user_id, queue_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+          [userId, queueId]
+        );
+      }
+    }
+
+    return { success: true, message: 'Filas do usuário atualizadas com sucesso' };
+  } catch (error) {
+    console.error('Erro ao atualizar filas do usuário:', error);
+    throw error;
+  }
+};
+
 module.exports = {
     createQueue,
     addUserinQueue,
@@ -108,4 +131,5 @@ module.exports = {
     deleteQueue,
     getQueueById,
     transferQueue,
+    updateUserQueues,
 };

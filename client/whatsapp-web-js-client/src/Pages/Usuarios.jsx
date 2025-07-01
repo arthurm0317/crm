@@ -16,6 +16,45 @@ function UsuariosPage({ theme }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [modalType, setModalType] = useState('new');
 
+  const handleSaveUserFilas = async (selectedFilas, userId) => {
+    try {
+      await axios.post(`${url}/queue/update-user-queues`, {
+        userId: userId,
+        queueIds: selectedFilas,
+        schema: schema
+      });
+      
+      // Recarregar a lista de usuários para atualizar as filas
+      const response = await axios.get(`${url}/api/users/${schema}`);
+      const usuariosBase = response.data.users || [];
+
+      const usuariosComFilas = await Promise.all(
+        usuariosBase.map(async (usuario) => {
+          try {
+            const queue = await axios.get(`${url}/queue/get-user-queue/${usuario.id}/${schema}`);
+            let queueNames = '-';
+            if (queue.data?.result) {
+              if (Array.isArray(queue.data.result)) {
+                queueNames = queue.data.result.map(fila => fila.name).filter(Boolean).join(', ') || '-';
+              } else if (typeof queue.data.result === 'object') {
+                queueNames = queue.data.result.name || '-';
+              } else {
+                queueNames = queue.data.result.toString();
+              }
+            }
+            return { ...usuario, queue: queueNames };
+          } catch (error) {
+            return { ...usuario, queue: '-' };
+          }
+        })
+      );
+
+      setUsuarios(usuariosComFilas);
+    } catch (error) {
+      console.error('Erro ao salvar filas do usuário:', error);
+    }
+  };
+
   useEffect(() => {
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     tooltipTriggerList.forEach((el) => {
@@ -146,6 +185,7 @@ function UsuariosPage({ theme }) {
                         data-bs-toggle="tooltip"
                         title="Gerir filas"
                         onClick={() => {
+                          setUsuarioSelecionado(usuario);
                           const modal = new bootstrap.Modal(document.getElementById('UserFilasModal'));
                           modal.show();
                         }}
@@ -192,7 +232,12 @@ function UsuariosPage({ theme }) {
       <NewUserModal theme={theme} type={modalType}/>
       <EditUserModal theme={theme} user={usuarioSelecionado}/>
       <DeleteUserModal theme={theme} usuario={usuarioSelecionado}/>
-      <UserFilasModal theme={theme}/>
+      <UserFilasModal 
+        theme={theme}
+        userId={usuarioSelecionado?.id}
+        userName={usuarioSelecionado?.name}
+        onChange={handleSaveUserFilas}
+      />
     </div>
   );
 }

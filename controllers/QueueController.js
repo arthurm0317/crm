@@ -1,6 +1,6 @@
 const Queue = require("../entities/Queue");
 const { v4: uuidv4 } = require('uuid');
-const { createQueue, addUserinQueue, getUserQueues, getAllQueues, deleteQueue, getQueueById, transferQueue } = require("../services/QueueService");
+const { createQueue, addUserinQueue, getUserQueues, getAllQueues, deleteQueue, getQueueById, transferQueue, updateUserQueues } = require("../services/QueueService");
 const { setUserChat } = require("../services/ChatService");
 
 
@@ -22,10 +22,10 @@ const createQueueController = async(req, res)=>{
     }
 }
 
-const addUserinQueueController = async(req, res)=>{    
+const addUserinQueueController = async(req, res)=>{   
    try{
     const {user, queue}=req.body;
-    const schema = req.body.schema || 'effective_gain';
+    const schema = req.body.schema;
 
     console.log("Body recebido:", req.body);
     
@@ -101,6 +101,26 @@ const transferQueueController = async (req, res) => {
   }
 };
 
+const updateUserQueuesController = async (req, res) => {
+  try {
+    const { userId, queueIds, schema } = req.body;
+
+    if (!userId || !schema) {
+      return res.status(400).json({ error: 'userId e schema são obrigatórios' });
+    }
+
+    const result = await updateUserQueues(userId, queueIds, schema);
+    res.status(200).json({ 
+      success: true, 
+      message: 'Filas do usuário atualizadas com sucesso',
+      result 
+    });
+  } catch (error) {
+    console.error('Erro ao atualizar filas do usuário:', error);
+    res.status(500).json({ error: 'Erro ao atualizar filas do usuário' });
+  }
+};
+
 module.exports = {
     createQueueController,
     addUserinQueueController,
@@ -109,4 +129,5 @@ module.exports = {
     deleteQueueController,
     getQueueByIdController,
     transferQueueController,
+    updateUserQueuesController,
 }
