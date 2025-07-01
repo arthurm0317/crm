@@ -112,7 +112,7 @@ const filasParaSetorial = isAdmin ? filasDisponiveis : filasSuperUser;
       setTipo(lembreteEdit.tag);
       setTitulo(lembreteEdit.lembrete_name);
       setMensagem(lembreteEdit.message);
-      setIcone(lembreteEdit.icone);
+      setIcone(lembreteEdit.icone || iconesPessoais[0]);;
       setData(formatUnixToDatetimeLocal(lembreteEdit.date));
       setFilasSelecionadas(lembreteEdit?.filas ?? []);
     } else {
@@ -346,7 +346,7 @@ const filasInvalidas = () => {
                   >
                     <span className="d-flex align-items-center gap-2">
                       <i className={`bi ${icone}`}></i>
-                      {(() => { const nome = icone.replace('bi-', '').replace(/-/g, ' '); return nome.charAt(0).toUpperCase() + nome.slice(1); })()}
+                      {(() => { const nome = (icone || '').replace('bi-', '').replace(/-/g, ' '); return nome.charAt(0).toUpperCase() + nome.slice(1); })()}
                     </span>
                     <i className={`bi bi-chevron-${dropdownOpen ? 'up' : 'down'}`}></i>
                   </button>

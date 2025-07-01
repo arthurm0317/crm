@@ -7,6 +7,7 @@ const createRedisConnection = require('../config/Redis');
 const { sendTextMessage } = require('../requests/evolution');
 const { saveMessage } = require('./MessageService');
 const { Message } = require('../entities/Message');
+const { createLembrete } = require('./LembreteService');
 
 const bullConn = createRedisConnection()
 const messageQueue = new Queue('message', {connection: bullConn});
@@ -442,6 +443,8 @@ const scheduleMessage = async (chat_id, connection, message, contact_phone, time
 
     
 
+    const chat = await getChatById(chat_id, connection.id, schema)
+
     const messageDB = new Message(uuid4(), message, true, chat_id, timestamp )
 
     const job = await messageQueue.add('sendMessage',{
@@ -455,8 +458,20 @@ const scheduleMessage = async (chat_id, connection, message, contact_phone, time
 
     const result = await pool.query(`
       INSERT INTO ${schema}.scheduled_message(id, message, chat_id, scheduled_date, bull_job_id) VALUES ($1, $2, $3, $4, $5) RETURNING *
-      `, [uuid4(), message, chat_id, timestamp, job.id])
+      `, [uuid4(), message, chat_id, timestamp, job.id]
+    )
 
+    await createLembrete(
+      `Mensagem agendada para ${chat.contact_name}`,
+      'pessoal',
+      `Mensagem: ${message}`,
+      timestamp,
+      'bi-alarm',
+      chat.assigned_user,
+      schema,
+      
+    )
+    
     return result.rows[0]
 
   }catch(error){
