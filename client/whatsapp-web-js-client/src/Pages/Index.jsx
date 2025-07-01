@@ -439,7 +439,7 @@ useEffect(() => {
   data-bs-toggle="tooltip"
   data-bs-placement="right"
   data-bs-title="Chat Interno"
-  className={`btn ${page === 'ChatInterno' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''}`}
+  className={`btn ${page === 'ChatInterno' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''} d-none`}
 >
   <i className="bi bi-chat-left-text"></i>
   <span className="sidebar-label d-none">Chat Interno</span>
