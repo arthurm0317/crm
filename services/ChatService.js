@@ -65,7 +65,6 @@ const createChat = async (chat, instance, message, etapa, io) => {
 
     if (existingChat.rowCount > 0) {
       if(existingChat.rows[0].status !== 'closed'){
-        console.log('chat', existingChat.rows[0]);
         const updated = await updateChatMessages(chat, schema, message);
         if(existingChat.rows[0].queue_id===null){
           await setChatQueue(schema, existingChat.rows[0].id)
@@ -134,7 +133,6 @@ const createChat = async (chat, instance, message, etapa, io) => {
     }
 
     const result = await pool.query(query, values);
-    console.log('Resultado da inserção do chat:', result.rows[0]);
     if(result.rows[0].queue_id===null){
       await setChatQueue(schema, result.rows[0].id)
     }

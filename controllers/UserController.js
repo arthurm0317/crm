@@ -3,15 +3,16 @@ const { Users } = require('../entities/Users');
 const { v4: uuidv4 } = require('uuid');
 
 const createUserController = async (req, res) => {
+  console.log(req.body)
     try {
-      const { name, email, password, permission } = req.body;
+      const { name, email, password, role } = req.body;
   
       const user = new Users(
         uuidv4(),
         name,
         email,
         password,
-        permission
+        role
       );
   
         const schema = req.body.schema;
