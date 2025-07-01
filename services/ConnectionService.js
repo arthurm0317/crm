@@ -37,19 +37,14 @@ const searchConnById = async (instanceId, schema) => {
       throw err;
     }
 };
-const setQueue = async(connectionNumber, queueName, schema)=>{
-    const queueId = await pool.query(
-        `SELECT id FROM ${schema}.queues WHERE name=$1`, [queueName]
-    )
-    if(queueId.rowCount>0){
-        const result = await pool.query(`UPDATE ${schema}.connections SET queue_id=$1 WHERE number=$2`,
-        [
-            queueId.rows[0].id,
-            connectionNumber
-        ]
-        );
-        return result.rows[0]
-    }
+const setQueue = async(connection_id, queue_id, schema)=>{
+    const result = await pool.query(`UPDATE ${schema}.connections SET queue_id=$1 WHERE id=$2 RETURNING *`,
+    [
+        queue_id,
+        connection_id
+    ]
+    );
+    return result.rows[0]
 }
 
 const getAllConnections = async (schema) => {

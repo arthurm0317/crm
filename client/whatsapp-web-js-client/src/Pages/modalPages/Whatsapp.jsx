@@ -46,11 +46,18 @@ function WhatsappModal({ theme, show, onHide }) {
 
   const handleVerFilas = (contato) => {
     setSelectedContato(contato);
-    setFilas([
-      { nome: 'Fila Suporte', setor: 'Suporte', dataVinculacao: '2024-03-15T10:00:00' },
-      { nome: 'Fila Vendas', setor: 'Vendas', dataVinculacao: '2024-03-16T11:30:00' }
-    ]);
     setShowUsuariosModal(true);
+  };
+
+  const handleQueueChange = (contatoId, novaFilaId, novaFila) => {
+    // Atualizar o contato na lista com a nova fila
+    setContatos(prevContatos => 
+      prevContatos.map(contato => 
+        contato.id === contatoId 
+          ? { ...contato, queue_id: novaFilaId }
+          : contato
+      )
+    );
   };
 
   return (
@@ -196,7 +203,7 @@ function WhatsappModal({ theme, show, onHide }) {
               setSelectedContato(null);
             }}
             contato={selectedContato} 
-            filas={filas} 
+            onQueueChange={handleQueueChange}
           />
         </div>
       )}
