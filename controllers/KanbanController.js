@@ -69,7 +69,7 @@ const changeKanbanStageController = async (req, res) => {
 
         const result = await changeKanbanStage(chat_id, stage_id, schema);
 
-        SocketServer.io.emit('leadMoved', { chat_id, stage_id });
+        SocketServer.io.to(`schema_${schema}`).emit('leadMoved', { chat_id, stage_id });
 
         res.status(200).json(result);
     } catch (error) {

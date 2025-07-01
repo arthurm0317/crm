@@ -378,9 +378,10 @@ const handleAcceptChat = async () => {
   }
 }, [socketInstance, selectedChatId]);
 
- useEffect(() => {
+   useEffect(() => {
   if (socketInstance) {
     socketInstance.on('connect', () => {
+      socketInstance.emit('join', `schema_${schema}`);
     });
     socketInstance.on('chats_updated', (updatedChats) => {
   let chats = [];
@@ -407,9 +408,11 @@ const handleAcceptChat = async () => {
     if (socketInstance) {
       socketInstance.off('connect');
       socketInstance.off('chats_updated');
+      // Sai da sala do schema ao desconectar
+      socketInstance.emit('leave', `schema_${schema}`);
     }
   };
-}, [socketInstance, userData.id]);
+}, [socketInstance, userData.id, schema]);
 const handleSubmit = (data) => {
   if (!selectedChat) {
     console.warn('Nenhum chat selecionado!');
