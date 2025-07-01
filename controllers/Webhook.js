@@ -11,7 +11,7 @@ const { createChat, getChatService, setChatQueue, setUserChat, saveMediaMessage,
 const { saveMessage } = require('../services/MessageService');
 const pool = require('../db/queries');
 const { getCurrentTimestamp } = require('../services/getCurrentTimestamp');
-const { getBase64FromMediaMessage } = require('../requests/evolution');
+const { getBase64FromMediaMessage, sendTextMessage } = require('../requests/evolution');
 const express = require('express');
 const SocketServer = require('../server');
 const createRedisConnection = require('../config/Redis');
@@ -76,8 +76,6 @@ module.exports = (broadcastMessage) => {
       const createChats = await createChat(chat, result.instance, result.data.message.conversation, null, null);
       const chatDb = await getChatService(createChats.chat.id, createChats.chat.connection_id, createChats.schema);
       const schema = createChats.schema
-
-      console.log('CHAT DB',chatDb)
 
       if(chatDb.assigned_user===null){
         await setUserChat(chatDb.id, schema)
@@ -196,10 +194,22 @@ module.exports = (broadcastMessage) => {
           schema
         );
       }
-
+      const data = {
+        chatId: chatDb.id,
+        instance:result.instance,
+        body: messageBody,
+        fromMe: result.data.key.fromMe,
+        from: result.data.pushName,
+        timestamp,
+        message_type: result.data.messageType,
+        user_id: baseChat.assigned_user,
+        status: baseChat.status,
+        schema: schema
+      };
+      await axios.post(`https://n8n-n8n-start.8rxpnw.easypanel.host/webhook/${result.instance}`, data);
+      console.log('Dados enviados para o Webhook 2');
       res.status(200).json({ result });
-    //   await axios.post(`https://n8n-n8n-start.8rxpnw.easypanel.host/${result.instance}`, data);
-    // console.log('Dados enviados para o Webhook 2');
+
   } catch (error) {
     console.error('Erro ao enviar para o próximo webhook:', error);
   }
@@ -270,6 +280,23 @@ module.exports = (broadcastMessage) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+app.post('/resposta', async(req, res)=>{
+    try {
+        const message = new Message(
+          uuidv4(),
+          req.body.body,
+          true,
+          req.body.id,
+          getCurrentTimestamp(req.body.timestamp)
+        )
+        await saveMessage(req.body.id, message, req.body.schema)
+        await sendTextMessage(req.body.instance, req.body.body, req.body.number)
+        res.status(200).json({success:true})
+    } catch (error) {
+        console.error(error)
+    }
+})
 
   return app;
 };

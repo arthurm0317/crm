@@ -7,6 +7,7 @@ const {
   scheduleMessageController,
   getScheduledMessagesController,
   deleteScheduledMessageController,
+  disableBotController,
 } = require('../controllers/ChatController'); 
 const { updateContactName } = require('../services/ChatService');
 const router = express.Router();
@@ -25,5 +26,6 @@ router.post('/setAsRead', setMessageAsReadController)
 router.post('/close', closeChatContoller)
 router.post('/setUser', setSpecificUserController)
 router.post('/schedule-message', scheduleMessageController)
+router.post('/disable-bot', disableBotController)
 router.delete('/scheduled-message/:id/:schema', deleteScheduledMessageController)
 module.exports = router;

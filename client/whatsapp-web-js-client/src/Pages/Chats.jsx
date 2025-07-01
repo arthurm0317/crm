@@ -241,6 +241,7 @@ function ChatPage({ theme, chat_id} ) {
   const [connections, setConnections] = useState([]);
   const nomeContatoRef = useRef(null);
   const [showNewContactModal, setShowNewContactModal] = useState(false);
+  const [isBotActive, setIsBotActive] = useState(false);
   const [socketInstance] = useState(socket)  
   const url = process.env.REACT_APP_URL;
 
@@ -342,6 +343,20 @@ const handleAcceptChat = async () => {
     }
   }
 
+const disableBot = async () => {
+  if (!selectedChat) return;
+  
+  try {
+    await axios.post(`${url}/chat/disable-bot`, {
+      chat_id: selectedChat.id,
+      schema: schema,
+    });
+    setIsBotActive(false);
+  } catch (error) {
+    console.error('Erro ao desativar bot:', error);
+  }
+};
+
   const handleChatClick = (chat) => {
   setSelectedChat(chat);
   setSelectedChatId(chat.id);
@@ -357,6 +372,12 @@ const handleAcceptChat = async () => {
   );  
   scrollToBottom()
   
+  // Carregar status do bot do banco de dados
+  if (chat.isboton) {
+    setIsBotActive(true);
+  } else {
+    setIsBotActive(false);
+  }
 };
 
   useEffect(() => {
@@ -1060,6 +1081,15 @@ const handleImageUpload = async (event) => {
     </div>
 
     <div className='d-flex flex-row gap-2'>
+
+      <button
+        className={`btn btn-2-${theme} d-flex gap-2`}
+        onClick={isBotActive ? disableBot : undefined}
+        disabled={!isBotActive}
+        title={isBotActive ? "Desativar Bot" : "Bot Desativado"}
+      >
+        <i className={`bi ${isBotActive ? 'bi-pause':'bi-play-fill'}`}></i>
+      </button>
 
       {selectedChat && selectedChat.status === 'waiting' && (
   <div>

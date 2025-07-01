@@ -241,20 +241,29 @@ const getChats = async (schema) => {
     return rows;
 };
 
-const setChatQueue = async(schema, chatId)=>{
+const setChatQueue = async (schema, chatId) => {
   const chatConn = await pool.query(
     `SELECT * FROM ${schema}.chats WHERE id=$1`, [chatId]
-  )
+  );
+  if (!chatConn.rows[0]) {
+    console.error('Chat não encontrado ao tentar setar queue.');
+    return null;
+  }
   const connQueue = await pool.query(
     `SELECT * FROM ${schema}.connections WHERE id=$1`, [chatConn.rows[0].connection_id]
-  )
-  if(chatConn.rows[0].queue_id === null){
-    const firstQueue = await pool.query(
-      `UPDATE ${schema}.chats SET queue_id=$1 WHERE id=$2`,[connQueue.rows[0].queue_id, chatId]
-    )
-    return firstQueue.rows[0]
+  );
+  if (!connQueue.rows[0]) {
+    console.error('Connection não encontrada ao tentar setar queue.');
+    return null;
   }
-}
+  if (chatConn.rows[0].queue_id === null) {
+    const firstQueue = await pool.query(
+      `UPDATE ${schema}.chats SET queue_id=$1 WHERE id=$2`, [connQueue.rows[0].queue_id, chatId]
+    );
+    return firstQueue.rows[0];
+  }
+  return null;
+};
 
 const updateQueue = async(schema, chatId, queueId)=>{
   const result = await pool.query(
@@ -513,6 +522,17 @@ const deleteScheduledMessage = async (id, schema) => {
   }
 }
 
+const disableBot = async(chat_id, schema)=>{
+  try{
+    const result = await pool.query(
+      `UPDATE ${schema}.chats SET isboton = $1 where id = $2`,[false, chat_id]
+    )
+    return result.rows[0];
+  }catch(error){
+    console.error(error)
+  }
+}
+
 module.exports = {
   createChat,
   updateChatMessages,
@@ -535,5 +555,6 @@ module.exports = {
   updateChatNameByNumber,
   scheduleMessage,
   getScheduledMessages,
-  deleteScheduledMessage
+  deleteScheduledMessage,
+  disableBot
 };
