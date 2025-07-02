@@ -7,7 +7,7 @@ const createRedisConnection = require('../config/Redis');
 const { Queue, Worker } = require('bullmq');
 const { saveMessage } = require('./MessageService');
 const { Message } = require('../entities/Message');
-const { getCurrentTimestamp } = require('./getCurrentTimestamp');
+const { getCurrentTimestamp, parseLocalDateTime } = require('./getCurrentTimestamp');
 
 const bullConn = createRedisConnection();
 const blastQueue = new Queue("Campanha", { connection: bullConn });
@@ -59,7 +59,7 @@ worker.on('error', (err) => {
 
 const createCampaing = async (campaing_id, campName, sector, kanbanStage, connectionId, startDate, schema, intervalo) => {
   try {
-    const unixStartDate = new Date(startDate).getTime();
+    const unixStartDate = parseLocalDateTime(startDate);
 
     // Converter o intervalo para segundos baseado na unidade
     let intervalEmSegundos;
