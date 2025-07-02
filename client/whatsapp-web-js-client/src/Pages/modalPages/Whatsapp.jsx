@@ -3,6 +3,7 @@ import { Modal } from 'react-bootstrap';
 import WhatsappNovoContatoModal from './Whatsapp_novoContato';
 import WhatsappDeleteModal from './Whatsapp_delete';
 import WhatsappFilasModal from './Whatsapp_filas';
+
 import axios from 'axios';
 
 function WhatsappModal({ theme, show, onHide }) {
@@ -12,6 +13,7 @@ function WhatsappModal({ theme, show, onHide }) {
   const [showNovoContatoModal, setShowNovoContatoModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showUsuariosModal, setShowUsuariosModal] = useState(false);
+
   const userData = JSON.parse(localStorage.getItem('user')); 
   const schema = userData?.schema
   const url = process.env.REACT_APP_URL;
@@ -59,6 +61,8 @@ function WhatsappModal({ theme, show, onHide }) {
       )
     );
   };
+
+
 
   return (
     <>
@@ -134,6 +138,7 @@ function WhatsappModal({ theme, show, onHide }) {
                           >
                             <i className="bi bi-diagram-3"></i>
                           </button>
+
                           <button
                             type="button"
                             className="btn btn-sm delete-btn"
@@ -207,6 +212,8 @@ function WhatsappModal({ theme, show, onHide }) {
           />
         </div>
       )}
+      
+
     </>
   );
 }

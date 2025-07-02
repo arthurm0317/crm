@@ -1,6 +1,6 @@
 const Queue = require("../entities/Queue");
 const { v4: uuidv4 } = require('uuid');
-const { createQueue, addUserinQueue, getUserQueues, getAllQueues, deleteQueue, getQueueById, transferQueue, updateUserQueues } = require("../services/QueueService");
+const { createQueue, addUserinQueue, getUserQueues, getAllQueues, deleteQueue, getQueueById, transferQueue, updateUserQueues, toggleWebhookStatus, updateWebhookUrl } = require("../services/QueueService");
 const { setUserChat } = require("../services/ChatService");
 
 
@@ -121,6 +121,37 @@ const updateUserQueuesController = async (req, res) => {
   }
 };
 
+const updateWebhookUrlController = async (req, res) => {
+    const { queue_id, webhook_url, schema } = req.body;
+    try {
+        const result = await updateWebhookUrl(queue_id, webhook_url, schema)
+        res.status(200).json({
+            success:true,
+            data:result
+        })
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({
+            success:false
+        })
+    }
+}
+const toggleWebhookStatusController = async (req, res) => {
+    const { queue_id, status, schema } = req.body;
+    try {
+        const result = await toggleWebhookStatus(queue_id, status, schema)
+        res.status(200).json({
+            success:true,
+            data:result
+        })
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({
+            success:false
+        })
+    }
+}
+
 module.exports = {
     createQueueController,
     addUserinQueueController,
@@ -130,4 +161,6 @@ module.exports = {
     getQueueByIdController,
     transferQueueController,
     updateUserQueuesController,
+    updateWebhookUrlController,
+    toggleWebhookStatusController
 }

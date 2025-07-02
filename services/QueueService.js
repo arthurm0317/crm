@@ -122,6 +122,20 @@ const updateUserQueues = async (userId, queueIds, schema) => {
   }
 };
 
+const updateWebhookUrl = async(queue_id, webhook_url, schema)=>{
+    const result = await pool.query(
+        `UPDATE ${schema}.queues SET webhook_url=$1 WHERE id=$2 RETURNING *`,[webhook_url, queue_id]
+    )
+    return result.rows[0]
+}
+
+const toggleWebhookStatus = async(queue_id, status, schema)=>{
+    const result = await pool.query(
+        `UPDATE ${schema}.queues SET is_webhook_on=$1 WHERE id=$2 RETURNING *`,[status, queue_id]
+    )
+    return result.rows[0]
+}
+
 module.exports = {
     createQueue,
     addUserinQueue,
@@ -132,4 +146,6 @@ module.exports = {
     getQueueById,
     transferQueue,
     updateUserQueues,
+    updateWebhookUrl,
+    toggleWebhookStatus
 };

@@ -3,11 +3,14 @@ import * as bootstrap from 'bootstrap';
 import axios from 'axios';
 import NewQueueModal from './modalPages/Filas_novaFila';
 import DeleteQueueModal from './modalPages/Filas_delete';
+import FilasWebhookModal from './modalPages/Filas_webhook';
 
 function FilaPage({ theme }) {
   const [filas, setFilas] = useState([]);
   const [fila, setFila] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
+  const [showWebhookModal, setShowWebhookModal] = useState(false);
+  const [selectedFila, setSelectedFila] = useState(null);
   const userData = JSON.parse(localStorage.getItem('user'));
   const schema = userData?.schema;
   const url = process.env.REACT_APP_URL;
@@ -47,6 +50,17 @@ const filasFiltradas = filas.filter(fila => {
   const nome = fila?.nome || '';
   return nome.toLowerCase().includes(searchTerm.toLowerCase());
 });
+
+const handleWebhookSave = (filaId, webhookUrl, webhookEnabled) => {
+  // Atualizar a fila na lista com o novo webhook
+  setFilas(prevFilas => 
+    prevFilas.map(fila => 
+      fila.id === filaId 
+        ? { ...fila, webhook_url: webhookUrl, webhook_enabled: webhookEnabled }
+        : fila
+    )
+  );
+};
 
   return (
     <div className="h-100 w-100 mx-2 pt-3">
@@ -104,6 +118,18 @@ const filasFiltradas = filas.filter(fila => {
                   </button>
 
                   <button
+                    className={`icon-btn btn-2-${theme} me-1`}
+                    data-bs-toggle="tooltip"
+                    title="Webhook"
+                    onClick={() => {
+                      setSelectedFila(fila);
+                      setShowWebhookModal(true);
+                    }}
+                  >
+                    <i className="bi bi-link-45deg"></i>
+                  </button>
+
+                  <button
                     className="icon-btn text-danger"
                     data-bs-toggle="tooltip"
                     title="Excluir"
@@ -127,6 +153,19 @@ const filasFiltradas = filas.filter(fila => {
           <NewQueueModal theme={theme}/>
           <DeleteQueueModal theme={theme} fila={fila}/>
         </div>
+
+        {showWebhookModal && selectedFila && (
+          <FilasWebhookModal 
+            theme={theme} 
+            show={showWebhookModal}
+            onHide={() => {
+              setShowWebhookModal(false);
+              setSelectedFila(null);
+            }}
+            fila={selectedFila} 
+            onSave={handleWebhookSave}
+          />
+        )}
     </div>
   );
 }

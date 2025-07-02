@@ -1,6 +1,6 @@
 const Connection = require("../entities/Connection")
 const { v4: uuidv4 } = require('uuid');
-const { createConnection, setQueue, getAllConnections, deleteConnection } = require("../services/ConnectionService");
+const { createConnection, setQueue, getAllConnections, deleteConnection, updateWebhookUrl, toggleWebhookStatus } = require("../services/ConnectionService");
 const { deleteInstance } = require("../requests/evolution");
 
 const createConnectionController = async(req, res)=>{
@@ -67,5 +67,5 @@ module.exports = {
     createConnectionController, 
     setQueueController,
     getAllConnectionsController,
-    deleteConnectionController
+    deleteConnectionController,
 }
