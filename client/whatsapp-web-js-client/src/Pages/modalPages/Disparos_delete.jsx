@@ -5,14 +5,23 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
 function DeleteDisparoModal({ theme, disparo, onDelete }) {
-  // Como é fictício, não precisamos do schema real
+  const userData = JSON.parse(localStorage.getItem('user')); 
+  const schema = userData?.schema;
+  const url = process.env.REACT_APP_URL;
+
   const handleDelete = async () => {
     try {
-      // Simulando a chamada da API
-      // Chama o callback para atualizar a lista
-      onDelete(); 
+      const response = await axios.delete(`${url}/campaing/delete/${disparo.id}/${schema}`);
+      
+      if (response.data.success) {
+        onDelete(); 
+        alert('Disparo deletado com sucesso!');
+      } else {
+        alert('Erro ao deletar disparo');
+      }
     } catch (error) {
       console.error('Erro ao deletar disparo:', error);
+      alert('Erro ao deletar disparo');
     }
   }
 
@@ -44,7 +53,7 @@ function DeleteDisparoModal({ theme, disparo, onDelete }) {
             <p className="text-danger-true fw-bold mb-1">
               Título:
               <span className={`fw-bold header-text-${theme} ms-1`}>
-                {disparo.titulo}
+                {disparo.campaing_name}
               </span>
             </p>
             <p className="text-danger-true fw-bold mb-3">

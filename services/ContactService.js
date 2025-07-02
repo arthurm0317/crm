@@ -41,12 +41,10 @@ const createContact = async(contactNumber, contactName, connection, user_id, sch
 }
 
 const updateContactName = async(number, name, schema)=>{
-    console.log(number, name)
     try {
         const result = await pool.query(
             `UPDATE ${schema}.contacts set contact_name=$1 where number=$2`,[name, number]
         )
-        console.log(result)
         return result
     } catch (error) {
         console.error(error)

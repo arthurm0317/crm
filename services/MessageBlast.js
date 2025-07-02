@@ -68,7 +68,6 @@ const createMessageForBlast = async (id, messageValue, sector, campaingId, schem
 
 
 const sendBlastMessage = async (instanceId, messageValue, number, chat_id, schema) => {
-  console.log('entrou text')
   try {
     const instance = await searchConnById(instanceId, schema);
     const processedMessage = await replacePlaceholders(messageValue, number, schema);

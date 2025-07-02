@@ -54,7 +54,6 @@ const getInformationFromExcel = async (data, connection, sector, schema) => {
          ON CONFLICT (number) DO NOTHING`,
         [numero, nome]
       );
-      console.log(`Contato inserido ou já existente: ${numero} - ${nome}`);
       for (const [key, value] of Object.entries(row)) {
         if (key !== 'numero' && key !== 'nome' && key !== 'etapa') {
           await insertValueCustomField(key, numero, value, schema);
@@ -62,7 +61,6 @@ const getInformationFromExcel = async (data, connection, sector, schema) => {
       }
       if (etapa) {
         await insertInKanbanStage(etapa, connection, sector, numero, schema);
-        console.log(`Contato ${numero} inserido na etapa ${etapa}`);
       }
     } catch (error) {
       console.error(`Erro ao processar linha: ${JSON.stringify(row)}`, error);

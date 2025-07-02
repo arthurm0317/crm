@@ -3,7 +3,6 @@ const { Users } = require('../entities/Users');
 const { v4: uuidv4 } = require('uuid');
 
 const createUserController = async (req, res) => {
-  console.log(req.body)
     try {
       const { name, email, password, role } = req.body;
   
@@ -51,7 +50,7 @@ const getAllUsersController = async(req, res)=>{
             message:'Não foi possivel exibir os usuários'
 
         })
-        console.log(error)
+        console.error(error)
     }
 }
 const searchUserController = async (req, res) => {
@@ -111,7 +110,7 @@ const getOnlineUsersController = async (req, res) => {
       users: result,
     });
   } catch (error) {
-    console.log(error)
+    console.error(error)
     res.status(500).json({
       message: 'Não foi possível exibir os usuários',
     });
@@ -128,7 +127,7 @@ const changeOfflineController = async(req, res)=>{
       users: result,
     });
   } catch (error) {
-    console.log(error)
+    console.error(error)
     res.status(500).json({
       message: error,
     });
@@ -138,14 +137,13 @@ const deleteUserController = async(req, res)=>{
   const {user_id} = req.body
   const schema = req.body.schema
 
-  console.log(user_id)
   try{
     const result = await deleteUser(user_id, schema)
     res.status(204).json({
       users: result,
     });
   } catch (error) {
-    console.log(error)
+    console.error(error)
     res.status(500).json({
       message: error,
     });

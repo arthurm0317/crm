@@ -51,7 +51,6 @@ const deleteConnectionController =async (req, res) => {
     try {
         const {connection_id, instanceName, schema} = req.params
         const result = await deleteConnection(connection_id, schema)
-        console.log(result)
         await deleteInstance(instanceName)
 
         res.status(200).json({result})

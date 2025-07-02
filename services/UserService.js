@@ -48,7 +48,6 @@ const searchUser = async (userMail, userPassword) => {
       if (result.rows.length > 0) {
         const user = result.rows[0];
         const isValidPassword = await compare(userPassword, user.password);
-        console.log(isValidPassword)
         if (!isValidPassword) {
           throw new Error('Senha incorreta');
         } else {

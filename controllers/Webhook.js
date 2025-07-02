@@ -16,6 +16,7 @@ const express = require('express');
 const SocketServer = require('../server');
 const createRedisConnection = require('../config/Redis');
 const { Queue, Worker } = require('bullmq');
+const { getQueueById } = require('../services/QueueService');
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
@@ -206,8 +207,17 @@ module.exports = (broadcastMessage) => {
         status: baseChat.status,
         schema: schema
       };
-      await axios.post(`https://n8n-n8n-start.8rxpnw.easypanel.host/webhook/${result.instance}`, data);
-      console.log('Dados enviados para o Webhook 2');
+
+      const queueById = await getQueueById(chatDb.queue_id, schema);
+
+      if(queueById[0].is_webhook_on === true && queueById[0].webhook_url !== null){
+        try {
+          await axios.post(queueById[0].webhook_url, data)
+        } catch (error) {
+          console.error(error);
+        }
+      }
+
       res.status(200).json({ result });
 
   } catch (error) {

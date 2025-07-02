@@ -6,7 +6,6 @@ const io = SocketServer.io
 const createKanbanStageController = async (req, res) => {
     try {
         const { name, pos, sector, color } = req.body;
-        console.log(req.body)
         const schema = req.body.schema;
         const result = await createKanbanStage(name, pos, color, sector, schema);
         

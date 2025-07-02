@@ -15,7 +15,6 @@ const createInstanceController = async (req, res) => {
             instanceName: instanceName,
             number: number,
         });
-        console.log(result)
         const conn = new Connections(result.instance.instanceId, instanceName, number);
         const ress = await createConnection(conn, schema);
 

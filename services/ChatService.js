@@ -388,7 +388,7 @@ const setMessageIsUnread = async(chat_id, schema)=>{
       [chat_id, true]
     );
   } catch (error) {
-    console.log(error)
+    console.error(error)
   }
 }
 
@@ -399,7 +399,7 @@ const setMessageAsRead = async(chat_id, schema)=>{
       [chat_id, false]
     );
   } catch (error) {
-    console.log(error)
+    console.error(error)
   }
 }
 
@@ -409,7 +409,7 @@ const closeChat = async(chat_id, schema)=>{
       ['closed', chat_id]
     )
   } catch (error) {
-    console.log(error)
+    console.error(error)
   }
 }
 
@@ -421,7 +421,7 @@ const setSpecificUser = async(chat_id, user_id, schema)=>{
     )
     return result.rows[0]
   } catch (error) {
-    console.log(error)
+    console.error(error)
   }
 }
 

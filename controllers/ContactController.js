@@ -16,7 +16,6 @@ const createCustomFieldController = async (req, res) => {
 const insertValueCustomFieldController = async (req, res) => {
     const { fieldName, contactNumber, value } = req.body;
     const schema = req.body.schema || 'effective_gain';
-    console.log('Schema recebido:', schema);
 
     try {
         const result = await insertValueCustomField(fieldName, contactNumber, value, schema);

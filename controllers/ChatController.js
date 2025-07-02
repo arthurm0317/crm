@@ -103,7 +103,7 @@ const setUserChatController = async (req, res) => {
 
     res.status(201).json(result);
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).json({
       erro: 'Não foi distribuir o chat',
     });
@@ -123,9 +123,6 @@ const processReceivedAudio = async (req, res) => {
       throw new Error('Falha ao decodificar o áudio recebido.');
     }
 
-    console.log('Áudio decodificado com sucesso:', decodedBase64.base64);
-
-
     await saveMediaMessage('false', chatId, new Date().getTime(), 'audio', decodedBase64.base64, schema);
 
     res.status(200).json({ success: true, message: 'Áudio recebido e processado com sucesso' });
@@ -141,7 +138,7 @@ const getChatsController = async (req, res) => {
     const result = await getChats(schema);
     res.status(201).json(result);
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).json({
       erro: 'Não foi recuperar os chats',
     });
@@ -268,7 +265,7 @@ try {
     result:result
   })
 } catch (error) {
-  console.log(error)
+  console.error(error)
 }
 }
 const closeChatContoller = async(req, res)=>{
@@ -281,7 +278,7 @@ const closeChatContoller = async(req, res)=>{
     result:result
   })
   } catch (error) {
-    console.log(error)
+    console.error(error)
   }
 }
 
@@ -296,7 +293,7 @@ const setSpecificUserController = async(req, res) => {
       result: result
     })
   } catch (error) {
-    console.log(error)
+    console.error(error)
   }
 };
 

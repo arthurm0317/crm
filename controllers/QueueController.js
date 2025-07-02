@@ -27,15 +27,13 @@ const addUserinQueueController = async(req, res)=>{
     const {user, queue}=req.body;
     const schema = req.body.schema;
 
-    console.log("Body recebido:", req.body);
-    
     const result = addUserinQueue(user, queue, schema)
 
     res.status(201).json({
         result
     })
     }catch(error){
-        console.log(error)
+        console.error(error)
     }
 }
 
@@ -49,7 +47,7 @@ const getUserQueuesController=async(req,res)=>{
             result
         })
     }catch(error){
-        console.log(error)
+        console.error(error)
     }
     
 }
@@ -62,7 +60,7 @@ const getAllQueuesControllers = async(req, res)=> {
             result
         })
     }catch(error){
-        console.log(error)
+        console.error(error)
     }
 }
 const deleteQueueController = async(req, res)=>{
@@ -70,20 +68,20 @@ const deleteQueueController = async(req, res)=>{
         const {queueId, schema} = req.params;
         const result = await deleteQueue(queueId, schema)
     }catch(error){
-        console.log(error)
+        console.error(error)
         res.status(500).json({ error: 'Erro ao deletar fila' });
 }
 }
 const getQueueByIdController = async(req, res)=> {
     try{
         const {queue_id, schema} = req.params
-        console.log(queue_id, schema)
+        console.error(queue_id, schema)
         const result = await getQueueById(queue_id, schema)
         res.status(201).json({
             result
         })
     }catch(error){
-        console.log(error)
+        console.error(error)
         res.status(500).json({ error: 'Erro ao buscar fila' });
     }
 }

@@ -35,7 +35,6 @@ const insertInKanbanStage = async (stageName, connection_id, sector, number, sch
         `UPDATE ${schema}.chats SET etapa_id=$1 WHERE connection_id=$2 AND contact_phone=$3 RETURNING *`,
         [stageId.rows[0].id, connection_id, number]
       );
-      console.log("Chat atualizado:", result.rows[0]);
       return result.rows[0];
     } else {
       const contactName = await pool.query(

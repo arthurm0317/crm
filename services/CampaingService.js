@@ -57,30 +57,48 @@ worker.on('error', (err) => {
   console.error('Erro geral no worker:', err.message);
 });
 
-const createCampaing = async (campaing_id, campName, sector, kanbanStage, connectionId, startDate, schema) => {
+const createCampaing = async (campaing_id, campName, sector, kanbanStage, connectionId, startDate, schema, intervalo) => {
   try {
     const unixStartDate = new Date(startDate).getTime();
+
+    // Converter o intervalo para segundos baseado na unidade
+    let intervalEmSegundos;
+    if (intervalo && intervalo.unidade) {
+      switch (intervalo.unidade) {
+        case 'horas':
+          intervalEmSegundos = intervalo.timer * 3600;
+          break;
+        case 'minutos':
+          intervalEmSegundos = intervalo.timer * 60;
+          break;
+        case 'segundos':
+        default:
+          intervalEmSegundos = intervalo.timer;
+          break;
+      }
+    } else {
+      intervalEmSegundos = 30; // valor padrão se não for fornecido
+    }
 
     let result;
     let campaing;
 
-
     if (campaing_id) {
       result = await pool.query(
         `UPDATE ${schema}.campaing 
-         SET campaing_name=$1, sector=$2, kanban_stage=$3, connection_id=$4, start_date=$5
-         WHERE id=$6 RETURNING *`,
-        [campName, sector, kanbanStage, connectionId, unixStartDate, campaing_id]
+         SET campaing_name=$1, sector=$2, kanban_stage=$3, connection_id=$4, start_date=$5, timer=$6
+         WHERE id=$7 RETURNING *`,
+        [campName, sector, kanbanStage, connectionId, unixStartDate, intervalEmSegundos, campaing_id]
       );
       campaing = result.rows[0];
     } else {
       result = await pool.query(
-        `INSERT INTO ${schema}.campaing (id, campaing_name, sector, kanban_stage, connection_id, start_date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-        [uuidv4(), campName, sector, kanbanStage, connectionId, unixStartDate]
+        `INSERT INTO ${schema}.campaing (id, campaing_name, sector, kanban_stage, connection_id, start_date, timer) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+        [uuidv4(), campName, sector, kanbanStage, connectionId, unixStartDate, intervalEmSegundos]
       );
       campaing = result.rows[0];
     }
-    await scheduleCampaingBlast(campaing, campaing.sector, schema);
+    await scheduleCampaingBlast(campaing, campaing.sector, schema, intervalo);
 
     return campaing;
   } catch (error) {
@@ -89,7 +107,7 @@ const createCampaing = async (campaing_id, campName, sector, kanbanStage, connec
   }
 };
 
-const scheduleCampaingBlast = async (campaing, sector, schema) => {
+const scheduleCampaingBlast = async (campaing, sector, schema, intervalo) => {
   try {
     const startDate = Number(campaing.start_date);
     const now = Date.now();
@@ -119,7 +137,9 @@ const scheduleCampaingBlast = async (campaing, sector, schema) => {
     let messageIndex = 0;
     
     const baseDelay = Math.max(0, startDate - now);
-    const timer = 30; 
+    
+    // Usar o intervalo salvo no banco de dados
+    const intervalEmSegundos = Number(campaing.timer) || 30;
     
     for (let i = 0; i < chatIds.length; i++) {
       const instanceId = await pool.query(
@@ -137,7 +157,7 @@ const scheduleCampaingBlast = async (campaing, sector, schema) => {
       const message = messageList[messageIndex];
       messageIndex = (messageIndex + 1) % messageList.length;
 
-      const messageDelay = baseDelay + (i * (timer * 1000));
+      const messageDelay = baseDelay + (i * (intervalEmSegundos * 1000));
       console.log('Agendando mensagem para:', new Date(Date.now() + messageDelay).toLocaleString());
       const job = await blastQueue.add('sendMessage', {
         instance: instance.rows[0].id,
@@ -147,7 +167,6 @@ const scheduleCampaingBlast = async (campaing, sector, schema) => {
         image:message.image,
         schema: schema
       }, { delay: messageDelay, attempts:3 });
-      console.log('job add', job.id)
     }
   } catch (error) {
     console.error('Erro ao agendar disparo da campanha:', error);
@@ -171,6 +190,10 @@ const startCampaing = async (campaing_id, timer, schema) => {
     }
     const messageList = messages.rows;
     let messageIndex = 0;
+    
+    // Usar o intervalo do banco de dados ou o timer passado como parâmetro
+    const intervalEmSegundos = Number(campaing.rows[0].timer) || timer || 30;
+    
     for (let i = 0; i < chatId.length; i++) {
       const instanceId = await pool.query(
         `SELECT * FROM ${schema}.chats WHERE chat_id=$1`, [chatId[i].chat_id]
@@ -186,7 +209,7 @@ const startCampaing = async (campaing_id, timer, schema) => {
         instanceId.rows[0].contact_phone,
         schema
       );
-      await sleep(timer * 1000);
+      await sleep(intervalEmSegundos * 1000);
     }
   } catch (error) {
     console.error('Erro ao enviar mensagem:', error.message);
@@ -221,7 +244,22 @@ const getCampaingById = async (campaing_id, schema) => {
 };
 
 const deleteCampaing = async(campaing_id, schema)=>{
-
+  try {
+    // Primeiro deleta as mensagens da campanha
+    await pool.query(
+      `DELETE FROM ${schema}.message_blast WHERE campaing_id=$1`, [campaing_id]
+    );
+    
+    // Depois deleta a campanha
+    const result = await pool.query(
+      `DELETE FROM ${schema}.campaing WHERE id=$1 RETURNING *`, [campaing_id]
+    );
+    
+    return result.rows[0];
+  } catch (error) {
+    console.error('Erro ao deletar campanha:', error.message);
+    throw error;
+  }
 }
 
 
@@ -230,5 +268,6 @@ module.exports = {
   startCampaing,
   getCampaings,
   getCampaingById,
+  deleteCampaing,
   scheduleCampaingBlast
 };

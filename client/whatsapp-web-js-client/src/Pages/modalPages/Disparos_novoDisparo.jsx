@@ -1,7 +1,9 @@
 import axios from 'axios';
 import React, { useState, useEffect, useRef } from 'react';
+import * as bootstrap from 'bootstrap';
 
-function DisparoModal({ theme, disparo = null }) {
+
+function DisparoModal({ theme, disparo = null, onSave }) {
   const [titulo, setTitulo] = useState('');
   const [numMensagens, setNumMensagens] = useState(1);
   const [mensagens, setMensagens] = useState([
@@ -27,7 +29,7 @@ function DisparoModal({ theme, disparo = null }) {
   const userData = JSON.parse(localStorage.getItem('user'));
   const schema = userData?.schema;
   const url = process.env.REACT_APP_URL;
-  const isAdmin = userData?.type === 'admin'; // ou 'role', conforme seu sistema
+  const isAdmin = userData?.role === 'admin' || userData?.role === 'tecnico';
 
 
 
@@ -68,16 +70,27 @@ const limparBase64 = (base64ComPrefixo) => {
     setFunilSelecionado(disparo.sector || '');
     setEtapa(disparo.kanban_stage);
     setTagsSelecionadas(disparo.tags || []);
-    setIntervaloTempo(disparo.intervaloTempo || 30);
-    setIntervaloUnidade(disparo.intervaloUnidade || 'segundos');
+    
+    // Converter o intervalo do banco (em segundos) para a unidade apropriada
+    const intervalEmSegundos = Number(disparo.timer) || 30;
+    if (intervalEmSegundos >= 3600) {
+      setIntervaloTempo(Math.floor(intervalEmSegundos / 3600));
+      setIntervaloUnidade('horas');
+    } else if (intervalEmSegundos >= 60) {
+      setIntervaloTempo(Math.floor(intervalEmSegundos / 60));
+      setIntervaloUnidade('minutos');
+    } else {
+      setIntervaloTempo(intervalEmSegundos);
+      setIntervaloUnidade('segundos');
+    }
 
     try {
       const response = await axios.get(`${url}/campaing/get-messages/${disparo.id}/${schema}`);
-      const msgs = Array.isArray(response.data.result) ? response.data.result : [response.data.result];
+      const msgs = response.data.result || [];
 
       const mensagensFormatadas = msgs.map(msg => ({
         id: msg.id || null,
-        text: msg.text || msg.value || '',
+        text: msg.value || '', // Usar 'value' que é o campo correto no banco
         image: msg.image || null
       }));
       
@@ -91,14 +104,14 @@ const limparBase64 = (base64ComPrefixo) => {
       
     } catch (error) {
       console.error('Erro ao carregar mensagens:', error);
-      setMensagens(['']);
+      setMensagens([{ text: '', image: null }]);
       setMensagensImagens([null]);
       setNumMensagens(1);
     }
   } else {
     setTitulo('');
     setNumMensagens(1);
-    setMensagens(['']);
+    setMensagens([{ text: '', image: null }]);
     setMensagensImagens([null]);
     setCanal('');
     setTipoAlvo('Funil');
@@ -248,7 +261,7 @@ const limparBase64 = (base64ComPrefixo) => {
 
 
   const handleSave = async () => {
-    if (!titulo || !canal || !dataInicio || !horaInicio || mensagens.some(msg => !msg)) {
+    if (!titulo || !canal || !dataInicio || !horaInicio || mensagens.some(msg => !msg.text)) {
       console.error('Preencha todos os campos obrigatórios.');
       return;
     }
@@ -297,6 +310,20 @@ const limparBase64 = (base64ComPrefixo) => {
         ...disparoData,
         ...(disparo ? { campaing_id: disparo.id } : {campaing_id: null})
       });
+      
+      if (response.status === 201) {
+        // Fechar modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('DisparoModal'));
+        if (modal) {
+          modal.hide();
+        }
+        
+        // Atualizar lista no componente pai
+        if (onSave) {
+          onSave();
+        }
+        
+      }
     } catch (error) {
       console.error('Erro ao salvar disparo:', error);
     }

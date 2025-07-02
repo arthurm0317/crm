@@ -1,4 +1,4 @@
-const { scheduleCampaingBlast, getCampaings, getCampaingById, createCampaing, startCampaing } = require("../services/CampaingService");
+const { scheduleCampaingBlast, getCampaings, getCampaingById, createCampaing, startCampaing, deleteCampaing } = require("../services/CampaingService");
 const { createMessageForBlast, getAllBlastMessages } = require("../services/MessageBlast");
 
 const startCampaingController = async (req, res) => {
@@ -8,7 +8,7 @@ const startCampaingController = async (req, res) => {
     const result = await startCampaing(campaing_id, timer, schema);
     res.status(201).json(result);
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).json({
       erro: 'Não foi possível iniciar a campanha',
     });
@@ -39,7 +39,7 @@ const getCampaingByIdController = async (req, res) => {
 };
 
 const createCampaingController = async (req, res) => {
-  const {campaing_id, name, sector, kanban_stage, connection_id, start_date, schema, mensagem } = req.body;
+  const {campaing_id, name, sector, kanban_stage, connection_id, start_date, schema, mensagem, intervalo } = req.body;
   if (!schema) {
     return res.status(400).json({ erro: 'Schema não informado!' });
   }
@@ -47,9 +47,9 @@ const createCampaingController = async (req, res) => {
     let campaing;
 
     if(campaing_id){
-      campaing = await createCampaing(campaing_id, name, sector, kanban_stage, connection_id, start_date, schema);
+      campaing = await createCampaing(campaing_id, name, sector, kanban_stage, connection_id, start_date, schema, intervalo);
     } else {
-      campaing = await createCampaing(null, name, sector, kanban_stage, connection_id, start_date, schema);
+      campaing = await createCampaing(null, name, sector, kanban_stage, connection_id, start_date, schema, intervalo);
     }
 
     if (mensagem && Array.isArray(mensagem)) {
@@ -90,10 +90,28 @@ const getAllBlastMessagesController = async(req, res)=>{
   }
 }
 
+const deleteCampaingController = async(req, res)=>{
+  try {
+    const {campaing_id, schema} = req.params
+    const result = await deleteCampaing(campaing_id, schema)
+    res.status(200).json({
+      success: true,
+      message: 'Campanha deletada com sucesso',
+      result
+    })
+  } catch (error) {
+    console.error('Erro ao deletar campanha:', error)
+    res.status(500).json({
+      error: 'Erro ao deletar campanha'
+    })
+  }
+}
+
 module.exports = {
   startCampaingController,
   getCampaingsController,
   getCampaingByIdController,
   createCampaingController,
-  getAllBlastMessagesController
+  getAllBlastMessagesController,
+  deleteCampaingController
 };

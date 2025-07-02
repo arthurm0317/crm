@@ -202,7 +202,7 @@ const getAllCompaniesTecUser = async () => {
         )
         return result.rows
     }catch(error){
-        console.log(error)
+        console.error(error)
         throw new Error("Erro ao buscar empresas")
     }
 }

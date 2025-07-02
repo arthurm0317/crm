@@ -8,7 +8,7 @@ import DisparoModal from './modalPages/Disparos_novoDisparo';
 import DeleteDisparoModal from './modalPages/Disparos_delete';
 
 const userData = JSON.parse(localStorage.getItem('user'));
-const isAdmin = userData?.type === 'admin';
+const isAdmin = userData?.role === 'admin' || userData.role === 'tecnico';
 
 function formatDateHour(timestamp) {
   let ts = Number(timestamp);
@@ -25,6 +25,17 @@ function formatDateHour(timestamp) {
     hour12: false,
     timeZoneName: 'short'
   });
+}
+
+function formatInterval(intervalInSeconds) {
+  const seconds = Number(intervalInSeconds);
+  if (seconds >= 3600) {
+    return `${Math.floor(seconds / 3600)}h`;
+  } else if (seconds >= 60) {
+    return `${Math.floor(seconds / 60)}min`;
+  } else {
+    return `${seconds}s`;
+  }
 }
 function DisparosPage({ theme }) {
   const [disparoSelecionado, setDisparoSelecionado] = useState(null);
@@ -68,7 +79,7 @@ function DisparosPage({ theme }) {
       }
     }
     fetchDisparos();
-  })
+  }, [url, schema])
   
   // Inicialização dos tooltips
   useEffect(() => {
@@ -128,12 +139,30 @@ function DisparosPage({ theme }) {
   };
 
   const handleDisparoDeleted = () => {
-    // Aqui você implementará a atualização da lista após a exclusão
-    // Por enquanto, vamos apenas simular removendo do estado local
-    if (disparoSelecionado) {
-      setDisparos(disparos.filter(d => d.id !== disparoSelecionado.id));
-      setDisparoSelecionado(null);
+    // Recarregar lista após exclusão
+    const fetchDisparos = async()=>{
+      try{
+        const response = await axios.get(`${url}/campaing/get-campaing/${schema}`)
+        setDisparos(response.data);
+      }catch(error){
+        console.error('Erro ao buscar disparos:', error);
+      }
     }
+    fetchDisparos();
+    setDisparoSelecionado(null);
+  };
+
+  const handleDisparoSaved = () => {
+    // Recarregar lista de disparos
+    const fetchDisparos = async()=>{
+      try{
+        const response = await axios.get(`${url}/campaing/get-campaing/${schema}`)
+        setDisparos(response.data);
+      }catch(error){
+        console.error('Erro ao buscar disparos:', error);
+      }
+    }
+    fetchDisparos();
   };
 
   return (
@@ -177,6 +206,11 @@ function DisparosPage({ theme }) {
                 <div className={`header-text-${theme} h5 mb-2`}>{disparo.campaing_name}</div>
                 <div className={`header-text-${theme} mb-1`}>
                   Início: {formatDateHour(disparo.start_date)}
+                </div>
+                <div className={`header-text-${theme} mb-1`}>
+                  Intervalo: <span className={`fw-bold`}>
+                    {formatInterval(disparo.timer)}
+                  </span>
                 </div>
                 <div className={`header-text-${theme}`}>
                   Status: <span className={`fw-bold`}>
@@ -234,7 +268,7 @@ function DisparosPage({ theme }) {
       </div>
 
       {/* Modal de Novo/Editar Disparo */}
-      <DisparoModal theme={theme} disparo={disparoSelecionado} />
+      <DisparoModal theme={theme} disparo={disparoSelecionado} onSave={handleDisparoSaved} />
 
       {/* Modal de Exclusão */}
       <DeleteDisparoModal theme={theme} disparo={disparoSelecionado} onDelete={handleDisparoDeleted} />
