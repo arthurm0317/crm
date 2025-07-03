@@ -290,6 +290,7 @@ const setSpecificUserController = async(req, res) => {
     const result = await setSpecificUser(chat_id, user_id, schema)
     
     res.status(200).json({
+      success:true,
       result: result
     })
   } catch (error) {

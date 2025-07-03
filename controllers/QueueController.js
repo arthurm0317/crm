@@ -1,7 +1,8 @@
 const Queue = require("../entities/Queue");
 const { v4: uuidv4 } = require('uuid');
-const { createQueue, addUserinQueue, getUserQueues, getAllQueues, deleteQueue, getQueueById, transferQueue, updateUserQueues, toggleWebhookStatus, updateWebhookUrl } = require("../services/QueueService");
+const { createQueue, addUserinQueue, getUserQueues, getAllQueues, deleteQueue, getQueueById, transferQueue, updateUserQueues, toggleWebhookStatus, updateWebhookUrl, getUsersInQueue } = require("../services/QueueService");
 const { setUserChat } = require("../services/ChatService");
+const { getUserById } = require("../services/UserService");
 
 
 const createQueueController = async(req, res)=>{
@@ -10,7 +11,7 @@ const createQueueController = async(req, res)=>{
 
         const queue = new Queue(uuidv4(), name, color)
         
-        const schema = req.body.schema || 'effective_gain'
+        const schema = req.body.schema
         const result = createQueue(queue, super_user, distribution, schema)
         
         res.status(201).json({
@@ -149,6 +150,29 @@ const toggleWebhookStatusController = async (req, res) => {
         })
     }
 }
+const getUsersInQueueController = async (req, res) => {
+    try {
+        const { queue_id, schema } = req.params;
+        const result = await getUsersInQueue(queue_id, schema);
+
+        const usersData = [];
+        for (const user of result) {
+            const userData = await getUserById(user.user_id, schema);
+            if (userData) usersData.push(userData);
+        }
+
+        res.status(200).json({
+            success: true,
+            data: result,
+            users: usersData
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            success: false
+        });
+    }
+};
 
 module.exports = {
     createQueueController,
@@ -160,5 +184,6 @@ module.exports = {
     transferQueueController,
     updateUserQueuesController,
     updateWebhookUrlController,
-    toggleWebhookStatusController
+    toggleWebhookStatusController,
+    getUsersInQueueController
 }

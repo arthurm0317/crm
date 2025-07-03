@@ -83,8 +83,6 @@ const searchUserController = async (req, res) => {
 
 const searchUserByIdController = async (req, res) => {
   const { user_id, schema } = req.params;
-
-
   try {
     const result = await getUserById(user_id, schema);
 

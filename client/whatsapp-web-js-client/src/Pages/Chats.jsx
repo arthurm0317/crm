@@ -1,10 +1,12 @@
 import { useEffect, useState, useRef, useCallback, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 import EmojiPicker from 'emoji-picker-react';
 import NewContactModal from './modalPages/Chats_novoContato';
 import ChangeQueueModal from './modalPages/Chats_alterarFila';
 import AgendarMensagemModal from './modalPages/Chats_agendarMensagem';
 import ListaAgendamentosModal from './modalPages/Chats_agendamentosLista';
+import TransferirUsuarioModal from './modalPages/Chats_transferirUsuario';
 import {socket} from '../socket'
 import {Dropdown} from 'react-bootstrap';
 import './assets/style.css';
@@ -88,11 +90,10 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
   const [showChangeQueueModal, setShowChangeQueueModal] = useState(false);
   const [showListaAgendamentosModal, setShowListaAgendamentosModal] = useState(false);
   const [showAgendarMensagemModal, setShowAgendarMensagemModal] = useState(false);
+  const [showTransferirUsuarioModal, setShowTransferirUsuarioModal] = useState(false);
   const [queues, setQueues] = useState([]);
   const [transferLoading, setTransferLoading] = useState(false);
-  const handleToggle = (isOpen) => {
-    setIsDropdownOpen(isOpen);
-  };
+
 
   const handleCloseChat = async () => {
     try {
@@ -130,6 +131,8 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
     if (isDropdownOpen) fetchQueues();
   }, [isDropdownOpen, url, schema]);
 
+
+
   const handleTransferQueue = async (queueId) => {
     if (!selectedChat) return;
     setTransferLoading(true);
@@ -155,7 +158,7 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
   };
   return (
     <>
-      <Dropdown drop="start" onToggle={setIsDropdownOpen}>
+      <Dropdown drop="end" onToggle={setIsDropdownOpen}>
         <Dropdown.Toggle
           variant={theme === 'light' ? 'light' : 'dark'}
           id="dropdown-basic"
@@ -166,15 +169,43 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
 
         <Dropdown.Menu
           variant={theme === 'light' ? 'light' : 'dark'}
-          className={`input-${theme}`}>
-  
-
+          className={`chat-dropdown-menu ${theme === 'dark' ? 'dark' : ''}`}
+          style={{
+            zIndex: 9999,
+            position: 'absolute'
+          }}
+        >
           <Dropdown.Divider />
-          <Dropdown.Item href="#" onClick={() => setShowChangeQueueModal(true)}>Alterar Fila</Dropdown.Item>
-          <Dropdown.Item href="#" onClick={handleCloseChat}>Finalizar Atendimento</Dropdown.Item>
-          <Dropdown.Item href="#" onClick={onEditName}>Editar Nome</Dropdown.Item>
-          <Dropdown.Item href="#" onClick={() => setShowListaAgendamentosModal(true)}>Agendar mensagem</Dropdown.Item>
-          {/* <Dropdown.Item href="#" onClick={() => setShowTagModal(true)}>Gerenciar Tags</Dropdown.Item> */}
+          <Dropdown.Item href="#" onClick={() => {
+            setShowChangeQueueModal(true);
+            setIsDropdownOpen(false);
+          }}>
+            Alterar Fila
+          </Dropdown.Item>
+          <Dropdown.Item href="#" onClick={() => {
+            setShowTransferirUsuarioModal(true);
+            setIsDropdownOpen(false);
+          }}>
+            Transferir para Usuário
+          </Dropdown.Item>
+          <Dropdown.Item href="#" onClick={() => {
+            handleCloseChat();
+            setIsDropdownOpen(false);
+          }}>
+            Finalizar Atendimento
+          </Dropdown.Item>
+          <Dropdown.Item href="#" onClick={() => {
+            onEditName();
+            setIsDropdownOpen(false);
+          }}>
+            Editar Nome
+          </Dropdown.Item>
+          <Dropdown.Item href="#" onClick={() => {
+            setShowListaAgendamentosModal(true);
+            setIsDropdownOpen(false);
+          }}>
+            Agendar mensagem
+          </Dropdown.Item>
         </Dropdown.Menu>
       </Dropdown>
 
@@ -204,6 +235,15 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
     onHide={() => setShowAgendarMensagemModal(false)}
     theme={theme}
     selectedChat={selectedChat}
+  />
+
+  <TransferirUsuarioModal
+    show={showTransferirUsuarioModal}
+    onHide={() => setShowTransferirUsuarioModal(false)}
+    theme={theme}
+    selectedChat={selectedChat}
+    schema={schema}
+    url={url}
   />
     </>
   );
@@ -431,11 +471,46 @@ const disableBot = async () => {
     });
   }
 });
+
+    // Escutar evento de transferência de chat
+    socketInstance.on('chatTransferred', (data) => {
+      const currentUserId = userData.id;
+      
+      setChats(prevChats => {
+        // Se o usuário atual perdeu o chat, remove da lista
+        if (data.oldUserId === currentUserId) {
+          return prevChats.filter(chat => chat.id !== data.chatId);
+        }
+        
+        // Se o usuário atual ganhou o chat, atualiza a lista
+        if (data.newUserId === currentUserId) {
+          const existingChatIndex = prevChats.findIndex(chat => chat.id === data.chatId);
+          if (existingChatIndex !== -1) {
+            const updatedChats = [...prevChats];
+            updatedChats[existingChatIndex] = {
+              ...updatedChats[existingChatIndex],
+              assigned_user: data.newUserId
+            };
+            return updatedChats;
+          }
+        }
+        
+        return prevChats;
+      });
+      
+      // Se o chat selecionado foi transferido, limpa a seleção
+      if (selectedChatId === data.chatId) {
+        setSelectedChat(null);
+        setSelectedChatId(null);
+        setSelectedMessages([]);
+      }
+    });
   }
   return () => {
     if (socketInstance) {
       socketInstance.off('connect');
       socketInstance.off('chats_updated');
+      socketInstance.off('chatTransferred');
       // Sai da sala do schema ao desconectar
       socketInstance.emit('leave', `schema_${schema}`);
     }

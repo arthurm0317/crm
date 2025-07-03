@@ -136,6 +136,13 @@ const toggleWebhookStatus = async(queue_id, status, schema)=>{
     return result.rows[0]
 }
 
+const getUsersInQueue = async (queue_id, schema) => {
+    const result = await pool.query(
+        `SELECT * FROM ${schema}.queue_users WHERE queue_id=$1`,[queue_id]
+    )
+    return result.rows
+}
+
 module.exports = {
     createQueue,
     addUserinQueue,
@@ -147,5 +154,6 @@ module.exports = {
     transferQueue,
     updateUserQueues,
     updateWebhookUrl,
-    toggleWebhookStatus
+    toggleWebhookStatus,
+    getUsersInQueue
 };
