@@ -31,11 +31,23 @@ const createContactController = async (req, res) => {
     const schema = req.body.schema || 'effective_gain';
     try {
         const result = await createContact(number, name, connection, user_id, schema);
-        res.status(201).json(result);
+        
+        const SocketServer = require('../server');
+        const serverTest = new SocketServer();
+        
+        if (result.isNewChat) {
+            serverTest.io.to(`schema_${schema}`).emit('chats_updated', result.chat);
+        }
+        
+        res.status(201).json({
+            success: true,
+            data: result,
+            message: `Contato ${result.isNewContact ? 'criado' : 'encontrado'} e chat ${result.isNewChat ? 'criado' : 'reutilizado'} com sucesso`
+        });
     }
     catch (error) {
         console.error("Erro ao criar contato:", error);
-        res.status(500).json({ error: 'Erro ao criar contato' });
+        res.status(500).json({ error: error.message || 'Erro ao criar contato' });
     }
 }
 const updateContactNameController = async(req, res)=>{

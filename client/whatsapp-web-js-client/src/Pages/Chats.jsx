@@ -1127,7 +1127,7 @@ const handleImageUpload = async (event) => {
 
       {/* Botão person-gear */}
       <button
-        className={`btn btn-2-${theme} d-flex align-items-center`}
+        className={`btn btn-2-${theme} d-flex align-items-center d-none`}
         style={{ marginLeft: '4px' }}
         onClick={() => {
           setShowSideMenu(true);

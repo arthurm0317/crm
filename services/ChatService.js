@@ -370,9 +370,26 @@ const saveMediaMessage = async (id,fromMe, chat_id, createdAt, message_type, aud
 
 const createNewChat = async(name, number, connectionId, queueId, user_id, schema) => {
   try {
+    const { v4: uuidv4 } = require('uuid');
+    const timestamp = getCurrentTimestamp();
+    
     const result = await pool.query(
-      `INSERT INTO ${schema}.chats (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-      [uuid4(), number + '@c.us', connectionId, queueId, false, name, user_id, 'waiting', new Date().getTime(), JSON.stringify([])]
+      `INSERT INTO ${schema}.chats (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages, contact_phone, updated_time, unreadmessages) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
+      [
+        uuidv4(), 
+        number + '@c.us', 
+        connectionId, 
+        queueId, 
+        false, 
+        name, 
+        user_id, 
+        'open', 
+        timestamp, 
+        JSON.stringify([]),
+        number,
+        timestamp,
+        false
+      ]
     );
     return result.rows[0];
   } catch (error) {
