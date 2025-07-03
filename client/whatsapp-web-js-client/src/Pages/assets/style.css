@@ -365,10 +365,12 @@ a {
     color: var(--bg-color-dark);
 }
 .sidebar-collapsed {
-    width: 75px !important;
+    width: 4.93vw !important; /* 75 / 1521 * 100 */
+    max-width: 75px !important;
 }
 .sidebar-expanded {
-    width: 200px !important;
+    width: 13.15vw !important; /* 200 / 1521 * 100 */
+    max-width: 200px !important;
 }
 .sidebar-expanded .sidebar-label {
     display: inline !important;
