@@ -302,9 +302,21 @@ app.post('/resposta', async(req, res)=>{
         )
         await saveMessage(req.body.id, message, req.body.schema)
         await sendTextMessage(req.body.instance, req.body.body, req.body.number)
+        const payload = {
+            chatId: req.body.id,
+            body: req.body.body,
+            fromMe: true,
+            timestamp: getCurrentTimestamp(req.body.timestamp),
+            user_id: req.body.assigned_user
+          };
+        
+        // Emitir via socket para aparecer diretamente na interface
+        serverTest.io.to(`schema_${req.body.schema}`).emit('message', payload);
+        
         res.status(200).json({success:true})
     } catch (error) {
         console.error(error)
+        res.status(500).json({error: error.message})
     }
 })
 

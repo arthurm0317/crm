@@ -8,7 +8,7 @@ import DisparoModal from './modalPages/Disparos_novoDisparo';
 import DeleteDisparoModal from './modalPages/Disparos_delete';
 
 const userData = JSON.parse(localStorage.getItem('user'));
-const isAdmin = userData?.role === 'admin' || userData.role === 'tecnico';
+const isAdmin = userData?.role === 'admin' || userData?.role === 'tecnico';
 
 function formatDateHour(timestamp) {
   let ts = Number(timestamp);
