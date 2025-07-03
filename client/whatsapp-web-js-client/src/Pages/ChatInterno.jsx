@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import io from 'socket.io-client';
 import axios from 'axios';
 
-const socket = io('http://localhost:3333', {
+const socket = io(process.env.REACT_APP_SOCKET_URL || window.location.origin, {
   transports: ['websocket', 'polling'],
   upgrade: true,
   rememberUpgrade: true,
