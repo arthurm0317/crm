@@ -984,7 +984,7 @@ const handleImageUpload = async (event) => {
     marginLeft: '6px',
     whiteSpace: 'nowrap',
     fontWeight: 500,
-    maxWidth: '80px',
+    maxWidth: '120px',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     display: 'inline-block',
