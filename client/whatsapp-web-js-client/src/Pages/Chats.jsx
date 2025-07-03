@@ -10,6 +10,7 @@ import {Dropdown} from 'react-bootstrap';
 import './assets/style.css';
 import NewQueueModal from './modalPages/Filas_novaFila';
 import WaveSurfer from 'wavesurfer.js';
+import ChatsMenuLateral from './modalPages/Chats_menuLateral';
 
 function formatHour(timestamp) {
   const date = new Date(Number(timestamp));
@@ -244,6 +245,8 @@ function ChatPage({ theme, chat_id} ) {
   const [isBotActive, setIsBotActive] = useState(false);
   const [socketInstance] = useState(socket)  
   const url = process.env.REACT_APP_URL;
+  const [showSideMenu, setShowSideMenu] = useState(false);
+  const [sideMenuActive, setSideMenuActive] = useState(false);
 
   const setAsRead = async()=>{
     if (!selectedChat) return;
@@ -1031,7 +1034,8 @@ const handleImageUpload = async (event) => {
         </div>
 {/* MENSAGENS DO CONTATO SELECIONADO */}
 <div
-  className={`w-100 chat-messages-${theme} d-flex flex-column`} style={{ borderTopRightRadius: '10px' }}
+  className={`w-100 chat-messages-${theme} d-flex flex-column`}
+  style={{ borderTopRightRadius: '10px', position: 'relative' }}
 >
 {selectedChat && (
   <div
@@ -1118,9 +1122,35 @@ const handleImageUpload = async (event) => {
         setSelectedMessages={setSelectedMessages}
         onEditName={handleEditNameStart}
         editedName={editedName}
-
       />
       </div>
+
+      {/* Botão person-gear */}
+      <button
+        className={`btn btn-2-${theme} d-flex align-items-center`}
+        style={{ marginLeft: '4px' }}
+        onClick={() => {
+          setShowSideMenu(true);
+          setTimeout(() => setSideMenuActive(true), 10);
+        }}
+      >
+        <i className="bi bi-person-gear"></i>
+      </button>
+
+      {/* MENU LATERAL SOBREPOSTO */}
+      {showSideMenu && (
+        <ChatsMenuLateral
+          theme={theme}
+          onClose={() => {
+            setSideMenuActive(false);
+            setTimeout(() => setShowSideMenu(false), 300);
+          }}
+          style={{
+            opacity: sideMenuActive ? 1 : 0,
+            transform: sideMenuActive ? 'translateX(0)' : 'translateX(100%)',
+          }}
+        />
+      )}
 
     </div>
 
