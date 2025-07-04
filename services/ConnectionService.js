@@ -76,4 +76,5 @@ module.exports = {
     setQueue,
     getAllConnections,
     deleteConnection,
+    searchConnById
 }

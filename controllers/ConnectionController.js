@@ -1,6 +1,6 @@
 const Connection = require("../entities/Connection")
 const { v4: uuidv4 } = require('uuid');
-const { createConnection, setQueue, getAllConnections, deleteConnection, updateWebhookUrl, toggleWebhookStatus } = require("../services/ConnectionService");
+const { createConnection, setQueue, getAllConnections, deleteConnection, updateWebhookUrl, toggleWebhookStatus, searchConnById } = require("../services/ConnectionService");
 const { deleteInstance } = require("../requests/evolution");
 
 const createConnectionController = async(req, res)=>{
@@ -61,10 +61,28 @@ const deleteConnectionController =async (req, res) => {
         })
     }
 }
+const searchConnByIdController = async (req, res) => {
+    const {connection_id, schema} = req.params
+    try {
+        const result = await searchConnById(connection_id, schema)
+        res.status(200).json({
+            success: true,
+            data: result
+        })
+        
+    } catch (error) {
+        console.log(error)
+        res.status(500).json({
+            success:false,
+
+        })
+    }
+}
 
 module.exports = {
     createConnectionController, 
     setQueueController,
     getAllConnectionsController,
     deleteConnectionController,
+    searchConnByIdController
 }

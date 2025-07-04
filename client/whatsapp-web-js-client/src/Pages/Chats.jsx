@@ -280,6 +280,7 @@ function ChatPage({ theme, chat_id} ) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
   const [connections, setConnections] = useState([]);
+  const [queues, setQueues] = useState([]);
   const nomeContatoRef = useRef(null);
   const [showNewContactModal, setShowNewContactModal] = useState(false);
   const [isBotActive, setIsBotActive] = useState(false);
@@ -337,12 +338,28 @@ useEffect(() => {
       setConnections([]);
     }
   };
+  
+  const fetchQueues = async () => {
+    try {
+      const res = await axios.get(`${url}/queue/get-all-queues/${schema}`);
+      setQueues(res.data.result || []);
+    } catch (err) {
+      setQueues([]);
+    }
+  };
+  
   fetchConnections();
+  fetchQueues();
 }, [url, schema]);
 
 const getConnectionName = (connectionId) => {
   const conn = connections.find(c => c.id === connectionId);
   return conn?.name || connectionId;
+};
+
+const getQueueName = (queueId) => {
+  const queue = queues.find(q => q.id === queueId);
+  return queue?.name || queueId;
 };
 
 const handleEditContactName = async (contactId, newName) => {
@@ -1049,7 +1066,7 @@ const handleImageUpload = async (event) => {
 >
   <strong>{chat.contact_name || chat.id || 'Sem Nome'}</strong>
   <span
-  title={getConnectionName(chat.connection_id)}
+  title={getQueueName(chat.queue_id)}
   style={{
     background: '#e0e0e0',
     color: '#333',
@@ -1068,7 +1085,7 @@ const handleImageUpload = async (event) => {
     verticalAlign: 'middle'
   }}
 >
-  {getConnectionName(chat.connection_id)}
+  {getQueueName(chat.queue_id)}
 </span>
 </div>
 
@@ -1202,7 +1219,7 @@ const handleImageUpload = async (event) => {
 
       {/* Botão person-gear */}
       <button
-        className={`btn btn-2-${theme} d-flex align-items-center d-none`}
+        className={`btn btn-2-${theme} d-flex align-items-center`}
         style={{ marginLeft: '4px' }}
         onClick={() => {
           setShowSideMenu(true);
@@ -1216,6 +1233,7 @@ const handleImageUpload = async (event) => {
       {showSideMenu && (
         <ChatsMenuLateral
           theme={theme}
+          selectedChat={selectedChat}
           onClose={() => {
             setSideMenuActive(false);
             setTimeout(() => setShowSideMenu(false), 300);
