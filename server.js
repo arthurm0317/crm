@@ -1,7 +1,6 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const ChatInternoService = require('./services/ChatInternoService');
 
 
 class SocketServer {
@@ -66,20 +65,6 @@ class SocketServer {
                 socket.leave(roomId);
             });
 
-            // Chat interno - mensagem
-            socket.on('internal_message', async (data) => {
-                try {
-                    const saved = await ChatInternoService.saveMessage(data.sender_id, data.receiver_id, data.message, data.schema);
-                    
-                    // Enviar para o destinatário
-                    this.io.to(`user_${data.receiver_id}`).emit('internal_message', saved);
-                    
-                    // Enviar para o remetente (confirmação)
-                    this.io.to(`user_${data.sender_id}`).emit('internal_message', saved);
-                } catch (error) {
-                    console.error('Erro ao salvar mensagem:', error);
-                }
-            });
 
             socket.on('disconnect', () => {
                 console.log('Cliente desconectado');
@@ -95,6 +80,83 @@ class SocketServer {
 
             socket.on('leadMoved', (data) => {
                 socket.broadcast.emit('leadMoved', data);
+            });
+
+            // 🤖 EVENTOS DO ROBÔ DE IA
+            socket.on('ai_bot_activate', async (data) => {
+                try {
+                    const { phoneNumber, chatId, instanceId, schema } = data;
+                    const AIAssistantService = require('./services/AIAssistantService');
+                    
+                    AIAssistantService.activateBot(phoneNumber, chatId, instanceId, schema);
+                    
+                    // Notificar todos os clientes conectados
+                    this.io.to(schema).emit('ai_bot_activated', {
+                        phoneNumber,
+                        chatId,
+                        timestamp: new Date()
+                    });
+                    
+                    console.log(`🤖 Robô ativado via socket para ${phoneNumber}`);
+                } catch (error) {
+                    console.error('Erro ao ativar robô via socket:', error);
+                }
+            });
+
+            socket.on('ai_bot_deactivate', async (data) => {
+                try {
+                    const { phoneNumber, schema } = data;
+                    const AIAssistantService = require('./services/AIAssistantService');
+                    
+                    const deactivated = AIAssistantService.deactivateBot(phoneNumber);
+                    
+                    if (deactivated) {
+                        // Notificar todos os clientes conectados
+                        this.io.to(schema).emit('ai_bot_deactivated', {
+                            phoneNumber,
+                            reason: 'manual_deactivation',
+                            timestamp: new Date()
+                        });
+                        
+                        console.log(`🤖 Robô desativado via socket para ${phoneNumber}`);
+                    }
+                } catch (error) {
+                    console.error('Erro ao desativar robô via socket:', error);
+                }
+            });
+
+            socket.on('ai_bot_status', async (data) => {
+                try {
+                    const { phoneNumber } = data;
+                    const AIAssistantService = require('./services/AIAssistantService');
+                    
+                    const botInfo = AIAssistantService.getBotInfo(phoneNumber);
+                    
+                    // Enviar status de volta para o cliente que solicitou
+                    socket.emit('ai_bot_status_response', {
+                        phoneNumber,
+                        isActive: !!botInfo,
+                        botInfo
+                    });
+                } catch (error) {
+                    console.error('Erro ao verificar status do robô via socket:', error);
+                }
+            });
+
+            socket.on('ai_bot_list', async (data) => {
+                try {
+                    const AIAssistantService = require('./services/AIAssistantService');
+                    
+                    const activeBots = AIAssistantService.getActiveBots();
+                    
+                    // Enviar lista de volta para o cliente que solicitou
+                    socket.emit('ai_bot_list_response', {
+                        activeBots,
+                        count: activeBots.length
+                    });
+                } catch (error) {
+                    console.error('Erro ao listar robôs via socket:', error);
+                }
             });
         });
     }

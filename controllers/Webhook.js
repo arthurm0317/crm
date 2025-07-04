@@ -13,15 +13,12 @@ const pool = require('../db/queries');
 const { getCurrentTimestamp } = require('../services/getCurrentTimestamp');
 const { getBase64FromMediaMessage } = require('../requests/evolution');
 const express = require('express');
-const SocketServer = require('../server');
 const createRedisConnection = require('../config/Redis');
 const { Queue, Worker } = require('bullmq');
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
 module.exports = (broadcastMessage) => {
-  const serverTest = new SocketServer()
-  serverTest.start()
   const app = express.Router();
 
   app.use(express.json({ limit: '100mb' }));
@@ -34,7 +31,7 @@ module.exports = (broadcastMessage) => {
   new Worker('chat', async(job)=>{
     try{
       if(job.data.chatId){
-        serverTest.io.to(job.data.chatId).emit('message', job.data);
+        broadcastMessage({ type: 'message', payload: job.data });
       }
     }catch(error){
       console.error(error)
@@ -89,10 +86,10 @@ module.exports = (broadcastMessage) => {
       }
       if (baseChat.assigned_user !== null) {
         const userChat = await getChatByUser(baseChat.assigned_user, baseChat.permission,schema)
-        serverTest.io.emit('chats_updated', userChat)
+        broadcastMessage({ type: 'chats_updated', payload: userChat });
       }else{
         const chats = await getChatIfUserIsNull(baseChat.connection_id,baseChat.permission,schema)
-        serverTest.io.emit('chats_updated', chats)
+        broadcastMessage({ type: 'chats_updated', payload: chats });
       }
 
       if (result.data.message?.conversation) {
@@ -196,6 +193,7 @@ module.exports = (broadcastMessage) => {
           schema
         );
       }
+
 
       res.status(200).json({ result });
     //   await axios.post(`https://n8n-n8n-start.8rxpnw.easypanel.host/${result.instance}`, data);

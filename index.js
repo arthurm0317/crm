@@ -15,8 +15,6 @@ const campaingRoutes = require('./routes/CampaingRoutes')
 const tagRoutes = require('./routes/TagRoutes')
 const bodyParser = require('body-parser');
 const excelRoutes = require('./routes/ExcelRoutes');
-const chatInternoRoute = require('./routes/ChatInternoRoute');
-const ChatInternoService = require('./services/ChatInternoService');
 const lembreteRoutes = require('./routes/LembretesRoutes');
 
 const cors = require('cors');
@@ -63,23 +61,6 @@ io.on('connection', (socket) => {
     socket.join(`user_${userId}`);
   });
 
-  socket.on('internal_message', async (data) => {
-    console.log('Mensagem interna recebida:', data);
-    try {
-      const saved = await ChatInternoService.saveMessage(data.sender_id, data.receiver_id, data.message, data.schema);
-      console.log('Mensagem salva:', saved);
-      
-      // Enviar para o destinatário
-      io.to(`user_${data.receiver_id}`).emit('internal_message', saved);
-      console.log('Mensagem enviada para destinatário:', data.receiver_id);
-      
-      // Enviar para o remetente (confirmação)
-      io.to(`user_${data.sender_id}`).emit('internal_message', saved);
-      console.log('Mensagem enviada para remetente:', data.sender_id);
-    } catch (error) {
-      console.error('Erro ao salvar mensagem:', error);
-    }
-  });
 
   socket.on('disconnect', () => {
     console.log('Cliente desconectado:', socket.id);
@@ -103,7 +84,6 @@ app.use('/files', filesRoutes);
 app.use('/campaing', campaingRoutes)
 app.use('/tag', tagRoutes)
 app.use('/excel', excelRoutes);
-app.use('/internal-chat', chatInternoRoute);
 app.use('/lembretes', lembreteRoutes);
 
 const axios = require('axios');
@@ -150,7 +130,6 @@ app.post('/webhook/audio', async (req, res) => {
   }
 });
 
-// configureSocket(io, server);
 
 const PORT = 3002;
 
