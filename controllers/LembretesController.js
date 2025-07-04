@@ -1,7 +1,6 @@
 const { createLembrete, getLembretes, updateLembretes, deleteLembrete } = require("../services/LembreteService")
 
 const createLembreteController = async (req, res) => {
-    console.log(req.body)
     const {lembrete_name, tag, message, date, icone, user_id, schema, filas} = req.body
 
     try {
@@ -37,7 +36,6 @@ const updateLembretesController = async (req, res) => {
 }
 
 const deleteLembreteController = async (req, res) => {
-    console.log(req.body)
     const {id, schema} = req.body
     try {
         const result = await deleteLembrete(id, schema)

@@ -60,7 +60,6 @@ const sendTextMessage = async(instanceId, text, number)=>{
   try {
     const response = await fetch(`${process.env.EVOLUTION_SERVER_URL}/message/sendText/${instanceId}`, options);
     const result = await response.json();
-    console.log(result)
     
     return result;
   } catch (err) {
@@ -68,7 +67,6 @@ const sendTextMessage = async(instanceId, text, number)=>{
   }
 }
 const getBase64FromMediaMessage = async (instanceId, mediaKey) => {
-  console.log(instanceId)
   try {
     if (!process.env.EVOLUTION_SERVER_URL) {
       throw new Error('EVOLUTION_SERVER_URL não está configurado no arquivo .env');
@@ -91,7 +89,6 @@ const getBase64FromMediaMessage = async (instanceId, mediaKey) => {
       }
     );
 
-    console.log('Base64 decodificado com sucesso:', response.data);
     return response.data;
   } catch (error) {
     console.error('Erro ao decodificar mídia:', error.message);
@@ -118,7 +115,6 @@ const searchContact = async (remoteJid, instanceId) => {
   try {
     const response = await fetch(`${process.env.EVOLUTION_SERVER_URL}/chat/findContacts/${instanceId}`, options);
     const result = await response.json();
-    console.log(result);
 
     return result;
   } catch (err) {
@@ -140,7 +136,6 @@ const sendImageToWhatsApp = async (number, imageBase64, instanceId) => {
     }
 
     const url = `${process.env.EVOLUTION_SERVER_URL}/message/sendMedia/${instanceId}`;
-    console.log('URL gerada:', url);
 
     const response = await axios.post(url, {
       number: number,
@@ -218,7 +213,6 @@ const sendMediaForBlast = async (instanceId, text, image, number) => {
     media: image 
   };
 
-  console.log(requestBody)
 
   const options = {
     method: 'POST',

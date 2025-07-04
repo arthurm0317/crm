@@ -2,6 +2,34 @@ const pool = require('../db/queries');
 const { v4: uuid4 } = require('uuid');
 const { getOnlineUsers, updateLastAssignedUser, getLastAssignedUser } = require('./UserService');
 const { getCurrentTimestamp } = require('./getCurrentTimestamp');
+const { Queue, Worker } = require('bullmq');
+const createRedisConnection = require('../config/Redis');
+const { sendTextMessage } = require('../requests/evolution');
+const { saveMessage } = require('./MessageService');
+const { Message } = require('../entities/Message');
+const { createLembrete } = require('./LembreteService');
+
+const bullConn = createRedisConnection()
+const messageQueue = new Queue('message', {connection: bullConn});
+
+const worker = new Worker(
+  'message',
+  async (job) => {
+    try {
+      await sendTextMessage(
+        job.data.instance,
+        job.data.message,
+        job.data.contact_phone
+      )
+      await saveMessage(job.data.chat_id, job.data.messageDB, job.data.schema)
+      await deleteScheduledMessage(job.data.id, job.data.schema);
+    } catch (error) {
+      console.error(error)
+    }
+  },{
+    connection: bullConn,
+  }
+)
 
 const createChat = async (chat, instance, message, etapa, io) => {
   let schema;
@@ -37,7 +65,6 @@ const createChat = async (chat, instance, message, etapa, io) => {
 
     if (existingChat.rowCount > 0) {
       if(existingChat.rows[0].status !== 'closed'){
-        console.log('chat', existingChat.rows[0]);
         const updated = await updateChatMessages(chat, schema, message);
         if(existingChat.rows[0].queue_id===null){
           await setChatQueue(schema, existingChat.rows[0].id)
@@ -106,7 +133,6 @@ const createChat = async (chat, instance, message, etapa, io) => {
     }
 
     const result = await pool.query(query, values);
-    console.log('Resultado da inserção do chat:', result.rows[0]);
     if(result.rows[0].queue_id===null){
       await setChatQueue(schema, result.rows[0].id)
     }
@@ -168,11 +194,9 @@ const setUserChat = async (chatId, schema) => {
       [chatId]
     );
     const queueId = chatDb.rows[0].queue_id;
-    console.log(queueId)
     const isDistributionOn = await pool.query(
       `SELECT * FROM ${schema}.queues WHERE id=$1 `, [queueId]
     )
-    console.log(isDistributionOn.rows)
     if (isDistributionOn.rows[0].distribution === true) {
       const onlineUsers = await getOnlineUsers(schema);
       const queueUsersQuery = await pool.query(
@@ -215,20 +239,29 @@ const getChats = async (schema) => {
     return rows;
 };
 
-const setChatQueue = async(schema, chatId)=>{
+const setChatQueue = async (schema, chatId) => {
   const chatConn = await pool.query(
     `SELECT * FROM ${schema}.chats WHERE id=$1`, [chatId]
-  )
+  );
+  if (!chatConn.rows[0]) {
+    console.error('Chat não encontrado ao tentar setar queue.');
+    return null;
+  }
   const connQueue = await pool.query(
     `SELECT * FROM ${schema}.connections WHERE id=$1`, [chatConn.rows[0].connection_id]
-  )
-  if(chatConn.rows[0].queue_id === null){
-    const firstQueue = await pool.query(
-      `UPDATE ${schema}.chats SET queue_id=$1 WHERE id=$2`,[connQueue.rows[0].queue_id, chatId]
-    )
-    return firstQueue.rows[0]
+  );
+  if (!connQueue.rows[0]) {
+    console.error('Connection não encontrada ao tentar setar queue.');
+    return null;
   }
-}
+  if (chatConn.rows[0].queue_id === null) {
+    const firstQueue = await pool.query(
+      `UPDATE ${schema}.chats SET queue_id=$1 WHERE id=$2`, [connQueue.rows[0].queue_id, chatId]
+    );
+    return firstQueue.rows[0];
+  }
+  return null;
+};
 
 const updateQueue = async(schema, chatId, queueId)=>{
   const result = await pool.query(
@@ -290,7 +323,6 @@ const getChatByUser = async (userId, role, schema) => {
   }
 };
 const getChatIfUserIsNull = async(connection, permission, schema)=>{
-  console.log(permission)
   try{
      if (permission === 'admin' || permission ==='tecnico') {
       const result = await pool.query(
@@ -338,9 +370,26 @@ const saveMediaMessage = async (id,fromMe, chat_id, createdAt, message_type, aud
 
 const createNewChat = async(name, number, connectionId, queueId, user_id, schema) => {
   try {
+    const { v4: uuidv4 } = require('uuid');
+    const timestamp = getCurrentTimestamp();
+    
     const result = await pool.query(
-      `INSERT INTO ${schema}.chats (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-      [uuid4(), number + '@c.us', connectionId, queueId, false, name, user_id, 'waiting', new Date().getTime(), JSON.stringify([])]
+      `INSERT INTO ${schema}.chats (id, chat_id, connection_id, queue_id, isGroup, contact_name, assigned_user, status, created_at, messages, contact_phone, updated_time, unreadmessages) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
+      [
+        uuidv4(), 
+        number + '@c.us', 
+        connectionId, 
+        queueId, 
+        false, 
+        name, 
+        user_id, 
+        'open', 
+        timestamp, 
+        JSON.stringify([]),
+        number,
+        timestamp,
+        false
+      ]
     );
     return result.rows[0];
   } catch (error) {
@@ -356,7 +405,7 @@ const setMessageIsUnread = async(chat_id, schema)=>{
       [chat_id, true]
     );
   } catch (error) {
-    console.log(error)
+    console.error(error)
   }
 }
 
@@ -367,7 +416,7 @@ const setMessageAsRead = async(chat_id, schema)=>{
       [chat_id, false]
     );
   } catch (error) {
-    console.log(error)
+    console.error(error)
   }
 }
 
@@ -377,7 +426,7 @@ const closeChat = async(chat_id, schema)=>{
       ['closed', chat_id]
     )
   } catch (error) {
-    console.log(error)
+    console.error(error)
   }
 }
 
@@ -389,7 +438,7 @@ const setSpecificUser = async(chat_id, user_id, schema)=>{
     )
     return result.rows[0]
   } catch (error) {
-    console.log(error)
+    console.error(error)
   }
 }
 
@@ -399,6 +448,102 @@ const updateChatNameByNumber = async(number, newName, user_id, schema)=>{
       `UPDATE ${schema}.chats set contact_name = $1 where contact_phone=$2 and assigned_user=$3` ,[newName, number, user_id]
     )
   } catch (error) {
+    console.error(error)
+  }
+}
+
+const scheduleMessage = async (chat_id, connection, message, contact_phone, timestamp, schema) => {
+  try{
+   if (typeof timestamp !== 'number' || isNaN(timestamp)) {
+      console.error('Timestamp inválido:', timestamp);
+      return;
+    }
+    const now = Math.floor(Date.now() / 1000);
+    let delay = (timestamp - now) * 1000;
+    if (isNaN(delay) || delay < 0) {
+      console.error('A data de agendamento deve ser futura e válida');
+      return;
+    }
+
+    
+
+    const chat = await getChatById(chat_id, connection.id, schema)
+
+    const messageDB = new Message(uuid4(), message, true, chat_id, timestamp )
+
+    const job = await messageQueue.add('sendMessage',{
+      instance: connection.name,
+      chat_id: chat_id,
+      message: message,
+      messageDB: messageDB,
+      contact_phone: contact_phone,
+      schema:schema
+    }, {delay: delay});
+
+    const result = await pool.query(`
+      INSERT INTO ${schema}.scheduled_message(id, message, chat_id, scheduled_date, bull_job_id) VALUES ($1, $2, $3, $4, $5) RETURNING *
+      `, [uuid4(), message, chat_id, timestamp, job.id]
+    )
+
+    await createLembrete(
+      `Mensagem agendada para ${chat.contact_name}`,
+      'pessoal',
+      `Mensagem: ${message}`,
+      timestamp,
+      'bi-alarm',
+      chat.assigned_user,
+      schema,
+      
+    )
+    
+    return result.rows[0]
+
+  }catch(error){
+    console.error(error)
+  }
+}
+
+const getScheduledMessages = async (chat_id, schema) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM ${schema}.scheduled_message WHERE chat_id=$1 ORDER BY scheduled_date ASC`,
+      [chat_id]
+    );
+    return result.rows;
+  } catch (error) {
+    console.error(error);
+    throw new Error('Erro ao buscar mensagens agendadas');
+  }
+};
+
+const deleteScheduledMessage = async (id, schema) => {
+  try {
+    const result = await pool.query(
+      `SELECT bull_job_id FROM ${schema}.scheduled_message WHERE id = $1`,
+      [id]
+    );
+    const bullJobId = result.rows[0]?.bull_job_id;
+
+    await pool.query(
+      `DELETE FROM ${schema}.scheduled_message WHERE id = $1`,
+      [id]
+    );
+
+    if (bullJobId) {
+      await messageQueue.remove(bullJobId);
+    }
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+const disableBot = async(chat_id, schema)=>{
+  try{
+    const result = await pool.query(
+      `UPDATE ${schema}.chats SET isboton = $1 where id = $2`,[false, chat_id]
+    )
+    return result.rows[0];
+  }catch(error){
     console.error(error)
   }
 }
@@ -422,5 +567,9 @@ module.exports = {
   closeChat,
   setSpecificUser,
   getChatIfUserIsNull,
-  updateChatNameByNumber
+  updateChatNameByNumber,
+  scheduleMessage,
+  getScheduledMessages,
+  deleteScheduledMessage,
+  disableBot
 };

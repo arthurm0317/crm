@@ -4,6 +4,7 @@ import NovoFunilModal from './modalPages/Kanban_novoFunil';
 import GerirEtapaModal from './modalPages/Kanban_gerirEtapa';
 import { Dropdown } from 'react-bootstrap';
 import KanbanExcluirEtapaModal from './modalPages/Kanban_excluirEtapa';
+import TransferirEmMassaModal from './modalPages/Kanban_transferirEmMassa';
 import axios from 'axios';
 import { socket } from '../socket';
 import ChatPage from './Chats';
@@ -324,6 +325,25 @@ useEffect(() => {
     setEtapaParaExcluir(null);
   };
 
+  const handleTransferirEmMassa = (etapa) => {
+    setEtapaParaTransferir(etapa);
+    setShowTransferirEmMassaModal(true);
+  };
+
+  const handleTransferirEmMassaComplete = (etapaOrigemId, etapaDestinoId) => {
+    setCards(cards => cards.map(card => 
+      card.etapa_id === etapaOrigemId ? { ...card, etapa_id: etapaDestinoId } : card
+    ));
+    
+    // Emitir evento via socket para atualizar outros usuários
+    socketInstance.emit('transferirEmMassa', {
+      etapaOrigemId,
+      etapaDestinoId,
+      funil: funilSelecionado,
+      schema
+    });
+  };
+
   const handleManageTags = (lead) => alert(`Gerenciar tags de ${lead.nome}`);
 
   // Drag and drop handlers
@@ -363,14 +383,25 @@ function handleLeadMoved({ chat_id, etapa_id, stage_id }) {
     )
   );
 }
+
+function handleTransferirEmMassa({ etapaOrigemId, etapaDestinoId }) {
+  setCards(cards => cards.map(card => 
+    card.etapa_id === etapaOrigemId ? { ...card, etapa_id: etapaDestinoId } : card
+  ));
+}
+
   socketInstance.on('leadMoved', handleLeadMoved);
+  socketInstance.on('transferirEmMassa', handleTransferirEmMassa);
   return () => {
     socketInstance.off('leadMoved', handleLeadMoved);
+    socketInstance.off('transferirEmMassa', handleTransferirEmMassa);
   };
 }, []);
 
   const [showNovoFunilModal, setShowNovoFunilModal] = useState(false);
   const [showGerirEtapaModal, setShowGerirEtapaModal] = useState(false);
+  const [showTransferirEmMassaModal, setShowTransferirEmMassaModal] = useState(false);
+  const [etapaParaTransferir, setEtapaParaTransferir] = useState(null);
 
   useEffect(() => {
 }, [funilSelecionado]);
@@ -666,6 +697,14 @@ useEffect(() => {
                           <i className="bi bi-pencil"></i>
                         </button>
                         <button
+                          className={`btn btn-sm btn-2-${theme}`}
+                          title="Transferir todos os cards"
+                          onClick={() => handleTransferirEmMassa(etapa)}
+                          disabled={editingEtapaId === etapa.id}
+                        >
+                          <i className="bi bi-arrow-left-right"></i>
+                        </button>
+                        <button
                           className={`btn btn-sm btn-2-${theme} delete-btn`}
                           title="Excluir etapa"
                           onClick={() => handleDeleteEtapa(etapa)}
@@ -853,6 +892,18 @@ useEffect(() => {
         onHide={() => setShowImportarContatosModal(false)}
         funil={funilSelecionado}
         etapas={etapas}
+      />
+      <TransferirEmMassaModal
+        theme={theme}
+        show={showTransferirEmMassaModal}
+        onHide={() => {
+          setShowTransferirEmMassaModal(false);
+          setEtapaParaTransferir(null);
+        }}
+        etapaOrigem={etapaParaTransferir}
+        etapas={etapas}
+        funil={funilSelecionado}
+        onTransferComplete={handleTransferirEmMassaComplete}
       />
     </div>
   );

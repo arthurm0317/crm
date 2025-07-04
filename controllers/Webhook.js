@@ -11,10 +11,11 @@ const { createChat, getChatService, setChatQueue, setUserChat, saveMediaMessage,
 const { saveMessage } = require('../services/MessageService');
 const pool = require('../db/queries');
 const { getCurrentTimestamp } = require('../services/getCurrentTimestamp');
-const { getBase64FromMediaMessage } = require('../requests/evolution');
+const { getBase64FromMediaMessage, sendTextMessage } = require('../requests/evolution');
 const express = require('express');
 const createRedisConnection = require('../config/Redis');
 const { Queue, Worker } = require('bullmq');
+const { getQueueById } = require('../services/QueueService');
 
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
@@ -74,8 +75,6 @@ module.exports = (broadcastMessage) => {
       const chatDb = await getChatService(createChats.chat.id, createChats.chat.connection_id, createChats.schema);
       const schema = createChats.schema
 
-      console.log('CHAT DB',chatDb)
-
       if(chatDb.assigned_user===null){
         await setUserChat(chatDb.id, schema)
       }
@@ -86,10 +85,10 @@ module.exports = (broadcastMessage) => {
       }
       if (baseChat.assigned_user !== null) {
         const userChat = await getChatByUser(baseChat.assigned_user, baseChat.permission,schema)
-        broadcastMessage({ type: 'chats_updated', payload: userChat });
+        serverTest.io.to(`schema_${schema}`).emit('chats_updated', userChat)
       }else{
         const chats = await getChatIfUserIsNull(baseChat.connection_id,baseChat.permission,schema)
-        broadcastMessage({ type: 'chats_updated', payload: chats });
+        serverTest.io.to(`schema_${schema}`).emit('chats_updated', chats)
       }
 
       if (result.data.message?.conversation) {
@@ -193,11 +192,32 @@ module.exports = (broadcastMessage) => {
           schema
         );
       }
+      const data = {
+        chatId: chatDb.id,
+        instance:result.instance,
+        body: messageBody,
+        fromMe: result.data.key.fromMe,
+        from: result.data.pushName,
+        timestamp,
+        message_type: result.data.messageType,
+        user_id: baseChat.assigned_user,
+        status: baseChat.status,
+        schema: schema
+      };
+
+      const queueById = await getQueueById(chatDb.queue_id, schema);
+
+      if(queueById[0].is_webhook_on === true && queueById[0].webhook_url !== null){
+        try {
+          await axios.post(queueById[0].webhook_url, data)
+        } catch (error) {
+          console.error(error);
+        }
+      }
 
 
       res.status(200).json({ result });
-    //   await axios.post(`https://n8n-n8n-start.8rxpnw.easypanel.host/${result.instance}`, data);
-    // console.log('Dados enviados para o Webhook 2');
+
   } catch (error) {
     console.error('Erro ao enviar para o próximo webhook:', error);
   }
@@ -268,6 +288,35 @@ module.exports = (broadcastMessage) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+app.post('/resposta', async(req, res)=>{
+    try {
+        const message = new Message(
+          uuidv4(),
+          req.body.body,
+          true,
+          req.body.id,
+          getCurrentTimestamp(req.body.timestamp)
+        )
+        await saveMessage(req.body.id, message, req.body.schema)
+        await sendTextMessage(req.body.instance, req.body.body, req.body.number)
+        const payload = {
+            chatId: req.body.id,
+            body: req.body.body,
+            fromMe: true,
+            timestamp: getCurrentTimestamp(req.body.timestamp),
+            user_id: req.body.assigned_user
+          };
+        
+        // Emitir via socket para aparecer diretamente na interface
+        serverTest.io.to(`schema_${req.body.schema}`).emit('message', payload);
+        
+        res.status(200).json({success:true})
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({error: error.message})
+    }
+})
 
   return app;
 };

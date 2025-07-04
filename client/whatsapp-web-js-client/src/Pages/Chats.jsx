@@ -1,13 +1,18 @@
 import { useEffect, useState, useRef, useCallback, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 import EmojiPicker from 'emoji-picker-react';
 import NewContactModal from './modalPages/Chats_novoContato';
 import ChangeQueueModal from './modalPages/Chats_alterarFila';
+import AgendarMensagemModal from './modalPages/Chats_agendarMensagem';
+import ListaAgendamentosModal from './modalPages/Chats_agendamentosLista';
+import TransferirUsuarioModal from './modalPages/Chats_transferirUsuario';
 import {socket} from '../socket'
 import {Dropdown} from 'react-bootstrap';
 import './assets/style.css';
 import NewQueueModal from './modalPages/Filas_novaFila';
 import WaveSurfer from 'wavesurfer.js';
+import ChatsMenuLateral from './modalPages/Chats_menuLateral';
 
 function formatHour(timestamp) {
   const date = new Date(Number(timestamp));
@@ -83,11 +88,12 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
   const schema = userData.schema;
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showChangeQueueModal, setShowChangeQueueModal] = useState(false);
+  const [showListaAgendamentosModal, setShowListaAgendamentosModal] = useState(false);
+  const [showAgendarMensagemModal, setShowAgendarMensagemModal] = useState(false);
+  const [showTransferirUsuarioModal, setShowTransferirUsuarioModal] = useState(false);
   const [queues, setQueues] = useState([]);
   const [transferLoading, setTransferLoading] = useState(false);
-  const handleToggle = (isOpen) => {
-    setIsDropdownOpen(isOpen);
-  };
+
 
   const handleCloseChat = async () => {
     try {
@@ -125,6 +131,8 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
     if (isDropdownOpen) fetchQueues();
   }, [isDropdownOpen, url, schema]);
 
+
+
   const handleTransferQueue = async (queueId) => {
     if (!selectedChat) return;
     setTransferLoading(true);
@@ -150,7 +158,7 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
   };
   return (
     <>
-      <Dropdown drop="start" onToggle={setIsDropdownOpen}>
+      <Dropdown drop="end" onToggle={setIsDropdownOpen}>
         <Dropdown.Toggle
           variant={theme === 'light' ? 'light' : 'dark'}
           id="dropdown-basic"
@@ -161,14 +169,43 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
 
         <Dropdown.Menu
           variant={theme === 'light' ? 'light' : 'dark'}
-          className={`input-${theme}`}>
-  
-
+          className={`chat-dropdown-menu ${theme === 'dark' ? 'dark' : ''}`}
+          style={{
+            zIndex: 9999,
+            position: 'absolute'
+          }}
+        >
           <Dropdown.Divider />
-          <Dropdown.Item href="#" onClick={() => setShowChangeQueueModal(true)}>Alterar Fila</Dropdown.Item>
-          <Dropdown.Item href="#" onClick={handleCloseChat}>Finalizar Atendimento</Dropdown.Item>
-          <Dropdown.Item href="#" onClick={onEditName}>Editar Nome</Dropdown.Item>
-          {/* <Dropdown.Item href="#" onClick={() => setShowTagModal(true)}>Gerenciar Tags</Dropdown.Item> */}
+          <Dropdown.Item href="#" onClick={() => {
+            setShowChangeQueueModal(true);
+            setIsDropdownOpen(false);
+          }}>
+            Alterar Fila
+          </Dropdown.Item>
+          <Dropdown.Item href="#" onClick={() => {
+            setShowTransferirUsuarioModal(true);
+            setIsDropdownOpen(false);
+          }}>
+            Transferir para Usuário
+          </Dropdown.Item>
+          <Dropdown.Item href="#" onClick={() => {
+            handleCloseChat();
+            setIsDropdownOpen(false);
+          }}>
+            Finalizar Atendimento
+          </Dropdown.Item>
+          <Dropdown.Item href="#" onClick={() => {
+            onEditName();
+            setIsDropdownOpen(false);
+          }}>
+            Editar Nome
+          </Dropdown.Item>
+          <Dropdown.Item href="#" onClick={() => {
+            setShowListaAgendamentosModal(true);
+            setIsDropdownOpen(false);
+          }}>
+            Agendar mensagem
+          </Dropdown.Item>
         </Dropdown.Menu>
       </Dropdown>
 
@@ -181,6 +218,33 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
     url={url}
     onTransfer={handleTransferQueue}
 />
+
+  <ListaAgendamentosModal
+    show={showListaAgendamentosModal}
+    onHide={() => setShowListaAgendamentosModal(false)}
+    theme={theme}
+    selectedChat={selectedChat}
+    onAgendarNovaMensagem={() => {
+      setShowListaAgendamentosModal(false);
+      setTimeout(() => setShowAgendarMensagemModal(true), 200);
+    }}
+  />
+
+  <AgendarMensagemModal
+    show={showAgendarMensagemModal}
+    onHide={() => setShowAgendarMensagemModal(false)}
+    theme={theme}
+    selectedChat={selectedChat}
+  />
+
+  <TransferirUsuarioModal
+    show={showTransferirUsuarioModal}
+    onHide={() => setShowTransferirUsuarioModal(false)}
+    theme={theme}
+    selectedChat={selectedChat}
+    schema={schema}
+    url={url}
+  />
     </>
   );
 }
@@ -216,10 +280,14 @@ function ChatPage({ theme, chat_id} ) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
   const [connections, setConnections] = useState([]);
+  const [queues, setQueues] = useState([]);
   const nomeContatoRef = useRef(null);
   const [showNewContactModal, setShowNewContactModal] = useState(false);
+  const [isBotActive, setIsBotActive] = useState(false);
   const [socketInstance] = useState(socket)  
   const url = process.env.REACT_APP_URL;
+  const [showSideMenu, setShowSideMenu] = useState(false);
+  const [sideMenuActive, setSideMenuActive] = useState(false);
 
   const setAsRead = async()=>{
     if (!selectedChat) return;
@@ -270,12 +338,28 @@ useEffect(() => {
       setConnections([]);
     }
   };
+  
+  const fetchQueues = async () => {
+    try {
+      const res = await axios.get(`${url}/queue/get-all-queues/${schema}`);
+      setQueues(res.data.result || []);
+    } catch (err) {
+      setQueues([]);
+    }
+  };
+  
   fetchConnections();
+  fetchQueues();
 }, [url, schema]);
 
 const getConnectionName = (connectionId) => {
   const conn = connections.find(c => c.id === connectionId);
   return conn?.name || connectionId;
+};
+
+const getQueueName = (queueId) => {
+  const queue = queues.find(q => q.id === queueId);
+  return queue?.name || queueId;
 };
 
 const handleEditContactName = async (contactId, newName) => {
@@ -319,6 +403,24 @@ const handleAcceptChat = async () => {
     }
   }
 
+const disableBot = async () => {
+  if (!selectedChat) return;
+  
+  try {
+    // Mapear a role para o valor correto
+    const roleValue = userData.role === 'admin' ? 'admin' : 'user';
+    
+    await axios.post(`${url}/chat/disable-bot`, {
+      chat_id: selectedChat.id,
+      schema: schema,
+      role: roleValue
+    });
+    setIsBotActive(false);
+  } catch (error) {
+    console.error('Erro ao desativar bot:', error);
+  }
+};
+
   const handleChatClick = (chat) => {
   setSelectedChat(chat);
   setSelectedChatId(chat.id);
@@ -334,6 +436,12 @@ const handleAcceptChat = async () => {
   );  
   scrollToBottom()
   
+  // Carregar status do bot do banco de dados
+  if (chat.isboton) {
+    setIsBotActive(true);
+  } else {
+    setIsBotActive(false);
+  }
 };
 
   useEffect(() => {
@@ -355,9 +463,10 @@ const handleAcceptChat = async () => {
   }
 }, [socketInstance, selectedChatId]);
 
- useEffect(() => {
+   useEffect(() => {
   if (socketInstance) {
     socketInstance.on('connect', () => {
+      socketInstance.emit('join', `schema_${schema}`);
     });
     socketInstance.on('chats_updated', (updatedChats) => {
   let chats = [];
@@ -379,14 +488,51 @@ const handleAcceptChat = async () => {
     });
   }
 });
+
+    // Escutar evento de transferência de chat
+    socketInstance.on('chatTransferred', (data) => {
+      const currentUserId = userData.id;
+      
+      setChats(prevChats => {
+        // Se o usuário atual perdeu o chat, remove da lista
+        if (data.oldUserId === currentUserId) {
+          return prevChats.filter(chat => chat.id !== data.chatId);
+        }
+        
+        // Se o usuário atual ganhou o chat, atualiza a lista
+        if (data.newUserId === currentUserId) {
+          const existingChatIndex = prevChats.findIndex(chat => chat.id === data.chatId);
+          if (existingChatIndex !== -1) {
+            const updatedChats = [...prevChats];
+            updatedChats[existingChatIndex] = {
+              ...updatedChats[existingChatIndex],
+              assigned_user: data.newUserId
+            };
+            return updatedChats;
+          }
+        }
+        
+        return prevChats;
+      });
+      
+      // Se o chat selecionado foi transferido, limpa a seleção
+      if (selectedChatId === data.chatId) {
+        setSelectedChat(null);
+        setSelectedChatId(null);
+        setSelectedMessages([]);
+      }
+    });
   }
   return () => {
     if (socketInstance) {
       socketInstance.off('connect');
       socketInstance.off('chats_updated');
+      socketInstance.off('chatTransferred');
+      // Sai da sala do schema ao desconectar
+      socketInstance.emit('leave', `schema_${schema}`);
     }
   };
-}, [socketInstance, userData.id]);
+}, [socketInstance, userData.id, schema]);
 const handleSubmit = (data) => {
   if (!selectedChat) {
     console.warn('Nenhum chat selecionado!');
@@ -920,7 +1066,7 @@ const handleImageUpload = async (event) => {
 >
   <strong>{chat.contact_name || chat.id || 'Sem Nome'}</strong>
   <span
-  title={getConnectionName(chat.connection_id)}
+  title={getQueueName(chat.queue_id)}
   style={{
     background: '#e0e0e0',
     color: '#333',
@@ -930,7 +1076,7 @@ const handleImageUpload = async (event) => {
     marginLeft: '6px',
     whiteSpace: 'nowrap',
     fontWeight: 500,
-    maxWidth: '80px',
+    maxWidth: '120px',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     display: 'inline-block',
@@ -939,7 +1085,7 @@ const handleImageUpload = async (event) => {
     verticalAlign: 'middle'
   }}
 >
-  {getConnectionName(chat.connection_id)}
+  {getQueueName(chat.queue_id)}
 </span>
 </div>
 
@@ -980,7 +1126,8 @@ const handleImageUpload = async (event) => {
         </div>
 {/* MENSAGENS DO CONTATO SELECIONADO */}
 <div
-  className={`w-100 chat-messages-${theme} d-flex flex-column`} style={{ borderTopRightRadius: '10px' }}
+  className={`w-100 chat-messages-${theme} d-flex flex-column`}
+  style={{ borderTopRightRadius: '10px', position: 'relative' }}
 >
 {selectedChat && (
   <div
@@ -1035,6 +1182,15 @@ const handleImageUpload = async (event) => {
 
     <div className='d-flex flex-row gap-2'>
 
+      <button
+        className={`btn btn-2-${theme} d-flex gap-2`}
+        onClick={isBotActive ? disableBot : undefined}
+        disabled={!isBotActive}
+        title={isBotActive ? "Desativar Bot" : "Bot Desativado"}
+      >
+        <i className={`bi ${isBotActive ? 'bi-pause':'bi-play-fill'}`}></i>
+      </button>
+
       {selectedChat && selectedChat.status === 'waiting' && (
   <div>
     <button
@@ -1058,9 +1214,36 @@ const handleImageUpload = async (event) => {
         setSelectedMessages={setSelectedMessages}
         onEditName={handleEditNameStart}
         editedName={editedName}
-
       />
       </div>
+
+      {/* Botão person-gear */}
+      <button
+        className={`btn btn-2-${theme} d-flex align-items-center`}
+        style={{ marginLeft: '4px' }}
+        onClick={() => {
+          setShowSideMenu(true);
+          setTimeout(() => setSideMenuActive(true), 10);
+        }}
+      >
+        <i className="bi bi-person-gear"></i>
+      </button>
+
+      {/* MENU LATERAL SOBREPOSTO */}
+      {showSideMenu && (
+        <ChatsMenuLateral
+          theme={theme}
+          selectedChat={selectedChat}
+          onClose={() => {
+            setSideMenuActive(false);
+            setTimeout(() => setShowSideMenu(false), 300);
+          }}
+          style={{
+            opacity: sideMenuActive ? 1 : 0,
+            transform: sideMenuActive ? 'translateX(0)' : 'translateX(100%)',
+          }}
+        />
+      )}
 
     </div>
 

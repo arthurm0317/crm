@@ -1,5 +1,5 @@
 
-const { setUserChat, getChats, getMessages, getChatData, getChatByUser, updateQueue, getChatById, saveMediaMessage, setMessageAsRead, closeChat, setSpecificUser } = require('../services/ChatService');
+const { setUserChat, getChats, getMessages, getChatData, getChatByUser, updateQueue, getChatById, saveMediaMessage, setMessageAsRead, closeChat, setSpecificUser, scheduleMessage, getScheduledMessages, deleteScheduledMessage, disableBot } = require('../services/ChatService');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
@@ -76,9 +76,6 @@ const sendImageController = async (req, res) => {
     }
     
     const instanceId = await searchConnById(connectionId, schema);
-
-    console.log('-------- chat ---------')
-    console.log(chat_id)
     
     const evolutionResponse = await sendImageToWhatsApp(chat_id.contact_phone, imageBase64, instanceId.name);
     
@@ -106,7 +103,7 @@ const setUserChatController = async (req, res) => {
 
     res.status(201).json(result);
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).json({
       erro: 'Não foi distribuir o chat',
     });
@@ -126,9 +123,6 @@ const processReceivedAudio = async (req, res) => {
       throw new Error('Falha ao decodificar o áudio recebido.');
     }
 
-    console.log('Áudio decodificado com sucesso:', decodedBase64.base64);
-
-
     await saveMediaMessage('false', chatId, new Date().getTime(), 'audio', decodedBase64.base64, schema);
 
     res.status(200).json({ success: true, message: 'Áudio recebido e processado com sucesso' });
@@ -144,7 +138,7 @@ const getChatsController = async (req, res) => {
     const result = await getChats(schema);
     res.status(201).json(result);
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).json({
       erro: 'Não foi recuperar os chats',
     });
@@ -237,7 +231,6 @@ const sendAudioController = async (req, res) => {
     }
 
     const chat_id = await getChatById(chatId, connectionId, schema);
-    console.log('Resultado de getChatById:', chat_id);
 
     if (!chat_id || !chat_id.contact_phone) {
       throw new Error('O chat_id ou contact_phone não foi encontrado.');
@@ -272,7 +265,7 @@ try {
     result:result
   })
 } catch (error) {
-  console.log(error)
+  console.error(error)
 }
 }
 const closeChatContoller = async(req, res)=>{
@@ -285,7 +278,7 @@ const closeChatContoller = async(req, res)=>{
     result:result
   })
   } catch (error) {
-    console.log(error)
+    console.error(error)
   }
 }
 
@@ -293,17 +286,68 @@ const setSpecificUserController = async(req, res) => {
   try {
     const {user_id, chat_id} = req.body
     const schema = req.body.schema
-
+    
     const result = await setSpecificUser(chat_id, user_id, schema)
-
+    
     res.status(200).json({
+      success:true,
       result: result
     })
   } catch (error) {
-    console.log(error)
+    console.error(error)
   }
 };
 
+const getScheduledMessagesController = async (req, res) => {
+  try {
+    const {chat_id, schema}=req.params
+    const result = await getScheduledMessages(chat_id, schema);
+    res.status(200).json({
+      success: true,
+      result: result
+    });
+  } catch (error) {
+    console.error(error)
+  }
+}
+const scheduleMessageController = async (req, res) => {
+    try {
+      const {chat_id, instance, message, contact_phone, timestamp, schema} = req.body
+      const connection =await searchConnById(instance, schema)
+      await scheduleMessage(chat_id, connection, message, contact_phone, timestamp, schema);
+      res.status(200).json({
+        success:true,
+        message: 'Mensagem agendada com sucesso',
+      })
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+const deleteScheduledMessageController = async (req, res) => {
+  try {
+    const {id, schema} = req.params
+    await deleteScheduledMessage(id, schema)
+    res.status(200).json({
+      success:true
+    })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+const disableBotController = async (req, res) => {
+  try {
+    const {chat_id, schema} = req.body
+    await disableBot(chat_id, schema);
+    res.status(200).json({
+    success:true
+    })
+  } catch (error) {
+    console.error(error)
+  }
+}
+  
   module.exports = {
     setUserChatController,
     getChatsController,
@@ -319,4 +363,8 @@ const setSpecificUserController = async(req, res) => {
     setMessageAsReadController,
     closeChatContoller,
     setSpecificUserController,
+    scheduleMessageController,
+    getScheduledMessagesController,
+    deleteScheduledMessageController,
+    disableBotController
 };

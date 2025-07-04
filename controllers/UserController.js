@@ -4,14 +4,14 @@ const { v4: uuidv4 } = require('uuid');
 
 const createUserController = async (req, res) => {
     try {
-      const { name, email, password, permission } = req.body;
+      const { name, email, password, role } = req.body;
   
       const user = new Users(
         uuidv4(),
         name,
         email,
         password,
-        permission
+        role
       );
   
         const schema = req.body.schema;
@@ -50,7 +50,7 @@ const getAllUsersController = async(req, res)=>{
             message:'Não foi possivel exibir os usuários'
 
         })
-        console.log(error)
+        console.error(error)
     }
 }
 const searchUserController = async (req, res) => {
@@ -63,8 +63,6 @@ const searchUserController = async (req, res) => {
       console.log("Usuário não encontrado");
       return res.status(404).json({});
     }
-
-    console.log("Usuário encontrado:", result);
 
     changeOnline(result.user.id, result.company.schema_name);
 
@@ -85,8 +83,6 @@ const searchUserController = async (req, res) => {
 
 const searchUserByIdController = async (req, res) => {
   const { user_id, schema } = req.params;
-
-
   try {
     const result = await getUserById(user_id, schema);
 
@@ -112,7 +108,7 @@ const getOnlineUsersController = async (req, res) => {
       users: result,
     });
   } catch (error) {
-    console.log(error)
+    console.error(error)
     res.status(500).json({
       message: 'Não foi possível exibir os usuários',
     });
@@ -129,7 +125,7 @@ const changeOfflineController = async(req, res)=>{
       users: result,
     });
   } catch (error) {
-    console.log(error)
+    console.error(error)
     res.status(500).json({
       message: error,
     });
@@ -139,14 +135,13 @@ const deleteUserController = async(req, res)=>{
   const {user_id} = req.body
   const schema = req.body.schema
 
-  console.log(user_id)
   try{
     const result = await deleteUser(user_id, schema)
     res.status(204).json({
       users: result,
     });
   } catch (error) {
-    console.log(error)
+    console.error(error)
     res.status(500).json({
       message: error,
     });

@@ -1,7 +1,9 @@
 const pool = require('../db/queries')
-
+const { hash, compare } = require('bcrypt');
 
 const createUser = async (user, schema) => {
+
+  const passwordHash = await hash(user.getPassword(), 10);
 
     const result = await pool.query(
         `INSERT INTO ${schema}.users (id, name, email, password, permission) VALUES ($1, $2, $3, $4, $5)`,
@@ -9,7 +11,7 @@ const createUser = async (user, schema) => {
             user.getId(),
             user.getName(),
             user.getEmail(),
-            user.getPassword(),
+            passwordHash,
             user.getPermission()
         ]
     );
@@ -29,43 +31,45 @@ const getUserById = async (user_id, schema)=>{
   return result.rows[0]
 }
 const searchUser = async (userMail, userPassword) => {
-    const availableSchemas = await pool.query(`
-      SELECT schema_name 
-      FROM information_schema.schemata
-      WHERE schema_name NOT IN ('pg_catalog', 'information_schema', 'pg_toast')
-    `);
-    console.log(availableSchemas)
-  
-    const schemaNames = availableSchemas.rows.map(row => row.schema_name);
-  console.log(schemaNames, 'NAMES')
-    for (const schema of schemaNames) {
-      try {
-        const result = await pool.query(
-          `SELECT * FROM ${schema}.users WHERE email = $1 AND password = $2`,
-          [userMail, userPassword]
-        );
-        console.log(result.rows, 'RESULT')
-        
-        if (result.rows.length > 0) {
+  const availableSchemas = await pool.query(`
+    SELECT schema_name 
+    FROM information_schema.schemata
+    WHERE schema_name NOT IN ('pg_catalog', 'information_schema', 'pg_toast')
+  `);
+
+  const schemaNames = availableSchemas.rows.map(row => row.schema_name);
+  for (const schema of schemaNames) {
+    try {
+      const result = await pool.query(
+        `SELECT * FROM ${schema}.users WHERE email = $1`,
+        [userMail]
+      );
+      
+      if (result.rows.length > 0) {
+        const user = result.rows[0];
+        const isValidPassword = await compare(userPassword, user.password);
+        if (!isValidPassword) {
+          throw new Error('Senha incorreta');
+        } else {
           const companyName = await pool.query(
             `SELECT * FROM effective_gain.companies WHERE schema_name = $1`,
             [schema]
           );
-
           return {
             company: companyName.rows[0],
-            user: result.rows[0]
+            user: user
           };
         }
-      } catch (err) {
-        if (!err.message.includes("relation") && !err.message.includes("does not exist")) {
-          console.error(`Erro no schema ${schema}:`, err.message);
-        }
+      }
+    } catch (err) {
+      if (!err.message.includes("relation") && !err.message.includes("does not exist")) {
+        console.error(`Erro no schema ${schema}:`, err.message);
       }
     }
-  
-    return null; 
-  };
+  }
+
+  return null; 
+};
 
   const updateUser=async(userId, userName, userEmail, userRole, schema)=>{
     const result = await pool.query(

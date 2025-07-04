@@ -20,6 +20,7 @@
     "@headlessui/react": "^2.2.4",
     "animejs": "^4.0.2",
     "axios": "^1.8.4",
+    "bcrypt": "^6.0.0",
     "bootstrap": "^5.3.6",
     "bootstrap-icons": "^1.11.3",
     "bull-arena": "^4.5.1",
@@ -53,5 +54,8 @@
     "whatsapp-web.js": "^1.27.0",
     "ws": "^8.18.2",
     "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2"
   }
 }

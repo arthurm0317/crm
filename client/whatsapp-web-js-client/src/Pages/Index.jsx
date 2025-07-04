@@ -431,7 +431,6 @@ useEffect(() => {
               <i className="bi bi-question-circle"></i>
               <span className="sidebar-label d-none">Ajuda</span>
             </button>
-
            
 
           </div>

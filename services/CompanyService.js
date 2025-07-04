@@ -160,6 +160,14 @@ const createCompany = async (company, schema) => {
             FOREIGN KEY (queue_id) REFERENCES ${schema}.queues(id) ON DELETE CASCADE
             )`
         );
+        await pool.query(
+            `CREATE TABLE ${schema}.scheduled_message (
+            id UUID PRIMARY KEY,
+            message TEXT NOT NULL,
+            chat_id UUID NOT NULL REFERENCES ${schema}.chats(id) ON DELETE CASCADE,
+            scheduled_date BIGINT NOT NULL
+            );`
+        )
 
     const superAdmin = new Users(
         superAdminId,
@@ -194,7 +202,7 @@ const getAllCompaniesTecUser = async () => {
         )
         return result.rows
     }catch(error){
-        console.log(error)
+        console.error(error)
         throw new Error("Erro ao buscar empresas")
     }
 }

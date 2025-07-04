@@ -46,7 +46,7 @@ if (!userData || !userData.id) {
     }
   
     try {
-      const newContact = await axios.post('http://localhost:3000/contact/create-contact', {
+      const newContact = await axios.post(`${url}/contact/create-contact`, {
         name: contactName,
         number: contactNumber,
         connection: attendant, 

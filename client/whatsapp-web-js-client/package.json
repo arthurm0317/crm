@@ -22,7 +22,7 @@
     "react-dom": "^18.2.0",
     "react-qr-code": "^2.0.15",
     "react-router-dom": "6.30.0",
-    "react-scripts": "5.0.1",
+    "react-scripts": "^5.0.1",
     "socket.io-client": "^4.8.1",
     "wavesurfer.js": "^7.9.5",
     "web-vitals": "^2.1.4"
@@ -54,5 +54,8 @@
   "resolutions": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
+  },
+  "devServer": {
+    "allowedHosts": "all"
   }
 }

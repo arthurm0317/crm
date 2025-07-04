@@ -365,10 +365,12 @@ a {
     color: var(--bg-color-dark);
 }
 .sidebar-collapsed {
-    width: 75px !important;
+    width: 4.93vw !important; /* 75 / 1521 * 100 */
+    max-width: 75px !important;
 }
 .sidebar-expanded {
-    width: 200px !important;
+    width: 13.15vw !important; /* 200 / 1521 * 100 */
+    max-width: 200px !important;
 }
 .sidebar-expanded .sidebar-label {
     display: inline !important;
@@ -768,4 +770,78 @@ input[type="range"]::-moz-range-progress {
     width: 100%;
     display: flex;
     height: 35px;
+}
+
+/* Estilos para o dropdown customizado */
+.dropdown-item {
+    color: var(--text-color-light);
+    transition: background-color 0.2s;
+}
+
+.dropdown-item:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.dropdown-item:active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* Estilos para o dropdown dos chats com cores corretas */
+.chat-dropdown-menu {
+    background-color: var(--bg-color-light) !important;
+    border-color: var(--border-color-light) !important;
+}
+
+.chat-dropdown-menu .dropdown-item {
+    color: var(--text-color-light) !important;
+}
+
+.chat-dropdown-menu .dropdown-item:hover {
+    background-color: var(--primary-color) !important;
+    color: white !important;
+}
+
+/* Versão dark */
+.chat-dropdown-menu.dark {
+    background-color: var(--bg-color-dark) !important;
+    border-color: var(--border-color-dark) !important;
+}
+
+.chat-dropdown-menu.dark .dropdown-item {
+    color: var(--text-color-dark) !important;
+}
+
+.chat-dropdown-menu.dark .dropdown-item:hover {
+    background-color: var(--primary-color) !important;
+    color: white !important;
+}
+
+/* Estilos específicos para o dropdown dos chats */
+.chat-dropdown-menu {
+    z-index: 9999 !important;
+    position: absolute !important;
+    overflow: visible !important;
+}
+
+.chat-dropdown-menu.show {
+    display: block !important;
+    position: absolute !important;
+    transform: none !important;
+    inset: auto !important;
+}
+
+/* Garantir que o dropdown não seja cortado */
+.chat .dropdown {
+    position: relative !important;
+    overflow: visible !important;
+}
+
+.chat .dropdown-menu {
+    margin-top: 0.125rem !important;
+    margin-left: 0 !important;
+    min-width: 200px !important;
+    left: 0 !important;
+    right: auto !important;
 }

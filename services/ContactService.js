@@ -27,26 +27,70 @@ const insertValueCustomField = async(fieldName, contactNumber, value, schema)=>{
 }
 
 const createContact = async(contactNumber, contactName, connection, user_id, schema)=>{
-    const result = await pool.query(
-        `INSERT INTO ${schema}.contacts (number, contact_name) VALUES ($1, $2) RETURNING *`,
-        [contactNumber, contactName]
-    );
-    const connectionId = await pool.query(
-        `SELECT * FROM ${schema}.connections WHERE name = $1`,
-        [connection]
-    );
-    const chat = await createNewChat(contactName, contactNumber, connectionId.rows[0].id,connectionId.rows[0].queue_id, user_id, schema)
-    
-    return result.rows[0];
+    try {
+        // 1. Verificar se o contato já existe
+        const existingContact = await pool.query(
+            `SELECT * FROM ${schema}.contacts WHERE number = $1`,
+            [contactNumber]
+        );
+
+        let contactResult;
+        
+        // 2. Se o contato não existe, criar
+        if (existingContact.rowCount === 0) {
+            contactResult = await pool.query(
+                `INSERT INTO ${schema}.contacts (number, contact_name) VALUES ($1, $2) RETURNING *`,
+                [contactNumber, contactName]
+            );
+        } else {
+            contactResult = existingContact;
+        }
+
+        // 3. Buscar a conexão
+        const connectionId = await pool.query(
+            `SELECT * FROM ${schema}.connections WHERE name = $1`,
+            [connection]
+        );
+
+        if (connectionId.rowCount === 0) {
+            throw new Error('Conexão não encontrada');
+        }
+
+        // 4. Verificar se existe chat ativo para este contato e conexão
+        const existingChat = await pool.query(
+            `SELECT * FROM ${schema}.chats 
+             WHERE contact_phone = $1 AND connection_id = $2 AND status != 'closed'
+             ORDER BY created_at DESC`,
+            [contactNumber, connectionId.rows[0].id]
+        );
+
+        let chatResult;
+
+        // 5. Se existe chat ativo, usar ele
+        if (existingChat.rowCount > 0) {
+            chatResult = existingChat.rows[0];
+        } else {
+            // 6. Se não existe chat ativo, criar um novo
+            chatResult = await createNewChat(contactName, contactNumber, connectionId.rows[0].id, connectionId.rows[0].queue_id, user_id, schema);
+        }
+        
+        return {
+            contact: contactResult.rows[0],
+            chat: chatResult,
+            isNewContact: existingContact.rowCount === 0,
+            isNewChat: existingChat.rowCount === 0
+        };
+    } catch (error) {
+        console.error('Erro ao criar contato:', error);
+        throw error;
+    }
 }
 
 const updateContactName = async(number, name, schema)=>{
-    console.log(number, name)
     try {
         const result = await pool.query(
             `UPDATE ${schema}.contacts set contact_name=$1 where number=$2`,[name, number]
         )
-        console.log(result)
         return result
     } catch (error) {
         console.error(error)

@@ -6,7 +6,6 @@ const createCompanyController = async (req, res) => {
     try {
         const { name, superAdmin } = req.body;
         const schemaName = req.body.schema_name;
-        console.log(req.body)
 
         const newCompany = new Company(uuidv4(), name, superAdmin);
         const result = await createCompany(newCompany, schemaName); 
@@ -29,7 +28,7 @@ const getAllCompaniesController = async(req, res)=>{
             empresas: result
         })
     }catch(error){
-        console.log(error)
+        console.error(error)
         res.status(500).json({
             message:"Erro ao buscar empresas"
         })
@@ -42,7 +41,7 @@ const getAllCompaniesTecUserController = async(req, res)=>{
             empresas: result
         })
     }catch(error){
-        console.log(error)
+        console.error(error)
         res.status(500).json({
             message:"Erro ao buscar empresas"
         })
