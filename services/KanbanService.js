@@ -72,16 +72,11 @@ const insertInKanbanStage = async (stageName, connection_id, sector, number, sch
   }
 };
 
-const getChatsInKanbanStage = async (stage, sector, schema) => {
-  const stageId = await pool.query(
-    `SELECT id FROM ${schema}.kanban_${sector} WHERE etapa=$1`,
-    [stage]
-  );
-
-  if (stageId.rowCount > 0) {
+const getChatsInKanbanStage = async (stage, schema) => {
+  if (stage) {
     const result = await pool.query(
       `SELECT * FROM ${schema}.chats WHERE etapa_id=$1`,
-      [stageId.rows[0].id]
+      [stage]
     );
     return result.rows;
   } else {
@@ -182,6 +177,7 @@ const getCustomFields = async (schema) => {
   )
   return result.rows
 }
+
 module.exports = {
   createKanbanStage,
   insertInKanbanStage,

@@ -1,5 +1,5 @@
 const SocketServer = require("../server");
-const { createKanbanStage, getFunis, getKanbanStages, getChatsInKanban, changeKanbanStage, updateStageName, updateStageIndex, createFunil, deleteEtapa, getCustomFields } = require("../services/KanbanService");
+const { createKanbanStage, getFunis, getKanbanStages, getChatsInKanban, changeKanbanStage, updateStageName, updateStageIndex, createFunil, deleteEtapa, getCustomFields, getChatsInKanbanStage } = require("../services/KanbanService");
 const { createMessageForBlast } = require("../services/MessageBlast");
 const io = SocketServer.io
 
@@ -124,6 +124,21 @@ const getCustomFieldsController = async (req, res) => {
         console.error(error)
     }
 }
+const transferAllChatsToStage = async (req, res) => {
+    const {stage_id, new_stage, schema} = req.body
+    try {
+        const chats = await getChatsInKanbanStage(stage_id, schema)
+        for(const chat of chats){
+            await changeKanbanStage(chat.id, new_stage, schema)
+            SocketServer.io.to(`schema_${schema}`).emit('leadMoved', { chat_id: chat.id, stage_id: new_stage });
+        }
+        res.status(200).json({
+            success:true
+        })
+    } catch (error) {
+        console.error(error)
+    }
+}
 module.exports = {
     createKanbanStageController,
     createMessageForBlastController,
@@ -134,5 +149,6 @@ module.exports = {
     updateStageNameController,
     createFunilController,
     deleteEtapaController,
-    getCustomFieldsController
+    getCustomFieldsController,
+    transferAllChatsToStage
 }
