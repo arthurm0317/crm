@@ -182,10 +182,10 @@ const ChatsMenuLateral = ({ theme, onClose, style = {}, selectedChat }) => {
         </div>
         <div className='d-flex justify-content-center flex-column align-items-center w-100'>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%'}}>
-            <button className={`btn btn-2-${theme}`}>Agendar Templates</button>
-            <button className={`btn btn-2-${theme}`}>Trocar Tags</button>
-            <button className={`btn btn-2-${theme}`}>Trocar Kanban</button>
-            <button className={`btn btn-2-${theme}`}>Informações Adicionais</button>
+            <button className={`btn btn-2-${theme} d-none`}>Agendar Templates</button>
+            <button className={`btn btn-2-${theme} d-none`}>Trocar Tags</button>
+            <button className={`btn btn-2-${theme} d-none`}>Trocar Kanban</button>
+            <button className={`btn btn-2-${theme} d-none`}>Informações Adicionais</button>
             </div>
         </div>
       </div>
