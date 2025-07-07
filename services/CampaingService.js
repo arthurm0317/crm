@@ -180,7 +180,7 @@ const startCampaing = async (campaing_id, timer, schema) => {
     const kanban = await pool.query(
       `SELECT * FROM ${schema}.kanban_${campaing.rows[0].sector} WHERE id=$1`, [campaing.rows[0].kanban_stage]
     );
-    const chatId = await getChatsInKanbanStage(kanban.rows[0].etapa,campaing.rows[0].sector, schema);
+    const chatId = await getChatsInKanbanStage(campaing.rows[0].kanban_stage, schema);
     const messages = await pool.query(
       `SELECT * FROM ${schema}.message_blast WHERE campaing_id=$1`, [campaing_id]
     );
@@ -196,19 +196,33 @@ const startCampaing = async (campaing_id, timer, schema) => {
     
     for (let i = 0; i < chatId.length; i++) {
       const instanceId = await pool.query(
-        `SELECT * FROM ${schema}.chats WHERE chat_id=$1`, [chatId[i].chat_id]
+        `SELECT * FROM ${schema}.chats WHERE id=$1`, [chatId[i].id]
       );
       const instance = await pool.query(
         `SELECT * FROM ${schema}.connections WHERE id=$1`, [instanceId.rows[0].connection_id]
       );
       const message = messageList[messageIndex];
       messageIndex = (messageIndex + 1) % messageList.length;
-      await sendBlastMessage(
-        instance.rows[0].id,
-        message.value,
-        instanceId.rows[0].contact_phone,
-        schema
-      );
+      
+      // Verifica se a mensagem tem imagem
+      if (message.image) {
+        await sendMediaBlastMessage(
+          instance.rows[0].id,
+          message.value,
+          instanceId.rows[0].contact_phone,
+          instanceId.rows[0].id,
+          message.image,
+          schema
+        );
+      } else {
+        await sendBlastMessage(
+          instance.rows[0].id,
+          message.value,
+          instanceId.rows[0].contact_phone,
+          instanceId.rows[0].id,
+          schema
+        );
+      }
       await sleep(intervalEmSegundos * 1000);
     }
   } catch (error) {
