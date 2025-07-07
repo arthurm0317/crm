@@ -8,17 +8,35 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 // Função para refresh token
-const refreshToken = async () => {
-  try {
-    const response = await axios.post(`${process.env.REACT_APP_URL}/api/refresh-token`, {}, {
-      withCredentials: true
-    });
-    return response.data.success;
-  } catch (error) {
-    console.error('Erro ao renovar token:', error);
-    return false;
-  }
-};
+// const refreshToken = async () => {
+//   try {
+//     const response = await axios.post(`${process.env.REACT_APP_URL}/api/refresh-token`, {}, {
+//       withCredentials: true
+//     });
+//     return response.data.success;
+//   } catch (error) {
+//     console.error('Erro ao renovar token:', error);
+//     return false;
+//   }
+// };
+
+// // Token expirado, tentar refresh
+// const success = await refreshToken();
+// if (!success) {
+//   // Redirecionar para login ou tomar outra ação
+// }
+
+// // Configurar refresh automático de token
+// const tokenRefreshInterval = setInterval(async () => {
+//   const success = await refreshToken();
+//   if (!success) {
+//     clearInterval(tokenRefreshInterval);
+//     // Redirecionar para login ou tomar outra ação
+//   }
+// }, 8000);
+// clearInterval(tokenRefreshInterval);
+// localStorage.setItem('tokenRefreshInterval', tokenRefreshInterval);
+// clearInterval(tokenRefreshInterval);
 
 function UsuariosPage({ theme }) {
   const userData = JSON.parse(localStorage.getItem('user')); 
@@ -75,11 +93,10 @@ function UsuariosPage({ theme }) {
       console.error('Erro ao salvar filas do usuário:', error);
               if (error.response?.status === 401) {
           // Token expirado, tentar refresh
-          const success = await refreshToken();
-          if (!success) {
-            localStorage.removeItem('user');
-            navigate('/');
-          }
+          // const success = await refreshToken();
+          // if (!success) {
+            // Redirecionar para login ou tomar outra ação
+          // }
         }
     }
   };
@@ -103,20 +120,19 @@ function UsuariosPage({ theme }) {
   }, [usuarios]);
 
   // Configurar refresh automático de token
-  useEffect(() => {
-    const tokenRefreshInterval = setInterval(async () => {
-      const success = await refreshToken();
-      if (!success) {
-        clearInterval(tokenRefreshInterval);
-        localStorage.removeItem('user');
-        navigate('/');
-      }
-    }, 8000); // Refresh a cada 8 segundos
+  // useEffect(() => {
+  //   const tokenRefreshInterval = setInterval(async () => {
+  //     const success = await refreshToken();
+  //     if (!success) {
+  //       clearInterval(tokenRefreshInterval);
+  //       // Redirecionar para login ou tomar outra ação
+  //     }
+  //   }, 8000);
 
-    return () => {
-      clearInterval(tokenRefreshInterval);
-    };
-  }, [navigate]);
+    // return () => {
+    //   clearInterval(tokenRefreshInterval);
+    // };
+  // }, [navigate]);
 
   useEffect(() => {
     const fetchUsuarios = async () => {
@@ -129,14 +145,13 @@ function UsuariosPage({ theme }) {
         console.error('Erro ao buscar usuários:', error);
         if (error.response?.status === 401) {
           // Token expirado, tentar refresh
-          const success = await refreshToken();
-          if (!success) {
-            localStorage.removeItem('user');
-            navigate('/');
-          } else {
+          // const success = await refreshToken();
+          // if (!success) {
+            // Redirecionar para login ou tomar outra ação
+          // } else {
             // Tentar novamente após refresh
             fetchUsuarios();
-          }
+          // }
         }
       }
     };
@@ -181,14 +196,13 @@ function UsuariosPage({ theme }) {
       console.error('Erro ao buscar usuários:', error);
       if (error.response?.status === 401) {
         // Token expirado, tentar refresh
-        const success = await refreshToken();
-        if (!success) {
-          localStorage.removeItem('user');
-          navigate('/');
-        } else {
+        // const success = await refreshToken();
+        // if (!success) {
+          // Redirecionar para login ou tomar outra ação
+        // } else {
           // Tentar novamente após refresh
           fetchUsuarios();
-        }
+        // }
       }
     }
   };
