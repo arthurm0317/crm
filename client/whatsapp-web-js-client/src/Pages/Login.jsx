@@ -97,16 +97,16 @@ const handleLogin = async (e) => {
       localStorage.setItem('rememberedCredentials', JSON.stringify(rememberedCredentials));
 
       // Configurar refresh automático de token
-      const tokenRefreshInterval = setInterval(async () => {
-        const success = await refreshToken();
-        if (!success) {
-          clearInterval(tokenRefreshInterval);
-          localStorage.removeItem('user');
-          navigate('/');
-        }
-      }, 8000); // Refresh a cada 8 segundos (antes dos 9 segundos do token)
+      // const tokenRefreshInterval = setInterval(async () => {
+      //   const success = await refreshToken();
+      //   if (!success) {
+      //     clearInterval(tokenRefreshInterval);
+      //     localStorage.removeItem('user');
+      //     navigate('/');
+      //   }
+      // }, 8000); // Refresh a cada 8 segundos (antes dos 9 segundos do token)
 
-      localStorage.setItem('tokenRefreshInterval', tokenRefreshInterval);
+      // localStorage.setItem('tokenRefreshInterval', tokenRefreshInterval);
    
       setTimeout(() => {
         setLoading(false);
