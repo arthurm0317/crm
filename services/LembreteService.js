@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const pool = require('../db/queries');
-const { Queue, Worker } = require('bullmq'); // Remova QueueScheduler daqui
+const { Queue, Worker } = require('bullmq'); 
 const IORedis = require('ioredis');
 const createRedisConnection = require('../config/Redis');
 const SocketServer = require('../server');

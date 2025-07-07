@@ -18,7 +18,9 @@ function DeleteQueueModal({ theme, fila, onDelete }) {
     const modal = document.getElementById('DeleteQueueModal');
     const handleShow = async () => {
       try {
-        const response = await axios.get(`${process.env.REACT_APP_URL}/api/search-user/${schema}/${fila.superuser}`);
+        const response = await axios.get(`${process.env.REACT_APP_URL}/api/search-user/${schema}/${fila.superuser}`, {
+  withCredentials: true
+});
         setSuperUser(response.data.user); 
       } catch (error) {
         console.error(error);

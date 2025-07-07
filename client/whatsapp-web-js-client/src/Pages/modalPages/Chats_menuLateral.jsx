@@ -58,7 +58,9 @@ const ChatsMenuLateral = ({ theme, onClose, style = {}, selectedChat }) => {
         // Fetch do usuário
         if (selectedChat.assigned_user) {
           try {
-            const userRes = await axios.get(`${url}/api/search-user/${schema}/${selectedChat.assigned_user}`);
+            const userRes = await axios.get(`${url}/api/search-user/${schema}/${selectedChat.assigned_user}`, {
+  withCredentials: true
+});
             if (userRes.data.success && userRes.data.user) {
               setUserData(userRes.data.user);
             }

@@ -1,7 +1,6 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const ChatInternoService = require('./services/ChatInternoService');
 
 
 class SocketServer {
@@ -30,21 +29,10 @@ class SocketServer {
 
         // 🟩 Exporta o io estaticamente
         SocketServer.io = this.io;
-
-        this.middlewares();
-        this.routes();
         this.sockets();
     }
 
-    middlewares() {
-        this.app.use(express.json());
-    }
-
-    routes() {
-        this.app.get('/api/test', (req, res) => {
-            res.json({ message: 'Hello from server!' });
-        });
-    }
+ 
 
     
     sockets() {
@@ -66,20 +54,6 @@ class SocketServer {
                 socket.leave(roomId);
             });
 
-            // Chat interno - mensagem
-            socket.on('internal_message', async (data) => {
-                try {
-                    const saved = await ChatInternoService.saveMessage(data.sender_id, data.receiver_id, data.message, data.schema);
-                    
-                    // Enviar para o destinatário
-                    this.io.to(`user_${data.receiver_id}`).emit('internal_message', saved);
-                    
-                    // Enviar para o remetente (confirmação)
-                    this.io.to(`user_${data.sender_id}`).emit('internal_message', saved);
-                } catch (error) {
-                    console.error('Erro ao salvar mensagem:', error);
-                }
-            });
 
             socket.on('disconnect', () => {
                 console.log('Cliente desconectado');

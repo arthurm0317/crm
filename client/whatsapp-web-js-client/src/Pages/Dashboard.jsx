@@ -20,7 +20,9 @@ function Dashboard({ theme }) {
    useEffect(() => {
     const fetchUsuarios = async () => {
       try {
-        const response = await axios.get(`${url}/api/users/${schema}`);
+        const response = await axios.get(`${url}/api/users/${schema}`, {
+          withCredentials: true
+        });
 
         setUser(response.data.users || []);
       } catch (error) {
