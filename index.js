@@ -22,6 +22,9 @@ const cors = require('cors');
 
 const app = express();
 
+// Mapa para rastrear últimos heartbeats dos usuários
+const userHeartbeats = new Map();
+
 
 const corsOptions = {
   origin: ['http://localhost:3001',
@@ -53,6 +56,25 @@ const io = socketIo(server, {
   allowEIO3: true
 });
 
+// Criar servidor socket separado na porta 3333
+const socketServer = http.createServer();
+const socketIoServer = socketIo(socketServer, {
+  cors: {
+    origin: [
+      "http://localhost:3001", 
+      "chrome-extension://ophmdkgfcjapomjdpfobjfbihojchbko",
+      "https://landing-page-teste.8rxpnw.easypanel.host",
+      "https://landing-page-front.8rxpnw.easypanel.host",
+      "https://eg-crm.effectivegain.com",
+      "https://ilhadogovernador.effectivegain.com",
+      "https://barreiras.effectivegain.com"
+    ],
+    methods: ["GET", "POST", "DELETE", "PUT"],
+    allowedHeaders: ["Content-Type"],
+    credentials: true
+  }
+});
+
 io.on('connection', (socket) => {
   console.log('Cliente conectado:', socket.id);
   
@@ -64,6 +86,117 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log('Cliente desconectado:', socket.id);
+  });
+});
+
+// Socket server na porta 3333
+socketIoServer.on('connection', (socket) => {
+  console.log('Novo cliente conectado na porta 3333');
+
+  // Evento para quando o usuário faz login e conecta ao socket
+  socket.on('user_login', async (data) => {
+    try {
+      const { userId, schema } = data;
+      const { changeOnline } = require('./services/UserService');
+      
+      await changeOnline(userId, schema);
+      socket.userId = userId;
+      socket.schema = schema;
+      
+      // Adicionar ao mapa de heartbeats
+      userHeartbeats.set(`${userId}_${schema}`, Date.now());
+      
+      console.log(`👤 Usuário ${userId} marcado como online`);
+    } catch (error) {
+      console.error('Erro ao marcar usuário como online:', error);
+    }
+  });
+
+  socket.on('join', (room) => {
+    console.log('Cliente entrou na sala:', room);
+    socket.join(room);
+    
+    // Se for um userId (não uma sala geral), também adiciona à sala do usuário
+    if (room && typeof room === 'string' && room.length > 10) {
+      socket.join(`user_${room}`);
+      console.log('Usuário também entrou na sala pessoal:', `user_${room}`);
+    }
+  });
+
+  socket.on('leave', (roomId) => {
+    socket.leave(roomId);
+  });
+
+  socket.on('disconnect', async () => {
+    console.log('Cliente desconectado da porta 3333');
+    
+    // Se o socket tem userId, marcar como offline
+    if (socket.userId && socket.schema) {
+      try {
+        const { changeOffline } = require('./services/UserService');
+        await changeOffline(socket.userId, socket.schema);
+        
+        // Remover do mapa de heartbeats
+        userHeartbeats.delete(`${socket.userId}_${socket.schema}`);
+        
+        console.log(`👤 Usuário ${socket.userId} marcado como offline`);
+      } catch (error) {
+        console.error('Erro ao marcar usuário como offline:', error);
+      }
+    }
+  });
+
+  socket.on('message', (message) => {
+    socket.broadcast.emit('message', message);
+  });
+
+  socket.on('lembrete', (data)=>{
+    socket.broadcast.emit('lembrete', data);
+  })
+
+  // Evento para detectar quando a aba do navegador é fechada
+  socket.on('page_visibility_change', async (data) => {
+    try {
+      const { isVisible, userId, schema } = data;
+      const { changeOnline, changeOffline } = require('./services/UserService');
+      
+      console.log(`📥 Recebido evento page_visibility_change:`, { isVisible, userId, schema });
+      
+      if (isVisible) {
+        await changeOnline(userId, schema);
+        // Adicionar/atualizar no mapa de heartbeats
+        userHeartbeats.set(`${userId}_${schema}`, Date.now());
+        console.log(`👤 Usuário ${userId} voltou à aba (online)`);
+      } else {
+        await changeOffline(userId, schema);
+        // Remover do mapa de heartbeats
+        userHeartbeats.delete(`${userId}_${schema}`);
+        console.log(`👤 Usuário ${userId} saiu da aba (offline)`);
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar status de visibilidade:', error);
+    }
+  });
+
+  socket.on('leadMoved', (data) => {
+    socket.broadcast.emit('leadMoved', data);
+  });
+
+  // Handler para heartbeat - manter usuário online
+  socket.on('heartbeat', async (data) => {
+    try {
+      const { userId, schema } = data;
+      const { changeOnline } = require('./services/UserService');
+      
+      await changeOnline(userId, schema);
+      
+      // Atualizar timestamp do último heartbeat
+      userHeartbeats.set(`${userId}_${schema}`, Date.now());
+      
+      console.log(`💓 Heartbeat recebido do usuário ${userId}`);
+    } catch (error) {
+      console.error('Erro ao processar heartbeat:', error);
+    }
   });
 });
 
@@ -136,3 +269,29 @@ const PORT = 3002;
 server.listen(PORT, () => {
 console.log(`Servidor rodando na porta ${PORT} 🚀`);
 });
+
+// Iniciar servidor socket na porta 3333
+socketServer.listen(3333, () => {
+  console.log(`Socket rodando na porta 3333`);
+});
+
+// Sistema de limpeza automática de usuários offline
+setInterval(async () => {
+  const now = Date.now();
+  const timeout = 2 * 60 * 1000; // 2 minutos
+  
+  for (const [key, lastHeartbeat] of userHeartbeats.entries()) {
+    if (now - lastHeartbeat > timeout) {
+      const [userId, schema] = key.split('_');
+      
+      try {
+        const { changeOffline } = require('./services/UserService');
+        await changeOffline(userId, schema);
+        userHeartbeats.delete(key);
+        console.log(`⏰ Usuário ${userId} marcado como offline por timeout`);
+      } catch (error) {
+        console.error(`Erro ao marcar usuário ${userId} como offline:`, error);
+      }
+    }
+  }
+}, 60000); // Verificar a cada minuto

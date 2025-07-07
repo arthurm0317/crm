@@ -64,14 +64,12 @@ const searchUserController = async (req, res) => {
       return res.status(404).json({});
     }
 
-    changeOnline(result.user.id, result.company.schema_name);
-
     res.status(200).json({
       success: true,
       user: result.user,
       role: result.user.permission,
       company: result.company,
-      schema: result.company.company_name
+      schema: result.company.schema_name
     });
 
   } catch (error) {

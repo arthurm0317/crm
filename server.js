@@ -50,6 +50,22 @@ class SocketServer {
         this.io.on('connection', (socket) => {
             console.log('Novo cliente conectado');
 
+            // Evento para quando o usuário faz login e conecta ao socket
+            socket.on('user_login', async (data) => {
+                try {
+                    const { userId, schema } = data;
+                    const { changeOnline } = require('./services/UserService');
+                    
+                    await changeOnline(userId, schema);
+                    socket.userId = userId;
+                    socket.schema = schema;
+                    
+                    console.log(`👤 Usuário ${userId} marcado como online`);
+                } catch (error) {
+                    console.error('Erro ao marcar usuário como online:', error);
+                }
+            });
+
             socket.on('join', (room) => {
                 console.log('Cliente entrou na sala:', room);
                 socket.join(room);
@@ -66,8 +82,20 @@ class SocketServer {
             });
 
 
-            socket.on('disconnect', () => {
+            socket.on('disconnect', async () => {
                 console.log('Cliente desconectado');
+                
+                // Se o socket tem userId, marcar como offline
+                if (socket.userId && socket.schema) {
+                    try {
+                        const { changeOffline } = require('./services/UserService');
+                        await changeOffline(socket.userId, socket.schema);
+                        
+                        console.log(`👤 Usuário ${socket.userId} marcado como offline`);
+                    } catch (error) {
+                        console.error('Erro ao marcar usuário como offline:', error);
+                    }
+                }
             });
 
             socket.on('message', (message) => {
@@ -77,6 +105,26 @@ class SocketServer {
             socket.on('lembrete', (data)=>{
                 socket.broadcast.emit('lembrete', data);
             })
+
+            // Evento para detectar quando a aba do navegador é fechada
+            socket.on('page_visibility_change', async (data) => {
+                try {
+                    const { isVisible, userId, schema } = data;
+                    const { changeOnline, changeOffline } = require('./services/UserService');
+                    
+                    console.log(`📥 Recebido evento page_visibility_change:`, { isVisible, userId, schema });
+                    
+                    if (isVisible) {
+                        await changeOnline(userId, schema);
+                        console.log(`👤 Usuário ${userId} voltou à aba (online)`);
+                    } else {
+                        await changeOffline(userId, schema);
+                        console.log(`👤 Usuário ${userId} saiu da aba (offline)`);
+                    }
+                } catch (error) {
+                    console.error('Erro ao atualizar status de visibilidade:', error);
+                }
+            });
 
             socket.on('leadMoved', (data) => {
                 socket.broadcast.emit('leadMoved', data);

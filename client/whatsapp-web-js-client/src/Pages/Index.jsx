@@ -156,9 +156,55 @@ useEffect(() => {
   if (socketInstance && userData?.id) {
     setupUserQueues();
     
+    // Emitir evento de login do usuário
+    socketInstance.emit('user_login', {
+      userId: userData.id,
+      schema: schema
+    });
+
+    // Função para lidar com mudanças de visibilidade da página
+    const handleVisibilityChange = () => {
+      if (socketInstance && userData?.id) {
+        socketInstance.emit('page_visibility_change', {
+          isVisible: !document.hidden,
+          userId: userData.id,
+          schema: schema
+        });
+      }
+    };
+
+    // Função para lidar com fechamento da página
+    const handleBeforeUnload = () => {
+      if (socketInstance && userData?.id) {
+        // Marcar como offline quando a página for fechada
+        socketInstance.emit('page_visibility_change', {
+          isVisible: false,
+          userId: userData.id,
+          schema: schema
+        });
+      }
+    };
+
+    // Adicionar listeners para eventos de visibilidade
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    // Sistema de heartbeat para manter status online
+    const heartbeatInterval = setInterval(() => {
+      if (socketInstance && userData?.id && !document.hidden) {
+        socketInstance.emit('heartbeat', {
+          userId: userData.id,
+          schema: schema
+        });
+      }
+    }, 30000); // 30 segundos
+    
     // Cleanup quando o componente for desmontado
     return () => {
       cleanupUserQueues();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      clearInterval(heartbeatInterval);
     };
   }
 }, [socketInstance, userData?.id, schema, url]);

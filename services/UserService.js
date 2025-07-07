@@ -80,16 +80,20 @@ const searchUser = async (userMail, userPassword) => {
   }
 
   const changeOnline = async(userId, schema)=>{
+    console.log(`🟢 Marcando usuário ${userId} como online no schema ${schema}`);
     const result = await pool.query(
       `UPDATE ${schema}.users SET online=true WHERE id=$1`,[userId]
     )
+    console.log(`✅ Usuário ${userId} marcado como online. Linhas afetadas: ${result.rowCount}`);
     return result.rows[0]
   }
 
   const changeOffline = async(userId, schema)=>{
+    console.log(`🔴 Marcando usuário ${userId} como offline no schema ${schema}`);
     const result = await pool.query(
       `UPDATE ${schema}.users SET online=false WHERE id=$1`,[userId]
     )
+    console.log(`✅ Usuário ${userId} marcado como offline. Linhas afetadas: ${result.rowCount}`);
     return result.rows[0]
   }
 
