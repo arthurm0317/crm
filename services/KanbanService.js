@@ -1,6 +1,7 @@
 const pool = require("../db/queries");
 const { v4: uuidv4 } = require("uuid");
 const { get } = require("../routes/ConnectionRoutes");
+const SocketServer = require("../server");
 
 const createKanbanStage = async (name, pos, color, sector, schema) => {
   const stageExists = await pool.query(
@@ -19,9 +20,7 @@ const createKanbanStage = async (name, pos, color, sector, schema) => {
 };
 
 const insertInKanbanStage = async (stageName, connection_id, sector, number, schema) => {
-  console.log(`insertInKanbanStage - stageName: ${stageName}, sector: ${sector}, schema: ${schema}`);
   
-  // Verifica se a tabela do funil existe
   const tableExists = await pool.query(
     `SELECT EXISTS (
       SELECT FROM information_schema.tables 
@@ -31,7 +30,6 @@ const insertInKanbanStage = async (stageName, connection_id, sector, number, sch
     [schema, `kanban_${sector}`]
   );
 
-  console.log(`Tabela kanban_${sector} existe:`, tableExists.rows[0].exists);
 
   if (!tableExists.rows[0].exists) {
     console.error(`Tabela kanban_${sector} não existe no esquema ${schema}`);
@@ -43,7 +41,6 @@ const insertInKanbanStage = async (stageName, connection_id, sector, number, sch
     [stageName]
   );
 
-  console.log(`Resultado da busca da etapa "${stageName}":`, stageId.rows);
 
   if (stageId.rowCount > 0) {
     const stageExists = await pool.query(
@@ -66,6 +63,12 @@ const insertInKanbanStage = async (stageName, connection_id, sector, number, sch
         `UPDATE ${schema}.chats SET etapa_id=$1 WHERE connection_id=$2 AND contact_phone=$3 RETURNING *`,
         [stageId.rows[0].id, connection_id, number]
       );
+      const chat = result.rows[0]
+      SocketServer.io.to(`schema_${schema}`).emit('contatosImportados', {
+      chat,
+      sector: sector,
+      schema: schema
+    })
       return result.rows[0];
     } else {
       const contactName = await pool.query(
@@ -95,6 +98,12 @@ const insertInKanbanStage = async (stageName, connection_id, sector, number, sch
           stageId.rows[0].id
         ]
       );
+      SocketServer.io.to(`schema_${schema}`).emit('contatosImportados', {
+      newChat,
+      sector: sector,
+      schema: schema
+    });
+
     return newChat.rows[0];
     }
   } else {
