@@ -31,11 +31,16 @@ function processExcelFile(connection_id, sector, schema) {
 }
 
 const getInformationFromExcel = async (data, connection, sector, schema) => {
+  console.log('SECTOR', sector)
   for (const row of data) {
     let numero = row.numero?.toString();
+     if (!row.nome) {
+    console.warn('Linha ignorada: nome ausente.', row);
+    continue;
+  }
     const nomeSeparado = row.nome.split(' ');
     const etapa = row.etapa;
-
+    
     const nome = nomeSeparado
       .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
       .join(' ');
@@ -60,7 +65,10 @@ const getInformationFromExcel = async (data, connection, sector, schema) => {
         }
       }
       if (etapa) {
-        await insertInKanbanStage(etapa, connection, sector, numero, schema);
+        const result = await insertInKanbanStage(etapa, connection, sector, numero, schema);
+        if (result === null) {
+          console.warn(`Linha ignorada: etapa "${etapa}" não encontrada no funil "${sector}".`, row);
+        }
       }
     } catch (error) {
       console.error(`Erro ao processar linha: ${JSON.stringify(row)}`, error);

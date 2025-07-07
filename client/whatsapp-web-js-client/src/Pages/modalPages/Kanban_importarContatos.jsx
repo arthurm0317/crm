@@ -81,7 +81,6 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
 
 
     if (res.data.success) {
-      alert('Contatos importados com sucesso!');
       onHide();
     } else {
       setErrorMsg('Erro ao importar contatos: ' + res.data.message);
@@ -95,8 +94,8 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
 
   const handleDownloadModelo = () => {
     const ws = XLSX.utils.aoa_to_sheet([
-      ['Telefone', 'Nome', 'ID Personalizado'],
-      ['11999999999', 'Exemplo', '123']
+      ['nome', 'numero', 'etapa'],
+      ['Joao da Silva', '551188888888', 'Etapa do kanban']
     ]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Modelo');

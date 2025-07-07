@@ -19,12 +19,43 @@ const createKanbanStage = async (name, pos, color, sector, schema) => {
 };
 
 const insertInKanbanStage = async (stageName, connection_id, sector, number, schema) => {
+  console.log(`insertInKanbanStage - stageName: ${stageName}, sector: ${sector}, schema: ${schema}`);
+  
+  // Verifica se a tabela do funil existe
+  const tableExists = await pool.query(
+    `SELECT EXISTS (
+      SELECT FROM information_schema.tables 
+      WHERE table_schema = $1 
+      AND table_name = $2
+    )`,
+    [schema, `kanban_${sector}`]
+  );
+
+  console.log(`Tabela kanban_${sector} existe:`, tableExists.rows[0].exists);
+
+  if (!tableExists.rows[0].exists) {
+    console.error(`Tabela kanban_${sector} não existe no esquema ${schema}`);
+    return null;
+  }
+
   const stageId = await pool.query(
     `SELECT id FROM ${schema}.kanban_${sector} WHERE etapa=$1`,
     [stageName]
   );
 
+  console.log(`Resultado da busca da etapa "${stageName}":`, stageId.rows);
+
   if (stageId.rowCount > 0) {
+    const stageExists = await pool.query(
+      `SELECT id FROM ${schema}.kanban_${sector} WHERE id=$1`,
+      [stageId.rows[0].id]
+    );
+
+    if (stageExists.rowCount === 0) {
+      console.error(`ID da etapa "${stageName}" não encontrado na tabela kanban_${sector}.`);
+      return null;
+    }
+
     const existingChat = await pool.query(
       `SELECT * FROM ${schema}.chats WHERE connection_id=$1 AND contact_phone=$2`,
       [connection_id, number]
