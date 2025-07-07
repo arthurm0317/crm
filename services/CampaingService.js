@@ -124,7 +124,7 @@ const scheduleCampaingBlast = async (campaing, sector, schema, intervalo) => {
       return; 
     }
     
-    const chatIds = await getChatsInKanbanStage(kanban.rows[0].etapa, sector,schema);
+    const chatIds = await getChatsInKanbanStage(campaing.kanban_stage, schema);
     
     const messages = await pool.query(
       `SELECT * FROM ${schema}.message_blast WHERE campaing_id=$1`, [campaing.id]

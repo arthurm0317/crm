@@ -1,6 +1,45 @@
 const { createUser, getAllUsers, searchUser, changeOnline, getOnlineUsers, changeOffline, deleteUser, updateUser, getUserById} = require('../services/UserService');
 const { Users } = require('../entities/Users');
 const { v4: uuidv4 } = require('uuid');
+const jwt = require('jsonwebtoken');
+
+function verifyToken(req, res, next) {
+  const { token } = req.cookies;
+  if (!token) {
+    return res.status(401).json({ error: 'Token não fornecido' });
+  }
+  jwt.verify(token, process.env.JWT_SECRET, (error, decoded) => {
+    if (error) {
+      return res.status(401).json({ error: 'Token inválido ou expirado' });
+    }
+    req.user_id = decoded.user_id;
+    next();
+  });
+}
+
+const refreshTokenController = (req, res) => {
+  const { refreshToken } = req.cookies;
+  if (!refreshToken) {
+    return res.status(401).json({ error: 'Refresh token não fornecido' });
+  }
+  try {
+    const refresh = jwt.verify(refreshToken, process.env.JWT_SECRET);
+    const newToken = jwt.sign(
+      { user_id: refresh.user_id },
+      process.env.JWT_SECRET,
+      { expiresIn: 900 }
+    );
+    res.cookie('token', newToken, {
+      maxAge: 900000,
+      httpOnly: true,
+      sameSite: 'strict',
+      path: '/'
+    });
+    return res.status(200).json({ success: true });
+  } catch (refreshError) {
+    return res.status(401).json({ error: 'Refresh token inválido' });
+  }
+};
 
 const createUserController = async (req, res) => {
     try {
@@ -37,22 +76,21 @@ const createUserController = async (req, res) => {
       res.status(500).json({ error: 'Erro ao atualizar usuário' });
     }
   }
-const getAllUsersController = async(req, res)=>{
-  const schema = req.params.schema
-    try{
-        const result = await getAllUsers(schema)
-        res.status(201).json({
-            users:result
-          
-        })
-    }catch(error){
-        res.status(500).json({
-            message:'Não foi possivel exibir os usuários'
-
-        })
-        console.error(error)
-    }
-}
+const getAllUsersController = async (req, res) => {
+  const schema = req.params.schema;
+  
+  try {
+    const result = await getAllUsers(schema);
+    res.status(200).json({
+      users: result
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: 'Não foi possível exibir os usuários'
+    });
+  }
+};
 const searchUserController = async (req, res) => {
   const { email, password } = req.body;
 
@@ -61,8 +99,44 @@ const searchUserController = async (req, res) => {
 
     if (!result) {
       console.log("Usuário não encontrado");
-      return res.status(404).json({});
+      return res.status(404).json({success:false});
     }
+
+     const token = jwt.sign(
+      {
+        user_id: result.user.id
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: 9000 
+      }
+    )
+    const refreshToken = jwt.sign(
+       {
+        user_id: result.user.id
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: '7d' 
+      }
+    )
+
+    changeOnline(result.user.id, result.company.schema_name);
+
+    
+    res.cookie('token', token, {
+      maxAge: 9000,  
+      httpOnly: true,
+      sameSite: 'strict', 
+      path: '/' 
+    });
+
+    res.cookie('refreshToken', refreshToken, {
+      maxAge: 604800000,
+      httpOnly: true,
+      sameSite: 'strict',
+      path: '/'
+    })
 
     res.status(200).json({
       success: true,
@@ -87,7 +161,7 @@ const searchUserByIdController = async (req, res) => {
     if (!result) {
       return res.status(404).json({});
     }
-
+    
     res.status(200).json({
       success: true,
       user: result,
@@ -145,6 +219,34 @@ const deleteUserController = async(req, res)=>{
     });
   }
 }
+
+const logoutController = async (req, res) => {
+  try {
+    res.clearCookie('token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/'
+    });
+
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/'
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Logout realizado com sucesso'
+    });
+  } catch (error) {
+    console.error('Erro no logout:', error);
+    res.status(500).json({
+      error: 'Erro ao fazer logout'
+    });
+  }
+};
   module.exports = {
     createUserController,
     getAllUsersController,
@@ -153,5 +255,8 @@ const deleteUserController = async(req, res)=>{
     changeOfflineController,
     deleteUserController,
     updateUserController,
-    searchUserByIdController
+    searchUserByIdController,
+    logoutController,
+    verifyToken,
+    refreshTokenController
   }

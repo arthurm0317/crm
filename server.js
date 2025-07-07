@@ -29,21 +29,10 @@ class SocketServer {
 
         // 🟩 Exporta o io estaticamente
         SocketServer.io = this.io;
-
-        this.middlewares();
-        this.routes();
         this.sockets();
     }
 
-    middlewares() {
-        this.app.use(express.json());
-    }
-
-    routes() {
-        this.app.get('/api/test', (req, res) => {
-            res.json({ message: 'Hello from server!' });
-        });
-    }
+ 
 
     
     sockets() {

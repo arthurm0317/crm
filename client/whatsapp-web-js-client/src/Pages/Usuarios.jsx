@@ -5,6 +5,20 @@ import UserFilasModal from './modalPages/Usuarios_gerirFilas';
 import { useEffect, useState } from 'react';
 import * as bootstrap from 'bootstrap';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+
+// Função para refresh token
+const refreshToken = async () => {
+  try {
+    const response = await axios.post(`${process.env.REACT_APP_URL}/api/refresh-token`, {}, {
+      withCredentials: true
+    });
+    return response.data.success;
+  } catch (error) {
+    console.error('Erro ao renovar token:', error);
+    return false;
+  }
+};
 
 function UsuariosPage({ theme }) {
   const userData = JSON.parse(localStorage.getItem('user')); 
@@ -15,6 +29,7 @@ function UsuariosPage({ theme }) {
   const url = process.env.REACT_APP_URL;
   const [searchTerm, setSearchTerm] = useState('');
   const [modalType, setModalType] = useState('new');
+  const navigate = useNavigate();
 
   const handleSaveUserFilas = async (selectedFilas, userId) => {
     try {
@@ -22,16 +37,22 @@ function UsuariosPage({ theme }) {
         userId: userId,
         queueIds: selectedFilas,
         schema: schema
+      }, {
+        withCredentials: true
       });
       
       // Recarregar a lista de usuários para atualizar as filas
-      const response = await axios.get(`${url}/api/users/${schema}`);
+      const response = await axios.get(`${url}/api/users/${schema}`, {
+        withCredentials: true
+      });
       const usuariosBase = response.data.users || [];
 
       const usuariosComFilas = await Promise.all(
         usuariosBase.map(async (usuario) => {
           try {
-            const queue = await axios.get(`${url}/queue/get-user-queue/${usuario.id}/${schema}`);
+            const queue = await axios.get(`${url}/queue/get-user-queue/${usuario.id}/${schema}`, {
+            withCredentials: true
+          });
             let queueNames = '-';
             if (queue.data?.result) {
               if (Array.isArray(queue.data.result)) {
@@ -52,6 +73,14 @@ function UsuariosPage({ theme }) {
       setUsuarios(usuariosComFilas);
     } catch (error) {
       console.error('Erro ao salvar filas do usuário:', error);
+              if (error.response?.status === 401) {
+          // Token expirado, tentar refresh
+          const success = await refreshToken();
+          if (!success) {
+            localStorage.removeItem('user');
+            navigate('/');
+          }
+        }
     }
   };
 
@@ -73,30 +102,63 @@ function UsuariosPage({ theme }) {
     };
   }, [usuarios]);
 
+  // Configurar refresh automático de token
+  useEffect(() => {
+    const tokenRefreshInterval = setInterval(async () => {
+      const success = await refreshToken();
+      if (!success) {
+        clearInterval(tokenRefreshInterval);
+        localStorage.removeItem('user');
+        navigate('/');
+      }
+    }, 8000); // Refresh a cada 8 segundos
+
+    return () => {
+      clearInterval(tokenRefreshInterval);
+    };
+  }, [navigate]);
+
   useEffect(() => {
     const fetchUsuarios = async () => {
       try {
-        const response = await axios.get(`${url}/api/users/${schema}`);
+        const response = await axios.get(`${url}/api/users/${schema}`, {
+          withCredentials: true
+        });
         setUsuarios(response.data.users || []);
       } catch (error) {
         console.error('Erro ao buscar usuários:', error);
+        if (error.response?.status === 401) {
+          // Token expirado, tentar refresh
+          const success = await refreshToken();
+          if (!success) {
+            localStorage.removeItem('user');
+            navigate('/');
+          } else {
+            // Tentar novamente após refresh
+            fetchUsuarios();
+          }
+        }
       }
     };
     fetchUsuarios();
 
-  }, []);
+  }, [url, schema, navigate]);
 
   useEffect(() => {
   const fetchUsuarios = async () => {
     try {
-      const response = await axios.get(`${url}/api/users/${schema}`);
+      const response = await axios.get(`${url}/api/users/${schema}`, {
+        withCredentials: true
+      });
       const usuariosBase = response.data.users || [];
 
       // Busca as filas de todos os usuários em paralelo
       const usuariosComFilas = await Promise.all(
   usuariosBase.map(async (usuario) => {
     try {
-      const queue = await axios.get(`${url}/queue/get-user-queue/${usuario.id}/${schema}`);
+      const queue = await axios.get(`${url}/queue/get-user-queue/${usuario.id}/${schema}`, {
+        withCredentials: true
+      });
       let queueNames = '-';
       if (queue.data?.result) {
         if (Array.isArray(queue.data.result)) {
@@ -117,10 +179,21 @@ function UsuariosPage({ theme }) {
       setUsuarios(usuariosComFilas);
     } catch (error) {
       console.error('Erro ao buscar usuários:', error);
+      if (error.response?.status === 401) {
+        // Token expirado, tentar refresh
+        const success = await refreshToken();
+        if (!success) {
+          localStorage.removeItem('user');
+          navigate('/');
+        } else {
+          // Tentar novamente após refresh
+          fetchUsuarios();
+        }
+      }
     }
   };
   fetchUsuarios();
-}, [url, schema]);
+}, [url, schema, navigate]);
 
   return (
     <div className="h-100 w-100 mx-2 pt-3">

@@ -334,9 +334,20 @@ useEffect(() => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      await axios.post(`${url}/api/logout`, {}, {
+        withCredentials: true
+      });
+      
+      localStorage.removeItem('user');
+      navigate('/');
+    } catch (error) {
+      console.error('Erro no logout:', error);
+      // Mesmo com erro, limpar dados locais
+      localStorage.removeItem('user');
+      navigate('/');
+    }
   };
 
   const handleWhatsapp = () => {

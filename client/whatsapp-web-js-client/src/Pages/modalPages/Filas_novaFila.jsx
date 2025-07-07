@@ -12,7 +12,9 @@ function NewQueueModal({ theme, superUsers = [] }) {
   useEffect(() => {
     const fetchUsuarios = async () => {
       try {
-        const response = await axios.get(`${process.env.REACT_APP_URL}/api/users/${schema}`);
+        const response = await axios.get(`${process.env.REACT_APP_URL}/api/users/${schema}`, {
+  withCredentials: true
+});
 
         setUser(response.data.users || []);
       } catch (error) {

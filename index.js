@@ -18,6 +18,7 @@ const excelRoutes = require('./routes/ExcelRoutes');
 const lembreteRoutes = require('./routes/LembretesRoutes');
 
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 // const configureSocket = require('./config/SocketConfig');
 
 const app = express();
@@ -36,6 +37,7 @@ const corsOptions = {
     'https://barreiras.effectivegain.com/'
   ],
   methods: ['GET', 'POST', 'DELETE', 'PUT'],
+  credentials: true
 };
 
 const server = http.createServer(app);
@@ -82,7 +84,6 @@ io.on('connection', (socket) => {
     console.log('Usuário entrou na sala:', userId);
     socket.join(`user_${userId}`);
   });
-
 
   socket.on('disconnect', () => {
     console.log('Cliente desconectado:', socket.id);
@@ -201,6 +202,7 @@ socketIoServer.on('connection', (socket) => {
 });
 
 app.use(cors(corsOptions));
+app.use(cookieParser());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 

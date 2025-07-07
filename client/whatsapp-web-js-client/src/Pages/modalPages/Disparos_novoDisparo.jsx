@@ -270,7 +270,7 @@ const limparBase64 = (base64ComPrefixo) => {
       return;
     }
     const start_date = dataInicio && horaInicio
-      ? `${dataInicio}T${horaInicio}:00`
+      ? `${dataInicio}T${horaInicio}:00-03:00`
       : '';
       
     const mensagensParaSalvar = mensagens.map((msg, index) => {
