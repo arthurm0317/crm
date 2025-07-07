@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Modal, Button, Form } from 'react-bootstrap';
 import * as XLSX from 'xlsx';
 import axios from 'axios';
+import { socket } from '../../socket';
 
 function ImportarContatosModal({ theme, show, onHide, funil }) {
   const [file, setFile] = useState(null);
@@ -10,6 +11,7 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
   const [errorMsg, setErrorMsg] = useState('');
   const [canal, setCanal] = useState('');
   const [conexao, setConexao] = useState([]);
+  const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef(null);
   const userData = JSON.parse(localStorage.getItem('user'));
   const schema = userData?.schema;
@@ -68,6 +70,7 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
       return;
     }
     setErrorMsg('');
+    setIsImporting(true);
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -79,18 +82,43 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
+      console.log('📥 Resposta do backend:', res.data);
 
-    if (res.data.success) {
-      onHide();
-    } else {
-      setErrorMsg('Erro ao importar contatos: ' + res.data.message);
+      if (res.data.success) {
+        console.log('✅ Importação bem-sucedida!');
+        
+        setFile(null);
+        setPreview([]);
+        setAvailableColumns([]);
+        setCanal('');
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        
+        onHide();
+      } else {
+        setErrorMsg('Erro ao importar contatos: ' + res.data.message);
+      }
+    } catch (error) {
+      console.error('Erro na importação:', error);
+      setErrorMsg('Erro ao importar contatos. Verifique o console para mais detalhes.');
+    } finally {
+      setIsImporting(false);
     }
-  } catch (error) {
-    console.error('Erro na importação:', error);
-    setErrorMsg('Erro ao importar contatos. Verifique o console para mais detalhes.');
-  }
-};
+  };
 
+  const handleClose = () => {
+    // Limpar formulário ao fechar
+    setFile(null);
+    setPreview([]);
+    setAvailableColumns([]);
+    setCanal('');
+    setErrorMsg('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    onHide();
+  };
 
   const handleDownloadModelo = () => {
     const ws = XLSX.utils.aoa_to_sheet([
@@ -103,7 +131,7 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
   };
 
   return (
-    <Modal show={show} onHide={onHide} size="lg" centered>
+    <Modal show={show} onHide={handleClose} size="lg" centered>
       <Modal.Header closeButton className={`bg-form-${theme}`}>
         <Modal.Title className={`header-text-${theme}`}>Importar Contatos</Modal.Title>
       </Modal.Header>
@@ -188,14 +216,14 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
       <Modal.Footer className={`bg-form-${theme} d-flex justify-content-between align-items-center`}>
         <Button onClick={handleDownloadModelo} className={`btn-2-${theme}`}>Baixar modelo</Button>
         <div>
-          <Button onClick={onHide} className={`btn-2-${theme} me-2`}>Cancelar</Button>
+          <Button onClick={handleClose} className={`btn-2-${theme} me-2`}>Cancelar</Button>
           <Button
             onClick={handleImport}
             className={`btn-1-${theme}`}
-            disabled={!file || !canal}
-            style={(!file || !canal) ? { backgroundColor: 'transparent' } : {}}
+            disabled={!file || !canal || isImporting}
+            style={(!file || !canal || isImporting) ? { backgroundColor: 'transparent' } : {}}
           >
-            Importar
+            {isImporting ? 'Importando...' : 'Importar'}
           </Button>
         </div>
       </Modal.Footer>

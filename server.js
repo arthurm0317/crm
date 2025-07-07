@@ -70,6 +70,10 @@ class SocketServer {
             socket.on('leadMoved', (data) => {
                 socket.broadcast.emit('leadMoved', data);
             });
+
+            socket.on('contatosImportados', (data) => {
+                socket.broadcast.emit('contatosImportados', data);
+            });
         });
     }
 

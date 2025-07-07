@@ -66,6 +66,10 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log('Cliente desconectado:', socket.id);
   });
+
+  socket.on('contatosImportados', (data) => {
+    socket.broadcast.emit('contatosImportados', data);
+  });
 });
 
 app.use(cors(corsOptions));

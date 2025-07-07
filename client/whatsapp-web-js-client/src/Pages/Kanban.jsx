@@ -199,24 +199,32 @@ function KanbanPage({ theme }) {
     fetchFunis();
   }, [])
 
-useEffect(() => {
-  function handleTagUpdated({ chat_id, tag, checked }) {
-    setLeads(leads => leads.map(l =>
-      l.id === chat_id
-        ? {
-            ...l,
-            tags: checked
-              ? [...(l.tags || []), tag]
-              : (l.tags || []).filter(t => t.id !== tag.id)
-          }
-        : l
-    ));
-  }
-  socketInstance.on('tagUpdated', handleTagUpdated);
-  return () => {
-    socketInstance.off('tagUpdated', handleTagUpdated);
-  };
-}, []);
+  // Entrar na sala do schema para receber eventos
+  useEffect(() => {
+    if (schema) {
+      console.log('🏠 Entrando na sala do schema:', `schema_${schema}`);
+      socketInstance.emit('join', `schema_${schema}`);
+    }
+  }, [schema, socketInstance]);
+
+  useEffect(() => {
+    function handleTagUpdated({ chat_id, tag, checked }) {
+      setLeads(leads => leads.map(l =>
+        l.id === chat_id
+          ? {
+              ...l,
+              tags: checked
+                ? [...(l.tags || []), tag]
+                : (l.tags || []).filter(t => t.id !== tag.id)
+            }
+          : l
+      ));
+    }
+    socketInstance.on('tagUpdated', handleTagUpdated);
+    return () => {
+      socketInstance.off('tagUpdated', handleTagUpdated);
+    };
+  }, []);
 
   useEffect(() => {
     if (!funilSelecionado) {
@@ -245,7 +253,46 @@ useEffect(() => {
   }
   fetchCards()
   }, [funilSelecionado])
- 
+
+  // Listener para contatos importados
+  useEffect(() => {
+    const handleContatosImportados = (data) => {
+      console.log('📡 Evento contatosImportados recebido:', data);
+      if (data.sector === funilSelecionado && data.schema === schema) {
+        console.log('✅ Dados correspondem ao funil atual, recarregando cards...');
+        recarregarCards();
+      } else {
+        console.log('❌ Dados não correspondem:', {
+          eventoSector: data.sector,
+          funilAtual: funilSelecionado,
+          eventoSchema: data.schema,
+          schemaAtual: schema
+        });
+      }
+    };
+
+    socketInstance.on('contatosImportados', handleContatosImportados);
+    
+    return () => {
+      socketInstance.off('contatosImportados', handleContatosImportados);
+    };
+  }, [funilSelecionado, schema]);
+
+  // Função para recarregar os cards
+  const recarregarCards = async () => {
+    if (!funilSelecionado) return;
+    console.log('🔄 Recarregando cards do funil:', funilSelecionado);
+    try {
+      const response = await axios.get(`${url}/kanban/get-cards/${funilSelecionado}/${schema}`);
+      const novosCards = Array.isArray(response.data) ? response.data : [response.data];
+      console.log('📊 Novos cards carregados:', novosCards.length);
+      setCards(novosCards);
+      console.log('✅ Cards atualizados com sucesso!');
+    } catch (error) {
+      console.error('❌ Erro ao recarregar cards:', error);
+    }
+  };
+
   // Adiciona/remover listeners globais para mousemove/mouseup
   useEffect(() => {
     if (!isDragging) return;
