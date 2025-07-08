@@ -3,25 +3,49 @@ const pool = require('../db/queries');
 const { Queue, Worker } = require('bullmq'); 
 const IORedis = require('ioredis');
 const createRedisConnection = require('../config/Redis');
-const SocketServer = require('../server');
-
-
 const redisConnection = createRedisConnection();
 
-const io = SocketServer.io
+// Usar o socket global do index.js
+let globalSocketIo = null;
+
+const setGlobalSocket = (socket) => {
+    globalSocketIo = socket;
+};
+
+const getGlobalSocket = () => {
+    return globalSocketIo;
+};
 
 const lembreteQueue = new Queue('lembretes', { connection: redisConnection });
 
 const lembreteWorker = new Worker('lembretes', async job => {
-    const { tag, filas } = job.data;
-    if(tag==='geral'){
-        SocketServer.io.emit('lembrete', job.data);
-    }else if(tag==='setorial' && filas && filas.length > 0){
-        filas.forEach(filaId => {
-            SocketServer.io.to(`fila_${filaId}`).emit('lembrete', job.data);
-        });
-    }else if(tag==='pessoal'){
-        SocketServer.io.to(`user_${job.data.user_id}`).emit('lembrete', job.data);
+    try {
+        console.log(`Processando lembrete: ${job.data.lembrete_name}`);
+        const { tag, filas, schema } = job.data;
+        
+        const socketIo = getGlobalSocket();
+        if (!socketIo) {
+            console.error('Socket não disponível para emitir lembrete');
+            return;
+        }
+        
+        if(tag === 'geral'){
+            console.log('Emitindo lembrete geral');
+            socketIo.emit('lembrete', job.data);
+        } else if(tag === 'setorial' && filas && filas.length > 0){
+            console.log(`Emitindo lembrete setorial para filas: ${filas.join(', ')}`);
+            filas.forEach(filaId => {
+                socketIo.to(`fila_${filaId}`).emit('lembrete', job.data);
+            });
+        } else if(tag === 'pessoal'){
+            console.log(`Emitindo lembrete pessoal para usuário: ${job.data.user_id}`);
+            socketIo.to(`user_${job.data.user_id}`).emit('lembrete', job.data);
+        }
+        
+        console.log(`Lembrete ${job.data.lembrete_name} processado com sucesso`);
+    } catch (error) {
+        console.error('Erro ao processar lembrete:', error);
+        throw error;
     }
 }, { connection: redisConnection });
 
@@ -71,7 +95,7 @@ const createLembrete = async (lembrete_name, tag, message, date, icone, user_id,
             await salvarFilasLembrete(lembreteId, filas, schema);
         }
         
-        await agendarLembrete({
+        const lembrete = await agendarLembrete({
             id: lembreteId,
             lembrete_name,
             tag,
@@ -79,14 +103,21 @@ const createLembrete = async (lembrete_name, tag, message, date, icone, user_id,
             date,
             user_id,
             schema,
-            filas
+            filas: tag === 'setorial' ? filas : []
         });
         
-        // Retorna o lembrete com as filas
         const lembreteComFilas = {
             ...result.rows[0],
             filas: tag === 'setorial' ? filas : []
         };
+        
+        console.log(`Emitindo lembrete-criado para schema: ${schema}`);
+        const socketIo = getGlobalSocket();
+        if (socketIo) {
+            socketIo.emit('lembrete-criado', {
+                lembrete: lembreteComFilas
+            });
+        }
         
         return lembreteComFilas;
     } catch (error) {
@@ -185,5 +216,6 @@ module.exports={
     createLembrete,
     getLembretes,
     updateLembretes,
-    deleteLembrete
+    deleteLembrete,
+    setGlobalSocket
 }

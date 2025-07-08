@@ -114,17 +114,25 @@ function Painel() {
 
 
 useEffect(() => {
-
   if (!socketInstance) return;
 
   const handleLembrete = (lembrete) => {
+    console.log('Lembrete recebido via socket:', lembrete);
     showToast(lembrete);
   };
 
+  const handleLembreteCriado = (data) => {
+    console.log('Lembrete criado recebido via socket:', data);
+    // Atualizar lista de lembretes
+    fetchLembretes();
+  };
+
   socketInstance.on('lembrete', handleLembrete);
+  socketInstance.on('lembrete-criado', handleLembreteCriado);
 
   return () => {
     socketInstance.off('lembrete', handleLembrete);
+    socketInstance.off('lembrete-criado', handleLembreteCriado);
   };
 }, [socketInstance]);
 

@@ -493,8 +493,8 @@ const scheduleMessage = async (chat_id, connection, message, contact_phone, time
       'bi-alarm',
       chat.assigned_user,
       schema,
-      
     )
+    
     
     return result.rows[0]
 

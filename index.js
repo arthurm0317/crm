@@ -16,7 +16,8 @@ const tagRoutes = require('./routes/TagRoutes')
 const bodyParser = require('body-parser');
 const excelRoutes = require('./routes/ExcelRoutes');
 const lembreteRoutes = require('./routes/LembretesRoutes');
-const preferenceRoutes = require('./routes/UserPreferencesRoutes')
+const preferenceRoutes = require('./routes/UserPreferencesRoutes');
+const { setGlobalSocket } = require('./services/LembreteService');
 
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -259,6 +260,11 @@ const PORT = 3002;
 server.listen(PORT, () => {
 console.log(`Servidor rodando na porta ${PORT} 🚀`);
 });
+
+
+
+// Configurar o socket global para o LembreteService
+setGlobalSocket(socketIoServer);
 
 socketServer.listen(3333, () => {
   console.log(`Socket rodando na porta 3333`);
