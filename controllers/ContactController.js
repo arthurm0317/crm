@@ -32,11 +32,8 @@ const createContactController = async (req, res) => {
     try {
         const result = await createContact(number, name, connection, user_id, schema);
         
-        const SocketServer = require('../server');
-        const serverTest = new SocketServer();
-        
         if (result.isNewChat) {
-            serverTest.io.to(`schema_${schema}`).emit('chats_updated', result.chat);
+            global.socketIoServer.to(`user_${result.chat.assignated_user}`).emit('chats_updated', result.chat);
         }
         
         res.status(201).json({

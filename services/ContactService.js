@@ -25,7 +25,13 @@ const insertValueCustomField = async(fieldName, contactNumber, value, schema)=>{
     );
     return result.rows[0];
 }
-
+const getChatsForUser = async (userId, schema) => {
+  const result = await pool.query(
+    `SELECT * FROM ${schema}.chats WHERE assigned_user = $1 OR $1 IN (SELECT id FROM ${schema}.users WHERE permission = 'admin')`,
+    [userId]
+  );
+  return result.rows;
+};
 const createContact = async(contactNumber, contactName, connection, user_id, schema)=>{
     try {
         // 1. Verificar se o contato já existe
@@ -101,5 +107,6 @@ module.exports = {
     createCustomField, 
     insertValueCustomField,
     createContact,
-    updateContactName
+    updateContactName,
+    getChatsForUser
 };

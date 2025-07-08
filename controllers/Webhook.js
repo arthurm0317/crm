@@ -13,7 +13,6 @@ const pool = require('../db/queries');
 const { getCurrentTimestamp } = require('../services/getCurrentTimestamp');
 const { getBase64FromMediaMessage, sendTextMessage } = require('../requests/evolution');
 const express = require('express');
-const SocketServer = require('../server');
 const createRedisConnection = require('../config/Redis');
 const { Queue, Worker } = require('bullmq');
 const { getQueueById } = require('../services/QueueService');
@@ -21,9 +20,10 @@ const { getQueueById } = require('../services/QueueService');
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
 module.exports = (broadcastMessage) => {
-  const serverTest = new SocketServer()
-  serverTest.start()
   const app = express.Router();
+  
+  // Usar a instância global do socket
+  const serverTest = { io: global.socketIoServer };
 
   app.use(express.json({ limit: '100mb' }));
   app.use(express.urlencoded({ limit: '100mb', extended: true }));
@@ -35,7 +35,7 @@ module.exports = (broadcastMessage) => {
   new Worker('chat', async(job)=>{
     try{
       if(job.data.chatId){
-        serverTest.io.to(job.data.chatId).emit('message', job.data);
+        broadcastMessage({ type: 'message', payload: job.data });
       }
     }catch(error){
       console.error(error)
@@ -217,6 +217,7 @@ module.exports = (broadcastMessage) => {
           console.error(error);
         }
       }
+
 
       res.status(200).json({ result });
 

@@ -109,7 +109,7 @@ const searchUserController = async (req, res) => {
       user: result.user,
       role: result.user.permission,
       company: result.company,
-      schema: result.company.company_name
+      schema: result.company.schema_name
     });
 
   } catch (error) {

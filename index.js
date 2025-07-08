@@ -20,9 +20,10 @@ const preferenceRoutes = require('./routes/UserPreferencesRoutes')
 
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-// const configureSocket = require('./config/SocketConfig');
 
 const app = express();
+
+// const userHeartbeats = new Map();
 
 
 const corsOptions = {
@@ -56,6 +57,24 @@ const io = socketIo(server, {
   allowEIO3: true
 });
 
+const socketServer = http.createServer();
+const socketIoServer = socketIo(socketServer, {
+  cors: {
+    origin: [
+      "http://localhost:3001", 
+      "chrome-extension://ophmdkgfcjapomjdpfobjfbihojchbko",
+      "https://landing-page-teste.8rxpnw.easypanel.host",
+      "https://landing-page-front.8rxpnw.easypanel.host",
+      "https://eg-crm.effectivegain.com",
+      "https://ilhadogovernador.effectivegain.com",
+      "https://barreiras.effectivegain.com"
+    ],
+    methods: ["GET", "POST", "DELETE", "PUT"],
+    allowedHeaders: ["Content-Type"],
+    credentials: true
+  }
+});
+
 io.on('connection', (socket) => {
   console.log('Cliente conectado:', socket.id);
   
@@ -71,6 +90,106 @@ io.on('connection', (socket) => {
   socket.on('contatosImportados', (data) => {
     socket.broadcast.emit('contatosImportados', data);
   });
+});
+
+socketIoServer.on('connection', (socket) => {
+  console.log('Novo cliente conectado na porta 3333');
+
+  socket.on('user_login', async (data) => {
+    try {
+      const { userId, schema } = data;
+      // const { changeOnline } = require('./services/UserService');
+      
+      // await changeOnline(userId, schema);
+      socket.userId = userId;
+      socket.schema = schema;
+      
+      // userHeartbeats.set(`${userId}_${schema}`, Date.now());
+      
+      console.log(`👤 Usuário ${userId} conectado`);
+    } catch (error) {
+      console.error('Erro ao conectar usuário:', error);
+    }
+  });
+
+  socket.on('join', (room) => {
+    console.log('Cliente entrou na sala:', room);
+    socket.join(room);
+    
+    if (room && typeof room === 'string' && room.length > 10) {
+      socket.join(`user_${room}`);
+      console.log('Usuário também entrou na sala pessoal:', `user_${room}`);
+    }
+  });
+
+  socket.on('leave', (roomId) => {
+    socket.leave(roomId);
+  });
+
+  socket.on('disconnect', async () => {
+    console.log('Cliente desconectado da porta 3333');
+    
+    if (socket.userId && socket.schema) {
+      try {
+        // const { changeOffline } = require('./services/UserService');
+        // await changeOffline(socket.userId, socket.schema);
+        
+        // userHeartbeats.delete(`${socket.userId}_${socket.schema}`);
+        
+        console.log(`👤 Usuário ${socket.userId} desconectado`);
+      } catch (error) {
+        console.error('Erro ao desconectar usuário:', error);
+      }
+    }
+  });
+
+  socket.on('message', (message) => {
+    socket.broadcast.emit('message', message);
+  });
+
+  socket.on('lembrete', (data)=>{
+    socket.broadcast.emit('lembrete', data);
+  })
+
+  // socket.on('page_visibility_change', async (data) => {
+  //   try {
+  //     const { isVisible, userId, schema } = data;
+  //     const { changeOnline, changeOffline } = require('./services/UserService');
+      
+  //     console.log(`📥 Recebido evento page_visibility_change:`, { isVisible, userId, schema });
+      
+  //     if (isVisible) {
+  //       await changeOnline(userId, schema);
+  //       userHeartbeats.set(`${userId}_${schema}`, Date.now());
+  //       console.log(`👤 Usuário ${userId} voltou à aba (online)`);
+  //     } else {
+  //       await changeOffline(userId, schema);
+  //       userHeartbeats.delete(`${userId}_${schema}`);
+  //       console.log(`👤 Usuário ${userId} saiu da aba (offline)`);
+  //     }
+  //   } catch (error) {
+  //     console.error('Erro ao atualizar status de visibilidade:', error);
+  //   }
+  // });
+
+  socket.on('leadMoved', (data) => {
+    socket.broadcast.emit('leadMoved', data);
+  });
+
+  // socket.on('heartbeat', async (data) => {
+  //   try {
+  //     const { userId, schema } = data;
+  //     const { changeOnline } = require('./services/UserService');
+      
+  //     await changeOnline(userId, schema);
+      
+  //     userHeartbeats.set(`${userId}_${schema}`, Date.now());
+      
+  //     console.log(`Heartbeat recebido do usuário ${userId}`);
+  //   } catch (error) {
+  //     console.error('Erro ao processar heartbeat:', error);
+  //   }
+  // });
 });
 
 app.use(cors(corsOptions));
@@ -138,10 +257,33 @@ app.post('/webhook/audio', async (req, res) => {
   }
 });
 
-// configureSocket(io, server);
 
 const PORT = 3002;
 
 server.listen(PORT, () => {
 console.log(`Servidor rodando na porta ${PORT} 🚀`);
 });
+
+socketServer.listen(3333, () => {
+  console.log(`Socket rodando na porta 3333`);
+});
+
+// setInterval(async () => {
+//   const now = Date.now();
+//   const timeout = 2 * 60 * 1000; 
+  
+//   for (const [key, lastHeartbeat] of userHeartbeats.entries()) {
+//     if (now - lastHeartbeat > timeout) {
+//       const [userId, schema] = key.split('_');
+      
+//       try {
+//         const { changeOffline } = require('./services/UserService');
+//         await changeOffline(userId, schema);
+//         userHeartbeats.delete(key);
+//         console.log(`⏰ Usuário ${userId} marcado como offline por timeout`);
+//       } catch (error) {
+//         console.error(`Erro ao marcar usuário ${userId} como offline:`, error);
+//       }
+//     }
+//   }
+// }, 60000); 
