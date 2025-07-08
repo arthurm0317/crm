@@ -1,7 +1,7 @@
 const XLSX = require('xlsx');
 const { processExcelFile } = require('../services/ExcelReader');
 const { getInformationFromExcel } = require('../services/ExcelReader');
-
+const SocketServer = require('../server');
 
 exports.uploadExcel = async (req, res) => {
   const { connection_id ,sector, schema } = req.body;
@@ -23,7 +23,16 @@ exports.uploadExcel = async (req, res) => {
 
     await processExcelFile(connection_id, sector, schema);
 
-    res.status(200).json({ message: 'Arquivo enviado e processado com sucesso!', file: req.file.filename });
+    // Emitir evento via socket para atualizar o frontend em tempo real
+    console.log('📡 Backend: Emitindo evento contatosImportados para sala:', `schema_${schema}`);
+    SocketServer.io.to(`schema_${schema}`).emit('contatosImportados', {
+      sector,
+      schema,
+      message: 'Contatos importados com sucesso!'
+    });
+    console.log('📡 Backend: Evento emitido com sucesso');
+
+    res.status(200).json({success:true, message: 'Arquivo enviado e processado com sucesso!', file: req.file.filename });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Erro ao salvar ou processar arquivo.' });

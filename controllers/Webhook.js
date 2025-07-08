@@ -21,6 +21,9 @@ ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
 module.exports = (broadcastMessage) => {
   const app = express.Router();
+  
+  // Usar a instância global do socket
+  const serverTest = { io: global.socketIoServer };
 
   app.use(express.json({ limit: '100mb' }));
   app.use(express.urlencoded({ limit: '100mb', extended: true }));

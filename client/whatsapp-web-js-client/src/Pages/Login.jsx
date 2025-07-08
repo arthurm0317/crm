@@ -9,18 +9,34 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 // Função para refresh token
-const refreshToken = async () => {
-  try {
-    const response = await axios.post(`${process.env.REACT_APP_URL}/api/refresh-token`, {}, {
-      withCredentials: true
-    });
-    return response.data.success;
-  } catch (error) {
-    console.error('Erro ao renovar token:', error);
-    return false;
-  }
-};
+// const refreshToken = async () => {
+//   try {
+//     const response = await axios.post(`${process.env.REACT_APP_URL}/api/refresh-token`, {}, {
+//       withCredentials: true
+//     });
+//     return response.data.success;
+//   } catch (error) {
+//     console.error('Erro ao renovar token:', error);
+//     return false;
+//   }
+// };
 
+// const intervalId = localStorage.getItem('tokenRefreshInterval');
+// if (intervalId) {
+//   clearInterval(intervalId);
+//   localStorage.removeItem('tokenRefreshInterval');
+// }
+
+// // Configurar refresh automático de token
+// const tokenRefreshInterval = setInterval(async () => {
+//   const success = await refreshToken();
+//   if (!success) {
+//     clearInterval(tokenRefreshInterval);
+//     localStorage.removeItem('tokenRefreshInterval');
+//     // Redirecionar para login ou tomar outra ação
+//   }
+// }, 8000); // Refresh a cada 8 segundos (antes dos 9 segundos do token)
+// localStorage.setItem('tokenRefreshInterval', tokenRefreshInterval);
 
 function Login() {
   const [theme, setTheme] = useTheme();
@@ -81,16 +97,16 @@ const handleLogin = async (e) => {
       localStorage.setItem('rememberedCredentials', JSON.stringify(rememberedCredentials));
 
       // Configurar refresh automático de token
-      const tokenRefreshInterval = setInterval(async () => {
-        const success = await refreshToken();
-        if (!success) {
-          clearInterval(tokenRefreshInterval);
-          localStorage.removeItem('user');
-          navigate('/');
-        }
-      }, 8000); // Refresh a cada 8 segundos (antes dos 9 segundos do token)
+      // const tokenRefreshInterval = setInterval(async () => {
+      //   const success = await refreshToken();
+      //   if (!success) {
+      //     clearInterval(tokenRefreshInterval);
+      //     localStorage.removeItem('user');
+      //     navigate('/');
+      //   }
+      // }, 8000); // Refresh a cada 8 segundos (antes dos 9 segundos do token)
 
-      localStorage.setItem('tokenRefreshInterval', tokenRefreshInterval);
+      // localStorage.setItem('tokenRefreshInterval', tokenRefreshInterval);
    
       setTimeout(() => {
         setLoading(false);

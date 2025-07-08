@@ -1,12 +1,16 @@
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const path = require('path');
 
 
 class SocketServer {
     constructor(port = 3333) {
         this.app = express();
         this.port = port;
+        
+        // this.userHeartbeats = new Map();
 
         this.server = http.createServer(this.app);
 
@@ -27,31 +31,41 @@ class SocketServer {
             }
         });
 
-        // 🟩 Exporta o io estaticamente
         SocketServer.io = this.io;
+        
+        this.middlewares();
+        this.routes();
         this.sockets();
     }
 
- 
+    middlewares() {
+        this.app.use(express.json());
+    }
 
+    routes() {
+        this.app.get('/api/test', (req, res) => {
+            res.json({ message: 'Hello from server!' });
+        });
+    }
     
     sockets() {
         this.io.on('connection', (socket) => {
             console.log('Novo cliente conectado');
 
-            // Evento para quando o usuário faz login e conecta ao socket
             socket.on('user_login', async (data) => {
                 try {
                     const { userId, schema } = data;
-                    const { changeOnline } = require('./services/UserService');
+                    // const { changeOnline } = require('./services/UserService');
                     
-                    await changeOnline(userId, schema);
+                    // await changeOnline(userId, schema);
                     socket.userId = userId;
                     socket.schema = schema;
                     
-                    console.log(`👤 Usuário ${userId} marcado como online`);
+                    // this.userHeartbeats.set(`${userId}_${schema}`, Date.now());
+                    
+                    console.log(`👤 Usuário ${userId} conectado`);
                 } catch (error) {
-                    console.error('Erro ao marcar usuário como online:', error);
+                    console.error('Erro ao conectar usuário:', error);
                 }
             });
 
@@ -59,7 +73,6 @@ class SocketServer {
                 console.log('Cliente entrou na sala:', room);
                 socket.join(room);
                 
-                // Se for um userId (não uma sala geral), também adiciona à sala do usuário
                 if (room && typeof room === 'string' && room.length > 10) {
                     socket.join(`user_${room}`);
                     console.log('Usuário também entrou na sala pessoal:', `user_${room}`);
@@ -74,15 +87,16 @@ class SocketServer {
             socket.on('disconnect', async () => {
                 console.log('Cliente desconectado');
                 
-                // Se o socket tem userId, marcar como offline
                 if (socket.userId && socket.schema) {
                     try {
-                        const { changeOffline } = require('./services/UserService');
-                        await changeOffline(socket.userId, socket.schema);
+                        // const { changeOffline } = require('./services/UserService');
+                        // await changeOffline(socket.userId, socket.schema);
                         
-                        console.log(`👤 Usuário ${socket.userId} marcado como offline`);
+                        // this.userHeartbeats.delete(`${socket.userId}_${socket.schema}`);
+                        
+                        console.log(`👤 Usuário ${socket.userId} desconectado`);
                     } catch (error) {
-                        console.error('Erro ao marcar usuário como offline:', error);
+                        console.error('Erro ao desconectar usuário:', error);
                     }
                 }
             });
@@ -95,106 +109,49 @@ class SocketServer {
                 socket.broadcast.emit('lembrete', data);
             })
 
-            // Evento para detectar quando a aba do navegador é fechada
-            socket.on('page_visibility_change', async (data) => {
-                try {
-                    const { isVisible, userId, schema } = data;
-                    const { changeOnline, changeOffline } = require('./services/UserService');
+            // socket.on('page_visibility_change', async (data) => {
+            //     try {
+            //         const { isVisible, userId, schema } = data;
+            //         const { changeOnline, changeOffline } = require('./services/UserService');
                     
-                    console.log(`📥 Recebido evento page_visibility_change:`, { isVisible, userId, schema });
+            //         console.log(`📥 Recebido evento page_visibility_change:`, { isVisible, userId, schema });
                     
-                    if (isVisible) {
-                        await changeOnline(userId, schema);
-                        console.log(`👤 Usuário ${userId} voltou à aba (online)`);
-                    } else {
-                        await changeOffline(userId, schema);
-                        console.log(`👤 Usuário ${userId} saiu da aba (offline)`);
-                    }
-                } catch (error) {
-                    console.error('Erro ao atualizar status de visibilidade:', error);
-                }
-            });
+            //         if (isVisible) {
+            //             await changeOnline(userId, schema);
+            //             this.userHeartbeats.set(`${userId}_${schema}`, Date.now());
+            //             console.log(`👤 Usuário ${userId} voltou à aba (online)`);
+            //         } else {
+            //             await changeOffline(userId, schema);
+            //             this.userHeartbeats.delete(`${userId}_${schema}`);
+            //             console.log(`👤 Usuário ${userId} saiu da aba (offline)`);
+            //         }
+            //     } catch (error) {
+            //         console.error('Erro ao atualizar status de visibilidade:', error);
+            //     }
+            // });
 
             socket.on('leadMoved', (data) => {
                 socket.broadcast.emit('leadMoved', data);
             });
 
-            // 🤖 EVENTOS DO ROBÔ DE IA
-            socket.on('ai_bot_activate', async (data) => {
-                try {
-                    const { phoneNumber, chatId, instanceId, schema } = data;
-                    const AIAssistantService = require('./services/AIAssistantService');
-                    
-                    AIAssistantService.activateBot(phoneNumber, chatId, instanceId, schema);
-                    
-                    // Notificar todos os clientes conectados
-                    this.io.to(schema).emit('ai_bot_activated', {
-                        phoneNumber,
-                        chatId,
-                        timestamp: new Date()
-                    });
-                    
-                    console.log(`🤖 Robô ativado via socket para ${phoneNumber}`);
-                } catch (error) {
-                    console.error('Erro ao ativar robô via socket:', error);
-                }
+            socket.on('contatosImportados', (data) => {
+                socket.broadcast.emit('contatosImportados', data);
             });
 
-            socket.on('ai_bot_deactivate', async (data) => {
-                try {
-                    const { phoneNumber, schema } = data;
-                    const AIAssistantService = require('./services/AIAssistantService');
+            // socket.on('heartbeat', async (data) => {
+            //     try {
+            //         const { userId, schema } = data;
+            //         const { changeOnline } = require('./services/UserService');
                     
-                    const deactivated = AIAssistantService.deactivateBot(phoneNumber);
+            //         await changeOnline(userId, schema);
                     
-                    if (deactivated) {
-                        // Notificar todos os clientes conectados
-                        this.io.to(schema).emit('ai_bot_deactivated', {
-                            phoneNumber,
-                            reason: 'manual_deactivation',
-                            timestamp: new Date()
-                        });
-                        
-                        console.log(`🤖 Robô desativado via socket para ${phoneNumber}`);
-                    }
-                } catch (error) {
-                    console.error('Erro ao desativar robô via socket:', error);
-                }
-            });
-
-            socket.on('ai_bot_status', async (data) => {
-                try {
-                    const { phoneNumber } = data;
-                    const AIAssistantService = require('./services/AIAssistantService');
+            //         this.userHeartbeats.set(`${userId}_${schema}`, Date.now());
                     
-                    const botInfo = AIAssistantService.getBotInfo(phoneNumber);
-                    
-                    // Enviar status de volta para o cliente que solicitou
-                    socket.emit('ai_bot_status_response', {
-                        phoneNumber,
-                        isActive: !!botInfo,
-                        botInfo
-                    });
-                } catch (error) {
-                    console.error('Erro ao verificar status do robô via socket:', error);
-                }
-            });
-
-            socket.on('ai_bot_list', async (data) => {
-                try {
-                    const AIAssistantService = require('./services/AIAssistantService');
-                    
-                    const activeBots = AIAssistantService.getActiveBots();
-                    
-                    // Enviar lista de volta para o cliente que solicitou
-                    socket.emit('ai_bot_list_response', {
-                        activeBots,
-                        count: activeBots.length
-                    });
-                } catch (error) {
-                    console.error('Erro ao listar robôs via socket:', error);
-                }
-            });
+            //         console.log(`Heartbeat recebido do usuário ${userId}`);
+            //     } catch (error) {
+            //         console.error('Erro ao processar heartbeat:', error);
+            //     }
+            // });
         });
     }
 
@@ -202,6 +159,26 @@ class SocketServer {
         this.server.listen(this.port, () => {
             console.log(`Servidor rodando na porta ${this.port}`);
         });
+
+        // setInterval(async () => {
+        //     const now = Date.now();
+        //     const timeout = 2 * 60 * 1000; 
+            
+        //     for (const [key, lastHeartbeat] of this.userHeartbeats.entries()) {
+        //         if (now - lastHeartbeat > timeout) {
+        //             const [userId, schema] = key.split('_');
+                    
+        //             try {
+        //                 const { changeOffline } = require('./services/UserService');
+        //                 await changeOffline(userId, schema);
+        //                 this.userHeartbeats.delete(key);
+        //                 console.log(`⏰ Usuário ${userId} marcado como offline por timeout`);
+        //             } catch (error) {
+        //                 console.error(`Erro ao marcar usuário ${userId} como offline:`, error);
+        //             }
+        //         }
+        //     }
+        // }, 60000); 
     }
 }
 
