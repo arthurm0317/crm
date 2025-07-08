@@ -16,6 +16,8 @@ const worker = new Worker(
   'Campanha',
   async (job) => {
     try {
+      console.log(`Processando job ${job.id} para número ${job.data.number}`);
+      
       if(job.data.image){
         await sendMediaBlastMessage(
           job.data.instance,
@@ -34,8 +36,10 @@ const worker = new Worker(
           job.data.schema
         );
       }
+      
+      console.log(`Job ${job.id} processado com sucesso`);
     } catch (err) {
-      console.error('Erro ao enviar mensagem dentro do job handler:', err.message);
+      console.error(`Erro ao enviar mensagem dentro do job ${job.id}:`, err.message);
       throw err; 
     }
   },
@@ -113,8 +117,10 @@ const scheduleCampaingBlast = async (campaing, sector, schema, intervalo) => {
     const now = Date.now();
 
     if (startDate < now) {
+      console.log('Data de início já passou, não agendando campanha');
       return;
     }
+
     const kanban = await pool.query(
       `SELECT * FROM ${schema}.kanban_${sector} WHERE id=$1`, [campaing.kanban_stage]
     );
@@ -125,6 +131,11 @@ const scheduleCampaingBlast = async (campaing, sector, schema, intervalo) => {
     }
     
     const chatIds = await getChatsInKanbanStage(campaing.kanban_stage, schema);
+    
+    if (!chatIds || chatIds.length === 0) {
+      console.log('Nenhum chat encontrado na etapa Kanban');
+      return;
+    }
     
     const messages = await pool.query(
       `SELECT * FROM ${schema}.message_blast WHERE campaing_id=$1`, [campaing.id]
@@ -141,35 +152,54 @@ const scheduleCampaingBlast = async (campaing, sector, schema, intervalo) => {
     // Usar o intervalo salvo no banco de dados
     const intervalEmSegundos = Number(campaing.timer) || 30;
     
+    const instance = await pool.query(
+      `SELECT * FROM ${schema}.connections WHERE id=$1`, [campaing.connection_id]
+    );
+
+    if (!instance.rows[0]) {
+      console.error('Conexão não encontrada para a campanha');
+      return;
+    }
+    
     for (let i = 0; i < chatIds.length; i++) {
       const instanceId = await pool.query(
         `SELECT * FROM ${schema}.chats WHERE id=$1`, [chatIds[i].id]
       );
 
-      const instance = await pool.query(
-        `SELECT * FROM ${schema}.connections WHERE id=$1`, [campaing.connection_id]
-      );
-
-
       if (!instanceId.rows[0] || !instanceId.rows[0].contact_phone) {
-          console.warn(`Chat inválido ou número não encontrado para chat ID ${chatIds[i].id}`);
+        console.warn(`Chat inválido ou número não encontrado para chat ID ${chatIds[i].id}`);
+        continue;
       }
+
       const message = messageList[messageIndex];
       messageIndex = (messageIndex + 1) % messageList.length;
 
       const messageDelay = baseDelay + (i * (intervalEmSegundos * 1000));
-      console.log('Agendando mensagem para:', new Date(Date.now() + messageDelay).toLocaleString());
+      console.log(`Agendando mensagem ${i + 1}/${chatIds.length} para:`, new Date(Date.now() + messageDelay).toLocaleString());
+      
       const job = await blastQueue.add('sendMessage', {
         instance: instance.rows[0].id,
         number: instanceId.rows[0].contact_phone,
-        chat_id:instanceId.rows[0].id,
+        chat_id: instanceId.rows[0].id,
         message: message.value,
-        image:message.image,
+        image: message.image,
         schema: schema
-      }, { delay: messageDelay, attempts:3 });
+      }, { 
+        delay: messageDelay, 
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 2000
+        }
+      });
+
+      console.log(`Job ${job.id} agendado com sucesso`);
     }
+    
+    console.log(`Campanha ${campaing.campaing_name} agendada com ${chatIds.length} mensagens`);
   } catch (error) {
     console.error('Erro ao agendar disparo da campanha:', error);
+    throw error;
   }
 };
 const startCampaing = async (campaing_id, timer, schema) => {
@@ -177,10 +207,28 @@ const startCampaing = async (campaing_id, timer, schema) => {
     const campaing = await pool.query(
       `SELECT * FROM ${schema}.campaing WHERE id=$1`, [campaing_id]
     );
+    
+    if (campaing.rowCount === 0) {
+      console.error('Campanha não encontrada');
+      return;
+    }
+    
     const kanban = await pool.query(
       `SELECT * FROM ${schema}.kanban_${campaing.rows[0].sector} WHERE id=$1`, [campaing.rows[0].kanban_stage]
     );
+    
+    if (kanban.rowCount === 0) {
+      console.error('Etapa Kanban não encontrada');
+      return;
+    }
+    
     const chatId = await getChatsInKanbanStage(campaing.rows[0].kanban_stage, schema);
+    
+    if (!chatId || chatId.length === 0) {
+      console.log('Nenhum chat encontrado na etapa Kanban');
+      return;
+    }
+    
     const messages = await pool.query(
       `SELECT * FROM ${schema}.message_blast WHERE campaing_id=$1`, [campaing_id]
     );
@@ -194,15 +242,31 @@ const startCampaing = async (campaing_id, timer, schema) => {
     // Usar o intervalo do banco de dados ou o timer passado como parâmetro
     const intervalEmSegundos = Number(campaing.rows[0].timer) || timer || 30;
     
+    console.log(`Iniciando campanha ${campaing.rows[0].campaing_name} com ${chatId.length} chats`);
+    
     for (let i = 0; i < chatId.length; i++) {
       const instanceId = await pool.query(
         `SELECT * FROM ${schema}.chats WHERE id=$1`, [chatId[i].id]
       );
+      
+      if (!instanceId.rows[0] || !instanceId.rows[0].contact_phone) {
+        console.warn(`Chat inválido ou número não encontrado para chat ID ${chatId[i].id}`);
+        continue;
+      }
+      
       const instance = await pool.query(
         `SELECT * FROM ${schema}.connections WHERE id=$1`, [instanceId.rows[0].connection_id]
       );
+      
+      if (!instance.rows[0]) {
+        console.warn(`Conexão não encontrada para chat ID ${chatId[i].id}`);
+        continue;
+      }
+      
       const message = messageList[messageIndex];
       messageIndex = (messageIndex + 1) % messageList.length;
+      
+      console.log(`Enviando mensagem ${i + 1}/${chatId.length} para ${instanceId.rows[0].contact_phone}`);
       
       // Verifica se a mensagem tem imagem
       if (message.image) {
@@ -223,8 +287,14 @@ const startCampaing = async (campaing_id, timer, schema) => {
           schema
         );
       }
-      await sleep(intervalEmSegundos * 1000);
+      
+      if (i < chatId.length - 1) {
+        console.log(`Aguardando ${intervalEmSegundos} segundos antes da próxima mensagem`);
+        await sleep(intervalEmSegundos * 1000);
+      }
     }
+    
+    console.log('Campanha finalizada com sucesso');
   } catch (error) {
     console.error('Erro ao enviar mensagem:', error.message);
     throw error;
