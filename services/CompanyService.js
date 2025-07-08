@@ -152,13 +152,13 @@ const createCompany = async (company, schema) => {
             )`
         )
         await pool.query(`
-            CREATE TABLE ${schema}.lembretes_queues (
-            lembrete_id UUID NOT NULL,
-            queue_id UUID NOT NULL,
-            PRIMARY KEY (lembrete_id, queue_id),
-            FOREIGN KEY (lembrete_id) REFERENCES ${schema}.lembretes(id) ON DELETE CASCADE,
-            FOREIGN KEY (queue_id) REFERENCES ${schema}.queues(id) ON DELETE CASCADE
-            )`
+                CREATE TABLE ${schema}.lembretes_queues (
+                lembrete_id UUID NOT NULL,
+                queue_id UUID NOT NULL,
+                PRIMARY KEY (lembrete_id, queue_id),
+                FOREIGN KEY (lembrete_id) REFERENCES ${schema}.lembretes(id) ON DELETE CASCADE,
+                FOREIGN KEY (queue_id) REFERENCES ${schema}.queues(id) ON DELETE CASCADE
+                )`
         );
         await pool.query(
             `CREATE TABLE ${schema}.scheduled_message (
@@ -168,6 +168,13 @@ const createCompany = async (company, schema) => {
             scheduled_date BIGINT NOT NULL
             );`
         )
+        await pool.query(`CREATE TABLE ${schema}.user_preferences (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id uuid REFERENCES ${schema}.users(id),
+        key text NOT NULL,
+        value text,
+        CONSTRAINT user_preferences_user_key_unique UNIQUE (user_id, key)
+        );`)
 
     const superAdmin = new Users(
         superAdminId,

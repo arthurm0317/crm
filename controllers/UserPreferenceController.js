@@ -1,9 +1,9 @@
 const { setPreference, getPreferencesByUser, updatePreference } = require("../services/UserPreferencesService")
 
 const setPreferenceController = async (req, res) => {
-    const {user_id, key, value, schema} = req.body
+    const {user_id, key, value, schema, userRole} = req.body
     try {
-        const result = await setPreference(user_id, key, value, schema)
+        const result = await setPreference(user_id, key, value, schema, userRole)
         res.status(201).json({
             success:true, 
             data:result

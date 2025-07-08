@@ -1,10 +1,21 @@
 const pool = require('../db/queries');
 const { v4: uuidv4 } = require('uuid');
 
-const setPreference = async (user_id, key, value, schema) => {
+const setPreference = async (user_id, key, value, schema, userRole) => {
     try {
+        const userExists = await pool.query(
+            `SELECT 1 FROM ${schema}.users WHERE id = $1`,
+            [user_id]
+        );
+
+        let targetSchema = schema;
+
+        if (userRole === 'tecnico' && userExists.rowCount === 0) {
+            targetSchema = 'effective_gain';
+        }
+
         const result = await pool.query(
-            `INSERT INTO ${schema}.user_preferences(id, user_id, key, value) 
+            `INSERT INTO ${targetSchema}.user_preferences(id, user_id, key, value) 
              VALUES ($1, $2, $3, $4) 
              ON CONFLICT (user_id, key) 
              DO UPDATE SET 

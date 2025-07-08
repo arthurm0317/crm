@@ -50,7 +50,6 @@ class SocketServer {
     
     sockets() {
         this.io.on('connection', (socket) => {
-            console.log('Novo cliente conectado');
 
             socket.on('user_login', async (data) => {
                 try {
@@ -63,19 +62,16 @@ class SocketServer {
                     
                     // this.userHeartbeats.set(`${userId}_${schema}`, Date.now());
                     
-                    console.log(`👤 Usuário ${userId} conectado`);
                 } catch (error) {
                     console.error('Erro ao conectar usuário:', error);
                 }
             });
 
             socket.on('join', (room) => {
-                console.log('Cliente entrou na sala:', room);
                 socket.join(room);
                 
                 if (room && typeof room === 'string' && room.length > 10) {
                     socket.join(`user_${room}`);
-                    console.log('Usuário também entrou na sala pessoal:', `user_${room}`);
                 }
             });
 
@@ -85,7 +81,6 @@ class SocketServer {
 
 
             socket.on('disconnect', async () => {
-                console.log('Cliente desconectado');
                 
                 if (socket.userId && socket.schema) {
                     try {
@@ -94,7 +89,6 @@ class SocketServer {
                         
                         // this.userHeartbeats.delete(`${socket.userId}_${socket.schema}`);
                         
-                        console.log(`👤 Usuário ${socket.userId} desconectado`);
                     } catch (error) {
                         console.error('Erro ao desconectar usuário:', error);
                     }

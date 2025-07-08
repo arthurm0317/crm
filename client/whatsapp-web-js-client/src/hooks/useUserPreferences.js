@@ -53,7 +53,8 @@ const useUserPreferences = () => {
         user_id: userData.id,
         key: key,
         value: typeof value === 'object' ? JSON.stringify(value) : value,
-        schema: userData.schema
+        schema: userData.schema,
+        userRole:userData.role || userData.permission
       });
     } catch (error) {
       console.error('Erro ao salvar preferência no banco:', error);

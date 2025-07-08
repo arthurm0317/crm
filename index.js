@@ -76,15 +76,12 @@ const socketIoServer = socketIo(socketServer, {
 });
 
 io.on('connection', (socket) => {
-  console.log('Cliente conectado:', socket.id);
   
   socket.on('join', (userId) => {
-    console.log('Usuário entrou na sala:', userId);
     socket.join(`user_${userId}`);
   });
 
   socket.on('disconnect', () => {
-    console.log('Cliente desconectado:', socket.id);
   });
 
   socket.on('contatosImportados', (data) => {
@@ -93,7 +90,6 @@ io.on('connection', (socket) => {
 });
 
 socketIoServer.on('connection', (socket) => {
-  console.log('Novo cliente conectado na porta 3333');
 
   socket.on('user_login', async (data) => {
     try {
@@ -106,19 +102,16 @@ socketIoServer.on('connection', (socket) => {
       
       // userHeartbeats.set(`${userId}_${schema}`, Date.now());
       
-      console.log(`👤 Usuário ${userId} conectado`);
     } catch (error) {
       console.error('Erro ao conectar usuário:', error);
     }
   });
 
   socket.on('join', (room) => {
-    console.log('Cliente entrou na sala:', room);
     socket.join(room);
     
     if (room && typeof room === 'string' && room.length > 10) {
       socket.join(`user_${room}`);
-      console.log('Usuário também entrou na sala pessoal:', `user_${room}`);
     }
   });
 
@@ -127,7 +120,6 @@ socketIoServer.on('connection', (socket) => {
   });
 
   socket.on('disconnect', async () => {
-    console.log('Cliente desconectado da porta 3333');
     
     if (socket.userId && socket.schema) {
       try {
@@ -136,7 +128,6 @@ socketIoServer.on('connection', (socket) => {
         
         // userHeartbeats.delete(`${socket.userId}_${socket.schema}`);
         
-        console.log(`👤 Usuário ${socket.userId} desconectado`);
       } catch (error) {
         console.error('Erro ao desconectar usuário:', error);
       }
