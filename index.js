@@ -33,7 +33,9 @@ const corsOptions = {
     'https://ilhadogovernador.effectivegain.com/',
     'https://ilhadogovernador.effectivegain.com',
     'https://barreiras.effectivegain.com',
-    'https://barreiras.effectivegain.com/'
+    'https://barreiras.effectivegain.com/',
+    'https://campo-grande.effectivegain.com/',
+    'https://campo-grande.effectivegain.com'
   ],
   methods: ['GET', 'POST', 'DELETE', 'PUT'],
   credentials: true
