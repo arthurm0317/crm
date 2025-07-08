@@ -13,6 +13,7 @@ import './assets/style.css';
 import NewQueueModal from './modalPages/Filas_novaFila';
 import WaveSurfer from 'wavesurfer.js';
 import ChatsMenuLateral from './modalPages/Chats_menuLateral';
+import useUserPreferences from '../hooks/useUserPreferences';
 
 function formatHour(timestamp) {
   const date = new Date(Number(timestamp));
@@ -276,7 +277,8 @@ function ChatPage({ theme, chat_id} ) {
   const [audioUrl, setAudioUrl] = useState('');
   const [imageUrl, setImageUrl] = useState('')
   const selectedChatIdRef = useRef(null);
-  const [selectedTab, setSelectedTab] = useState('conversas'); // novo estado
+  const { preferences, updateChatsTab } = useUserPreferences();
+  const [selectedTab, setSelectedTab] = useState(preferences.chatsTab || 'conversas');
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState('');
   const [connections, setConnections] = useState([]);
@@ -288,6 +290,82 @@ function ChatPage({ theme, chat_id} ) {
   const url = process.env.REACT_APP_URL;
   const [showSideMenu, setShowSideMenu] = useState(false);
   const [sideMenuActive, setSideMenuActive] = useState(false);
+  const [showFiltros, setShowFiltros] = useState(false);
+  const [filtrosAtivos, setFiltrosAtivos] = useState(preferences.chatFilters || {});
+
+  // Atualizar aba quando as preferências mudarem
+  useEffect(() => {
+    if (preferences.chatsTab && preferences.chatsTab !== selectedTab) {
+      setSelectedTab(preferences.chatsTab);
+    }
+  }, [preferences.chatsTab, selectedTab]);
+
+  // Atualizar filtros quando as preferências mudarem
+  useEffect(() => {
+    if (preferences.chatFilters) {
+      setFiltrosAtivos(preferences.chatFilters);
+    }
+  }, [preferences.chatFilters]);
+
+  // Função para atualizar aba e salvar preferências
+  const handleTabChange = (tab) => {
+    setSelectedTab(tab);
+    updateChatsTab(tab);
+  };
+
+  // Função para aplicar filtros
+  const handleApplyFilters = (filtros) => {
+    setFiltrosAtivos(filtros);
+  };
+
+  // Função para filtrar chats baseado nos filtros ativos
+  const getFilteredChats = () => {
+    let filtered = chatList.filter(chat => {
+      // Filtro por aba (conversas/aguardando)
+      if (selectedTab === 'conversas' && chat.status === 'waiting') return false;
+      if (selectedTab === 'aguardando' && chat.status !== 'waiting') return false;
+
+      // Filtro por status
+      if (filtrosAtivos.status && filtrosAtivos.status !== 'todos') {
+        if (filtrosAtivos.status === 'aberto' && chat.status !== 'open') return false;
+        if (filtrosAtivos.status === 'fechado' && chat.status !== 'closed') return false;
+        if (filtrosAtivos.status === 'aguardando' && chat.status !== 'waiting') return false;
+      }
+
+      // Filtro por fila
+      if (filtrosAtivos.fila && filtrosAtivos.fila !== 'todas') {
+        const queueName = getQueueName(chat.queue_id).toLowerCase();
+        if (!queueName.includes(filtrosAtivos.fila.toLowerCase())) return false;
+      }
+
+      // Filtro por não lidas
+      if (filtrosAtivos.apenasNaoLidas && !chat.unreadmessages) return false;
+
+      return true;
+    });
+
+    // Ordenação
+    if (filtrosAtivos.ordenacao) {
+      filtered.sort((a, b) => {
+        switch (filtrosAtivos.ordenacao) {
+          case 'recente':
+            return new Date(b.timestamp || 0) - new Date(a.timestamp || 0);
+          case 'antigo':
+            return new Date(a.timestamp || 0) - new Date(b.timestamp || 0);
+          case 'alfabetico':
+            return (a.contact_name || '').localeCompare(b.contact_name || '');
+          case 'naoLidas':
+            if (a.unreadmessages && !b.unreadmessages) return -1;
+            if (!a.unreadmessages && b.unreadmessages) return 1;
+            return new Date(b.timestamp || 0) - new Date(a.timestamp || 0);
+          default:
+            return 0;
+        }
+      });
+    }
+
+    return filtered;
+  };
 
   const setAsRead = async()=>{
     if (!selectedChat) return;
@@ -1007,18 +1085,25 @@ const handleImageUpload = async (event) => {
             <div className="d-flex gap-2 px-2" style={{ paddingTop: '8px' }}>
               <button
                 className={`d-flex gap-2 btn btn-sm ${selectedTab === 'conversas' ? `btn-1-${theme}` : `btn-2-${theme}`}`}
-                onClick={() => setSelectedTab('conversas')}
+                onClick={() => handleTabChange('conversas')}
               >
                 <i className="bi bi-chat-left-text"></i>
                 Conversas
               </button>
               <button
                 className={`d-flex gap-2 btn btn-sm ${selectedTab === 'aguardando' ? `btn-1-${theme}` : `btn-2-${theme}`}`}
-                onClick={() => setSelectedTab('aguardando')}
+                onClick={() => handleTabChange('aguardando')}
               >
                 <i className="bi bi-alarm"></i>
                 Aguardando
               </button>
+              {/* <button
+                className={`btn btn-sm btn-2-${theme}`}
+                onClick={() => setShowFiltros(true)}
+                title="Filtros Avançados"
+              >
+                <i className="bi bi-funnel"></i>
+              </button> */}
             </div>
 
             {/* Lista filtrada */}
@@ -1039,13 +1124,7 @@ const handleImageUpload = async (event) => {
               overflowY: 'auto'
             }}
           >
-            {chatList
-              .filter(chat =>
-                selectedTab === 'conversas'
-                  ? chat.status !== 'waiting'
-                  : chat.status === 'waiting'
-              )
-              .map((chat) => (
+            {getFilteredChats().map((chat) => (
                 <div className='msg d-flex flex-row' key={chat.id}>
                   <div
                     className={`selectedBar ${selectedChatId === chat.id ? '' : 'd-none'}`}
@@ -1551,6 +1630,8 @@ const handleImageUpload = async (event) => {
         show={showNewContactModal} 
         onHide={() => setShowNewContactModal(false)}
       />
+
+      
     </div>
   );
 }

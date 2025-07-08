@@ -22,6 +22,7 @@ import AjudaPage from './Ajuda';
 import LembretesPage from './Lembretes';
 import ChatInterno from './ChatInterno';
 import axios from 'axios';
+import useUserPreferences from '../hooks/useUserPreferences';
 
 window.addEventListener('error', function (event) {
   if (
@@ -88,7 +89,8 @@ function Painel() {
   const [role, setRole] = useState('');
   const [empresa, setEmpresa] = useState('');
   const [theme, setTheme] = useTheme();
-  const [page, setPage] = useState('chats');
+  const { preferences, updatePage } = useUserPreferences();
+  const [page, setPage] = useState(preferences.currentPage || 'chats');
   const [showWhatsappModal, setShowWhatsappModal] = useState(false);
   const navigate = useNavigate();
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
@@ -97,6 +99,19 @@ function Painel() {
   const schema = userData?.schema;
   const url = process.env.REACT_APP_URL;
   const [socketInstance] = useState(() => socket());
+
+  // Atualizar página quando as preferências mudarem
+  useEffect(() => {
+    if (preferences.currentPage && preferences.currentPage !== page) {
+      setPage(preferences.currentPage);
+    }
+  }, [preferences.currentPage, page]);
+
+  // Função para atualizar página e salvar preferências
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    updatePage(newPage);
+  };
 
 
 useEffect(() => {
@@ -321,7 +336,7 @@ useEffect(() => {
           <div style={{ flexGrow: 1, width: '100%' }} id="sidebar-body" className="d-flex flex-column align-items-center justify-content-start my-5 gap-3">
             <button
               id="dashboard"
-              onClick={() => setPage('dashboard')}
+              onClick={() => handlePageChange('dashboard')}
               data-bs-toggle="tooltip"
               data-bs-placement="right"
               data-bs-title="Dashboard"
@@ -333,7 +348,7 @@ useEffect(() => {
             <hr className={`hr-${theme} mx-auto my-0 d-none`} style={{ width: '50%' }} />
             <button
               id="chats"
-              onClick={() => setPage('chats')}
+              onClick={() => handlePageChange('chats')}
               data-bs-toggle="tooltip"
               data-bs-placement="right"
               data-bs-title="Chats"
@@ -344,7 +359,7 @@ useEffect(() => {
             </button>
             <button
               id="kanban"
-              onClick={() => setPage('kanban')}
+              onClick={() => handlePageChange('kanban')}
               data-bs-toggle="tooltip"
               data-bs-placement="right"
               data-bs-title="Kanban"
@@ -355,7 +370,7 @@ useEffect(() => {
             </button>
             <button
               id="filas"
-              onClick={() => setPage('filas')}
+              onClick={() => handlePageChange('filas')}
               data-bs-toggle="tooltip"
               data-bs-placement="right"
               data-bs-title="Filas"
@@ -366,7 +381,7 @@ useEffect(() => {
             </button>
             <button
               id="disparos"
-              onClick={() => setPage('disparos')}
+              onClick={() => handlePageChange('disparos')}
               data-bs-toggle="tooltip"
               data-bs-placement="right"
               data-bs-title="Disparos"
@@ -378,7 +393,7 @@ useEffect(() => {
             <hr className={`hr-${theme} mx-auto my-0`} style={{ width: '50%' }} />
             <button
               id="usuarios"
-              onClick={() => setPage('usuarios')}
+              onClick={() => handlePageChange('usuarios')}
               data-bs-toggle="tooltip"
               data-bs-placement="right"
               data-bs-title="Usuários"
@@ -400,7 +415,7 @@ useEffect(() => {
             </button>
             <button
               id="lembretes"
-              onClick={() => setPage('agenda')}
+              onClick={() => handlePageChange('agenda')}
               data-bs-toggle="tooltip"
               data-bs-placement="right"
               data-bs-title="Lembretes"
@@ -412,7 +427,7 @@ useEffect(() => {
             <hr className={`hr-${theme} mx-auto my-0`} style={{ width: '50%' }} />
             <button
               id="relatorios"
-              onClick={() => setPage('relatorios')}
+              onClick={() => handlePageChange('relatorios')}
               data-bs-toggle="tooltip"
               data-bs-placement="right"
               data-bs-title="Relatórios"
@@ -423,7 +438,7 @@ useEffect(() => {
             </button>
             <button
               id="insights"
-              onClick={() => setPage('insights')}
+              onClick={() => handlePageChange('insights')}
               data-bs-toggle="tooltip"
               data-bs-placement="right"
               data-bs-title="Insights"
@@ -435,7 +450,7 @@ useEffect(() => {
             <hr className={`hr-${theme} mx-auto my-0 d-none`} style={{ width: '50%' }} />
             <button
               id="ajuda"
-              onClick={() => setPage('ajuda')}
+              onClick={() => handlePageChange('ajuda')}
               data-bs-toggle="tooltip"
               data-bs-placement="right"
               data-bs-title="Ajuda"
@@ -446,7 +461,7 @@ useEffect(() => {
             </button>
 <button
   id="chatinterno"
-  onClick={() => setPage('ChatInterno')}
+  onClick={() => handlePageChange('ChatInterno')}
   data-bs-toggle="tooltip"
   data-bs-placement="right"
   data-bs-title="Chat Interno"

@@ -16,6 +16,7 @@ const tagRoutes = require('./routes/TagRoutes')
 const bodyParser = require('body-parser');
 const excelRoutes = require('./routes/ExcelRoutes');
 const lembreteRoutes = require('./routes/LembretesRoutes');
+const preferenceRoutes = require('./routes/UserPreferencesRoutes')
 
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -91,6 +92,7 @@ app.use('/campaing', campaingRoutes)
 app.use('/tag', tagRoutes)
 app.use('/excel', excelRoutes);
 app.use('/lembretes', lembreteRoutes);
+app.use('/preferences', preferenceRoutes)
 
 const axios = require('axios');
 const fs = require('fs');

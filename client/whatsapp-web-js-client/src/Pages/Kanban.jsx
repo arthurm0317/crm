@@ -10,6 +10,7 @@ import { socket } from '../socket';
 import ChatPage from './Chats';
 import ImportarContatosModal from './modalPages/Kanban_importarContatos';
 import { Menu } from '@headlessui/react';
+import useUserPreferences from '../hooks/useUserPreferences';
 
 const styles = `
   .dropdown-toggle::after {
@@ -185,6 +186,25 @@ function KanbanPage({ theme }) {
   const [showImportarContatosModal, setShowImportarContatosModal] = useState(false);
   const [dropdownStates, setDropdownStates] = useState({});
   const dropdownRefs = useRef({});
+  const { preferences, updateKanbanFunnel } = useUserPreferences();
+
+  // Restaurar funil selecionado das preferências
+  useEffect(() => {
+    console.log('Preferências carregadas:', preferences);
+    console.log('Funis disponíveis:', funis);
+    console.log('Funil salvo:', preferences.kanbanFunnel);
+    
+    if (preferences.kanbanFunnel && funis.includes(preferences.kanbanFunnel)) {
+      console.log('Restaurando funil salvo:', preferences.kanbanFunnel);
+      setFunilSelecionado(preferences.kanbanFunnel);
+    }
+  }, [preferences.kanbanFunnel, funis]);
+
+  // Salvar funil selecionado quando mudar
+  const handleFunilChange = (novoFunil) => {
+    setFunilSelecionado(novoFunil);
+    updateKanbanFunnel(novoFunil);
+  };
 
   useEffect(()=>{
     const fetchFunis = async () => {
@@ -450,9 +470,9 @@ function handleTransferirEmMassa({ etapaOrigemId, etapaDestinoId }) {
       
       // Seleciona o novo funil criado
       if (data && data.sector) {
-        setFunilSelecionado(data.sector);
+        handleFunilChange(data.sector);
       } else if (novosFunis.length > 0) {
-        setFunilSelecionado(novosFunis[novosFunis.length - 1]); // Seleciona o último funil (provavelmente o novo)
+        handleFunilChange(novosFunis[novosFunis.length - 1]); // Seleciona o último funil (provavelmente o novo)
       }
     } catch (error) {
       console.error('Erro ao recarregar funis:', error);
@@ -460,9 +480,16 @@ function handleTransferirEmMassa({ etapaOrigemId, etapaDestinoId }) {
   };
 useEffect(() => {
   if (funis.length > 0 && !funilSelecionado) {
-    setFunilSelecionado(funis[0]);
+    // Verificar se há um funil salvo nas preferências
+    const funilSalvo = preferences.kanbanFunnel;
+    if (funilSalvo && funis.includes(funilSalvo)) {
+      setFunilSelecionado(funilSalvo);
+    } else {
+      // Se não há preferência salva ou o funil não existe mais, seleciona o primeiro
+      setFunilSelecionado(funis[0]);
+    }
   }
-}, [funis, funilSelecionado]);
+}, [funis, funilSelecionado, preferences.kanbanFunnel]);
 
   // Salvar etapas do funil
   const handleSalvarEtapas = (novasEtapas) => {
@@ -584,7 +611,7 @@ useEffect(() => {
   style={{ width: 150 }}
   value={funilSelecionado}
    onChange={e => {
-    setFunilSelecionado(e.target.value);
+    handleFunilChange(e.target.value);
   }}
 >
   {funis.map(nome => (
