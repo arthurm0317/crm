@@ -23,7 +23,8 @@ class SocketServer {
                     "https://landing-page-front.8rxpnw.easypanel.host",
                     "https://eg-crm.effectivegain.com",
                     "https://ilhadogovernador.effectivegain.com",
-                    "https://barreiras.effectivegain.com"
+                    "https://barreiras.effectivegain.com",
+                    "https://campo-grande.effectivegain.com"
                 ],
                 methods: ["GET", "POST", "DELETE", "PUT"],
                 allowedHeaders: ["Content-Type"],
