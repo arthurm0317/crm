@@ -82,7 +82,6 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
-      console.log('📥 Resposta do backend:', res.data);
 
       if (res.data.success) {
         console.log('✅ Importação bem-sucedida!');

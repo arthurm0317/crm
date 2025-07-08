@@ -31,7 +31,6 @@ function processExcelFile(connection_id, sector, schema) {
 }
 
 const getInformationFromExcel = async (data, connection, sector, schema) => {
-  console.log('SECTOR', sector)
   for (const row of data) {
     let numero = row.numero?.toString();
      if (!row.nome) {

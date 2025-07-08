@@ -59,9 +59,9 @@ function DisparosPage({ theme }) {
   const handleStartDisparo = async (id) => {
   try {
     await axios.post(`${url}/campaing/start`, { 
-        campaing_id:id,
-        schema:schema,
-        timer:3000});
+        campaing_id: id,
+        schema: schema
+    });
     alert('Campanha iniciada!');
   } catch (error) {
     console.error('Erro ao iniciar disparo:', error);

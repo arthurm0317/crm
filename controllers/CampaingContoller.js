@@ -2,10 +2,10 @@ const { scheduleCampaingBlast, getCampaings, getCampaingById, createCampaing, st
 const { createMessageForBlast, getAllBlastMessages } = require("../services/MessageBlast");
 
 const startCampaingController = async (req, res) => {
-  const { campaing_id, timer } = req.body;
+  const { campaing_id } = req.body;
   const schema = req.body.schema;
   try {
-    const result = await startCampaing(campaing_id, timer, schema);
+    const result = await startCampaing(campaing_id, null, schema);
     res.status(201).json(result);
   } catch (error) {
     console.error(error);

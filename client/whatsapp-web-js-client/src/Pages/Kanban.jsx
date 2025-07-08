@@ -257,17 +257,9 @@ function KanbanPage({ theme }) {
   // Listener para contatos importados
   useEffect(() => {
     const handleContatosImportados = (data) => {
-      console.log('📡 Evento contatosImportados recebido:', data);
       if (data.sector === funilSelecionado && data.schema === schema) {
-        console.log('✅ Dados correspondem ao funil atual, recarregando cards...');
         recarregarCards();
       } else {
-        console.log('❌ Dados não correspondem:', {
-          eventoSector: data.sector,
-          funilAtual: funilSelecionado,
-          eventoSchema: data.schema,
-          schemaAtual: schema
-        });
       }
     };
 
@@ -281,15 +273,11 @@ function KanbanPage({ theme }) {
   // Função para recarregar os cards
   const recarregarCards = async () => {
     if (!funilSelecionado) return;
-    console.log('🔄 Recarregando cards do funil:', funilSelecionado);
     try {
       const response = await axios.get(`${url}/kanban/get-cards/${funilSelecionado}/${schema}`);
       const novosCards = Array.isArray(response.data) ? response.data : [response.data];
-      console.log('📊 Novos cards carregados:', novosCards.length);
       setCards(novosCards);
-      console.log('✅ Cards atualizados com sucesso!');
     } catch (error) {
-      console.error('❌ Erro ao recarregar cards:', error);
     }
   };
 
@@ -453,22 +441,22 @@ function handleTransferirEmMassa({ etapaOrigemId, etapaDestinoId }) {
   useEffect(() => {
 }, [funilSelecionado]);
   // Salvar novo funil
-  const handleSalvarNovoFunil = ({ titulo, etapas }) => {
-    const novoId = funis.length > 0 ? Math.max(...funis.map(f => f.id)) + 1 : 1;
-    const novoFunil = {
-      id: novoId,
-      nome: titulo,
-      etapas: etapas.map((etapa, idx) => ({
-        id: novoId * 100 + idx + 1, // Garante id único
-        nome: etapa.etapa,
-        cor: etapa.color
-      })),
-      contatosVinculados: [],
-      usuariosVinculados: [],
-      filasVinculadas: []
-    };
-    setFunis([...funis, novoFunil]);
-    setFunilSelecionado(novoId);
+  const handleSalvarNovoFunil = async (data) => {
+    try {
+      // Recarrega a lista de funis do backend para garantir que o novo funil apareça
+      const response = await axios.get(`${url}/kanban/get-funis/${schema}`);
+      const novosFunis = Array.isArray(response.data.name) ? response.data.name : [];
+      setFunis(novosFunis);
+      
+      // Seleciona o novo funil criado
+      if (data && data.sector) {
+        setFunilSelecionado(data.sector);
+      } else if (novosFunis.length > 0) {
+        setFunilSelecionado(novosFunis[novosFunis.length - 1]); // Seleciona o último funil (provavelmente o novo)
+      }
+    } catch (error) {
+      console.error('Erro ao recarregar funis:', error);
+    }
   };
 useEffect(() => {
   if (funis.length > 0 && !funilSelecionado) {

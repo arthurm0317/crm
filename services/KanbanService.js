@@ -1,6 +1,7 @@
 const pool = require("../db/queries");
 const { v4: uuidv4 } = require("uuid");
 const { get } = require("../routes/ConnectionRoutes");
+const SocketServer = require("../server");
 
 const createKanbanStage = async (name, pos, color, sector, schema) => {
   const stageExists = await pool.query(
@@ -19,9 +20,7 @@ const createKanbanStage = async (name, pos, color, sector, schema) => {
 };
 
 const insertInKanbanStage = async (stageName, connection_id, sector, number, schema) => {
-  console.log(`insertInKanbanStage - stageName: ${stageName}, sector: ${sector}, schema: ${schema}`);
   
-  // Verifica se a tabela do funil existe
   const tableExists = await pool.query(
     `SELECT EXISTS (
       SELECT FROM information_schema.tables 
@@ -31,7 +30,6 @@ const insertInKanbanStage = async (stageName, connection_id, sector, number, sch
     [schema, `kanban_${sector}`]
   );
 
-  console.log(`Tabela kanban_${sector} existe:`, tableExists.rows[0].exists);
 
   if (!tableExists.rows[0].exists) {
     console.error(`Tabela kanban_${sector} não existe no esquema ${schema}`);
@@ -43,7 +41,6 @@ const insertInKanbanStage = async (stageName, connection_id, sector, number, sch
     [stageName]
   );
 
-  console.log(`Resultado da busca da etapa "${stageName}":`, stageId.rows);
 
   if (stageId.rowCount > 0) {
     const stageExists = await pool.query(
@@ -62,11 +59,54 @@ const insertInKanbanStage = async (stageName, connection_id, sector, number, sch
     );
 
     if (existingChat.rowCount > 0) {
-      const result = await pool.query(
-        `UPDATE ${schema}.chats SET etapa_id=$1 WHERE connection_id=$2 AND contact_phone=$3 RETURNING *`,
-        [stageId.rows[0].id, connection_id, number]
-      );
-      return result.rows[0];
+      if (existingChat.rows[0].status === 'closed') {
+        const contactName = await pool.query(
+          `SELECT contact_name FROM ${schema}.contacts WHERE number=$1`,
+          [number]
+        );
+        const queueId = await pool.query(
+          `SELECT * FROM ${schema}.connections WHERE id=$1`,
+          [connection_id]
+        )
+        const newChat = await pool.query(
+          `INSERT INTO ${schema}.chats 
+           (id, chat_id, connection_id, queue_id, isgroup, contact_name, assigned_user, status, created_at, messages, contact_phone, etapa_id) 
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+          [
+            uuidv4(), 
+            `${number}@s.whatsapp.net`, 
+            connection_id,
+            queueId.rows[0].queue_id,
+            false,
+            contactName.rows[0]?.contact_name ?? 'Sem nome',
+            null,
+            'open',
+            new Date().getTime(), 
+            JSON.stringify([]),
+            number,
+            stageId.rows[0].id
+          ]
+        );
+        SocketServer.io.to(`schema_${schema}`).emit('contatosImportados', {
+          newChat: newChat.rows[0],
+          sector: sector,
+          schema: schema
+        });
+        return newChat.rows[0];
+      } else {
+        // Se o chat não está fechado, apenas atualiza a etapa
+        const result = await pool.query(
+          `UPDATE ${schema}.chats SET etapa_id=$1 WHERE connection_id=$2 AND contact_phone=$3 RETURNING *`,
+          [stageId.rows[0].id, connection_id, number]
+        );
+        const chat = result.rows[0]
+        SocketServer.io.to(`schema_${schema}`).emit('contatosImportados', {
+          chat,
+          sector: sector,
+          schema: schema
+        })
+        return result.rows[0];
+      }
     } else {
       const contactName = await pool.query(
         `SELECT contact_name FROM ${schema}.contacts WHERE number=$1`,
@@ -95,6 +135,12 @@ const insertInKanbanStage = async (stageName, connection_id, sector, number, sch
           stageId.rows[0].id
         ]
       );
+      SocketServer.io.to(`schema_${schema}`).emit('contatosImportados', {
+      newChat,
+      sector: sector,
+      schema: schema
+    });
+
     return newChat.rows[0];
     }
   } else {
@@ -106,8 +152,8 @@ const insertInKanbanStage = async (stageName, connection_id, sector, number, sch
 const getChatsInKanbanStage = async (stage, schema) => {
   if (stage) {
     const result = await pool.query(
-      `SELECT * FROM ${schema}.chats WHERE etapa_id=$1`,
-      [stage]
+      `SELECT * FROM ${schema}.chats WHERE etapa_id=$1 AND status<>$2`,
+      [stage, 'closed']
     );
     return result.rows;
   } else {
