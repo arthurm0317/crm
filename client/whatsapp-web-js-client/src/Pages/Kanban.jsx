@@ -4,6 +4,7 @@ import NovoFunilModal from './modalPages/Kanban_novoFunil';
 import GerirEtapaModal from './modalPages/Kanban_gerirEtapa';
 import { Dropdown } from 'react-bootstrap';
 import KanbanExcluirEtapaModal from './modalPages/Kanban_excluirEtapa';
+import KanbanDeletarFunilModal from './modalPages/Kanban_deletarFunil';
 import TransferirEmMassaModal from './modalPages/Kanban_transferirEmMassa';
 import axios from 'axios';
 import { socket } from '../socket';
@@ -456,6 +457,7 @@ function handleTransferirEmMassa({ etapaOrigemId, etapaDestinoId }) {
   const [showNovoFunilModal, setShowNovoFunilModal] = useState(false);
   const [showGerirEtapaModal, setShowGerirEtapaModal] = useState(false);
   const [showTransferirEmMassaModal, setShowTransferirEmMassaModal] = useState(false);
+  const [showDeletarFunilModal, setShowDeletarFunilModal] = useState(false);
   const [etapaParaTransferir, setEtapaParaTransferir] = useState(null);
 
   useEffect(() => {
@@ -633,6 +635,17 @@ useEffect(() => {
             <button className={`btn btn-2-${theme}`} style={{ minWidth: 180 }} onClick={() => setShowImportarContatosModal(true)}>
                 <i className="bi bi-file-earmark-arrow-up me-2"></i>Importar Contatos
             </button>
+
+            {(userData?.role === 'admin' || userData?.role === 'tecnico') && (
+              <button 
+                className="btn delete-btn" 
+                style={{ minWidth: 140 }} 
+                onClick={() => setShowDeletarFunilModal(true)}
+                title="Excluir funil atual"
+              >
+                <i className="bi bi-trash me-2"></i>Excluir Funil
+              </button>
+            )}
 
         </div>
       </div>
@@ -966,6 +979,13 @@ useEffect(() => {
         etapas={etapas}
         funil={funilSelecionado}
         onTransferComplete={handleTransferirEmMassaComplete}
+      />
+      
+      <KanbanDeletarFunilModal
+        theme={theme}
+        show={showDeletarFunilModal}
+        onHide={() => setShowDeletarFunilModal(false)}
+        funil={funilSelecionado}
       />
     </div>
   );

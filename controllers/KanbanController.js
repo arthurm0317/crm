@@ -1,5 +1,6 @@
+const e = require("express");
 const SocketServer = require("../server");
-const { createKanbanStage, getFunis, getKanbanStages, getChatsInKanban, changeKanbanStage, updateStageName, updateStageIndex, createFunil, deleteEtapa, getCustomFields, getChatsInKanbanStage } = require("../services/KanbanService");
+const { createKanbanStage, getFunis, getKanbanStages, getChatsInKanban, changeKanbanStage, updateStageName, updateStageIndex, createFunil, deleteEtapa, getCustomFields, getChatsInKanbanStage, deleteFunil } = require("../services/KanbanService");
 const { createMessageForBlast } = require("../services/MessageBlast");
 const io = SocketServer.io
 
@@ -105,6 +106,56 @@ const createFunilController = async (req, res) => {
         console.error(error)
     }
 }
+const deleteFunilController = async (req, res) => {
+    const {sector, schema} = req.params
+    const {password, userRole} = req.body
+    
+    try {
+        if (userRole === 'admin' && !password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Senha é obrigatória para administradores'
+            });
+        }
+
+        if (userRole === 'admin') {
+            const { searchUser, getUserById } = require('../services/UserService');
+            const userData = JSON.parse(req.headers['user-data'] || '{}');
+            if (!userData.id) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Dados do usuário não encontrados'
+                });
+            }
+            try {
+                const user = await searchUser(user_email.email, password);
+                if (!user || user.user.permission !== 'admin') {
+                    return res.status(401).json({
+                        success: false,
+                        message: 'Senha incorreta ou usuário não é administrador'
+                    });
+                }
+            } catch (error) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Senha incorreta'
+                });
+            }
+        }
+
+        await deleteFunil(sector, schema)
+        res.status(200).json({
+            success: true,
+            message: 'Funil deletado com sucesso'
+        })
+    } catch (error) {
+        console.error(error)
+        res.status(400).json({
+            success: false,
+            message: 'Erro ao deletar Funil'
+        })
+    }
+}
 const deleteEtapaController = async (req, res) => {
     const {etapa_id, sector, schema} = req.body
     try {
@@ -148,6 +199,7 @@ module.exports = {
     changeKanbanStageController,
     updateStageNameController,
     createFunilController,
+    deleteFunilController,
     deleteEtapaController,
     getCustomFieldsController,
     transferAllChatsToStage

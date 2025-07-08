@@ -242,6 +242,13 @@ const createFunil = async (sector, schema) => {
     )`
   )
 }
+const deleteFunil = async (sector, schema) => {
+  try {
+    await pool.query(`DROP TABLE ${schema}.kanban_${sector} CASCADE`)
+  } catch (error) {
+    console.error(error)
+  }
+}
 const deleteEtapa = async (etapa_id, sector, schema) => {
   await pool.query(
     `DELETE FROM ${schema}.kanban_${sector} where id=$1`, [etapa_id]
@@ -266,6 +273,7 @@ module.exports = {
   updateStageName,
   updateStageIndex,
   createFunil,
+  deleteFunil,
   deleteEtapa,
   getCustomFields
 };
