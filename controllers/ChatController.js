@@ -318,9 +318,9 @@ const getScheduledMessagesController = async (req, res) => {
 }
 const scheduleMessageController = async (req, res) => {
     try {
-      const {chat_id, instance, message, contact_phone, timestamp, schema} = req.body
+      const {chat_id, instance, message, contact_phone, timestamp, user, schema} = req.body
       const connection =await searchConnById(instance, schema)
-      await scheduleMessage(chat_id, connection, message, contact_phone, timestamp, schema);
+      await scheduleMessage(chat_id, connection, message, contact_phone, timestamp, user, schema);
       res.status(200).json({
         success:true,
         message: 'Mensagem agendada com sucesso',

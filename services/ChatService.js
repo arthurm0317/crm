@@ -452,7 +452,7 @@ const updateChatNameByNumber = async(number, newName, user_id, schema)=>{
   }
 }
 
-const scheduleMessage = async (chat_id, connection, message, contact_phone, timestamp, schema) => {
+const scheduleMessage = async (chat_id, connection, message, contact_phone, timestamp, user, schema) => {
   try{
    if (typeof timestamp !== 'number' || isNaN(timestamp)) {
       console.error('Timestamp inválido:', timestamp);
@@ -491,7 +491,7 @@ const scheduleMessage = async (chat_id, connection, message, contact_phone, time
       `Mensagem: ${message}`,
       timestamp,
       'bi-alarm',
-      chat.assigned_user,
+      chat.assigned_user || user,
       schema,
     )
     

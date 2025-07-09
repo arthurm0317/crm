@@ -49,6 +49,7 @@ function AgendarMensagemModal({ show, onHide, theme, selectedChat }) {
         message: mensagem,
         contact_phone: selectedChat.contact_phone,
         timestamp: Math.floor(dataSelecionada.getTime() / 1000),
+        user:userData.id,
         schema: schema,
       });
 
