@@ -567,6 +567,12 @@ const disableBot = async () => {
     });
   }
 });
+  socketInstance.on('removeChat', (data)=>{
+    setChats(prevChats => prevChats.filter(chat => chat.id !== data.id));
+    setSelectedChat(null);
+    setSelectedChatId(null);
+    setSelectedMessages([]);
+  })
 
     // Escutar evento de transferência de chat
     socketInstance.on('chatTransferred', (data) => {

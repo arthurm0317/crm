@@ -422,9 +422,10 @@ const setMessageAsRead = async(chat_id, schema)=>{
 
 const closeChat = async(chat_id, schema)=>{
   try {
-    const result = await pool.query(`UPDATE ${schema}.chats set status=$1 where id=$2`,
+    const result = await pool.query(`UPDATE ${schema}.chats set status=$1 where id=$2 RETURNING *`,
       ['closed', chat_id]
     )
+    return result.rows[0]
   } catch (error) {
     console.error(error)
   }

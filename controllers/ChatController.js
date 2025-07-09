@@ -280,6 +280,8 @@ const closeChatContoller = async(req, res)=>{
     const schema = req.body.schema
     const result = await closeChat(chat_id, schema)
 
+    global.socketIoServer.to(`schema_${schema}`).emit('removeChat', result)
+
    res.status(200).json({
     result:result
   })
