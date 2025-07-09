@@ -81,6 +81,8 @@ const socketIoServer = socketIo(socketServer, {
   }
 });
 
+global.socketIoServer = socketIoServer;
+
 io.on('connection', (socket) => {
   
   socket.on('join', (userId) => {

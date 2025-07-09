@@ -88,10 +88,14 @@ module.exports = (broadcastMessage) => {
       }
       if (baseChat.assigned_user !== null) {
         const userChat = await getChatByUser(baseChat.assigned_user, baseChat.permission,schema)
-        serverTest.io.to(`schema_${schema}`).emit('chats_updated', userChat)
+        if (serverTest.io) {
+          serverTest.io.to(`schema_${schema}`).emit('chats_updated', userChat)
+        }
       }else{
         const chats = await getChatIfUserIsNull(baseChat.connection_id,baseChat.permission,schema)
-        serverTest.io.to(`schema_${schema}`).emit('chats_updated', chats)
+        if (serverTest.io) {
+          serverTest.io.to(`schema_${schema}`).emit('chats_updated', chats)
+        }
       }
 
       if (result.data.message?.conversation) {
