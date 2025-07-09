@@ -120,9 +120,23 @@ const getAllBlastMessages = async(campaing_id, schema)=>{
     console.error(error)
   }
 }
+
+const deleteAllBlastMessages = async(campaing_id, schema)=>{
+  try {
+    const result = await pool.query(
+      `DELETE FROM ${schema}.message_blast WHERE campaing_id = $1`,
+      [campaing_id]
+    )
+    return result.rowCount
+  } catch (error) {
+    console.error('Erro ao deletar mensagens da campanha:', error)
+    throw error
+  }
+}
 module.exports = {
   createMessageForBlast,
   sendBlastMessage,
   getAllBlastMessages,
-  sendMediaBlastMessage
+  sendMediaBlastMessage,
+  deleteAllBlastMessages
 };

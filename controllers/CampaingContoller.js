@@ -1,5 +1,5 @@
 const { scheduleCampaingBlast, getCampaings, getCampaingById, createCampaing, startCampaing, deleteCampaing } = require("../services/CampaingService");
-const { createMessageForBlast, getAllBlastMessages } = require("../services/MessageBlast");
+const { createMessageForBlast, getAllBlastMessages, deleteAllBlastMessages } = require("../services/MessageBlast");
 
 const startCampaingController = async (req, res) => {
   const { campaing_id } = req.body;
@@ -52,16 +52,20 @@ const createCampaingController = async (req, res) => {
       campaing = await createCampaing(null, name, sector, kanban_stage, connection_id, start_date, schema, intervalo);
     }
 
+    // Deletar todas as mensagens existentes da campanha antes de salvar as novas
+    await deleteAllBlastMessages(campaing.id, schema);
+
     if (mensagem && Array.isArray(mensagem)) {
       for (const [index, item] of mensagem.entries()) {
-        const id = mensagem[index]?.id || null;
         const texto = typeof item === 'object' ? item.text : item;
         const imagem = typeof item === 'object' ? item.image : null;
         
-        await createMessageForBlast(id, texto, sector, campaing.id, schema, imagem);
+        await createMessageForBlast(null, texto, sector, campaing.id, schema, imagem);
       }
     }else if (mensagem) {
-      await createMessageForBlast(mensagem.id || null, mensagem, sector, campaing.id, schema);
+      const texto = typeof mensagem === 'object' ? mensagem.text : mensagem;
+      const imagem = typeof mensagem === 'object' ? mensagem.image : null;
+      await createMessageForBlast(null, texto, sector, campaing.id, schema, imagem);
     }
 
     return res.status(201).json(campaing);
