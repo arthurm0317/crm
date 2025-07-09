@@ -290,6 +290,35 @@ function ChatPage({ theme, chat_id} ) {
   const [showFiltros, setShowFiltros] = useState(false);
   const [filtrosAtivos, setFiltrosAtivos] = useState(preferences.chatFilters || {});
 
+  // Função para ordenar chats por timestamp mais recente
+  const sortChatsByTimestamp = (chats) => {
+    return [...chats].sort((a, b) => {
+      // Tenta diferentes campos de timestamp que podem existir
+      // Prioriza updated_time (que vem do socket) e depois outros campos
+      const timestampA = a.updated_time || a.timestamp || a.updated_at || a.created_at || a.last_message_time || a.last_message_at || 0;
+      const timestampB = b.updated_time || b.timestamp || b.updated_at || b.created_at || b.last_message_time || b.last_message_at || 0;
+      
+      // Converte para número se for string
+      const timeA = typeof timestampA === 'string' ? parseInt(timestampA) : timestampA;
+      const timeB = typeof timestampB === 'string' ? parseInt(timestampB) : timestampB;
+      
+      // Debug temporário - remover depois
+      if (chats.length > 0 && chats[0] === a) {
+        console.log('Debug ordenação socket:', {
+          chatA: a.contact_name,
+          timestampA: timestampA,
+          timeA: timeA,
+          chatB: b.contact_name,
+          timestampB: timestampB,
+          timeB: timeB,
+          result: timeB - timeA
+        });
+      }
+      
+      return timeB - timeA;
+    });
+  };
+
   // Atualizar aba quando as preferências mudarem
   useEffect(() => {
     if (preferences.chatsTab && preferences.chatsTab !== selectedTab) {
@@ -341,20 +370,32 @@ function ChatPage({ theme, chat_id} ) {
       return true;
     });
 
-    // Ordenação
+        // Ordenação apenas se há filtros de ordenação específicos
     if (filtrosAtivos.ordenacao) {
       filtered.sort((a, b) => {
         switch (filtrosAtivos.ordenacao) {
           case 'recente':
-            return new Date(b.timestamp || 0) - new Date(a.timestamp || 0);
+            const timestampA = a.updated_time || a.timestamp || a.updated_at || a.created_at || 0;
+            const timestampB = b.updated_time || b.timestamp || b.updated_at || b.created_at || 0;
+            const timeA = typeof timestampA === 'string' ? parseInt(timestampA) : timestampA;
+            const timeB = typeof timestampB === 'string' ? parseInt(timestampB) : timestampB;
+            return timeB - timeA;
           case 'antigo':
-            return new Date(a.timestamp || 0) - new Date(b.timestamp || 0);
+            const timestampA2 = a.updated_time || a.timestamp || a.updated_at || a.created_at || 0;
+            const timestampB2 = b.updated_time || b.timestamp || b.updated_at || b.created_at || 0;
+            const timeA2 = typeof timestampA2 === 'string' ? parseInt(timestampA2) : timestampA2;
+            const timeB2 = typeof timestampB2 === 'string' ? parseInt(timestampB2) : timestampB2;
+            return timeA2 - timeB2;
           case 'alfabetico':
             return (a.contact_name || '').localeCompare(b.contact_name || '');
           case 'naoLidas':
             if (a.unreadmessages && !b.unreadmessages) return -1;
             if (!a.unreadmessages && b.unreadmessages) return 1;
-            return new Date(b.timestamp || 0) - new Date(a.timestamp || 0);
+            const timestampA3 = a.updated_time || a.timestamp || a.updated_at || a.created_at || 0;
+            const timestampB3 = b.updated_time || b.timestamp || b.updated_at || b.created_at || 0;
+            const timeA3 = typeof timestampA3 === 'string' ? parseInt(timestampA3) : timestampA3;
+            const timeB3 = typeof timestampB3 === 'string' ? parseInt(timestampB3) : timestampB3;
+            return timeB3 - timeA3;
           default:
             return 0;
         }
@@ -449,9 +490,9 @@ const handleEditContactName = async (contactId, newName) => {
     setSelectedChat(prev => ({ ...prev, contact_name: newName }));
     // Atualize na lista de chats (opcional)
     setChats(prev =>
-      prev.map(chat =>
+      sortChatsByTimestamp(prev.map(chat =>
         chat.id === contactId ? { ...chat, contact_name: newName } : chat
-      )
+      ))
     );
   } catch (error) {
     console.error(error);
@@ -465,13 +506,13 @@ const handleAcceptChat = async () => {
         chat_id: selectedChat.id,
         schema: userData.schema
       })
-      setChats(prevChats =>
-      prevChats.map(c =>
-        c.id === selectedChat.id
-          ? { ...c, status: 'open', assigned_user: userData.id }
-          : c
-      )
-    );
+        setChats(prevChats =>
+    sortChatsByTimestamp(prevChats.map(c =>
+      c.id === selectedChat.id
+        ? { ...c, status: 'open', assigned_user: userData.id }
+        : c
+    ))
+  );
 
     }catch(error){
       console.error(error)
@@ -505,9 +546,9 @@ const disableBot = async () => {
   loadMessages(chat);
   setAsRead()
   setChats(prevChats =>
-    prevChats.map(c =>
+    sortChatsByTimestamp(prevChats.map(c =>
       c.id === chat.id ? { ...c, unreadmessages: false } : c
-    )
+    ))
   );  
   scrollToBottom()
   
@@ -554,21 +595,29 @@ const disableBot = async () => {
   } else if (updatedChats && typeof updatedChats === 'object') {
     chats = [updatedChats];
   }
+  
+  // Debug temporário - remover depois
+  console.log('Dados chegando do socket:', chats);
+  
   if (chats.length > 0) {
     setChats(prevChats => {
       const updatedMap = new Map(chats.map(chat => [chat.id, chat]));
       const merged = prevChats.map(chat => updatedMap.get(chat.id) || chat);
+      
+      // Adiciona novos chats que não existiam antes
       chats.forEach(chat => {
         if (!prevChats.some(c => c.id === chat.id)) {
           merged.push(chat);
         }
       });
-      return merged;
+      
+      // Aplica ordenação por timestamp mais recente
+      return sortChatsByTimestamp(merged);
     });
   }
 });
   socketInstance.on('removeChat', (data)=>{
-    setChats(prevChats => prevChats.filter(chat => chat.id !== data.id));
+    setChats(prevChats => sortChatsByTimestamp(prevChats.filter(chat => chat.id !== data.id)));
     setSelectedChat(null);
     setSelectedChatId(null);
     setSelectedMessages([]);
@@ -581,7 +630,7 @@ const disableBot = async () => {
       setChats(prevChats => {
         // Se o usuário atual perdeu o chat, remove da lista
         if (data.oldUserId === currentUserId) {
-          return prevChats.filter(chat => chat.id !== data.chatId);
+          return sortChatsByTimestamp(prevChats.filter(chat => chat.id !== data.chatId));
         }
         
         // Se o usuário atual ganhou o chat, atualiza a lista
@@ -593,7 +642,7 @@ const disableBot = async () => {
               ...updatedChats[existingChatIndex],
               assigned_user: data.newUserId
             };
-            return updatedChats;
+            return sortChatsByTimestamp(updatedChats);
           }
         }
         
@@ -648,7 +697,8 @@ useEffect(() => {
 const loadChats = async () => {
     try {
       const res = await axios.get(`${url}/chat/getChat/${userData.id}/${schema}/${userData.role}`);
-      setChats(Array.isArray(res.data.messages) ? res.data.messages : []);;
+      const chats = Array.isArray(res.data.messages) ? res.data.messages : [];
+      setChats(sortChatsByTimestamp(chats));
     } catch (err) {
       console.error('Erro ao carregar chats:', err);
     }
