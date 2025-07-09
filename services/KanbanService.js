@@ -54,7 +54,14 @@ const insertInKanbanStage = async (stageName, connection_id, sector, number, sch
     }
 
     const existingChat = await pool.query(
-      `SELECT * FROM ${schema}.chats WHERE connection_id=$1 AND contact_phone=$2`,
+      `SELECT * FROM ${schema}.chats 
+      WHERE connection_id = $1 AND contact_phone = $2 
+      ORDER BY 
+        CASE 
+          WHEN status IN ('open', 'waiting') THEN 0
+          WHEN status = 'closed' THEN 1
+          ELSE 2
+        END`,
       [connection_id, number]
     );
 
@@ -87,7 +94,7 @@ const insertInKanbanStage = async (stageName, connection_id, sector, number, sch
             stageId.rows[0].id
           ]
         );
-        SocketServer.io.to(`schema_${schema}`).emit('contatosImportados', {
+        global.socketIoServer.to(`schema_${schema}`).emit('contatosImportados', {
           newChat: newChat.rows[0],
           sector: sector,
           schema: schema
@@ -100,7 +107,7 @@ const insertInKanbanStage = async (stageName, connection_id, sector, number, sch
           [stageId.rows[0].id, connection_id, number]
         );
         const chat = result.rows[0]
-        SocketServer.io.to(`schema_${schema}`).emit('contatosImportados', {
+        global.socketIoServer.to(`schema_${schema}`).emit('contatosImportados', {
           chat,
           sector: sector,
           schema: schema
