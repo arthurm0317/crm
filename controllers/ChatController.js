@@ -296,6 +296,9 @@ const setSpecificUserController = async(req, res) => {
     const schema = req.body.schema
     
     const result = await setSpecificUser(chat_id, user_id, schema)
+    if(result.assigned_user){
+      global.socketIoServer.to(`user_${result.assigned_user}`).emit('chats_updated', result)
+    }
     
     res.status(200).json({
       success:true,

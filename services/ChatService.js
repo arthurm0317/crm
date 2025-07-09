@@ -434,7 +434,7 @@ const closeChat = async(chat_id, schema)=>{
 const setSpecificUser = async(chat_id, user_id, schema)=>{
   try{
     const result = await pool.query(
-      `update ${schema}.chats set assigned_user=$1, status='open' where id=$2`,
+      `update ${schema}.chats set assigned_user=$1, status='open' where id=$2 RETURNING *`,
       [user_id, chat_id]
     )
     return result.rows[0]
