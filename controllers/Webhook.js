@@ -102,7 +102,7 @@ module.exports = (broadcastMessage) => {
       } else if (result.data.message?.audioMessage) {
         try {
           if (result.data.message.audioMessage.base64) {
-            audioBase64 = result.data.message.base64;
+            audioBase64 = result.data.message.audioMessage.base64;
           } else if (result.data.message.audioMessage.url) {
             const audioResponse = await axios.get(result.data.message.audioMessage.url, {
               responseType: 'arraybuffer',
@@ -124,6 +124,26 @@ module.exports = (broadcastMessage) => {
             timestamp,
             message_type: result.data.messageType
           };
+          if (serverTest.io) {
+          // Obter chats atualizados para emitir
+          const chatsToEmit = baseChat.assigned_user !== null 
+            ? await getChatByUser(baseChat.assigned_user, baseChat.permission, schema)
+            : await getChatIfUserIsNull(baseChat.connection_id, baseChat.permission, schema);
+            
+          serverTest.io.to(`schema_${schema}`).emit('chats_updated', chatsToEmit)
+          const messagePayload = {
+            chatId: chatDb.id,
+            fromMe: result.data.key.fromMe,
+            from: result.data.pushName,
+            timestamp,
+            message_type: result.data.messageType,
+            user_id: baseChat.assigned_user,
+            base64: base64Formatado.base64,
+            status: baseChat.status,
+            schema: schema
+          };
+          serverTest.io.to(`schema_${schema}`).emit('message', messagePayload);
+        }
           await chatQueue.add('message', payload, { removeOnComplete: true });
           } else {
             throw new Error('Áudio não encontrado ou não processado.');
@@ -136,22 +156,48 @@ module.exports = (broadcastMessage) => {
 
       if (result.data.message?.imageMessage) {
         try {
-          if (result.data.message.base64) {
-            imageBase64 = result.data.message.base64
-          } 
-          if (imageBase64) {
+          let imageBase64 = null;
+
+          // Se não conseguiu pela URL, tenta via API
+          if (!imageBase64) {
             const base64Formatado = await getBase64FromMediaMessage(result.instance, result.data.key.id)
-            await saveMediaMessage(result.data.key.id,result.data.key.fromMe, chatDb.id, timestamp, 'image', base64Formatado.base64, schema);
+            imageBase64 = base64Formatado.base64;
+          }
+          
+          if (imageBase64) {
+            await saveMediaMessage(result.data.key.id, result.data.key.fromMe, chatDb.id, timestamp, 'image', imageBase64, schema);
             messageBody = '[imagem recebida]';
             const payload = {
             chatId: chatDb.id,
             body: messageBody,
-            midiaBase64: base64Formatado.base64,
+            midiaBase64: imageBase64,
             fromMe: result.data.key.fromMe,
             from: result.data.pushName,
             timestamp,
             message_type: result.data.messageType
           };
+
+          if (serverTest.io) {
+            // Obter chats atualizados para emitir
+            const chatsToEmit = baseChat.assigned_user !== null 
+              ? await getChatByUser(baseChat.assigned_user, baseChat.permission, schema)
+              : await getChatIfUserIsNull(baseChat.connection_id, baseChat.permission, schema);
+              
+            serverTest.io.to(`schema_${schema}`).emit('chats_updated', chatsToEmit)
+            const messagePayload = {
+              chatId: chatDb.id,
+              fromMe: result.data.key.fromMe,
+              from: result.data.pushName,
+              timestamp,
+              message_type: result.data.messageType,
+              user_id: baseChat.assigned_user,
+              base64: imageBase64,
+              status: baseChat.status,
+              schema: schema
+            };
+            serverTest.io.to(`schema_${schema}`).emit('message', messagePayload);
+          }
+
           await chatQueue.add('message', payload, { removeOnComplete: true });
           } else {
             throw new Error('Imagem não encontrada ou não processada.');
@@ -174,7 +220,28 @@ module.exports = (broadcastMessage) => {
             status: baseChat.status
           };
       
-          await chatQueue.add('message', payload, { removeOnComplete: true });
+        if (serverTest.io) {
+          // Obter chats atualizados para emitir
+          const chatsToEmit = baseChat.assigned_user !== null 
+            ? await getChatByUser(baseChat.assigned_user, baseChat.permission, schema)
+            : await getChatIfUserIsNull(baseChat.connection_id, baseChat.permission, schema);
+            
+          serverTest.io.to(`schema_${schema}`).emit('chats_updated', chatsToEmit)
+          const messagePayload = {
+            chatId: chatDb.id,
+            body: messageBody,
+            fromMe: result.data.key.fromMe,
+            from: result.data.pushName,
+            timestamp,
+            message_type: result.data.messageType,
+            user_id: baseChat.assigned_user,
+            status: baseChat.status,
+            schema: schema
+          };
+          serverTest.io.to(`schema_${schema}`).emit('message', messagePayload);
+        }
+      
+        await chatQueue.add('message', payload, { removeOnComplete: true });
 
       }
       if (!chat || !result.instance) {

@@ -529,7 +529,10 @@ const disableBot = async () => {
     const handleMessage = (msg) => {
     if (msg.chatId === selectedChatId) {
       const formatted = formatMessage(msg);
-      setSelectedMessages(prev => [...prev, formatted]);
+      setSelectedMessages(prev => {
+        const newMessages = [...prev, formatted];
+        return newMessages;
+      });
     }
   };
     socketInstance.on('message', handleMessage);
@@ -660,7 +663,8 @@ const formatMessage = (msg) => ({
   message_type: msg.message_type,
   base64: msg.midiaBase64 || msg.base64
 
-});
+}
+);
 
 
 const loadMessages = async (chatId) => {
