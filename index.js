@@ -36,7 +36,9 @@ const corsOptions = {
     'https://barreiras.effectivegain.com',
     'https://barreiras.effectivegain.com/',
     'https://campo-grande.effectivegain.com/',
-    'https://campo-grande.effectivegain.com'
+    'https://campo-grande.effectivegain.com',
+    'https://porto-alegre.effectivegain.com',
+    'https://porto-alegre.effectivegain.com/'
   ],
   methods: ['GET', 'POST', 'DELETE', 'PUT'],
   credentials: true
@@ -54,7 +56,10 @@ const io = socketIo(server, {
       'https://barreiras.effectivegain.com',
       'https://barreiras.effectivegain.com/',
       'https://campo-grande.effectivegain.com/',
-      'https://campo-grande.effectivegain.com'
+      'https://campo-grande.effectivegain.com',
+      'https://porto-alegre.effectivegain.com',
+      'https://porto-alegre.effectivegain.com/'
+
     ], 
     methods: ['GET', 'POST', 'DELETE', 'PUT'],
   },
@@ -73,7 +78,8 @@ const socketIoServer = socketIo(socketServer, {
       "https://eg-crm.effectivegain.com",
       "https://ilhadogovernador.effectivegain.com",
       "https://barreiras.effectivegain.com",
-      "https://campo-grande.effectivegain.com"
+      "https://campo-grande.effectivegain.com",
+      "https://porto-alegre.effectivegain.com"
     ],
     methods: ["GET", "POST", "DELETE", "PUT"],
     allowedHeaders: ["Content-Type"],
