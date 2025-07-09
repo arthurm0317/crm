@@ -218,13 +218,13 @@ const setUserChat = async (chatId, schema) => {
       }
       await updateLastAssignedUser(queueId, nextUser.id, schema);
      const result =  await pool.query(
-        `UPDATE ${schema}.chats SET assigned_user=$1 WHERE id=$2`,
+        `UPDATE ${schema}.chats SET assigned_user=$1 WHERE id=$2 RETURNING *`,
         [nextUser.id, chatId]
       );
-      return result
+      return result.rows[0]
     }else{
       const result = await pool.query(
-        `UPDATE ${schema}.chats SET status='waiting' WHERE id=$1`,
+        `UPDATE ${schema}.chats SET status='waiting' WHERE id=$1 RETURNING *`,
         [chatId]
       )
       return result.rows[0]

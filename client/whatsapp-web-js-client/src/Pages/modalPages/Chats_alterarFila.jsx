@@ -6,7 +6,7 @@ import './assets/style.css';
 function ChangeQueueModal({ show, onHide, theme, selectedChat, schema, url, onTransfer }) {
   const [selectedQueue, setSelectedQueue] = useState(null);
   const [queues, setQueues] = useState([]);
-  const [countdown, setCountdown] = useState(10);
+  const [countdown, setCountdown] = useState(3);
   const [isConfirming, setIsConfirming] = useState(false);
 
   useEffect(() => {
@@ -29,7 +29,7 @@ function ChangeQueueModal({ show, onHide, theme, selectedChat, schema, url, onTr
 
   useEffect(() => {
     if (show) {
-      setCountdown(10);
+      setCountdown(3);
       setIsConfirming(false);
       setSelectedQueue(null);
     }
@@ -37,7 +37,7 @@ function ChangeQueueModal({ show, onHide, theme, selectedChat, schema, url, onTr
 
   const handleConfirm = () => {
     setIsConfirming(true);
-    setCountdown(10);
+    setCountdown(3);
   };
 
   const handleChangeQueue = async () => {
@@ -140,33 +140,33 @@ function ChangeQueueModal({ show, onHide, theme, selectedChat, schema, url, onTr
         >
           Cancelar
         </Button>
-{!isConfirming ? (
-  <Button
-    style={{ backgroundColor: 'transparent' }}
-    variant="primary"
-    onClick={handleConfirm}
-    disabled={!selectedQueue}
-    className={`btn-2-${theme}`}
-  >
-    Alterar Fila
-  </Button>
-) : countdown > 0 ? (
-  <Button
-    variant="danger"
-    disabled
-    className="w-100"
-  >
-    Confirmar alteração em {countdown}s
-  </Button>
-) : (
-  <Button
-    variant="primary"
-    onClick={handleChangeQueue}
-    className={`btn-2-${theme}`}
-  >
-    Confirmar Alteração
-  </Button>
-)}
+        {!isConfirming ? (
+          <Button
+            style={{ backgroundColor: 'transparent' }}
+            variant="primary"
+            onClick={handleConfirm}
+            disabled={!selectedQueue}
+            className={`btn-2-${theme}`}
+          >
+            Alterar Fila
+          </Button>
+        ) : countdown > 0 ? (
+          <Button
+            variant="danger"
+            disabled
+            className={`btn-2-${theme}`}
+          >
+            Confirmar alteração em {countdown}s
+          </Button>
+        ) : (
+          <Button
+            variant="danger"
+            onClick={handleChangeQueue}
+            className={`btn-2-${theme}`}
+          >
+            Confirmar Alteração
+          </Button>
+        )}
       </Modal.Footer>
     </Modal>
   );

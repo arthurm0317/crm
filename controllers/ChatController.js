@@ -179,7 +179,13 @@ const getChatDataController = async (req, res) => {
 
   try {
     const result = await getChatData(chatId, schema);
-    res.status(200).json({ messages: result });
+    
+    // Se a rota for getChatById, retorna apenas os dados do chat
+    if (req.route.path === '/getChatById/:chatId/:schema') {
+      res.status(200).json({ chat: result.chat });
+    } else {
+      res.status(200).json({ messages: result });
+    }
   } catch (err) {
     console.error('Erro ao buscar dados do chat:', err.message);
     res.status(500).json({ error: 'Erro ao buscar dados do chat.' });

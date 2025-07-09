@@ -143,15 +143,12 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
         newQueueId: queueId,
         schema
       });
-
-      setChats(prev =>
-        prev.map(chat =>
-          chat.id === selectedChat.id ? { ...chat, queue_id: queueId } : chat
-        )
-      );
-      setSelectedChat(prev =>
-        prev ? { ...prev, queue_id: queueId } : prev
-      );
+  
+      setChats(prev => prev.filter(chat => chat.id !== selectedChat.id));
+      
+      setSelectedChat(null);
+      setSelectedMessages([]);
+      
     } catch (err) {
       alert('Erro ao transferir fila');
     }
@@ -548,6 +545,7 @@ const disableBot = async () => {
   if (socketInstance) {
     socketInstance.on('connect', () => {
       socketInstance.emit('join', `schema_${schema}`);
+      socketInstance.emit('join', `user_${userData.id}`);
     });
     socketInstance.on('chats_updated', (updatedChats) => {
   let chats = [];
@@ -1304,7 +1302,27 @@ const handleImageUpload = async (event) => {
       <button
         className={`btn btn-2-${theme} d-flex align-items-center`}
         style={{ marginLeft: '4px' }}
-        onClick={() => {
+        onClick={async () => {
+          // Carregar dados atualizados do banco quando abrir o menu
+          if (selectedChat) {
+            try {
+              const res = await axios.get(`${url}/chat/getChatById/${selectedChat.id}/${schema}`);
+              const updatedChat = res.data.chat || selectedChat;
+              
+              // Atualizar o chat selecionado com dados mais recentes
+              setSelectedChat(updatedChat);
+              
+              // Atualize o chat na lista com os dados mais recentes
+              setChats(prevChats =>
+                prevChats.map(c =>
+                  c.id === updatedChat.id ? { ...c, ...updatedChat } : c
+                )
+              );
+            } catch (error) {
+              console.error('Erro ao buscar dados atualizados do chat:', error);
+            }
+          }
+          
           setShowSideMenu(true);
           setTimeout(() => setSideMenuActive(true), 10);
         }}

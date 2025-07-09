@@ -36,12 +36,17 @@ const ChatsMenuLateral = ({ theme, onClose, style = {}, selectedChat }) => {
     return phone;
   };
 
-  // Fetch dos dados quando selectedChat mudar
+  // Fetch dos dados quando selectedChat mudar ou modal for aberto
   useEffect(() => {
     const fetchData = async () => {
       if (!selectedChat || !schema) return;
       
       setLoading(true);
+      // Limpar dados anteriores
+      setQueueData(null);
+      setUserData(null);
+      setConnectionData(null);
+      
       try {
         // Fetch da fila
         if (selectedChat.queue_id) {
@@ -91,7 +96,7 @@ const ChatsMenuLateral = ({ theme, onClose, style = {}, selectedChat }) => {
     };
 
     fetchData();
-  }, [selectedChat, schema, url]);
+  }, [selectedChat, schema, url, style.display]);
 
   return (
     <div

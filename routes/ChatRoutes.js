@@ -13,9 +13,10 @@ const { updateContactName } = require('../services/ChatService');
 const router = express.Router();
 
 router.get('/getChats/:schema', getChatsController);
-router.get('/:schema/:chatId', getChatDataController);
 router.get('/getChat/:userId/:schema/:role', getChatByUserController);
+router.get('/getChatById/:chatId/:schema', getChatDataController);
 router.get('/scheduled-messages/:chat_id/:schema', getScheduledMessagesController)
+router.get('/:schema/:chatId', getChatDataController);
 router.post('/setChat', setUserChatController);
 router.post('/getMessages', getMessagesController);
 router.post('/setQueue', updateQueueController);

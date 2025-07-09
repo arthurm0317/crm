@@ -93,8 +93,8 @@ const getQueueById = async(queue_id, schema)=>{
 
 const transferQueue = async (chatId, newQueueId, schema) => {
   const result = await pool.query(
-    `UPDATE ${schema}.chats SET queue_id = $1 WHERE id = $2 RETURNING *`,
-    [newQueueId, chatId]
+    `UPDATE ${schema}.chats SET queue_id = $1, status=$3 WHERE id = $2 RETURNING *`,
+    [newQueueId, chatId, 'open']
   );
   return result.rows[0];
 };
