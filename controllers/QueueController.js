@@ -43,12 +43,19 @@ const getUserQueuesController=async(req,res)=>{
         const {userId}=req.params
         const schema = req.params.schema
 
+        if (!schema || schema === 'null' || schema === 'undefined') {
+            return res.status(400).json({
+                error: 'Schema é obrigatório'
+            });
+        }
+
         const result = await getUserQueues(userId, schema)
         res.status(201).json({
             result
         })
     }catch(error){
         console.error(error)
+        res.status(500).json({ error: 'Erro ao buscar filas do usuário' });
     }
     
 }
@@ -56,12 +63,20 @@ const getUserQueuesController=async(req,res)=>{
 const getAllQueuesControllers = async(req, res)=> {
     try{
         const {schema} = req.params
+        
+        if (!schema || schema === 'null' || schema === 'undefined') {
+            return res.status(400).json({
+                error: 'Schema é obrigatório'
+            });
+        }
+        
         const result = await getAllQueues(schema)
         res.status(201).json({
             result
         })
     }catch(error){
         console.error(error)
+        res.status(500).json({ error: 'Erro ao buscar filas' });
     }
 }
 const deleteQueueController = async(req, res)=>{
@@ -76,6 +91,13 @@ const deleteQueueController = async(req, res)=>{
 const getQueueByIdController = async(req, res)=> {
     try{
         const {queue_id, schema} = req.params
+        
+        if (!schema || schema === 'null' || schema === 'undefined') {
+            return res.status(400).json({
+                error: 'Schema é obrigatório'
+            });
+        }
+        
         if(queue_id === null || queue_id === 'null' || queue_id === undefined){
             res.status(200).json({
                 success:true,
@@ -164,6 +186,13 @@ const toggleWebhookStatusController = async (req, res) => {
 const getUsersInQueueController = async (req, res) => {
     try {
         const { queue_id, schema } = req.params;
+        
+        if (!schema || schema === 'null' || schema === 'undefined') {
+            return res.status(400).json({
+                error: 'Schema é obrigatório'
+            });
+        }
+        
         const result = await getUsersInQueue(queue_id, schema);
 
         const usersData = [];

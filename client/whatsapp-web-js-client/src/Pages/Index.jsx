@@ -108,10 +108,10 @@ function Painel() {
 
 
    useEffect(() => {
-    if (!schema) {
+    if (!schema || !userData?.id) {
       navigate('/');
     }
-  }, [schema, navigate]);
+  }, [schema, userData?.id, navigate]);
 
   // Função para atualizar página e salvar preferências
   const handlePageChange = (newPage) => {
@@ -240,14 +240,19 @@ useEffect(() => {
 }, [socketInstance, userData?.id, schema, url]);
 
   useEffect(() => {
-    const userData = JSON.parse(localStorage.getItem('user'));
-    if (!userData || !userData.schema) {
-      navigate('/'); // Redireciona para login se não estiver logado ou sem schema
-      return;
+    try {
+      const userData = JSON.parse(localStorage.getItem('user'));
+      if (!userData || !userData.schema || !userData.id) {
+        navigate('/'); // Redireciona para login se não estiver logado ou sem dados necessários
+        return;
+      }
+      setUsername(userData.username);
+      setRole(userData.role);
+      setEmpresa(userData.empresa);
+    } catch (error) {
+      console.error('Erro ao verificar dados do usuário:', error);
+      navigate('/'); // Redireciona para login em caso de erro
     }
-    setUsername(userData.username);
-    setRole(userData.role);
-    setEmpresa(userData.empresa);
   }, [navigate]);
   
   const toggleTheme = () => {

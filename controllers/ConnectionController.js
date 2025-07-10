@@ -40,6 +40,13 @@ const setQueueController = async(req, res)=>{
 const getAllConnectionsController = async (req, res) => {
     try {
         const schema = req.params.schema;
+        
+        if (!schema || schema === 'null' || schema === 'undefined') {
+            return res.status(400).json({
+                error: 'Schema é obrigatório'
+            });
+        }
+        
         const result = await getAllConnections(schema);
         res.status(200).json(result);
     } catch (error) {
