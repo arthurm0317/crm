@@ -14,6 +14,7 @@ import NewQueueModal from './modalPages/Filas_novaFila';
 import WaveSurfer from 'wavesurfer.js';
 import ChatsMenuLateral from './modalPages/Chats_menuLateral';
 import useUserPreferences from '../hooks/useUserPreferences';
+import useNotificationSound from '../hooks/useNotificationSound';
 
 function formatHour(timestamp) {
   const date = new Date(Number(timestamp));
@@ -289,6 +290,7 @@ function ChatPage({ theme, chat_id} ) {
   const [sideMenuActive, setSideMenuActive] = useState(false);
   const [showFiltros, setShowFiltros] = useState(false);
   const [filtrosAtivos, setFiltrosAtivos] = useState(preferences.chatFilters || {});
+  const { playNotificationSound, audioRef } = useNotificationSound();
 
   // Função para ordenar chats por timestamp mais recente
   const sortChatsByTimestamp = (chats) => {
@@ -571,6 +573,10 @@ const disableBot = async () => {
         const newMessages = [...prev, formatted];
         return newMessages;
       });
+      // Toca o som se a mensagem não for minha
+      if (!msg.fromMe && !msg.from_me) {
+        playNotificationSound();
+      }
     }
   };
     socketInstance.on('message', handleMessage);
@@ -589,15 +595,14 @@ const disableBot = async () => {
       socketInstance.emit('join', `user_${userData.id}`);
     });
     socketInstance.on('chats_updated', (updatedChats) => {
-  let chats = [];
-  if (Array.isArray(updatedChats)) {
-    chats = updatedChats;
+      let chats = [];
+      if (Array.isArray(updatedChats)) {
+        playNotificationSound()
+        chats = updatedChats;
   } else if (updatedChats && typeof updatedChats === 'object') {
+        playNotificationSound()
     chats = [updatedChats];
   }
-  
-  // Debug temporário - remover depois
-  console.log('Dados chegando do socket:', chats);
   
   if (chats.length > 0) {
     setChats(prevChats => {
@@ -1105,6 +1110,7 @@ const handleImageUpload = async (event) => {
 
   return (
     <div className={`d-flex flex-column w-100 h-100 ms-2`} style={{ overflow: 'hidden' }}>
+      <audio ref={audioRef} src="/notification.mp3" preload="auto" />
       <div className="pt-3 mb-3 d-flex flex-row align-items-center gap-5" style={{ height: '7%' }}>
         <h2 className={`mb-0 ms-4 header-text-${theme}`} style={{ fontWeight: 400 }}>Chats</h2>
 

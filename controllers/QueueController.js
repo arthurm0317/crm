@@ -76,11 +76,19 @@ const deleteQueueController = async(req, res)=>{
 const getQueueByIdController = async(req, res)=> {
     try{
         const {queue_id, schema} = req.params
-        console.error(queue_id, schema)
-        const result = await getQueueById(queue_id, schema)
-        res.status(201).json({
-            result
-        })
+        if(queue_id === null || queue_id === 'null' || queue_id === undefined){
+            res.status(200).json({
+                success:true,
+                message:'Conexão sem fila'
+            })
+            
+        }else{
+            console.log('------------------------')
+            const result = await getQueueById(queue_id, schema)
+            res.status(201).json({
+                result
+            })
+        }
     }catch(error){
         console.error(error)
         res.status(500).json({ error: 'Erro ao buscar fila' });

@@ -57,8 +57,6 @@ function WhatsappFilasModal({ theme, show, onHide, contato, onQueueChange }) {
           onQueueChange(contato.id, novaFilaId, novaFila);
         }
         
-        // Feedback visual
-        alert('Fila alterada com sucesso!');
       }
     } catch (error) {
       console.error('Erro ao trocar fila:', error);

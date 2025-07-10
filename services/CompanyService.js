@@ -137,7 +137,8 @@ const createCompany = async (company, schema) => {
             kanban_stage UUID not null,
             connection_id UUID not null,
             start_date bigint,
-            status text
+            status text,
+            timer bigint
             )
             `)
         await pool.query(

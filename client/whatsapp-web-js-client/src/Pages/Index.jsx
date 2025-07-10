@@ -106,6 +106,13 @@ function Painel() {
     }
   }, [preferences.currentPage, page]);
 
+
+   useEffect(() => {
+    if (!schema) {
+      navigate('/');
+    }
+  }, [schema, navigate]);
+
   // Função para atualizar página e salvar preferências
   const handlePageChange = (newPage) => {
     setPage(newPage);
