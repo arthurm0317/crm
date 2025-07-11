@@ -210,7 +210,10 @@ function KanbanPage({ theme }) {
   useEffect(()=>{
     const fetchFunis = async () => {
     try {
-      const response = await axios.get(`${url}/kanban/get-funis/${schema}`);
+      const response = await axios.get(`${url}/kanban/get-funis/${schema}`,
+        {
+      withCredentials: true
+    });
         setFunis(Array.isArray(response.data.name) ? response.data.name : []);
       } catch (error) {
         console.error('Erro ao buscar funis:', error);
@@ -254,7 +257,10 @@ function KanbanPage({ theme }) {
     }
     const fetchEtapas = async () => {
       try {
-        const response = await axios.get(`${url}/kanban/get-stages/${funilSelecionado.charAt(0).toLowerCase() + funilSelecionado.slice(1)}/${schema}`);
+        const response = await axios.get(`${url}/kanban/get-stages/${funilSelecionado.charAt(0).toLowerCase() + funilSelecionado.slice(1)}/${schema}`,
+        {
+      withCredentials: true
+    });
         setEtapas(Array.isArray(response.data) ? response.data : []);
       } catch (error) {
         console.error(error);
@@ -266,7 +272,10 @@ function KanbanPage({ theme }) {
   useEffect(()=>{
     const fetchCards = async()=>{
     try {
-        const response = await axios.get(`${url}/kanban/get-cards/${funilSelecionado}/${schema}`)
+        const response = await axios.get(`${url}/kanban/get-cards/${funilSelecionado}/${schema}`,
+        {
+      withCredentials: true
+    })
         setCards(Array.isArray(response.data)?response.data:[response.data])
       }catch (error) {
       console.error(error)
@@ -295,7 +304,10 @@ function KanbanPage({ theme }) {
   const recarregarCards = async () => {
     if (!funilSelecionado) return;
     try {
-      const response = await axios.get(`${url}/kanban/get-cards/${funilSelecionado}/${schema}`);
+      const response = await axios.get(`${url}/kanban/get-cards/${funilSelecionado}/${schema}`,
+        {
+      withCredentials: true
+    });
       const novosCards = Array.isArray(response.data) ? response.data : [response.data];
       setCards(novosCards);
     } catch (error) {
@@ -351,6 +363,9 @@ function KanbanPage({ theme }) {
       etapa_nome:editingEtapaNome,
       sector: funilSelecionado,
       schema: schema
+    },
+        {
+      withCredentials: true
     })
 
      setEtapas(etapas =>
@@ -417,7 +432,10 @@ function KanbanPage({ theme }) {
         chat_id: draggedLead.id,
         stage_id: etapaId,
         schema: schema
-      })
+      },
+        {
+      withCredentials: true
+    })
       
       socketInstance.emit('leadMoved',{
         chat_id: draggedLead.id,
@@ -466,7 +484,10 @@ function handleTransferirEmMassa({ etapaOrigemId, etapaDestinoId }) {
   const handleSalvarNovoFunil = async (data) => {
     try {
       // Recarrega a lista de funis do backend para garantir que o novo funil apareça
-      const response = await axios.get(`${url}/kanban/get-funis/${schema}`);
+      const response = await axios.get(`${url}/kanban/get-funis/${schema}`,
+        {
+      withCredentials: true
+    });
       const novosFunis = Array.isArray(response.data.name) ? response.data.name : [];
       setFunis(novosFunis);
       
@@ -519,7 +540,10 @@ useEffect(() => {
   useEffect(() => {
     const fetchTags = async () => {
       try {
-        const allTagsResp = await axios.get(`${url}/tag/${schema}`);
+        const allTagsResp = await axios.get(`${url}/tag/${schema}`,
+        {
+      withCredentials: true
+    });
         setAllTags(Array.isArray(allTagsResp.data) ? allTagsResp.data : [allTagsResp.data]);
       } catch (error) {
         console.error('Erro ao buscar tags:', error);
@@ -824,7 +848,10 @@ useEffect(() => {
                                                 chat_id: lead.id,
                                                 tag_id: tag.id,
                                                 schema
-                                              });
+                                              },
+                                                {
+                                              withCredentials: true
+                                            });
                                             } else {
                                               await axios.delete(`${url}/tag/remove-tag`, {
                                                 data: {
@@ -832,7 +859,10 @@ useEffect(() => {
                                                   tag_id: tag.id,
                                                   schema
                                                 }
-                                              });
+                                              },
+                                                {
+                                              withCredentials: true
+                                            });
                                             }
                                             setCards(cards => cards.map(c =>
                                               c.id === lead.id
@@ -888,7 +918,10 @@ useEffect(() => {
                                                 chat_id: lead.id,
                                                 funil: funil,
                                                 schema
-                                              });
+                                              },
+        {
+      withCredentials: true
+    });
                                               setCards(cards => cards.filter(c => c.id !== lead.id));
                                               socketInstance.emit('leadMoved', {
                                                 chat_id: lead.id,

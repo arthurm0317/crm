@@ -61,6 +61,9 @@ function DisparosPage({ theme }) {
     await axios.post(`${url}/campaing/start`, { 
         campaing_id: id,
         schema: schema
+    },
+        {
+      withCredentials: true
     });
     alert('Campanha iniciada!');
   } catch (error) {
@@ -72,7 +75,10 @@ function DisparosPage({ theme }) {
   useEffect(() => {
     const fetchDisparos = async()=>{
       try{
-        const response = await axios.get(`${url}/campaing/get-campaing/${schema}`)
+        const response = await axios.get(`${url}/campaing/get-campaing/${schema}`,
+        {
+      withCredentials: true
+    })
         setDisparos(response.data);
       }catch(error){
         console.error('Erro ao buscar disparos:', error);
@@ -142,7 +148,10 @@ function DisparosPage({ theme }) {
     // Recarregar lista após exclusão
     const fetchDisparos = async()=>{
       try{
-        const response = await axios.get(`${url}/campaing/get-campaing/${schema}`)
+        const response = await axios.get(`${url}/campaing/get-campaing/${schema}`,
+        {
+      withCredentials: true
+    })
         setDisparos(response.data);
       }catch(error){
         console.error('Erro ao buscar disparos:', error);
@@ -156,7 +165,10 @@ function DisparosPage({ theme }) {
     // Recarregar lista de disparos
     const fetchDisparos = async()=>{
       try{
-        const response = await axios.get(`${url}/campaing/get-campaing/${schema}`)
+        const response = await axios.get(`${url}/campaing/get-campaing/${schema}`,
+        {
+      withCredentials: true
+    })
         setDisparos(response.data);
       }catch(error){
         console.error('Erro ao buscar disparos:', error);

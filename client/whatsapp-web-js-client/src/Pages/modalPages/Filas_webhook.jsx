@@ -23,14 +23,20 @@ function FilasWebhookModal({ theme, show, onHide, fila, onSave }) {
         queue_id: fila.id,
         webhook_url: webhookUrl,
         schema: schema
-      });
+      },
+        {
+      withCredentials: true
+    });
 
       // Segunda chamada: atualizar status do webhook
       const statusResponse = await axios.put(`${url}/queue/toggle-webhook-status`, {
         queue_id: fila.id,
         status: webhookEnabled,
         schema: schema
-      });
+      },
+        {
+      withCredentials: true
+    });
 
       if (urlResponse.status === 200 && statusResponse.status === 200) {
         onSave(fila.id, webhookUrl, webhookEnabled);

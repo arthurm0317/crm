@@ -51,7 +51,10 @@ function AgendarMensagemModal({ show, onHide, theme, selectedChat }) {
         timestamp: Math.floor(dataSelecionada.getTime() / 1000),
         user:userData.id,
         schema: schema,
-      });
+      },
+        {
+      withCredentials: true
+    });
 
       if (response.data.success) {
         onHide();

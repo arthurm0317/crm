@@ -21,7 +21,10 @@ function TransferirEmMassaModal({ theme, show, onHide, etapaOrigem, etapas, funi
         new_stage: etapaDestino,
         sector: funil,
         schema: schema
-      });
+      },
+        {
+      withCredentials: true
+    });
 
       if (onTransferComplete) {
         onTransferComplete(etapaOrigem.id, etapaDestino);

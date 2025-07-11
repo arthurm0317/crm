@@ -25,8 +25,10 @@ function ListaAgendamentosModal({ show, onHide, theme, selectedChat, onAgendarNo
         params: {
           chat_id: selectedChat.id,
           schema: schema
-        }
-      });
+        },
+      withCredentials: true
+      },
+      );
       setAgendamentos(response.data.result || []);
     } catch (err) {
       setError('Erro ao buscar agendamentos.');
@@ -49,7 +51,9 @@ function ListaAgendamentosModal({ show, onHide, theme, selectedChat, onAgendarNo
         data: {
           id: agendamentoParaExcluir.id,
           schema: schema
-        }
+        },
+      withCredentials: true
+
       });
       setShowDeleteModal(false);
       setAgendamentoParaExcluir(null);

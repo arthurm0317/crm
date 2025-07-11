@@ -38,7 +38,10 @@ function EditUserModal({ theme, user }) {
           userEmail: userEmail,
           userRole: userRole,
           schema: schema
-        }
+        },
+        {
+      withCredentials: true
+    }
       );
       // Aqui você pode fechar o modal ou atualizar a lista de usuários, se necessário
     } catch (error) {

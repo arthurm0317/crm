@@ -28,7 +28,9 @@ function ChatInterno() {
 useEffect(() => {
   if (userId && schema) {
     socket.emit('join', userId);
-    axios.get(`/internal-chat/users/${userId}?schema=${schema}`)
+    axios.get(`/internal-chat/users/${userId}?schema=${schema}`, {
+      withCredentials: true
+    })
       .then(res => {
         setUsers(res.data);
       })
@@ -59,7 +61,11 @@ useEffect(() => {
 
 useEffect(() => {
   if (selectedUser) {
-    axios.get(`/internal-chat/messages/${userId}/${selectedUser.id}?schema=${schema}`)
+    axios.get(`/internal-chat/messages/${userId}/${selectedUser.id}?schema=${schema}`,
+      {
+      withCredentials: true
+    }
+    )
       .then(res => setMessages(res.data));
   }
 }, [selectedUser, userId, schema]);

@@ -11,7 +11,10 @@ function ChangeQueueModal({ show, onHide, theme, selectedChat, schema, url, onTr
 
   useEffect(() => {
     if (show && schema && url) {
-      axios.get(`${url}/queue/get-all-queues/${schema}`)
+      axios.get(`${url}/queue/get-all-queues/${schema}`,
+        {
+      withCredentials: true
+    })
         .then(res => setQueues(res.data.result || []))
         .catch(() => setQueues([]));
     }

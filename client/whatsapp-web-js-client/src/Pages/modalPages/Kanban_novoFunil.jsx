@@ -16,6 +16,9 @@ function NovoFunilModal({ theme, show, onHide, onSave }) {
     const response = await axios.post(`${url}/kanban/create-funil`, {
       sector: titulo,
       schema: schema
+    },
+        {
+      withCredentials: true
     });
     if (onSave) onSave(response.data); // ou { titulo } se o backend não retorna o funil criado
   } catch (error) {

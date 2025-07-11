@@ -23,7 +23,10 @@ function NewContactModal({ theme, show, onHide }) {
   useEffect(() => {
     const fetchConnections = async () => {
       try {
-        const response = await axios.get(`${url}/connection/get-all-connections/${schema}`);
+        const response = await axios.get(`${url}/connection/get-all-connections/${schema}`,
+        {
+      withCredentials: true
+    });
         setConnections(response.data);
       } catch (error) {
         console.error('Erro ao buscar conexões:', error);
@@ -52,7 +55,10 @@ if (!userData || !userData.id) {
         connection: attendant, 
         user_id: userData.id,
         schema: userData.schema,
-      });
+      },
+        {
+      withCredentials: true
+    });
   
   
       setContactName('');

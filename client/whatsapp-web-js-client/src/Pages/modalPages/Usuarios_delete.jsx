@@ -11,6 +11,9 @@ function DeleteUserModal({ theme, usuario }) {
     try{
       const deletion = await axios.delete(`${url}/api/delete-user`, {
     data: { user_id: usuario.id, schema:userData.schema },
+    },
+        {
+      withCredentials: true
     });
     }catch(error){
     }

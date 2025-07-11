@@ -8,7 +8,10 @@ function DeleteQueueModal({ theme, fila, onDelete }) {
   
   const handleDelete = async()=>{
     try {
-      await axios.delete(`${process.env.REACT_APP_URL}/queue/delete-queue/${fila.id}/${schema}`);
+      await axios.delete(`${process.env.REACT_APP_URL}/queue/delete-queue/${fila.id}/${schema}`,
+        {
+      withCredentials: true
+    });
       onDelete(); 
     } catch (error) {
       console.error('Error deleting queue:', error);

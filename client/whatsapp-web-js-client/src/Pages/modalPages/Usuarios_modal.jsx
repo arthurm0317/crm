@@ -38,7 +38,10 @@ function NewUserModal({ theme, type }) {
         role: userRole,
         password: password,
         schema: schema
-      });
+      },
+        {
+      withCredentials: true
+    });
 
 
       setUserName('');

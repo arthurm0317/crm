@@ -21,7 +21,10 @@ function WhatsappModal({ theme, show, onHide }) {
   useEffect(() => {
     const handleConns = async()=>{
       try{
-        const response = await axios.get(`${url}/connection/get-all-connections/${schema}`)
+        const response = await axios.get(`${url}/connection/get-all-connections/${schema}`,
+        {
+      withCredentials: true
+    })
         setContatos(Array.isArray([response.data])?response.data:[response.data]);
       }catch(error){
         console.error(error)

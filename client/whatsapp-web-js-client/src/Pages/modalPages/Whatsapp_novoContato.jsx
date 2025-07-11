@@ -48,7 +48,10 @@ function WhatsappNovoContatoModal({ theme, show, onHide, onSave }) {
         instanceName: nome,
         number: numeroLimpo,
         schema: schema
-      });
+      },
+        {
+      withCredentials: true
+    });
       // Supondo que o QR Code vem em response.data.result.qrcode.base64
       if (response.data?.result?.qrcode?.base64) {
         setQrCode(response.data.result.qrcode.base64);

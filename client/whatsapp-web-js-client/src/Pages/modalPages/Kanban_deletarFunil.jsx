@@ -59,7 +59,10 @@ function KanbanDeletarFunilModal({ show, onHide, funil, theme }) {
             id: userData.id
           })
         }
-      });
+      },
+        {
+      withCredentials: true
+    });
       
       if (response.data.success) {
         window.location.reload();

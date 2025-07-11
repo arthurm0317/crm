@@ -35,7 +35,10 @@ function TransferirUsuarioModal({ show, onHide, theme, selectedChat, schema, url
   const fetchUsersInQueue = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${url}/queue/get-users-in-queue/${selectedChat.queue_id}/${schema}`);
+      const response = await axios.get(`${url}/queue/get-users-in-queue/${selectedChat.queue_id}/${schema}`,
+        {
+      withCredentials: true
+    });
       setUsers(response.data.users || []);
     } catch (error) {
       console.error('Erro ao buscar usuários da fila:', error);
@@ -72,7 +75,10 @@ function TransferirUsuarioModal({ show, onHide, theme, selectedChat, schema, url
       
       console.log('Enviando dados para transferência:', requestData);
       
-      const response = await axios.post(`${url}/chat/setUser`, requestData);
+      const response = await axios.post(`${url}/chat/setUser`, requestData,
+        {
+      withCredentials: true
+    });
       
               if (response.data.success) {
           onHide();

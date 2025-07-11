@@ -62,7 +62,9 @@ const formatarFilas = async (filas) => {
   const schema = userData?.schema;
   
   try {
-    const response = await axios.get(`${process.env.REACT_APP_URL}/queue/get-all-queues/${schema}`);
+    const response = await axios.get(`${process.env.REACT_APP_URL}/queue/get-all-queues/${schema}`, {
+      withCredentials: true
+    });
     const todasFilas = response.data?.result || [];
     
     const nomesFilas = filas.map(filaId => {
@@ -99,6 +101,7 @@ function Painel() {
   const url = process.env.REACT_APP_URL;
   const [socketInstance] = useState(() => socket());
 
+
   // Atualizar página quando as preferências mudarem
   useEffect(() => {
     if (preferences.currentPage && preferences.currentPage !== page) {
@@ -112,6 +115,45 @@ function Painel() {
       navigate('/');
     }
   }, [schema, userData?.id, navigate]);
+
+  useEffect(() => {
+    const refreshToken = async () => {
+  try {
+    const response = await axios.post(`${process.env.REACT_APP_URL}/api/refresh-token`, {}, {
+      withCredentials: true
+    });
+    return response.data.success;
+  } catch (error) {
+    console.error('Erro ao renovar token:', error);
+    navigate('/')
+    return false;
+  }
+};
+
+const intervalId = localStorage.getItem('tokenRefreshInterval');
+if (intervalId) {
+  clearInterval(intervalId);
+  localStorage.removeItem('tokenRefreshInterval');
+}
+
+const tokenRefreshInterval = setInterval(async () => {
+  const success = await refreshToken();
+  if (!success) {
+    clearInterval(tokenRefreshInterval);
+    localStorage.removeItem('tokenRefreshInterval');
+    navigate('/')
+  }
+},14* 60 * 1000); 
+localStorage.setItem('tokenRefreshInterval', tokenRefreshInterval);
+    
+    refreshToken();
+    
+    const refreshInterval = setInterval(refreshToken, 14 * 60 * 1000);
+    
+    return () => {
+      clearInterval(refreshInterval);
+    };
+  }, [navigate])
 
   // Função para atualizar página e salvar preferências
   const handlePageChange = (newPage) => {
@@ -149,7 +191,10 @@ const setupUserQueues = async () => {
   
   try {
     // Buscar as filas do usuário
-    const response = await axios.get(`${url}/queue/get-user-queue/${userData.id}/${schema}`);
+    const response = await axios.get(`${url}/queue/get-user-queue/${userData.id}/${schema}`, 
+      {
+      withCredentials: true
+    });
     const userQueues = response.data?.result || [];
     
     // Fazer join na sala pessoal do usuário
@@ -292,7 +337,9 @@ useEffect(() => {
 
 const fetchLembretes = async () => {
   try {
-    const response = await axios.get(`${url}/lembretes/get-lembretes/${schema}`);
+    const response = await axios.get(`${url}/lembretes/get-lembretes/${schema}`, {
+      withCredentials: true
+    });
     setLembretes(Array.isArray(response.data) ? response.data : [response.data]);
   } catch (error) {
     setLembretes([]); // ou mockLembretes se quiser
@@ -371,9 +418,7 @@ useEffect(() => {
 
   const handleLogout = async () => {
     try {
-      await axios.post(`${url}/api/logout`, {}, {
-        withCredentials: true
-      });
+      await axios.post(`${url}/api/logout`, {},);
       
       localStorage.removeItem('user');
       navigate('/');

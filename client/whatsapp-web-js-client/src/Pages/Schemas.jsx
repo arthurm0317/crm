@@ -27,7 +27,10 @@ function SchemasPage({ theme: themeProp }) {
   useEffect(() => {
     async function fetchSchemas() {
       try {
-        const response = await axios.get(`${url}/company/tecnico`);
+        const response = await axios.get(`${url}/company/tecnico`,
+        {
+      withCredentials: true
+    });
         setSchemas(Array.isArray(response.data) ? response.data : response.data.empresas || []);
       } catch (error) {
         console.error('Erro ao buscar schemas:', error);
@@ -65,8 +68,14 @@ function SchemasPage({ theme: themeProp }) {
 const handleCreateSchema = async (e) => {
   e.preventDefault();
   try {
-    await axios.post(`${url}/company/company`, newSchema);
-    const response = await axios.get(`${url}/company/tecnico`);
+    await axios.post(`${url}/company/company`, newSchema,
+        {
+      withCredentials: true
+    });
+    const response = await axios.get(`${url}/company/tecnico`,
+        {
+      withCredentials: true
+    });
     setSchemas(Array.isArray(response.data) ? response.data : response.data.empresas || []);
    setNewSchema({
       schema_name: '',

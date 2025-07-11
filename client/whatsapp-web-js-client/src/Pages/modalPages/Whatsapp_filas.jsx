@@ -19,14 +19,20 @@ function WhatsappFilasModal({ theme, show, onHide, contato, onQueueChange }) {
       setLoading(true);
       try{  
         // Buscar fila atual do contato
-        const responseFilaAtual = await axios.get(`${url}/queue/get-conn-queues/${contato.queue_id}/${schema}`)
+        const responseFilaAtual = await axios.get(`${url}/queue/get-conn-queues/${contato.queue_id}/${schema}`,
+        {
+      withCredentials: true
+    })
         const filaAtualData = Array.isArray(responseFilaAtual.data.result) 
           ? responseFilaAtual.data.result[0] 
           : responseFilaAtual.data.result;
         setFilaAtual(filaAtualData);
         
         // Buscar todas as filas disponíveis
-        const responseTodasFilas = await axios.get(`${url}/queue/get-all-queues/${schema}`)
+        const responseTodasFilas = await axios.get(`${url}/queue/get-all-queues/${schema}`,
+        {
+      withCredentials: true
+    })
         setTodasFilas(responseTodasFilas.data.result || []);
       }catch(error){
         console.error(error)
@@ -46,7 +52,10 @@ function WhatsappFilasModal({ theme, show, onHide, contato, onQueueChange }) {
         connection_id: contato.id,
         queue_id: novaFilaId,
         schema: schema
-      });
+      },
+        {
+      withCredentials: true
+    });
 
       if (response.data.success) {
         const novaFila = todasFilas.find(f => f.id === novaFilaId);
@@ -74,7 +83,10 @@ function WhatsappFilasModal({ theme, show, onHide, contato, onQueueChange }) {
         connection_id: contato.id,
         queue_id: null,
         schema: schema
-      });
+      },
+        {
+      withCredentials: true
+    });
 
       if (response.data.success) {
         setFilaAtual(null);

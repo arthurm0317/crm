@@ -165,7 +165,10 @@ function GerirEtapaModal({ theme, show, onHide, onSave, funil, etapas: etapasPro
   useEffect(() => {
     const fetchEtapas = async () => {
       try {
-        const response = await axios.get(`${url}/kanban/get-stages/${funil}/${schema}`);
+        const response = await axios.get(`${url}/kanban/get-stages/${funil}/${schema}`,
+        {
+      withCredentials: true
+    });
         const etapasConvertidas = (Array.isArray(response.data) ? response.data : [response.data]).map((e, i) => ({
           ...e,
           cor: e.cor ?? e.color ?? '#2ecc71',
@@ -279,7 +282,10 @@ function GerirEtapaModal({ theme, show, onHide, onSave, funil, etapas: etapasPro
             sector: funil,
             schema: schema,
             pos: etapa.index
-          });
+          },
+        {
+      withCredentials: true
+    });
         } else {
           await axios.put(`${url}/kanban/update-stage-name`, {
             etapa_id: etapa.id,
@@ -288,13 +294,19 @@ function GerirEtapaModal({ theme, show, onHide, onSave, funil, etapas: etapasPro
             color: etapa.cor,
             schema: schema,
             index: etapa.index
-          });
+          },
+        {
+      withCredentials: true
+    });
         }
       }
       
       // Busca as etapas atualizadas do backend para garantir que os IDs estejam corretos
       try {
-        const response = await axios.get(`${url}/kanban/get-stages/${funil}/${schema}`);
+        const response = await axios.get(`${url}/kanban/get-stages/${funil}/${schema}`,
+        {
+      withCredentials: true
+    });
         const etapasAtualizadas = (Array.isArray(response.data) ? response.data : [response.data]).map((e, i) => ({
           ...e,
           cor: e.cor ?? e.color ?? '#2ecc71',

@@ -9,7 +9,10 @@ function WhatsappDeleteModal({ theme, show, onHide, contato, onDelete }) {
 
   const handleDelete = async () => {
     try {
-      const response = await axios.delete(`${url}/connection/delete/${contato.id}/${contato.name}/${schema}`)
+      const response = await axios.delete(`${url}/connection/delete/${contato.id}/${contato.name}/${schema}`,
+        {
+      withCredentials: true
+    })
       onDelete(contato);
     } catch (error) {
       console.error(error)

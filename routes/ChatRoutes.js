@@ -10,23 +10,24 @@ const {
   disableBotController,
 } = require('../controllers/ChatController'); 
 const { updateContactName } = require('../services/ChatService');
+const { verifyToken } = require('../controllers/UserController');
 const router = express.Router();
 
-router.get('/getChats/:schema', getChatsController);
-router.get('/getChat/:userId/:schema/:role', getChatByUserController);
-router.get('/getChatById/:chatId/:schema', getChatDataController);
-router.get('/scheduled-messages/:chat_id/:schema', getScheduledMessagesController)
-router.get('/:schema/:chatId', getChatDataController);
-router.post('/setChat', setUserChatController);
-router.post('/getMessages', getMessagesController);
-router.post('/setQueue', updateQueueController);
-router.post('/sendAudio', uploadAudio.single('audio'), sendAudioController);
-router.post('/chat/processReceivedAudio', processReceivedAudio);
-router.post('/sendImage', uploadImage.single('image'), sendImageController); 
-router.post('/setAsRead', setMessageAsReadController)
-router.post('/close', closeChatContoller)
-router.post('/setUser', setSpecificUserController)
-router.post('/schedule-message', scheduleMessageController)
-router.post('/disable-bot', disableBotController)
-router.delete('/scheduled-message/:id/:schema', deleteScheduledMessageController)
+router.get('/getChats/:schema',verifyToken,  getChatsController);
+router.get('/getChat/:userId/:schema/:role', verifyToken, getChatByUserController);
+router.get('/getChatById/:chatId/:schema', verifyToken, getChatDataController);
+router.get('/scheduled-messages/:chat_id/:schema', verifyToken, getScheduledMessagesController)
+router.get('/:schema/:chatId', verifyToken, getChatDataController);
+router.post('/setChat', verifyToken, setUserChatController);
+router.post('/getMessages', verifyToken, getMessagesController);
+router.post('/setQueue', verifyToken, updateQueueController);
+router.post('/sendAudio', uploadAudio.single('audio'), verifyToken, sendAudioController);
+router.post('/chat/processReceivedAudio', verifyToken, processReceivedAudio);
+router.post('/sendImage', uploadImage.single('image'), verifyToken, sendImageController); 
+router.post('/setAsRead', verifyToken, setMessageAsReadController)
+router.post('/close', verifyToken, closeChatContoller)
+router.post('/setUser', verifyToken, setSpecificUserController)
+router.post('/schedule-message', verifyToken, scheduleMessageController)
+router.post('/disable-bot', verifyToken, disableBotController)
+router.delete('/scheduled-message/:id/:schema', verifyToken, deleteScheduledMessageController)
 module.exports = router;

@@ -61,7 +61,10 @@ const [filasSelecionadas, setFilasSelecionadas] = useState(
     useEffect(() => {
   const fetchFilas = async () => {
     try {
-      const response = await axios.get(`${url}/queue/get-all-queues/${schema}`);
+      const response = await axios.get(`${url}/queue/get-all-queues/${schema}`,
+        {
+      withCredentials: true
+    });
       let filas = response.data.result;
       if (!Array.isArray(filas)) {
         filas = [filas];
@@ -188,7 +191,10 @@ const filasInvalidas = () => {
         date: dataUnix,
         filas: filasSelecionadas,
         schema: schema
-      });
+      },
+        {
+      withCredentials: true
+    });
       lembreteCriado = response.data;
     } else {
       const response = await axios.post(`${url}/lembretes/create-lembrete`, {
@@ -200,7 +206,10 @@ const filasInvalidas = () => {
         filas: filasSelecionadas,
         user_id: userData.id,
         schema: schema
-      });
+      },
+        {
+      withCredentials: true
+    });
 
 
       lembreteCriado = response.data;

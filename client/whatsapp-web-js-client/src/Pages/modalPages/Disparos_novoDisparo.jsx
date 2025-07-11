@@ -85,7 +85,10 @@ const limparBase64 = (base64ComPrefixo) => {
     }
 
     try {
-      const response = await axios.get(`${url}/campaing/get-messages/${disparo.id}/${schema}`);
+      const response = await axios.get(`${url}/campaing/get-messages/${disparo.id}/${schema}`,
+        {
+      withCredentials: true
+    });
       const msgs = response.data.result || [];
 
       const mensagensFormatadas = msgs.map(msg => ({
@@ -134,7 +137,10 @@ const limparBase64 = (base64ComPrefixo) => {
   useEffect(() => {
     const fetchConn = async () => {
       try {
-        const response = await axios.get(`${url}/connection/get-all-connections/${schema}`);
+        const response = await axios.get(`${url}/connection/get-all-connections/${schema}`,
+        {
+      withCredentials: true
+    });
         setConexao(Array.isArray(response.data) ? response.data : []);
       } catch (error) {
         console.error('Erro ao buscar conexões:', error);
@@ -145,7 +151,10 @@ const limparBase64 = (base64ComPrefixo) => {
 
     const fetchFunis = async () => {
       try {
-        const response = await axios.get(`${url}/kanban/get-funis/${schema}`);
+        const response = await axios.get(`${url}/kanban/get-funis/${schema}`,
+        {
+      withCredentials: true
+    });
         setFunis(Array.isArray(response.data.name) ? response.data.name : []);
       } catch (error) {
         console.error('Erro ao buscar funis:', error);
@@ -162,7 +171,10 @@ const limparBase64 = (base64ComPrefixo) => {
     }
     const fetchEtapas = async () => {
       try {
-        const response = await axios.get(`${url}/kanban/get-stages/${funilSelecionado.charAt(0).toLowerCase() + funilSelecionado.slice(1)}/${schema}`);
+        const response = await axios.get(`${url}/kanban/get-stages/${funilSelecionado.charAt(0).toLowerCase() + funilSelecionado.slice(1)}/${schema}`,
+        {
+      withCredentials: true
+    });
         setEtapas(Array.isArray(response.data) ? response.data : []);
         setEtapa('');
       } catch (error) {
@@ -180,7 +192,10 @@ const limparBase64 = (base64ComPrefixo) => {
     setEtapa('');
   }
   const fetchCustomFields = async () => {
-  const response = await axios.get(`${url}/kanban/get-custom-fields/${schema}`)
+  const response = await axios.get(`${url}/kanban/get-custom-fields/${schema}`,
+        {
+      withCredentials: true
+    })
   setCustomFields(Array.isArray(response.data) ? response.data : [response.data])
   }
   fetchCustomFields()
@@ -309,7 +324,10 @@ const limparBase64 = (base64ComPrefixo) => {
       const response = await axios.post(endpoint, {
         ...disparoData,
         ...(disparo ? { campaing_id: disparo.id } : {campaing_id: null})
-      });
+      },
+        {
+      withCredentials: true
+    });
       
       if (response.status === 201) {
         // Fechar modal

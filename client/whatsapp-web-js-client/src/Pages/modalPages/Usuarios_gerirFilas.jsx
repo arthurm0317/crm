@@ -13,7 +13,10 @@ function UserFilasModal({ theme, userId, userName, onChange }) {
   
   const fetchAllFilas = async () => {
     try {
-      const response = await axios.get(`${url}/queue/get-all-queues/${schema}`);
+      const response = await axios.get(`${url}/queue/get-all-queues/${schema}`,
+        {
+      withCredentials: true
+    });
       
       setAllFilas(response.data.result || []);
     } catch (error) {
@@ -26,7 +29,10 @@ function UserFilasModal({ theme, userId, userName, onChange }) {
       if (!userId) return;
       
       try {
-        const response = await axios.get(`${url}/queue/get-user-queue/${userId}/${schema}`);
+        const response = await axios.get(`${url}/queue/get-user-queue/${userId}/${schema}`,
+        {
+      withCredentials: true
+    });
         
         let userQueueIds = [];
         if (response.data.result) {
@@ -74,7 +80,10 @@ function UserFilasModal({ theme, userId, userName, onChange }) {
         userId: userId,
         queueIds: selectedFilas,
         schema: schema
-      });
+      },
+        {
+      withCredentials: true
+    });
 
       if (response.data.success) {
         if (onChange) {

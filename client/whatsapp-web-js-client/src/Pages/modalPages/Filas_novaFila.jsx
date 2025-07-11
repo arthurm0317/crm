@@ -36,7 +36,10 @@ function NewQueueModal({ theme, superUsers = [] }) {
         super_user: superUser,
         schema: schema,
         distribution: autoDistribution,
-      })
+      },
+        {
+      withCredentials: true
+    })
     }catch(error){
       console.error('Erro ao salvar a fila:', error);
       return;

@@ -1,45 +1,45 @@
 const { createUser, getAllUsers, searchUser, changeOnline, getOnlineUsers, changeOffline, deleteUser, updateUser, getUserById} = require('../services/UserService');
 const { Users } = require('../entities/Users');
 const { v4: uuidv4 } = require('uuid');
-// const jwt = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 
-// function verifyToken(req, res, next) {
-//   const { token } = req.cookies;
-//   if (!token) {
-//     return res.status(401).json({ error: 'Token não fornecido' });
-//   }
-//   jwt.verify(token, process.env.JWT_SECRET, (error, decoded) => {
-//     if (error) {
-//       return res.status(401).json({ error: 'Token inválido ou expirado' });
-//     }
-//     req.user_id = decoded.user_id;
-//     next();
-//   });
-// }
+function verifyToken(req, res, next) {
+  const { token } = req.cookies;
+  if (!token) {
+    return res.status(401).json({ error: 'Token não fornecido' });
+  }
+  jwt.verify(token, process.env.JWT_SECRET, (error, decoded) => {
+    if (error) {
+      return res.status(401).json({ error: 'Token inválido ou expirado' });
+    }
+    req.user_id = decoded.user_id;
+    next();
+  });
+}
 
-// const refreshTokenController = (req, res) => {
-//   const { refreshToken } = req.cookies;
-//   if (!refreshToken) {
-//     return res.status(401).json({ error: 'Refresh token não fornecido' });
-//   }
-//   try {
-//     const refresh = jwt.verify(refreshToken, process.env.JWT_SECRET);
-//     const newToken = jwt.sign(
-//       { user_id: refresh.user_id },
-//       process.env.JWT_SECRET,
-//       { expiresIn: 900 }
-//     );
-//     res.cookie('token', newToken, {
-//       maxAge: 900000,
-//       httpOnly: true,
-//       sameSite: 'strict',
-//       path: '/'
-//     });
-//     return res.status(200).json({ success: true });
-//   } catch (refreshError) {
-//     return res.status(401).json({ error: 'Refresh token inválido' });
-//   }
-// };
+const refreshTokenController = (req, res) => {
+  const { refreshToken } = req.cookies;
+  if (!refreshToken) {
+    return res.status(401).json({ error: 'Refresh token não fornecido' });
+  }
+  try {
+    const refresh = jwt.verify(refreshToken, process.env.JWT_SECRET);
+    const newToken = jwt.sign(
+      { user_id: refresh.user_id },
+      process.env.JWT_SECRET,
+      { expiresIn: '15m' }
+    );
+    res.cookie('token', newToken, {
+      maxAge: 15 * 60 * 1000, // 15 minutos em millisegundos
+      httpOnly: true,
+      sameSite: 'strict',
+      path: '/'
+    });
+    return res.status(200).json({ success: true });
+  } catch (refreshError) {
+    return res.status(401).json({ error: 'Refresh token inválido' });
+  }
+};
 
 const createUserController = async (req, res) => {
     try {
@@ -103,6 +103,32 @@ const searchUserController = async (req, res) => {
     }
 
     changeOnline(result.user.id, result.company.schema_name);
+
+    const token = jwt.sign(
+      { user_id: result.user.id },
+      process.env.JWT_SECRET,
+      { expiresIn: '15m' }
+    );
+
+    const refreshToken = jwt.sign(
+      { user_id: result.user.id },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.cookie('token', token, {
+      maxAge: 15 * 60 * 1000, // 15 minutos em millisegundos
+      httpOnly: true,
+      sameSite: 'strict',
+      path: '/'
+    });
+
+    res.cookie('refreshToken', refreshToken, {
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dias em millisegundos
+      httpOnly: true,
+      sameSite: 'strict',
+      path: '/'
+    });
 
     res.status(200).json({
       success: true,
@@ -223,6 +249,6 @@ const logoutController = async (req, res) => {
     updateUserController,
     searchUserByIdController,
     logoutController,
-    // verifyToken,
-    // refreshTokenController
+    verifyToken,
+    refreshTokenController
   }

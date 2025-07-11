@@ -21,7 +21,10 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
   useEffect(() => {
     const fetchConn = async () => {
       try {
-        const response = await axios.get(`${url}/connection/get-all-connections/${schema}`);
+        const response = await axios.get(`${url}/connection/get-all-connections/${schema}`,
+        {
+      withCredentials: true
+    });
         setConexao(Array.isArray(response.data) ? response.data : []);
       } catch (error) {
         console.error('Erro ao buscar conexões:', error);
@@ -80,7 +83,10 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
 
       const res = await axios.post(`${url}/excel/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      },
+        {
+      withCredentials: true
+    });
 
 
       if (res.data.success) {

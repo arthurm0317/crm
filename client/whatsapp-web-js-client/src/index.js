@@ -10,6 +10,8 @@ import Painel from './Pages/Index';
 import SchemasPage from './Pages/Schemas';
 import reportWebVitals from './reportWebVitals';
 
+// Importar configuração global do axios
+
 // Importar estilos
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';

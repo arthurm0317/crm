@@ -11,7 +11,10 @@ function DeleteDisparoModal({ theme, disparo, onDelete }) {
 
   const handleDelete = async () => {
     try {
-      const response = await axios.delete(`${url}/campaing/delete/${disparo.id}/${schema}`);
+      const response = await axios.delete(`${url}/campaing/delete/${disparo.id}/${schema}`,
+        {
+      withCredentials: true
+    });
       
       if (response.data.success) {
         onDelete(); 

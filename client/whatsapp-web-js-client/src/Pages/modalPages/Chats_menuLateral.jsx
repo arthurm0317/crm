@@ -51,7 +51,10 @@ const ChatsMenuLateral = ({ theme, onClose, style = {}, selectedChat }) => {
         // Fetch da fila
         if (selectedChat.queue_id) {
           try {
-            const queueRes = await axios.get(`${url}/queue/get-conn-queues/${selectedChat.queue_id}/${schema}`);
+            const queueRes = await axios.get(`${url}/queue/get-conn-queues/${selectedChat.queue_id}/${schema}`,
+        {
+      withCredentials: true
+    });
             if (queueRes.data.result && queueRes.data.result.length > 0) {
               setQueueData(queueRes.data.result[0]);
             }
@@ -77,7 +80,10 @@ const ChatsMenuLateral = ({ theme, onClose, style = {}, selectedChat }) => {
         // Fetch da conexão
         if (selectedChat.connection_id) {
           try {
-            const connectionRes = await axios.get(`${url}/connection/search-conn-by-id/${selectedChat.connection_id}/${schema}`);
+            const connectionRes = await axios.get(`${url}/connection/search-conn-by-id/${selectedChat.connection_id}/${schema}`,
+        {
+      withCredentials: true
+    });
             if (connectionRes.data.data) {
               const connection = connectionRes.data.data;
               if (connection) {

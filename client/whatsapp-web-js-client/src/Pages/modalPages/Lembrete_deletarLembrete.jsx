@@ -25,6 +25,9 @@ function LembreteDeletarLembrete({ theme, lembrete, onDelete }) {
         id: lembrete.id,
         schema: schema,
       },
+    },
+        {
+      withCredentials: true
     });
     onDelete(lembrete.id); 
   } catch (error) {
