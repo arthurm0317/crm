@@ -17,6 +17,75 @@ const createRedisConnection = require('../config/Redis');
 const { Queue, Worker } = require('bullmq');
 const { getQueueById } = require('../services/QueueService');
 
+// Função para emitir chats para as filas específicas
+const emitChatsToQueues = async (serverTest, schema, chat, baseChat) => {
+  if (!serverTest.io) return;
+  
+  try {
+    // Buscar usuários da fila do chat
+    const queueUsersQuery = await pool.query(
+      `SELECT user_id FROM ${schema}.queue_users WHERE queue_id = $1`,
+      [chat.queue_id]
+    );
+    
+    if (queueUsersQuery.rowCount > 0) {
+      const userIds = queueUsersQuery.rows.map(row => row.user_id);
+      
+      // Para cada usuário da fila, buscar seus chats atualizados
+      for (const userId of userIds) {
+        const userChats = await getChatByUser(userId, 'user', schema);
+        if (userChats && userChats.length > 0) {
+          serverTest.io.to(`user_${userId}`).emit('chats_updated', userChats);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao emitir chats para filas:', error);
+  }
+};
+
+const emitWaitingChatsToQueue = async (serverTest, schema, connectionId, queueId) => {
+  if (!serverTest.io) return;
+  
+  try {
+    // Buscar todos os usuários online
+    const onlineUsersQuery = await pool.query(
+      `SELECT id, permission FROM ${schema}.users WHERE online = true`,
+    );
+    
+    if (onlineUsersQuery.rowCount > 0) {
+      const onlineUsers = onlineUsersQuery.rows;
+      
+      for (const user of onlineUsers) {
+        if (user.permission === 'admin' || user.permission === 'tecnico') {
+          // Admins e técnicos veem todos os chats na sala de espera
+          const allWaitingChats = await getChatIfUserIsNull(connectionId, user.permission, schema);
+          if (allWaitingChats && allWaitingChats.length > 0) {
+            serverTest.io.to(`user_${user.id}`).emit('chats_updated', allWaitingChats);
+          }
+        } else {
+          // Usuários normais só veem chats da sua fila
+          const userQueuesQuery = await pool.query(
+            `SELECT queue_id FROM ${schema}.queue_users WHERE user_id = $1`,
+            [user.id]
+          );
+          
+          if (userQueuesQuery.rowCount > 0) {
+            const userQueues = userQueuesQuery.rows.map(row => ({ id: row.queue_id }));
+            const waitingChats = await getChatIfUserIsNull(connectionId, 'user', schema, userQueues);
+            
+            if (waitingChats && waitingChats.length > 0) {
+              serverTest.io.to(`user_${user.id}`).emit('chats_updated', waitingChats);
+            }
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao emitir chats na sala de espera:', error);
+  }
+};
+
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
 module.exports = (broadcastMessage) => {
@@ -87,15 +156,31 @@ module.exports = (broadcastMessage) => {
         await setMessageIsUnread(baseChat.id, schema)
       }
       if (baseChat.assigned_user !== null) {
-        const userChat = await getChatByUser(baseChat.assigned_user, baseChat.permission,schema)
+        // Chat já tem usuário atribuído - emitir para o usuário específico e para admins/técnicos
+        const userChat = await getChatByUser(baseChat.assigned_user, baseChat.permission, schema)
         if (serverTest.io) {
-          serverTest.io.to(`schema_${schema}`).emit('chats_updated', userChat)
+          // Emitir para o usuário específico
+          serverTest.io.to(`user_${baseChat.assigned_user}`).emit('chats_updated', userChat)
+          
+          // Emitir para admins e técnicos
+          const adminUsersQuery = await pool.query(
+            `SELECT id FROM ${schema}.users WHERE (permission = 'admin' OR permission = 'tecnico') AND online = true AND id != $1`,
+            [baseChat.assigned_user]
+          );
+          
+          if (adminUsersQuery.rowCount > 0) {
+            const adminUsers = adminUsersQuery.rows.map(row => row.id);
+            for (const adminId of adminUsers) {
+              const adminChats = await getChatByUser(adminId, 'admin', schema);
+              if (adminChats && adminChats.length > 0) {
+                serverTest.io.to(`user_${adminId}`).emit('chats_updated', adminChats);
+              }
+            }
+          }
         }
-      }else{
-        const chats = await getChatIfUserIsNull(baseChat.connection_id,baseChat.permission,schema)
-        if (serverTest.io) {
-          serverTest.io.to(`schema_${schema}`).emit('chats_updated', chats)
-        }
+      } else {
+        // Chat na sala de espera - emitir considerando permissões
+        await emitWaitingChatsToQueue(serverTest, schema, baseChat.connection_id, baseChat.queue_id)
       }
 
       if (result.data.message?.conversation) {
@@ -125,12 +210,29 @@ module.exports = (broadcastMessage) => {
             message_type: result.data.messageType
           };
           if (serverTest.io) {
-          // Obter chats atualizados para emitir
-          const chatsToEmit = baseChat.assigned_user !== null 
-            ? await getChatByUser(baseChat.assigned_user, baseChat.permission, schema)
-            : await getChatIfUserIsNull(baseChat.connection_id, baseChat.permission, schema);
+          // Emitir chats atualizados baseado no status
+          if (baseChat.assigned_user !== null) {
+            const userChat = await getChatByUser(baseChat.assigned_user, baseChat.permission, schema)
+            serverTest.io.to(`user_${baseChat.assigned_user}`).emit('chats_updated', userChat)
             
-          serverTest.io.to(`schema_${schema}`).emit('chats_updated', chatsToEmit)
+            // Emitir para admins e técnicos
+            const adminUsersQuery = await pool.query(
+              `SELECT id FROM ${schema}.users WHERE (permission = 'admin' OR permission = 'tecnico') AND online = true AND id != $1`,
+              [baseChat.assigned_user]
+            );
+            
+            if (adminUsersQuery.rowCount > 0) {
+              const adminUsers = adminUsersQuery.rows.map(row => row.id);
+              for (const adminId of adminUsers) {
+                const adminChats = await getChatByUser(adminId, 'admin', schema);
+                if (adminChats && adminChats.length > 0) {
+                  serverTest.io.to(`user_${adminId}`).emit('chats_updated', adminChats);
+                }
+              }
+            }
+          } else {
+            await emitWaitingChatsToQueue(serverTest, schema, baseChat.connection_id, baseChat.queue_id)
+          }
           const messagePayload = {
             chatId: chatDb.id,
             fromMe: result.data.key.fromMe,
@@ -178,12 +280,29 @@ module.exports = (broadcastMessage) => {
           };
 
           if (serverTest.io) {
-            // Obter chats atualizados para emitir
-            const chatsToEmit = baseChat.assigned_user !== null 
-              ? await getChatByUser(baseChat.assigned_user, baseChat.permission, schema)
-              : await getChatIfUserIsNull(baseChat.connection_id, baseChat.permission, schema);
+            // Emitir chats atualizados baseado no status
+            if (baseChat.assigned_user !== null) {
+              const userChat = await getChatByUser(baseChat.assigned_user, baseChat.permission, schema)
+              serverTest.io.to(`user_${baseChat.assigned_user}`).emit('chats_updated', userChat)
               
-            serverTest.io.to(`schema_${schema}`).emit('chats_updated', chatsToEmit)
+              // Emitir para admins e técnicos
+              const adminUsersQuery = await pool.query(
+                `SELECT id FROM ${schema}.users WHERE (permission = 'admin' OR permission = 'tecnico') AND online = true AND id != $1`,
+                [baseChat.assigned_user]
+              );
+              
+              if (adminUsersQuery.rowCount > 0) {
+                const adminUsers = adminUsersQuery.rows.map(row => row.id);
+                for (const adminId of adminUsers) {
+                  const adminChats = await getChatByUser(adminId, 'admin', schema);
+                  if (adminChats && adminChats.length > 0) {
+                    serverTest.io.to(`user_${adminId}`).emit('chats_updated', adminChats);
+                  }
+                }
+              }
+            } else {
+              await emitWaitingChatsToQueue(serverTest, schema, baseChat.connection_id, baseChat.queue_id)
+            }
             const messagePayload = {
               chatId: chatDb.id,
               fromMe: result.data.key.fromMe,
@@ -221,12 +340,29 @@ module.exports = (broadcastMessage) => {
           };
       
         if (serverTest.io) {
-          // Obter chats atualizados para emitir
-          const chatsToEmit = baseChat.assigned_user !== null 
-            ? await getChatByUser(baseChat.assigned_user, baseChat.permission, schema)
-            : await getChatIfUserIsNull(baseChat.connection_id, baseChat.permission, schema);
+          // Emitir chats atualizados baseado no status
+          if (baseChat.assigned_user !== null) {
+            const userChat = await getChatByUser(baseChat.assigned_user, baseChat.permission, schema)
+            serverTest.io.to(`user_${baseChat.assigned_user}`).emit('chats_updated', userChat)
             
-          serverTest.io.to(`schema_${schema}`).emit('chats_updated', chatsToEmit)
+            // Emitir para admins e técnicos
+            const adminUsersQuery = await pool.query(
+              `SELECT id FROM ${schema}.users WHERE (permission = 'admin' OR permission = 'tecnico') AND online = true AND id != $1`,
+              [baseChat.assigned_user]
+            );
+            
+            if (adminUsersQuery.rowCount > 0) {
+              const adminUsers = adminUsersQuery.rows.map(row => row.id);
+              for (const adminId of adminUsers) {
+                const adminChats = await getChatByUser(adminId, 'admin', schema);
+                if (adminChats && adminChats.length > 0) {
+                  serverTest.io.to(`user_${adminId}`).emit('chats_updated', adminChats);
+                }
+              }
+            }
+          } else {
+            await emitWaitingChatsToQueue(serverTest, schema, baseChat.connection_id, baseChat.queue_id)
+          }
           const messagePayload = {
             chatId: chatDb.id,
             body: messageBody,

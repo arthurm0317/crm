@@ -310,6 +310,7 @@ function ChatPage({ theme, chat_id} ) {
   const [filtrosAtivos, setFiltrosAtivos] = useState(preferences.chatFilters || {});
   const { playNotificationSound, audioRef } = useNotificationSound();
   const navigate = useNavigate();
+  const [userQueues, setUserQueues] = useState([])
 
   useEffect(() => {
     if (!schema || !userData?.id) {
@@ -345,6 +346,14 @@ function ChatPage({ theme, chat_id} ) {
       return timeB - timeA;
     });
   };
+
+  useEffect(()=>{
+    const fetchUserQueues = async () => {
+      const response = await axios.get(`${url}/queue/get-user-queue/${userData.id}/${schema}`)
+      setUserQueues(Array.isArray(response.data.result)?response.data.result:[response.data.result])
+    } 
+    fetchUserQueues()
+  }, schema)
 
   useEffect(() => {
     if (preferences.chatsTab && preferences.chatsTab !== selectedTab) {

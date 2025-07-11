@@ -322,7 +322,7 @@ const getChatByUser = async (userId, role, schema) => {
     throw new Error('Erro ao buscar chats do usuário');
   }
 };
-const getChatIfUserIsNull = async(connection, permission, schema)=>{
+const getChatIfUserIsNull = async(connection, permission, schema, userQueues = null)=>{
   try{
      if (permission === 'admin' || permission ==='tecnico') {
       const result = await pool.query(
@@ -330,10 +330,21 @@ const getChatIfUserIsNull = async(connection, permission, schema)=>{
       );
       return result.rows;
     }else{
-      const result = await pool.query(
-        `SELECT * FROM ${schema}.chats WHERE connection_id=$1 AND assigned_user IS NULL AND status='waiting' ORDER BY (updated_time IS NULL) , updated_time DESC`, [connection]
-      )
-      return result.rows
+      let query;
+      let params = [];
+      
+      if (userQueues && userQueues.length > 0) {
+        // Se o usuário tem filas específicas, filtrar apenas por essas filas
+        const queueIds = userQueues.map(queue => queue.id || queue);
+        query = `SELECT * FROM ${schema}.chats WHERE connection_id=$1 AND assigned_user IS NULL AND status='waiting' AND queue_id = ANY($2) ORDER BY (updated_time IS NULL) , updated_time DESC`;
+        params = [connection, queueIds];
+      } else {
+        // Se não tem filas específicas, retornar vazio
+        return [];
+      }
+      
+      const result = await pool.query(query, params);
+      return result.rows;
     }
   }catch (error) {
     console.error('Erro ao buscar chats do usuário:', error.message);
