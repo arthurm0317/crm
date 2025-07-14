@@ -68,11 +68,12 @@ const corsOptions = {
       'https://ilhadogovernador.effectivegain.com',
       'https://barreiras.effectivegain.com',
       'https://campo-grande.effectivegain.com',
-      'https://porto-alegre.effectivegain.com'
+      'https://porto-alegre.effectivegain.com',
+      'https://ilha-backend.9znbc3.easypanel.host'
     ];
     
-    // Em produção, permitir qualquer subdomínio do effectivegain.com
-    if (process.env.NODE_ENV === 'production' && origin.includes('effectivegain.com')) {
+    // Em produção, permitir qualquer subdomínio do effectivegain.com e easypanel.host
+    if (process.env.NODE_ENV === 'production' && (origin.includes('effectivegain.com') || origin.includes('easypanel.host'))) {
       return callback(null, true);
     }
     
@@ -100,7 +101,8 @@ const io = socketIo(server, {
       'https://campo-grande.effectivegain.com/',
       'https://campo-grande.effectivegain.com',
       'https://porto-alegre.effectivegain.com',
-      'https://porto-alegre.effectivegain.com/'
+      'https://porto-alegre.effectivegain.com/',
+      'https://ilha-backend.9znbc3.easypanel.host'
 
     ], 
     methods: ['GET', 'POST', 'DELETE', 'PUT'],
@@ -121,7 +123,8 @@ const socketIoServer = socketIo(socketServer, {
       "https://ilhadogovernador.effectivegain.com",
       "https://barreiras.effectivegain.com",
       "https://campo-grande.effectivegain.com",
-      "https://porto-alegre.effectivegain.com"
+      "https://porto-alegre.effectivegain.com",
+      "https://ilha-backend.9znbc3.easypanel.host"
     ],
     methods: ["GET", "POST", "DELETE", "PUT"],
     allowedHeaders: ["Content-Type"],
