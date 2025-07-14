@@ -19,7 +19,7 @@ function Redirecionar(){
 
 const refreshToken = async () => {
   try {
-    const response = await axios.post(`/api/refresh-token`, {}, {
+    const response = await axios.post(`${url}/api/refresh-token`, {}, {
       withCredentials: true
     });
     return response.data.success;
@@ -81,7 +81,7 @@ const handleLogin = async (e) => {
   setLoading(true); 
 
   try {
-    const response = await axios.post(`/api/login`, {
+    const response = await axios.post(`${url}/api/login`, {
       email: username,  
       password,
     }, { withCredentials: true });

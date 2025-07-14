@@ -119,7 +119,7 @@ function Painel() {
   useEffect(() => {
     const refreshToken = async () => {
   try {
-    const response = await axios.post(`/api/refresh-token`, {}, {
+    const response = await axios.post(`${url}/api/refresh-token`, {}, {
       withCredentials: true
     });
     return response.data.success;
@@ -191,7 +191,7 @@ const setupUserQueues = async () => {
   
   try {
     // Buscar as filas do usuário
-    const response = await axios.get(`/queue/get-user-queue/${userData.id}/${schema}`, 
+    const response = await axios.get(`${url}/queue/get-user-queue/${userData.id}/${schema}`, 
       {
       withCredentials: true
     });
