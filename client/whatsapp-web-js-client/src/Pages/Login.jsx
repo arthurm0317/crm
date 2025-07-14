@@ -17,34 +17,8 @@ function Redirecionar(){
   }, [navigate])
 }
 
-const refreshToken = async () => {
-  try {
-    const response = await axios.post(`${url}/api/refresh-token`, {}, {
-      withCredentials: true
-    });
-    return response.data.success;
-  } catch (error) {
-    console.error('Erro ao renovar token:', error);
-    return false;
-  }
-};
-
-const intervalId = localStorage.getItem('tokenRefreshInterval');
-if (intervalId) {
-  clearInterval(intervalId);
-  localStorage.removeItem('tokenRefreshInterval');
-}
-
-// Configurar refresh automático de token
-const tokenRefreshInterval = setInterval(async () => {
-  const success = await refreshToken();
-  if (!success) {
-    clearInterval(tokenRefreshInterval);
-    localStorage.removeItem('tokenRefreshInterval');
-    Redirecionar()
-  }
-}, 1000); 
-localStorage.setItem('tokenRefreshInterval', tokenRefreshInterval);
+// Removendo o refresh token automático fora do componente
+// Será movido para dentro do componente Login
 
 function Login() {
   const [theme, setTheme] = useTheme();
@@ -75,6 +49,19 @@ function Login() {
       localStorage.removeItem('tokenRefreshInterval');
     }
   }, []);
+
+  // Função de refresh token dentro do componente
+  const refreshToken = async () => {
+    try {
+      const response = await axios.post(`${url}/api/refresh-token`, {}, {
+        withCredentials: true
+      });
+      return response.data.success;
+    } catch (error) {
+      console.error('Erro ao renovar token:', error);
+      return false;
+    }
+  };
   
 const handleLogin = async (e) => {
   e.preventDefault();
