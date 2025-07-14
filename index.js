@@ -17,29 +17,71 @@ const bodyParser = require('body-parser');
 const excelRoutes = require('./routes/ExcelRoutes');
 const lembreteRoutes = require('./routes/LembretesRoutes');
 const preferenceRoutes = require('./routes/UserPreferencesRoutes');
+const passportRoutes = require('./routes/PassportRoutes')
 const { setGlobalSocket } = require('./services/LembreteService');
+const passport = require('passport')
+const session = require('express-session')
+const googleStrategy = require('passport-google-oauth20').Strategy
+
 
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 
 const app = express();
 
+app.use(session({
+  secret: 'secret',
+  resave: false,
+  saveUninitialized: true
+}))
+app.use(passport.initialize())
+app.use(passport.session());
+
+
+passport.use(new googleStrategy({
+  clientID: process.env.GOOGLE_CLIENT_ID,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  callbackURL: 'http://localhost:3002/auth/google'  // ✅ Voltando para porta 3002 (backend)
+},(accessToken, refreshToken, profile, done)=>{
+  return done(null, profile)
+}))
+
+passport.serializeUser((user, done)=>{
+  done(null, user)
+})
+passport.deserializeUser((user, done)=>done(null, user))
+
 // const userHeartbeats = new Map();
 
 
+
 const corsOptions = {
-  origin: ['http://localhost:3001',
-    'https://landing-page-front.8rxpnw.easypanel.host',
-    'https://eg-crm.effectivegain.com',
-    'https://ilhadogovernador.effectivegain.com/',
-    'https://ilhadogovernador.effectivegain.com',
-    'https://barreiras.effectivegain.com',
-    'https://barreiras.effectivegain.com/',
-    'https://campo-grande.effectivegain.com/',
-    'https://campo-grande.effectivegain.com',
-    'https://porto-alegre.effectivegain.com',
-    'https://porto-alegre.effectivegain.com/'
-  ],
+  origin: function (origin, callback) {
+    // Permitir requests sem origin (como mobile apps ou Postman)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:3001',
+      'http://localhost:3000',
+      'https://landing-page-front.8rxpnw.easypanel.host',
+      'https://eg-crm.effectivegain.com',
+      'https://ilhadogovernador.effectivegain.com',
+      'https://barreiras.effectivegain.com',
+      'https://campo-grande.effectivegain.com',
+      'https://porto-alegre.effectivegain.com'
+    ];
+    
+    // Em produção, permitir qualquer subdomínio do effectivegain.com
+    if (process.env.NODE_ENV === 'production' && origin.includes('effectivegain.com')) {
+      return callback(null, true);
+    }
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'DELETE', 'PUT'],
   credentials: true
 };
@@ -217,6 +259,7 @@ app.use('/tag', tagRoutes)
 app.use('/excel', excelRoutes);
 app.use('/lembretes', lembreteRoutes);
 app.use('/preferences', preferenceRoutes)
+app.use('/auth', passportRoutes);
 
 const axios = require('axios');
 const fs = require('fs');

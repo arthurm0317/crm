@@ -32,7 +32,8 @@ const refreshTokenController = (req, res) => {
     res.cookie('token', newToken, {
       maxAge: 15 * 60 * 1000, // 15 minutos em millisegundos
       httpOnly: true,
-      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
       path: '/'
     });
     return res.status(200).json({ success: true });
@@ -119,14 +120,16 @@ const searchUserController = async (req, res) => {
     res.cookie('token', token, {
       maxAge: 15 * 60 * 1000, // 15 minutos em millisegundos
       httpOnly: true,
-      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
       path: '/'
     });
 
     res.cookie('refreshToken', refreshToken, {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dias em millisegundos
       httpOnly: true,
-      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
       path: '/'
     });
 
