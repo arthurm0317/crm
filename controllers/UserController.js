@@ -34,7 +34,8 @@ const refreshTokenController = (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-      path: '/'
+      path: '/',
+      domain: process.env.NODE_ENV === 'production' ? '.9znbc3.easypanel.host' : undefined
     });
     return res.status(200).json({ success: true });
   } catch (refreshError) {
@@ -122,7 +123,8 @@ const searchUserController = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-      path: '/'
+      path: '/',
+      domain: process.env.NODE_ENV === 'production' ? '.9znbc3.easypanel.host' : undefined
     });
 
     res.cookie('refreshToken', refreshToken, {
@@ -130,7 +132,8 @@ const searchUserController = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-      path: '/'
+      path: '/',
+      domain: process.env.NODE_ENV === 'production' ? '.9znbc3.easypanel.host' : undefined
     });
 
     res.status(200).json({
