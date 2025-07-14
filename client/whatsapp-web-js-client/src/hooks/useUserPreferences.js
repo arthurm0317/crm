@@ -27,8 +27,11 @@ const useUserPreferences = () => {
     if (!userData?.id) return;
     
     try {
-      const response = await axios.get(`${url}/preferences/get-user-preference/${userData.id}`);
-      console.log(response.data)
+      const response = await axios.get(`${url}/preferences/get-user-preference/${userData.id}/${userData.schema}`,
+        {
+          withCredentials:true
+        }
+      );
       const dbPreferences = response.data || {};
       
       // Mesclar preferências do banco com localStorage
