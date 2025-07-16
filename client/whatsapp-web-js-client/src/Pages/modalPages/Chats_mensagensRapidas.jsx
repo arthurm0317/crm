@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form, InputGroup } from 'react-bootstrap';
-import axios from 'axios';
+
 // Força a largura do modal-xxl para 75vw
 const modalStyle = `
     .modal {
@@ -31,12 +31,8 @@ function insertVariableNoCampo(campoId, setCampo, variavel) {
 
 function QuickMsgManageModal({ theme, show, onHide, mensagens, setMensagens }) {
   const [editIndex, setEditIndex] = useState(null);
-  const [form, setForm] = useState({ comando: '', mensagem: '', tipo: 'pessoal', setor: '' });
-  const [formEdit, setFormEdit] = useState({ comando: '', mensagem: '', tipo: 'pessoal', setor: '' });
-  const [filas, setFilas] = useState([]);
-   const url = process.env.REACT_APP_URL;
-  const userData = JSON.parse(localStorage.getItem('user'));
-  const schema = userData.schema
+  const [form, setForm] = useState({ comando: '', mensagem: '', tipo: 'pessoal', setor: setoresFicticios[0] });
+  const [formEdit, setFormEdit] = useState({ comando: '', mensagem: '', tipo: 'pessoal', setor: setoresFicticios[0] });
 
   useEffect(() => {
     if (editIndex !== null && mensagens[editIndex]) {
@@ -44,7 +40,7 @@ function QuickMsgManageModal({ theme, show, onHide, mensagens, setMensagens }) {
         comando: mensagens[editIndex].comando,
         mensagem: mensagens[editIndex].mensagem,
         tipo: mensagens[editIndex].tipo,
-        setor: mensagens[editIndex].setor || '',
+        setor: mensagens[editIndex].setor || setoresFicticios[0],
       });
     }
   }, [editIndex, mensagens]);
@@ -54,124 +50,42 @@ function QuickMsgManageModal({ theme, show, onHide, mensagens, setMensagens }) {
     setForm(f => ({ ...f, [name]: value }));
   }
 
-  async function handleSave() {
+  function handleSave() {
     if (!form.comando.startsWith('/')) return;
-    try {
-      // Monta o payload conforme esperado pelo backend
-      const payload = {
-        type: form.tipo,
-        queue_id: form.setor,
-        user_id: userData.id,
-        message: form.mensagem,
-        is_command_on: true, // ou false, se quiser permitir desativar
-        shortcut: form.comando,
-        schema: schema
-      };
-      await axios.post(`${url}/qmessage/create-q-message`, payload, { withCredentials: true });
-      // Atualiza a lista após criar
-      const res = await axios.get(`${url}/qmessage/get-q-messages-by-user/${userData.id}/${schema}`, { withCredentials: true });
-      const msgs = (res.data.result || []).map(msg => ({
-        comando: msg.shortcut || `/msg${msg.id.slice(0, 4)}`,
-        mensagem: msg.value,
-        tipo: msg.tag,
-        setor: filas.find(f => f.id === msg.queue_id)?.name || '',
-        id: msg.id
-      }));
-      setMensagens(msgs);
-    } catch (err) {
-      // erro silencioso
+    if (editIndex !== null) {
+      const novas = mensagens.slice();
+      novas[editIndex] = { ...form };
+      setMensagens(novas);
+    } else {
+      setMensagens([...mensagens, { ...form }]);
     }
     setEditIndex(null);
-    setForm({ comando: '', mensagem: '', tipo: 'pessoal', setor: '' });
+    setForm({ comando: '', mensagem: '', tipo: 'pessoal', setor: setoresFicticios[0] });
   }
 
   function handleEdit(idx) {
     setEditIndex(idx);
   }
 
-  async function handleDelete(idx) {
+  function handleDelete(idx) {
     if (!window.confirm('Tem certeza que deseja excluir esta mensagem rápida? Esta ação é irreversível.')) return;
-    try {
-      const msg = mensagens[idx];
-      await axios.delete(`${url}/qmessage/delete-q-message/${msg.id}/${schema}`, { withCredentials: true });
-      // Atualiza a lista após deletar
-      const res = await axios.get(`${url}/qmessage/get-q-messages-by-user/${userData.id}/${schema}`, { withCredentials: true });
-      const msgs = (res.data.result || []).map(msg => ({
-        comando: msg.shortcut || `/msg${msg.id.slice(0, 4)}`,
-        mensagem: msg.value,
-        tipo: msg.tag,
-        setor: filas.find(f => f.id === msg.queue_id)?.name || '',
-        id: msg.id
-      }));
-      setMensagens(msgs);
-    } catch (err) {
-      // erro silencioso
-    }
+    setMensagens(mensagens.filter((_, i) => i !== idx));
     setEditIndex(null);
   }
 
   function handleCancel() {
     setEditIndex(null);
-    setForm({ comando: '', mensagem: '', tipo: 'pessoal', setor: '' });
+    setForm({ comando: '', mensagem: '', tipo: 'pessoal', setor: setoresFicticios[0] });
   }
 
-  async function handleSaveEdit(idx) {
+  function handleSaveEdit(idx) {
     if (!formEdit.comando.startsWith('/')) return;
-    try {
-      const payload = {
-        quick_message_id: mensagens[idx].id,
-        type: formEdit.tipo,
-        queue_id: formEdit.tipo === 'setor' ? formEdit.setor : null,
-        message: formEdit.mensagem,
-        shortcut: formEdit.comando,
-        schema: schema
-      };
-      await axios.put(`${url}/qmessage/update-q-message`, payload, { withCredentials: true });
-      // Atualiza a lista após editar
-      const res = await axios.get(`${url}/qmessage/get-q-messages-by-user/${userData.id}/${schema}`, { withCredentials: true });
-      const msgs = (res.data.result || []).map(msg => ({
-        comando: msg.shortcut || `/msg${msg.id.slice(0, 4)}`,
-        mensagem: msg.value,
-        tipo: msg.tag,
-        setor: filas.find(f => f.id === msg.queue_id)?.name || '',
-        id: msg.id
-      }));
-      setMensagens(msgs);
-    } catch (err) {
-      // erro silencioso
-    }
+    const novas = mensagens.slice();
+    novas[idx] = { ...formEdit };
+    setMensagens(novas);
     setEditIndex(null);
   }
-  useEffect(() => {
-    async function fetchQuickMessages() {
-      try {
-        const res = await axios.get(`${url}/qmessage/get-q-messages-by-user/${userData.id}/${schema}`, { withCredentials: true });
-        const msgs = (res.data.result || []).map(msg => ({
-          comando: msg.shortcut || `/msg${msg.id.slice(0, 4)}`,
-          mensagem: msg.value,
-          tipo: msg.tag,
-          setor: filas.find(f => f.id === msg.queue_id)?.name || '',
-          id: msg.id
-        }));
-        setMensagens(msgs);
-      } catch (err) {
-        setMensagens([]);
-      }
-    }
-    fetchQuickMessages();
-  }, [schema, url, filas]);
 
-  useEffect(() => {
-    async function fetchFilas() {
-      try {
-        const res = await axios.get(`${url}/queue/get-all-queues/${schema}`, { withCredentials: true });
-        setFilas(res.data.result || []);
-      } catch (err) {
-        setFilas([]);
-      }
-    }
-    fetchFilas();
-  }, [schema, url]);
   return (
     <>
       <style>{modalStyle}</style>
@@ -281,8 +195,7 @@ function QuickMsgManageModal({ theme, show, onHide, mensagens, setMensagens }) {
                           style={{ color: `var(--color-${theme})`, background: `var(--bg-color-${theme})`, borderColor: `var(--border-color-${theme})`, minWidth: 90 }}
                           onChange={e => setFormEdit(f => ({ ...f, setor: e.target.value }))}
                         >
-                          <option value="">Selecione o setor</option>
-                          {filas.map(f => <option key={f.id} value={f.id}>{f.name || f.nome}</option>)}
+                          {setoresFicticios.map(s => <option key={s} value={s}>{s}</option>)}
                         </Form.Select>
                       )}
                       <textarea
@@ -314,117 +227,92 @@ function QuickMsgManageModal({ theme, show, onHide, mensagens, setMensagens }) {
               </div>
             ))}
           </div>
-          <Modal.Footer style={{ borderTop: `1px solid var(--border-color-${theme})`, background: `var(--bg-color-${theme})`, display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 12, borderBottomLeftRadius: 'var(--bs-modal-inner-border-radius)', borderBottomRightRadius: 'var(--bs-modal-inner-border-radius)' }}>
-            <Form style={{ width: '100%' }}>
-              {/* Linha de campos alinhados horizontalmente, sem botões de variáveis visíveis */}
-              <div className="row" style={{ marginTop: 8, gap: 0 }}>
-                <div className="col-auto d-flex flex-column align-items-start justify-content-end" style={{ minWidth: 120, flex: '0 0 120px', height: 60 }}>
-                  <Form.Label style={{ fontSize: 13, fontWeight: 500, color: `var(--color-${theme})` }}>Categoria</Form.Label>
+        </Modal.Body>
+        <Modal.Footer style={{ borderTop: `1px solid var(--border-color-${theme})`, background: `var(--bg-color-${theme})`, display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 12, borderBottomLeftRadius: 'var(--bs-modal-inner-border-radius)', borderBottomRightRadius: 'var(--bs-modal-inner-border-radius)' }}>
+          <Form style={{ width: '100%' }}>
+            <div className="row" style={{ gap: 0, alignItems: 'center' }}>
+              <Form.Group className="col-auto" style={{ minWidth: 120 }}>
+                <Form.Label style={{ fontSize: 13, fontWeight: 500, marginBottom: 2, color: `var(--color-${theme})` }}>Categoria</Form.Label>
+                <Form.Select
+                  size="sm"
+                  value={form.tipo}
+                  name="tipo"
+                  style={{ color: `var(--color-${theme})`, background: `var(--bg-color-${theme})`, borderColor: `var(--border-color-${theme})` }}
+                  onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}
+                  disabled={editIndex !== null}
+                >
+                  <option value="pessoal">Pessoal</option>
+                  <option value="setor">Setor</option>
+                </Form.Select>
+              </Form.Group>
+              {form.tipo === 'setor' && (
+                <Form.Group className="col-auto" style={{ minWidth: 130 }}>
+                  <Form.Label style={{ fontSize: 13, fontWeight: 500, marginBottom: 2, color: `var(--color-${theme})` }}>Setor</Form.Label>
                   <Form.Select
                     size="sm"
-                    value={form.tipo}
-                    name="tipo"
-                    style={{ color: `var(--color-${theme})`, background: `var(--bg-color-${theme})`, borderColor: `var(--border-color-${theme})`, height: 38 }}
-                    onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}
+                    value={form.setor}
+                    name="setor"
+                    style={{ color: `var(--color-${theme})`, background: `var(--bg-color-${theme})`, borderColor: `var(--border-color-${theme})` }}
+                    onChange={e => setForm(f => ({ ...f, setor: e.target.value }))}
                     disabled={editIndex !== null}
                   >
-                    <option value="pessoal">Pessoal</option>
-                    <option value="setor">Setor</option>
+                    {setoresFicticios.map(s => <option key={s} value={s}>{s}</option>)}
                   </Form.Select>
-                </div>
-                {form.tipo === 'setor' && (
-                  <div className="col-auto d-flex flex-column align-items-start justify-content-end" style={{ minWidth: 130, flex: '0 0 130px', height: 60 }}>
-                    <Form.Label style={{ fontSize: 13, fontWeight: 500, color: `var(--color-${theme})` }}>Setor</Form.Label>
-                    <Form.Select
-                      size="sm"
-                      value={form.setor}
-                      name="setor"
-                      style={{ color: `var(--color-${theme})`, background: `var(--bg-color-${theme})`, borderColor: `var(--border-color-${theme})`, height: 38 }}
-                      onChange={e => setForm(f => ({ ...f, setor: e.target.value }))}
-                      disabled={editIndex !== null}
-                    >
-                      <option value="">Selecione o setor</option>
-                      {filas.map(f => <option key={f.id} value={f.id}>{f.name || f.nome}</option>)}
-                    </Form.Select>
-                  </div>
-                )}
-                <div className="col-auto d-flex flex-column align-items-start justify-content-end" style={{ minWidth: 120, flex: '0 0 120px', height: 60 }}>
-                  <Form.Label style={{ fontSize: 13, fontWeight: 500, color: `var(--color-${theme})` }}>Comando</Form.Label>
-                  <InputGroup size="sm">
-                    <InputGroup.Text style={{ background: `var(--bg-color-${theme})`, color: `var(--color-${theme})`, borderColor: `var(--border-color-${theme})`, height: 38 }}>/</InputGroup.Text>
-                    <Form.Control
-                      size="sm"
-                      type="text"
-                      value={form.comando.startsWith('/') ? form.comando.slice(1) : form.comando}
-                      name="comando"
-                      style={{ color: `var(--color-${theme})`, background: `var(--bg-color-${theme})`, borderColor: `var(--border-color-${theme})`, minWidth: 90, height: 38 }}
-                      onChange={e => setForm(f => ({ ...f, comando: '/' + e.target.value.replace(/^\/*/, '') }))}
-                      disabled={editIndex !== null}
-                    />
-                  </InputGroup>
-                </div>
-                <div className="col d-flex flex-column align-items-start justify-content-end" style={{ minWidth: 220, flex: 1, height: 60 }}>
-                  <Form.Label style={{ fontSize: 13, fontWeight: 500, color: `var(--color-${theme})` }}>Mensagem</Form.Label>
+                </Form.Group>
+              )}
+              <Form.Group className="col-auto" style={{ minWidth: 120 }}>
+                <Form.Label style={{ fontSize: 13, fontWeight: 500, marginBottom: 2, color: `var(--color-${theme})` }}>Comando</Form.Label>
+                <InputGroup size="sm">
+                  <InputGroup.Text style={{ background: `var(--bg-color-${theme})`, color: `var(--color-${theme})`, borderColor: `var(--border-color-${theme})` }}>/</InputGroup.Text>
                   <Form.Control
-                    as="textarea"
-                    id="mensagemCampo"
-                    rows={2}
-                    value={form.mensagem}
-                    name="mensagem"
-                    onChange={handleChange}
-                    style={{ fontSize: 14, minHeight: 38, resize: 'none', height: 38 }}
-                    placeholder="Digite a mensagem rápida..."
+                    size="sm"
+                    type="text"
+                    placeholder="comando"
+                    value={form.comando.startsWith('/') ? form.comando.slice(1) : form.comando}
+                    name="comando"
+                    style={{ color: `var(--color-${theme})`, background: `var(--bg-color-${theme})`, borderColor: `var(--border-color-${theme})` }}
+                    onChange={e => setForm(f => ({ ...f, comando: '/' + e.target.value.replace(/^\/*/, '') }))}
                     disabled={editIndex !== null}
                   />
-                </div>
-                <div className="col-auto d-flex align-items-end" style={{ minWidth: 120, paddingBottom: 0, height: 60 }}>
-                  <Button
-                    variant="outline-secondary"
-                    className="w-100"
-                    style={{ height: 38 }}
-                    onClick={handleSave}
-                    disabled={editIndex !== null || !form.comando.startsWith('/') || !form.mensagem.trim()}
-                  >
-                    Adicionar
-                  </Button>
-                </div>
-              </div>
-              {/* Edição */}
-              {editIndex !== null && (
-                <div className="row align-items-end" style={{ marginTop: 8 }}>
-                  <div className="col" style={{ minWidth: 220, position: 'relative' }}>
-                    <Form.Label style={{ fontSize: 13, fontWeight: 500, marginBottom: 2, color: `var(--color-${theme})` }}>Mensagem</Form.Label>
-                    <Form.Control
-                      as="textarea"
-                      id="mensagemCampoEdit"
-                      rows={2}
-                      value={formEdit.mensagem}
-                      name="mensagem"
-                      onChange={e => setFormEdit(f => ({ ...f, mensagem: e.target.value }))}
-                      style={{ fontSize: 14, marginBottom: 8, minHeight: 38 }}
-                      placeholder="Digite a mensagem rápida..."
-                    />
-                    <div className="d-flex gap-1 align-items-center mt-1">
-                      <span style={{ fontSize: 11, color: 'var(--color-'+theme+')' }}>Vars:</span>
-                      {variaveisFixas.map(v => (
-                        <button
-                          key={v.id}
-                          type="button"
-                          className={`btn btn-2-${theme} btn-sm`}
-                          style={{ fontSize: 10, padding: '2px 6px', minWidth: 'auto' }}
-                          tabIndex={-1}
-                          onClick={() => insertVariableNoCampo('mensagemCampoEdit', val => setFormEdit(f => ({ ...f, mensagem: val })), v.field_name)}
-                        >
-                          {`{{${v.label}}}`}
-                        </button>
-                      ))}
-                    </div>
+                </InputGroup>
+                {!form.comando.startsWith('/') && form.comando.length > 0 && (
+                  <div style={{ color: 'var(--error-color)', fontSize: 11, marginTop: 2 }}>
+                    O comando deve começar com /
                   </div>
-                </div>
-              )}
-            </Form>
-          </Modal.Footer>
-        </Modal.Body>
+                )}
+              </Form.Group>
+              <Form.Group className="col" style={{ minWidth: 180 }}>
+                <Form.Label style={{ fontSize: 13, fontWeight: 500, marginBottom: 2, color: `var(--color-${theme})` }}>Mensagem</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  size="sm"
+                  placeholder="Mensagem"
+                  style={{ minHeight: 38, resize: 'vertical', width: '100%', color: `var(--color-${theme})`, background: `var(--bg-color-${theme})`, borderColor: `var(--border-color-${theme})` }}
+                  value={form.mensagem}
+                  name="mensagem"
+                  onChange={e => setForm(f => ({ ...f, mensagem: e.target.value }))}
+                  disabled={editIndex !== null}
+                />
+              </Form.Group>
+              <div className="col-auto d-flex align-items-end" style={{ minWidth: 120, paddingBottom: 0 }}>
+                <Button
+                  variant="secondary"
+                  className={`btn-2-${theme}`}
+                  style={{ minWidth: 120, background: (!form.comando.startsWith('/') || !form.mensagem.trim() || (form.tipo === 'setor' && !form.setor) || editIndex !== null) ? 'transparent' : undefined }}
+                  onClick={handleSave}
+                  disabled={
+                    editIndex !== null ||
+                    !form.comando.startsWith('/') ||
+                    !form.mensagem.trim() ||
+                    (form.tipo === 'setor' && !form.setor)
+                  }
+                >
+                  Adicionar
+                </Button>
+              </div>
+            </div>
+          </Form>
+        </Modal.Footer>
       </Modal>
     </>
   );
