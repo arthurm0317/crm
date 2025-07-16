@@ -19,6 +19,8 @@ const lembreteRoutes = require('./routes/LembretesRoutes');
 const preferenceRoutes = require('./routes/UserPreferencesRoutes');
 const passportRoutes = require('./routes/PassportRoutes')
 const { setGlobalSocket } = require('./services/LembreteService');
+
+
 const passport = require('passport')
 const session = require('express-session')
 const googleStrategy = require('passport-google-oauth20').Strategy
@@ -41,7 +43,7 @@ app.use(passport.session());
 passport.use(new googleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: 'http://localhost:3002/auth/google'  // ✅ Voltando para porta 3002 (backend)
+  callbackURL: 'http://localhost:3002/auth/google'  
 },(accessToken, refreshToken, profile, done)=>{
   return done(null, profile)
 }))
@@ -263,6 +265,8 @@ app.use('/excel', excelRoutes);
 app.use('/lembretes', lembreteRoutes);
 app.use('/preferences', preferenceRoutes)
 app.use('/auth', passportRoutes);
+
+
 
 const axios = require('axios');
 const fs = require('fs');

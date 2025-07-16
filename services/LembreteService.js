@@ -51,12 +51,12 @@ const lembreteWorker = new Worker('lembretes', async job => {
 
 const agendarLembrete = async (lembrete) => {
     await lembreteQueue.add('notificar', lembrete, {
-    jobId: lembrete.id, 
-    user: lembrete.user_id,
-    delay: Math.max(0, lembrete.date * 1000 - Date.now()),
-    removeOnComplete: true,
-    removeOnFail: true,
-});
+        jobId: lembrete.id, 
+        user: lembrete.user_id,
+        delay: Math.max(0, lembrete.date * 1000 - Date.now()),
+        removeOnComplete: true,
+        removeOnFail: true,
+    });
 };
 
 const salvarFilasLembrete = async (lembreteId, filas, schema) => {

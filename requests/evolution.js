@@ -6,7 +6,17 @@ const createInstance = async ({ instanceName, number }) => {
     instanceName,
     number,
     integration: "WHATSAPP-BAILEYS",
-    qrcode: true
+    qrcode: true,
+    groupsIgnore: true,
+    webhook:{
+      url:`${process.env.BACKEND_URL}/webhook/chat`,
+      base64:true,
+      byEvents:false,
+      headers: {
+      authorization: process.env.EVOLUTION_API_KEY,
+      },
+    events:['MESSAGES_UPSERT']
+    },
   };
 
   const options = {
@@ -232,6 +242,7 @@ const sendMediaForBlast = async (instanceId, text, image, number) => {
     console.error('Erro ao enviar mensagem:', error);
   }
 };
+
 
 module.exports = {
   createInstance,

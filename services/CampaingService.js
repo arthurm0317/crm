@@ -1,13 +1,15 @@
 const pool = require('../db/queries');
 const { v4: uuidv4 } = require('uuid');
 const { getChatsInKanbanStage } = require('./KanbanService');
-const { sendTextMessage } = require('../requests/evolution');
+const { sendTextMessage, fetchInstanceEvo } = require('../requests/evolution');
 const { sendBlastMessage, sendMediaBlastMessage } = require('./MessageBlast');
 const createRedisConnection = require('../config/Redis');
 const { Queue, Worker } = require('bullmq');
 const { saveMessage } = require('./MessageService');
 const { Message } = require('../entities/Message');
 const { getCurrentTimestamp, parseLocalDateTime } = require('./getCurrentTimestamp');
+const { updateChatConnection } = require('./ChatService');
+const { fetchInstance } = require('./ConnectionService');
 
 const bullConn = createRedisConnection();
 const blastQueue = new Queue("Campanha", { connection: bullConn });
@@ -17,6 +19,8 @@ const worker = new Worker(
   async (job) => {
     try {
       console.log(`Processando job ${job.id} para número ${job.data.number}`);
+
+      const status = await fetchInstanceEvo()
       
       if(job.data.image){
         await sendMediaBlastMessage(
@@ -42,12 +46,12 @@ const worker = new Worker(
       console.error(`Erro ao enviar mensagem dentro do job ${job.id}:`, err.message);
       throw err; 
     }
-  },
-  {
-    connection: bullConn,
-    autorun: true,
-  }
-);
+      },
+      {
+        connection: bullConn,
+        autorun: true,
+      }
+    );
 
 worker.on('completed', (job) => {
   console.log(` Job ${job.id} concluído com sucesso.`);
@@ -60,6 +64,21 @@ worker.on('failed', (job, err) => {
 worker.on('error', (err) => {
   console.error('Erro geral no worker:', err.message);
 });
+
+const deleteAllConnectionsFromCampaing = async(campaing_id, schema)=>{
+  await pool.query(`DELETE FROM ${schema}.campaing_connections where campaing_id=$1`,[campaing_id])
+}
+
+const insertConnectionsForCampaing = async(campaing_id, connections, schema)=>{
+  for(const connection of connections){
+    await pool.query(`INSERT INTO ${schema}.campaing_connections(campaing_id, connection_id) VALUES ($1, $2)`, [campaing_id, connection])
+  }
+}
+
+const getAllCampaingConnections = async (campaing_id, schema) => {
+  const result = await pool.query(`SELECT * FROM ${schema}.campaing_connections WHERE campaing_id=$1`, [campaing_id])
+  return result.rows
+}
 
 const createCampaing = async (campaing_id, campName, sector, kanbanStage, connectionId, startDate, schema, intervalo) => {
   try {
@@ -90,29 +109,33 @@ const createCampaing = async (campaing_id, campName, sector, kanbanStage, connec
     if (campaing_id) {
       result = await pool.query(
         `UPDATE ${schema}.campaing 
-         SET campaing_name=$1, sector=$2, kanban_stage=$3, connection_id=$4, start_date=$5, timer=$6
-         WHERE id=$7 RETURNING *`,
-        [campName, sector, kanbanStage, connectionId, unixStartDate, intervalEmSegundos, campaing_id]
+         SET campaing_name=$1, sector=$2, kanban_stage=$3, start_date=$4, timer=$5
+         WHERE id=$6 RETURNING *`,
+        [campName, sector, kanbanStage, unixStartDate, intervalEmSegundos, campaing_id]
       );
       campaing = result.rows[0];
+      await deleteAllConnectionsFromCampaing(campaing.id, schema)
+      insertConnectionsForCampaing(campaing.id,connectionId, schema)
     } else {
       result = await pool.query(
-        `INSERT INTO ${schema}.campaing (id, campaing_name, sector, kanban_stage, connection_id, start_date, timer) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-        [uuidv4(), campName, sector, kanbanStage, connectionId, unixStartDate, intervalEmSegundos]
+        `INSERT INTO ${schema}.campaing (id, campaing_name, sector, kanban_stage, start_date, timer) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+        [uuidv4(), campName, sector, kanbanStage, unixStartDate, intervalEmSegundos]
       );
       campaing = result.rows[0];
+      insertConnectionsForCampaing(campaing.id,connectionId, schema)
+
     }
     await scheduleCampaingBlast(campaing, campaing.sector, schema, intervalo);
 
     return campaing;
   } catch (error) {
-    console.error('Erro ao criar/atualizar campanha:', error.message);
+    console.error('Erro ao criar/atualizar campanha:', error);
     throw error;
   }
 };
 
 const scheduleCampaingBlast = async (campaing, sector, schema, intervalo) => {
-  try {
+  try { 
     const startDate = Number(campaing.start_date);
     const now = Date.now();
 
@@ -124,7 +147,6 @@ const scheduleCampaingBlast = async (campaing, sector, schema, intervalo) => {
     const kanban = await pool.query(
       `SELECT * FROM ${schema}.kanban_${sector} WHERE id=$1`, [campaing.kanban_stage]
     );
-    
     if (kanban.rowCount === 0) {
       console.error(`Erro: Etapa Kanban com ID ${campaing.kanban_stage} não encontrada para o setor ${sector}.`);
       return; 
@@ -145,58 +167,73 @@ const scheduleCampaingBlast = async (campaing, sector, schema, intervalo) => {
       return;
     }
     const messageList = messages.rows;
-    let messageIndex = 0;
     
     const baseDelay = Math.max(0, startDate - now);
     
     // Usar o intervalo salvo no banco de dados
     const intervalEmSegundos = Number(campaing.timer) || 30;
     
-    const instance = await pool.query(
-      `SELECT * FROM ${schema}.connections WHERE id=$1`, [campaing.connection_id]
-    );
-
-    if (!instance.rows[0]) {
-      console.error('Conexão não encontrada para a campanha');
+    const connections = await getAllCampaingConnections(campaing.id, schema);
+    if (!connections || connections.length === 0) {
+      console.error('Nenhuma conexão encontrada para a campanha.');
       return;
     }
-    
-    for (let i = 0; i < chatIds.length; i++) {
-      const instanceId = await pool.query(
-        `SELECT * FROM ${schema}.chats WHERE id=$1`, [chatIds[i].id]
-      );
 
-      if (!instanceId.rows[0] || !instanceId.rows[0].contact_phone) {
-        console.warn(`Chat inválido ou número não encontrado para chat ID ${chatIds[i].id}`);
+    // Distribuir os contatos entre as conexões (round robin de contatos)
+    const contatosPorConexao = Array.from({ length: connections.length }, () => []);
+    for (let i = 0; i < chatIds.length; i++) {
+      const idx = i % connections.length;
+      contatosPorConexao[idx].push(chatIds[i]);
+    }
+
+    let jobCount = 0;
+    for (let c = 0; c < connections.length; c++) {
+      const connection = connections[c];
+      const contatos = contatosPorConexao[c];
+      // Buscar a instância da conexão
+      const instance = await pool.query(
+        `SELECT * FROM ${schema}.connections WHERE id=$1`, [connection.connection_id]
+      );
+      if (!instance.rows[0]) {
+        console.error('Conexão não encontrada para a campanha');
         continue;
       }
-
-      const message = messageList[messageIndex];
-      messageIndex = (messageIndex + 1) % messageList.length;
-
-      const messageDelay = baseDelay + (i * (intervalEmSegundos * 1000));
-      console.log(`Agendando mensagem ${i + 1}/${chatIds.length} para:`, new Date(Date.now() + messageDelay).toLocaleString());
-      
-      const job = await blastQueue.add('sendMessage', {
-        instance: instance.rows[0].id,
-        number: instanceId.rows[0].contact_phone,
-        chat_id: instanceId.rows[0].id,
-        message: message.value,
-        image: message.image,
-        schema: schema
-      }, { 
-        delay: messageDelay, 
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 2000
+      for (let m = 0; m < messageList.length; m++) {
+        const message = messageList[m];
+        if (contatos[m]) { // Só agenda se houver contato suficiente
+          const chat = contatos[m];
+          const instanceId = await pool.query(
+            `SELECT * FROM ${schema}.chats WHERE id=$1`, [chat.id]
+          );
+          if (!instanceId.rows[0] || !instanceId.rows[0].contact_phone) {
+            console.warn(`Chat inválido ou número não encontrado para chat ID ${chat.id}`);
+            continue;
+          }
+          await updateChatConnection(instanceId.rows[0].id, instance.rows[0].id, schema);
+          // O delay é calculado por conexão e mensagem
+          const messageDelay = baseDelay + (c * intervalEmSegundos * 1000) + (m * connections.length * intervalEmSegundos * 1000);
+          console.log(`Agendando mensagem ${m + 1}/${messageList.length} para conexão ${c + 1}/${connections.length} (contato ${instanceId.rows[0].contact_phone}) para:`, new Date(Date.now() + messageDelay).toLocaleString());
+          const job = await blastQueue.add('sendMessage', {
+            instance: instance.rows[0].id,
+            number: instanceId.rows[0].contact_phone,
+            chat_id: instanceId.rows[0].id,
+            message: message.value,
+            image: message.image,
+            schema: schema
+          }, { 
+            delay: messageDelay, 
+            attempts: 3,
+            backoff: {
+              type: 'exponential',
+              delay: 2000
+            }
+          }); 
+          console.log(`Job ${job.id} agendado com sucesso, enviando pelo numero ${instance.rows[0].id}, para o ${instanceId.rows[0].contact_phone}`);
+          jobCount++;
         }
-      });
-
-      console.log(`Job ${job.id} agendado com sucesso`);
+      }
     }
-    
-    console.log(`Campanha ${campaing.campaing_name} agendada com ${chatIds.length} mensagens`);
+    console.log(`Campanha ${campaing.campaing_name} agendada com ${jobCount} mensagens`);
   } catch (error) {
     console.error('Erro ao agendar disparo da campanha:', error);
     throw error;
@@ -320,7 +357,11 @@ const getCampaingById = async (campaing_id, schema) => {
     const result = await pool.query(
       `SELECT * FROM ${schema}.campaing WHERE id=$1`, [campaing_id]
     );
-    return result.rows[0];
+    const connections = await getAllCampaingConnections(campaing_id, schema)
+    return{
+      result: result.rows[0],
+      connections: connections
+    };
   } catch (error) {
     console.error('Erro ao buscar campanha por ID:', error.message);
     throw error;

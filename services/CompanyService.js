@@ -176,6 +176,11 @@ const createCompany = async (company, schema) => {
         value text,
         CONSTRAINT user_preferences_user_key_unique UNIQUE (user_id, key)
         );`)
+        await pool.query(`CREATE TABLE ${schema}.campaing_connections (
+            campaing_id UUID NOT NULL,
+            connection_id UUID,
+            CONSTRAINT unique_pair UNIQUE (campaing_id, connection_id)
+            );`)
 
     const superAdmin = new Users(
         superAdminId,

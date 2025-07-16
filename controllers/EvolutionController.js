@@ -7,6 +7,7 @@ const { Message } = require('../entities/Message');
 const { getCurrentTimestamp } = require('../services/getCurrentTimestamp');
 
 const createInstanceController = async (req, res) => {
+    console.log(req.body)
     try {
         const { instanceName, number } = req.body;
         const schema = req.body.schema
@@ -15,6 +16,7 @@ const createInstanceController = async (req, res) => {
             instanceName: instanceName,
             number: number,
         });
+        console.log(result, 'RESULT')
         const conn = new Connections(result.instance.instanceId, instanceName, number);
         const ress = await createConnection(conn, schema);
 
