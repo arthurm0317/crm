@@ -1258,6 +1258,13 @@ const handleImageUpload = async (event) => {
   // Estado das mensagens rápidas para gerenciamento
   const [quickMsgList, setQuickMsgList] = useState([]);
   const [showQuickMsgManage, setShowQuickMsgManage] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchText, setSearchText] = useState('');
+  const [caseSensitive, setCaseSensitive] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
+  const [searchInputRef, setSearchInputRef] = useState(null);
+  const [originalStyles, setOriginalStyles] = useState({});
 
   const quickMsgFilter = newMessage.startsWith('/') ? newMessage.slice(1).toLowerCase() : '';
   const quickMsgFiltered = quickMsgFilter
@@ -1277,6 +1284,178 @@ const handleImageUpload = async (event) => {
     return acc;
   }, {});
   const tiposOrdem = ['pessoal', 'setor'];
+
+  // Função para realizar a pesquisa
+  const performSearch = useCallback(() => {
+    if (!searchText.trim()) {
+      setSearchResults([]);
+      setCurrentSearchIndex(0);
+      return;
+    }
+
+    const results = [];
+    selectedMessages.forEach((message, messageIndex) => {
+      if (message.text) {
+        const text = caseSensitive ? message.text : message.text.toLowerCase();
+        const search = caseSensitive ? searchText : searchText.toLowerCase();
+        
+        let startIndex = 0;
+        while (true) {
+          const index = text.indexOf(search, startIndex);
+          if (index === -1) break;
+          
+          results.push({
+            messageIndex,
+            messageId: message.id,
+            startIndex: index,
+            endIndex: index + search.length,
+            text: message.text
+          });
+          
+          startIndex = index + 1;
+        }
+      }
+    });
+
+    setSearchResults(results);
+    setCurrentSearchIndex(results.length > 0 ? 0 : -1);
+  }, [searchText, caseSensitive, selectedMessages]);
+
+  // Efeito para realizar pesquisa quando os parâmetros mudam
+  useEffect(() => {
+    performSearch();
+  }, [performSearch]);
+
+  // Função para navegar entre os resultados
+  const navigateSearch = (direction) => {
+    if (searchResults.length === 0) return;
+    
+    if (direction === 'next') {
+      setCurrentSearchIndex((prev) => (prev + 1) % searchResults.length);
+    } else {
+      setCurrentSearchIndex((prev) => (prev - 1 + searchResults.length) % searchResults.length);
+    }
+  };
+
+  // Função para limpar destaque anterior
+  const clearPreviousHighlight = () => {
+    if (searchResults.length > 0 && currentSearchIndex >= 0 && currentSearchIndex < searchResults.length) {
+      const previousResult = searchResults[currentSearchIndex];
+      const previousElement = document.querySelector(`[data-message-id="${previousResult.messageId}"]`);
+      
+      if (previousElement) {
+        const original = originalStyles[previousResult.messageId];
+        if (original) {
+          previousElement.style.backgroundColor = original.backgroundColor;
+          previousElement.style.color = original.color;
+          previousElement.style.border = original.border || '';
+        } else {
+          previousElement.style.backgroundColor = '';
+          previousElement.style.color = '';
+          previousElement.style.border = '';
+        }
+      }
+    }
+  };
+
+  // Função para destacar o resultado atual
+  const highlightCurrentResult = () => {
+    if (searchResults.length === 0 || currentSearchIndex === -1) return;
+    
+    // Limpar destaque anterior
+    clearPreviousHighlight();
+    
+    // Aplicar destaque azul em todas as mensagens encontradas (sem borda)
+    searchResults.forEach((result, index) => {
+      const element = document.querySelector(`[data-message-id="${result.messageId}"]`);
+      if (element) {
+        // Salvar estilos originais se ainda não foram salvos
+        if (!originalStyles[result.messageId]) {
+          const computedStyle = window.getComputedStyle(element);
+          setOriginalStyles(prev => ({
+            ...prev,
+            [result.messageId]: {
+              backgroundColor: computedStyle.backgroundColor,
+              color: computedStyle.color,
+              border: computedStyle.border
+            }
+          }));
+        }
+        
+        // Aplicar fundo azul em todas as mensagens encontradas
+        element.style.backgroundColor = 'var(--primary-color)';
+        element.style.color = 'white';
+        element.style.border = ''; // Sem borda para mensagens não focadas
+      }
+    });
+    
+    // Aplicar borda branca apenas na mensagem atualmente focada
+    const currentResult = searchResults[currentSearchIndex];
+    const currentElement = document.querySelector(`[data-message-id="${currentResult.messageId}"]`);
+    
+    if (currentElement) {
+      currentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      currentElement.style.border = '1px solid white'; // Borda branca apenas na mensagem focada
+    }
+  };
+
+  // Efeito para destacar o resultado atual quando o índice muda
+  useEffect(() => {
+    highlightCurrentResult();
+  }, [currentSearchIndex]);
+
+  // Efeito para focar no input de pesquisa quando abrir
+  useEffect(() => {
+    if (showSearch && searchInputRef) {
+      setTimeout(() => {
+        searchInputRef.focus();
+      }, 100);
+    }
+  }, [showSearch, searchInputRef]);
+
+  // Função para fechar a pesquisa
+  const closeSearch = () => {
+    // Limpar todos os destaques antes de fechar
+    searchResults.forEach(result => {
+      const element = document.querySelector(`[data-message-id="${result.messageId}"]`);
+      if (element) {
+        const original = originalStyles[result.messageId];
+        if (original) {
+          element.style.backgroundColor = original.backgroundColor;
+          element.style.color = original.color;
+          element.style.border = original.border || '';
+        } else {
+          element.style.backgroundColor = '';
+          element.style.color = '';
+          element.style.border = '';
+        }
+      }
+    });
+    
+    // Garantir que a mensagem atualmente focada também seja limpa
+    if (searchResults.length > 0 && currentSearchIndex >= 0 && currentSearchIndex < searchResults.length) {
+      const currentResult = searchResults[currentSearchIndex];
+      const currentElement = document.querySelector(`[data-message-id="${currentResult.messageId}"]`);
+      if (currentElement) {
+        const original = originalStyles[currentResult.messageId];
+        if (original) {
+          currentElement.style.backgroundColor = original.backgroundColor;
+          currentElement.style.color = original.color;
+          currentElement.style.border = original.border || '';
+        } else {
+          currentElement.style.backgroundColor = '';
+          currentElement.style.color = '';
+          currentElement.style.border = '';
+        }
+      }
+    }
+    
+    setShowSearch(false);
+    setSearchText('');
+    setSearchResults([]);
+    setCurrentSearchIndex(0);
+    setOriginalStyles({});
+  };
 
   return (
     <div className={`d-flex flex-column w-100 h-100 ms-2`} style={{ overflow: 'hidden' }}>
@@ -1497,6 +1676,14 @@ const handleImageUpload = async (event) => {
 
       <button
         className={`btn btn-2-${theme} d-flex gap-2`}
+        onClick={() => setShowSearch(!showSearch)}
+        title="Pesquisar na conversa"
+      >
+        <i className="bi bi-search"></i>
+      </button>
+
+      <button
+        className={`btn btn-2-${theme} d-flex gap-2`}
         onClick={isBotActive ? disableBot : undefined}
         disabled={!isBotActive}
         title={isBotActive ? "Desativar Bot" : "Bot Desativado"}
@@ -1589,8 +1776,105 @@ const handleImageUpload = async (event) => {
       maxHeight: '707.61px',
       overflow: 'hidden auto',
       border: '1px solid var(--border-color)',
+      position: 'relative',
     }}
   >
+    
+    {/* Campo de pesquisa flutuante */}
+    {showSearch && (
+      <div 
+        style={{
+          position: 'absolute',
+          top: 10,
+          right: 10,
+          zIndex: 1000,
+          backgroundColor: `var(--bg-color-${theme})`,
+          border: `1px solid var(--border-color-${theme})`,
+          borderRadius: 8,
+          padding: 12,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          minWidth: 320,
+        }}
+      >
+        <div className="d-flex align-items-center gap-2">
+          <div className="position-relative flex-grow-1">
+            <input
+              ref={setSearchInputRef}
+              type="text"
+              placeholder="Pesquisar na conversa..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className={`form-control form-control-sm input-${theme}`}
+              style={{ 
+                width: '100%', 
+                fontSize: 14,
+                color: `var(--color-${theme})`,
+                backgroundColor: `var(--bg-color-${theme})`,
+                borderColor: `var(--border-color-${theme})`
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  if (e.shiftKey) {
+                    navigateSearch('prev');
+                  } else {
+                    navigateSearch('next');
+                  }
+                } else if (e.key === 'Escape') {
+                  closeSearch();
+                }
+              }}
+            />
+            {searchResults.length > 0 && (
+              <div style={{ 
+                position: 'absolute', 
+                right: 8, 
+                top: '50%', 
+                transform: 'translateY(-50%)',
+                fontSize: 12,
+                color: `var(--color-${theme})`,
+                opacity: 0.7
+              }}>
+                {currentSearchIndex + 1}/{searchResults.length}
+              </div>
+            )}
+          </div>
+          
+          <button
+            className={`btn btn-sm btn-2-${theme}`}
+            onClick={() => navigateSearch('prev')}
+            disabled={searchResults.length === 0}
+            title="Anterior (Shift+Enter)"
+          >
+            <i className="bi bi-chevron-up"></i>
+          </button>
+          
+          <button
+            className={`btn btn-sm btn-2-${theme}`}
+            onClick={() => navigateSearch('next')}
+            disabled={searchResults.length === 0}
+            title="Próximo (Enter)"
+          >
+            <i className="bi bi-chevron-down"></i>
+          </button>
+          
+          <button
+            className={`btn btn-sm ${caseSensitive ? `btn-1-${theme}` : `btn-2-${theme}`}`}
+            onClick={() => setCaseSensitive(!caseSensitive)}
+            title="Case Sensitive"
+          >
+            <i className="bi bi-type-bold"></i>
+          </button>
+          
+          <button
+            className={`btn btn-sm btn-2-${theme}`}
+            onClick={closeSearch}
+            title="Fechar (Esc)"
+          >
+            <i className="bi bi-x"></i>
+          </button>
+        </div>
+      </div>
+    )}
   
   <div
     id="corpoTexto"
@@ -1640,6 +1924,7 @@ const handleImageUpload = async (event) => {
           }}
         >
           <div
+            data-message-id={msg.id}
             style={{
               backgroundColor: msg.from_me ? 'var(--hover)' : '#f1f0f0',
               textAlign: msg.from_me ? 'right' : 'left',
