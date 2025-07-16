@@ -16,6 +16,8 @@ import ChatsMenuLateral from './modalPages/Chats_menuLateral';
 import useUserPreferences from '../hooks/useUserPreferences';
 import useNotificationSound from '../hooks/useNotificationSound';
 import { useNavigate } from 'react-router-dom';
+import { Modal, Button, Form } from 'react-bootstrap';
+import QuickMsgManageModal from './modalPages/Chats_mensagensRapidas';
 
 function formatHour(timestamp) {
   const date = new Date(Number(timestamp));
@@ -311,6 +313,43 @@ function ChatPage({ theme, chat_id} ) {
   const { playNotificationSound, audioRef } = useNotificationSound();
   const navigate = useNavigate();
   const [userQueues, setUserQueues] = useState([])
+  const [showQuickMsgPopover, setShowQuickMsgPopover] = useState(false);
+  const quickMsgBtnRef = useRef();
+  const inputRef = useRef(null);
+  const [quickMsgIndex, setQuickMsgIndex] = useState(-1);
+
+  useEffect(() => {
+    if (!showQuickMsgPopover) setQuickMsgIndex(-1);
+  }, [showQuickMsgPopover, newMessage]);
+
+  const handleQuickMsgKeyDown = (e) => {
+    if (!showQuickMsgPopover || quickMsgFiltered.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setQuickMsgIndex(i => (i + 1) % quickMsgFiltered.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setQuickMsgIndex(i => (i - 1 + quickMsgFiltered.length) % quickMsgFiltered.length);
+    } else if (e.key === 'Enter' && quickMsgIndex >= 0) {
+      e.preventDefault();
+      handleQuickMsgClick(quickMsgFiltered[quickMsgIndex].mensagem, quickMsgFiltered[quickMsgIndex].comando);
+      setQuickMsgIndex(-1);
+    }
+  };
+
+  // Fecha popover ao clicar fora dele
+  useEffect(() => {
+    function handleClick(e) {
+      if (showQuickMsgPopover) {
+        const popover = document.getElementById('quickMsgPopover');
+        if (popover && !popover.contains(e.target) && quickMsgBtnRef.current && !quickMsgBtnRef.current.contains(e.target)) {
+          setShowQuickMsgPopover(false);
+        }
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showQuickMsgPopover]);
 
   useEffect(() => {
     if (!schema || !userData?.id) {
@@ -718,7 +757,6 @@ const disableBot = async () => {
       socketInstance.off('connect');
       socketInstance.off('chats_updated');
       socketInstance.off('chatTransferred');
-      // Sai da sala do schema ao desconectar
       socketInstance.emit('leave', `schema_${schema}`);
     }
   };
@@ -887,7 +925,6 @@ const AudioPlayer = ({ audioSrc, audioId, theme, isActive, onPlayClick }) => {
     ws.on('ready', () => {
       setDuration(ws.getDuration());
       setIsReady(true);
-      // Força o WaveSurfer a se redesenhar com o tamanho correto do contêiner
       window.dispatchEvent(new Event('resize'));
     });
 
@@ -1172,6 +1209,51 @@ const handleImageUpload = async (event) => {
     setSelectedImage(null);
   };
 
+  const handleQuickMsgClick = useCallback((msg, comando) => {
+    setNewMessage(prev => {
+      if (prev.startsWith('/')) {
+        // Substitui o comando digitado (da barra até espaço ou fim) pela mensagem
+        return prev.replace(/^\/[^\s]*/, msg);
+      }
+      return msg;
+    });
+    setShowQuickMsgPopover(false);
+    setTimeout(() => {
+      if (inputRef.current) inputRef.current.focus();
+    }, 0);
+  }, []);
+
+  // Exemplo de estrutura de mensagens rápidas com tipo e setor
+  const quickMsgOptions = [
+    { comando: '/boasvindas', mensagem: 'Seja bem vindo!', tipo: 'pessoal' },
+    { comando: '/obrigado', mensagem: 'Obrigado pelo contato!', tipo: 'pessoal' },
+    { comando: '/prazo', mensagem: 'O prazo de resposta é de até 24h.', tipo: 'setor', setor: 'Vendas' },
+    { comando: '/encerrar', mensagem: 'Encerrando o atendimento, conte sempre conosco.', tipo: 'setor', setor: 'Suporte' },
+    { comando: '/aguarde', mensagem: 'Por favor, aguarde um momento.', tipo: 'setor', setor: 'Vendas' }
+  ];
+  // Estado das mensagens rápidas para gerenciamento
+  const [quickMsgList, setQuickMsgList] = useState(quickMsgOptions);
+  const [showQuickMsgManage, setShowQuickMsgManage] = useState(false);
+
+  const quickMsgFilter = newMessage.startsWith('/') ? newMessage.slice(1).toLowerCase() : '';
+  const quickMsgFiltered = quickMsgFilter
+    ? quickMsgList.filter(opt => opt.comando.slice(1).toLowerCase().includes(quickMsgFilter))
+    : quickMsgList;
+
+  // Agrupamento por tipo e setor
+  const quickMsgByTipo = quickMsgFiltered.reduce((acc, msg) => {
+    if (msg.tipo === 'setor') {
+      if (!acc['setor']) acc['setor'] = {};
+      if (!acc['setor'][msg.setor]) acc['setor'][msg.setor] = [];
+      acc['setor'][msg.setor].push(msg);
+    } else {
+      if (!acc['pessoal']) acc['pessoal'] = [];
+      acc['pessoal'].push(msg);
+    }
+    return acc;
+  }, {});
+  const tiposOrdem = ['pessoal', 'setor'];
+
   return (
     <div className={`d-flex flex-column w-100 h-100 ms-2`} style={{ overflow: 'hidden' }}>
       <audio ref={audioRef} src="/notification.mp3" preload="auto" />
@@ -1402,7 +1484,6 @@ const handleImageUpload = async (event) => {
   <div>
     <button
       className={`btn btn-2-${theme} d-flex gap-2`}
-      // AQUI VEM O ON CLICK DO ACCEPT
       onClick={handleAcceptChat}
     >
       <i className="bi bi-check2"></i>
@@ -1638,20 +1719,224 @@ const handleImageUpload = async (event) => {
       height: '70px',
     }}
   >
-<button
-  id="imagem"
-  className={`btn btn-2-${theme}`}
-  onClick={() => document.getElementById('imageInput').click()} 
->
-  <i className="bi bi-image"></i>
-</button>
-<input
-  id="imageInput"
-  type="file"
-  accept="image/*"
-  style={{ display: 'none' }} 
-  onChange={handleImageUpload}
-/>
+<div style={{ display: 'flex', alignItems: 'center', gap: '4px', position: 'relative' }}>
+  <button
+    id="imagem"
+    className={`btn btn-2-${theme}`}
+    onClick={() => document.getElementById('imageInput').click()} 
+  >
+    <i className="bi bi-image"></i>
+  </button>
+  <input
+    id="imageInput"
+    type="file"
+    accept="image/*"
+    style={{ display: 'none' }} 
+    onChange={handleImageUpload}
+  />
+  <button
+    ref={quickMsgBtnRef}
+    className={`btn btn-2-${theme}`}
+    style={{}}
+    title="Mensagens rápidas"
+    onClick={() => setShowQuickMsgPopover(v => !v)}
+  >
+    <i className="bi bi-lightning-charge"></i>
+  </button>
+  {showQuickMsgPopover && (
+    <div
+      id="quickMsgPopover"
+      style={{
+        position: 'absolute',
+        left: 0,
+        bottom: '100%',
+        marginBottom: 8,
+        minWidth: 340,
+        background: `var(--bg-color-${theme})`,
+        color: `var(--color-${theme})`,
+        border: `1px solid var(--border-color-${theme})`,
+        borderRadius: 8,
+        boxShadow: '0 2px 8px var(--shadow-color, rgba(0,0,0,0.12))',
+        zIndex: 1000,
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 38, fontSize: 15, fontWeight: 600, padding: '0 8px 0 12px' }}>
+        <span>Mensagens Rápidas</span>
+        <button
+          type="button"
+          className={`btn btn-2-${theme} d-flex align-items-center justify-content-center`}
+          style={{
+            width: 21,
+            height: 21,
+            padding: 0,
+            margin: 0,
+            border: `none`,
+            background: `var(--bg-color-${theme})`,
+            color: `var(--primary-color)`,
+            boxShadow: 'none',
+            transition: 'background 0.2s, color 0.2s'
+          }}
+          title="Gerenciar"
+          onClick={() => setShowQuickMsgManage(true)}
+        >
+          <i className="bi bi-gear" style={{ fontSize: 14 }}></i>
+        </button>
+      </div>
+      <div style={{ fontSize: 13, color: `var(--color-${theme})`, borderTop: '1px solid var(--border-color)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, maxHeight: 400, overflowY: 'auto' }}>
+          {quickMsgFiltered.length === 0 && (
+            <div style={{ padding: '18px 0', textAlign: 'center', color: '#888', fontSize: 15 }}>Nenhuma mensagem encontrada</div>
+          )}
+          {tiposOrdem.map(tipo => (
+            tipo === 'pessoal' && quickMsgByTipo.pessoal && quickMsgByTipo.pessoal.length > 0 && (
+              <div key="pessoal">
+                <div style={{ fontWeight: 700, fontSize: 12, color: '#888', padding: '4px 12px 2px 12px', textTransform: 'uppercase', letterSpacing: 0.5, borderTop: `1px solid var(--placeholder-color)` }}>PESSOAL</div>
+                {quickMsgByTipo.pessoal.map((item, idx) => (
+                  <div
+                    key={item.comando}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0,
+                      position: 'relative',
+                      cursor: 'pointer',
+                      background: 'none',
+                      transition: 'background 0.15s',
+                      padding: '4px 0',
+                      borderBottom: idx === quickMsgByTipo.pessoal.length-1 ? 'none' : `1px solid var(--border-color-${theme})`,
+                      minHeight: 38,
+                      userSelect: 'none',
+                    }}
+                    onMouseOver={e => { e.currentTarget.style.background = 'var(--hover)'; e.currentTarget.style.color = `var(--bg-color-dark)` }}
+                    onMouseOut={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = `var(--color-${theme})` }}
+                  >
+                    <span
+                      style={{
+                        fontWeight: 600,
+                        color: 'var(--primary-color)',
+                        minWidth: 100,
+                        fontSize: 11,
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        height: '100%',
+                        cursor: 'pointer',
+                      }}
+                      onClick={() => {
+                        setIsRecording(false);
+                        setNewMessage(item.mensagem);
+                        setShowQuickMsgPopover(false);
+                        setTimeout(() => {
+                          if (inputRef.current) inputRef.current.focus();
+                        }, 0);
+                      }}
+                    >{item.comando}</span>
+                    <span
+                      style={{
+                        color: 'var(--secondary-color)',
+                        fontSize: 13,
+                        opacity: 0.95,
+                        flex: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: '0 12px',
+                        height: '100%',
+                        cursor: 'pointer',
+                      }}
+                      onClick={e => {
+                        setIsRecording(false);
+                        setNewMessage(item.mensagem);
+                        setTimeout(() => {
+                          if (inputRef.current) inputRef.current.focus();
+                        }, 0);
+                      }}
+                    >
+                      {item.mensagem.length > 30 ? item.mensagem.slice(0, 30) + '...' : item.mensagem}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )
+            ||
+            tipo === 'setor' && quickMsgByTipo.setor && Object.keys(quickMsgByTipo.setor).length > 0 && (
+              Object.entries(quickMsgByTipo.setor).map(([setor, msgs]) => (
+                <div key={setor}>
+                  <div style={{ fontWeight: 700, fontSize: 12, color: '#888', padding: '4px 12px 2px 12px', textTransform: 'uppercase', letterSpacing: 0.5, borderTop: `1px solid var(--placeholder-color)` }}>SETOR • {setor}</div>
+                  {msgs.map((item, idx) => (
+                    <div
+                      key={item.comando}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0,
+                        position: 'relative',
+                        cursor: 'pointer',
+                        background: 'none',
+                        transition: 'background 0.15s',
+                        padding: '4px 0',
+                        borderBottom: idx === msgs.length-1 ? 'none' : `1px solid var(--border-color-${theme})`,
+                        minHeight: 38,
+                        userSelect: 'none',
+                      }}
+                      onMouseOver={e => { e.currentTarget.style.background = 'var(--hover)'; e.currentTarget.style.color = `var(--bg-color-dark)` }}
+                      onMouseOut={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = `var(--color-${theme})` }}
+                    >
+                      <span
+                        style={{
+                          fontWeight: 600,
+                          color: 'var(--primary-color)',
+                          minWidth: 100,
+                          fontSize: 11,
+                          display: 'flex',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          height: '100%',
+                          cursor: 'pointer',
+                        }}
+                        onClick={() => {
+                          setIsRecording(false);
+                          setNewMessage(item.mensagem);
+                          setShowQuickMsgPopover(false);
+                          setTimeout(() => {
+                            if (inputRef.current) inputRef.current.focus();
+                          }, 0);
+                        }}
+                      >{item.comando}</span>
+                      <span
+                        style={{
+                          color: 'var(--secondary-color)',
+                          fontSize: 13,
+                          opacity: 0.95,
+                          flex: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '0 12px',
+                          height: '100%',
+                          cursor: 'pointer',
+                        }}
+                        onClick={e => {
+                          setIsRecording(false);
+                          setNewMessage(item.mensagem);
+                          setTimeout(() => {
+                            if (inputRef.current) inputRef.current.focus();
+                          }, 0);
+                        }}
+                      >
+                        {item.mensagem.length > 30 ? item.mensagem.slice(0, 30) + '...' : item.mensagem}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ))
+            )
+          ))}
+        </div>
+      </div>
+    </div>
+  )}
+</div>
     <div
       id="campoEscrever"
       className={`py-0 px-2 form-control input-${theme} d-flex flex-row gap-2`}
@@ -1680,14 +1965,28 @@ const handleImageUpload = async (event) => {
         )}
       </div>
 
-            <input
+        <input
+        ref={inputRef}
+        className={`form-control input-${theme} d-flex flex-row gap-2 px-0 py-0`}
         type="text"
         placeholder={isRecording ? '' : 'Digite sua mensagem...'}
         value={isRecording ? '' : newMessage}
-        onChange={(e) => setNewMessage(e.target.value)}
-        disabled={isRecording}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' && !isRecording) {
+        onChange={e => {
+          setNewMessage(e.target.value);
+          if (e.target.value.startsWith('/') && !showQuickMsgPopover) {
+            setShowQuickMsgPopover(true);
+          } else if (!e.target.value.startsWith('/') && showQuickMsgPopover) {
+            setShowQuickMsgPopover(false);
+          }
+        }}
+        onFocus={e => {
+          if (e.target.value.startsWith('/')) {
+            setShowQuickMsgPopover(true);
+          }
+        }}
+        onKeyDown={e => {
+          handleQuickMsgKeyDown(e);
+          if (e.key === 'Enter' && !isRecording && quickMsgIndex === -1) {
             handleSubmit(newMessage);
             handleSendMessage();
           }
@@ -1781,9 +2080,22 @@ const handleImageUpload = async (event) => {
         onHide={() => setShowNewContactModal(false)}
       />
 
+      <QuickMsgManageModal
+        theme={theme}
+        show={showQuickMsgManage}
+        onHide={() => setShowQuickMsgManage(false)}
+        mensagens={quickMsgList}
+        setMensagens={setQuickMsgList}
+      />
       
     </div>
   );
 }
 
-export default ChatPage;
+function ChatPageWithProvider(props) {
+  return (
+    <ChatPage {...props} />
+  );
+}
+
+export default ChatPageWithProvider;
