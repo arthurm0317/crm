@@ -313,7 +313,7 @@ function QuickMsgManageModal({ theme, show, onHide, mensagens, setMensagens }) {
                     </>
                   ) : (
                     // Exibição truncada
-                    msg.mensagem.length > 30 ? msg.mensagem.slice(0, 30) + '...' : msg.mensagem
+                    msg.mensagem.length > 200 ? msg.mensagem.slice(0, 200) + '...' : msg.mensagem
                   )}
                 </div>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center' }}>
@@ -396,6 +396,23 @@ function QuickMsgManageModal({ theme, show, onHide, mensagens, setMensagens }) {
                   disabled={editIndex !== null}
                 />
               </Form.Group>
+              <Form.Group className="col-auto" style={{ minWidth: 120 }}>
+                <Form.Label style={{ fontSize: 13, fontWeight: 500, marginBottom: 2, color: `var(--color-${theme})` }}>Variáveis</Form.Label>
+                <div className="d-flex flex-column gap-1">
+                  {variaveisFixas.map(v => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      className={`btn btn-2-${theme} btn-sm`}
+                      style={{ fontSize: 12, padding: '4px 8px', minWidth: 'auto', border: `1px solid var(--border-color-${theme})` }}
+                      tabIndex={-1}
+                      onClick={() => insertVariableNoCampo('mensagemCampo', val => setForm(f => ({ ...f, mensagem: val })), v.field_name)}
+                    >
+                      {`{{${v.label}}}`}
+                    </button>
+                  ))}
+                </div>
+              </Form.Group>
               <div className="col-auto d-flex align-items-end" style={{ minWidth: 120, paddingBottom: 0 }}>
                 <Button
                   variant="secondary"
@@ -412,22 +429,6 @@ function QuickMsgManageModal({ theme, show, onHide, mensagens, setMensagens }) {
                   Adicionar
                 </Button>
               </div>
-            </div>
-            {/* Botões de variáveis */}
-            <div className="d-flex gap-1 align-items-center mt-2">
-              <span style={{ fontSize: 11, color: 'var(--color-'+theme+')' }}>Vars:</span>
-              {variaveisFixas.map(v => (
-                <button
-                  key={v.id}
-                  type="button"
-                  className={`btn btn-2-${theme} btn-sm`}
-                  style={{ fontSize: 10, padding: '2px 6px', minWidth: 'auto' }}
-                  tabIndex={-1}
-                  onClick={() => insertVariableNoCampo('mensagemCampo', val => setForm(f => ({ ...f, mensagem: val })), v.field_name)}
-                >
-                  {`{{${v.label}}}`}
-                </button>
-              ))}
             </div>
           </Form>
         </Modal.Footer>
