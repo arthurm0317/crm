@@ -43,6 +43,7 @@ function DisparosPage({ theme }) {
   const schema = userData?.schema
   const url = process.env.REACT_APP_URL;
   const [disparos, setDisparos] = useState([]);
+  const [conexoes, setConexoes] = useState([]);
 
   const formatarDataHora = (dataHoraString) => {
     const data = new Date(dataHoraString);
@@ -85,6 +86,22 @@ function DisparosPage({ theme }) {
       }
     }
     fetchDisparos();
+  }, [url, schema])
+
+  useEffect(() => {
+    const fetchConexoes = async()=>{
+      try{
+        const response = await axios.get(`${url}/connection/get-all-connections/${schema}`,
+        {
+      withCredentials: true
+    })
+        setConexoes(Array.isArray(response.data) ? response.data : []);
+      }catch(error){
+        console.error('Erro ao buscar conexões:', error);
+        setConexoes([]);
+      }
+    }
+    fetchConexoes();
   }, [url, schema])
   
   // Inicialização dos tooltips
@@ -222,6 +239,23 @@ function DisparosPage({ theme }) {
                 <div className={`header-text-${theme} mb-1`}>
                   Intervalo: <span className={`fw-bold`}>
                     {formatInterval(disparo.timer)}
+                  </span>
+                </div>
+                <div className={`header-text-${theme} mb-1`}>
+                  Canais: <span className={`fw-bold`}>
+                    {disparo.connection_id ? 
+                      (Array.isArray(disparo.connection_id) ? 
+                        disparo.connection_id.map(id => {
+                          const conexao = conexoes.find(conn => conn.id === id);
+                          return conexao ? conexao.name : `Canal ID: ${id}`;
+                        }).join(', ') :
+                        disparo.connection_id.split(',').map(id => {
+                          const conexao = conexoes.find(conn => conn.id === id.trim());
+                          return conexao ? conexao.name : `Canal ID: ${id.trim()}`;
+                        }).join(', ')
+                      ) : 
+                      'Nenhum canal'
+                    }
                   </span>
                 </div>
                 <div className={`header-text-${theme}`}>

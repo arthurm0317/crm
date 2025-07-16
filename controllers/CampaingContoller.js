@@ -31,7 +31,7 @@ const getCampaingsController = async (req, res) => {
 const getCampaingByIdController = async (req, res) => {
   const { campaing_id, schema } = req.params;
   try {
-    const result = await getCampaingById(campaing_id, schema.schema);
+    const result = await getCampaingById(campaing_id, schema);
     res.status(200).json(result);
   } catch (error) {
     console.error(error);

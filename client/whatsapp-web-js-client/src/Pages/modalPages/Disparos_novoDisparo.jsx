@@ -9,7 +9,8 @@ function DisparoModal({ theme, disparo = null, onSave }) {
   const [mensagens, setMensagens] = useState([
   { text: '', image: null },
 ]); 
-  const [canal, setCanal] = useState('');
+  const [canais, setCanais] = useState([]);
+  const [showCanalDropdown, setShowCanalDropdown] = useState(false);
   const [tipoAlvo, setTipoAlvo] = useState('Funil');
   const [funilSelecionado, setFunilSelecionado] = useState('');
   const [funis, setFunis] = useState([]);
@@ -65,7 +66,32 @@ const limparBase64 = (base64ComPrefixo) => {
     }
 
     setTitulo(disparo.campaing_name || '');
-    setCanal(disparo.connection_id || '');
+    // Buscar conexões da campanha
+    const fetchCampaingConns = async()=>{
+      try {
+        const response = await axios.get(`${url}/campaing/get-campaing/${disparo.id}/${schema}`,
+          {
+            withCredentials: true
+          }
+        )
+        // Garantir que sempre seja um array
+        let conexoesArray;
+        if (Array.isArray(response.data.connections)) {
+          conexoesArray = response.data.connections;
+        } else if (response.data.connections) {
+          conexoesArray = [response.data.connections];
+        } else {
+          conexoesArray = [];
+        }
+                
+        // Extrair apenas os connection_ids para o array canais
+        const connectionIds = conexoesArray.map(conn => conn.connection_id);
+        setCanais(connectionIds)
+      } catch (error) {
+        setCanais([])
+      }
+    }
+    fetchCampaingConns()
     setTipoAlvo(disparo.tipoAlvo || 'Funil');
     setFunilSelecionado(disparo.sector || '');
     setEtapa(disparo.kanban_stage);
@@ -116,7 +142,8 @@ const limparBase64 = (base64ComPrefixo) => {
     setNumMensagens(1);
     setMensagens([{ text: '', image: null }]);
     setMensagensImagens([null]);
-    setCanal('');
+    setCanais([]);
+    setShowCanalDropdown(false);
     setTipoAlvo('Funil');
     setFunilSelecionado('');
     setEtapa('');
@@ -162,6 +189,8 @@ const limparBase64 = (base64ComPrefixo) => {
     };
     fetchFunis();
   }, [url, schema]);
+
+
 
   useEffect(() => {
     if (!funilSelecionado) {
@@ -276,7 +305,7 @@ const limparBase64 = (base64ComPrefixo) => {
 
 
   const handleSave = async () => {
-    if (!titulo || !canal || !dataInicio || !horaInicio || mensagens.some(msg => !msg.text)) {
+    if (!titulo || !canais.length || !dataInicio || !horaInicio || mensagens.some(msg => !msg.text)) {
       console.error('Preencha todos os campos obrigatórios.');
       return;
     }
@@ -305,7 +334,7 @@ const limparBase64 = (base64ComPrefixo) => {
 
   const disparoData = {
     name: titulo,
-    connection_id: canal,
+    connection_id: canais, // Envia array de strings!
     sector: funilSelecionado.charAt(0).toLowerCase() + funilSelecionado.slice(1),
     kanban_stage: etapa,
     start_date,
@@ -495,25 +524,54 @@ const limparBase64 = (base64ComPrefixo) => {
             <div className="row">
               {/* Coluna da Esquerda */}
               <div className="col-6 d-flex flex-column justify-content-center">
-                {/* Canal */}
+                {/* Canais */}
                 <div className="mb-3">
-                  <label htmlFor="canal" className={`form-label card-subtitle-${theme}`}>
-                    Canal
-                  </label>
-                  <select
-                    className={`form-select input-${theme}`}
-                    id="canal"
-                    value={canal}
-                    onChange={(e) => setCanal(e.target.value)}
-                    disabled={!isAdmin}
-                  >
-                    <option value="" disabled>Selecione um canal</option>
-                    {Array.isArray(conexao) && conexao.map((conn) => (
-                      <option key={conn.number} value={conn.id}>
-                        {conn.name}
-                      </option>
+                  <label className={`form-label card-subtitle-${theme}`}>Canais</label>
+                  <div className="d-flex flex-column gap-2">
+                    {canais.map((canalId, idx) => (
+                      <div key={idx} className="d-flex align-items-center gap-2">
+                        <select
+                          className={`form-select input-${theme}`}
+                          value={canalId}
+                          onChange={e => {
+                            const novoId = e.target.value;
+                            if (!canais.includes(novoId)) {
+                              setCanais(prev => prev.map((id, i) => i === idx ? novoId : id));
+                            }
+                          }}
+                          disabled={!isAdmin}
+                        >
+                          <option value="">Selecione um canal</option>
+                          {conexao.filter(conn => conn.id === canalId || !canais.includes(conn.id)).map(conn => (
+                            <option key={conn.id} value={conn.id}>{conn.name}</option>
+                          ))}
+                        </select>
+                        {canais.length > 1 && (
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-danger"
+                            onClick={() => setCanais(prev => prev.filter((_, i) => i !== idx))}
+                          >
+                            <i className="bi bi-x"></i>
+                          </button>
+                        )}
+                      </div>
                     ))}
-                  </select>
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary mt-2"
+                      onClick={() => {
+                        // Adiciona o primeiro canal disponível não selecionado
+                        const disponiveis = conexao.filter(conn => !canais.includes(conn.id));
+                        if (disponiveis.length > 0) {
+                          setCanais(prev => [...prev, disponiveis[0].id]); // SEM parseInt!
+                        }
+                      }}
+                      disabled={canais.length >= conexao.length || !isAdmin}
+                    >
+                      + Adicionar canal
+                    </button>
+                  </div>
                 </div>
                 {/* Tipo de Alvo com Seleção de Funil */}
                 <div className="mb-3">

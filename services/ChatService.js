@@ -15,21 +15,21 @@ const messageQueue = new Queue('message', {connection: bullConn});
 const worker = new Worker(
   'message',
   async (job) => {
-    try {
-      await sendTextMessage(
-        job.data.instance,
-        job.data.message,
-        job.data.contact_phone
+        try {
+          await sendTextMessage(
+            job.data.instance,
+            job.data.message,
+            job.data.contact_phone
+          )
+          await saveMessage(job.data.chat_id, job.data.messageDB, job.data.schema)
+          await deleteScheduledMessage(job.data.id, job.data.schema);
+        } catch (error) {
+          console.error(error)
+        }
+              },{
+          connection: bullConn,
+        }
       )
-      await saveMessage(job.data.chat_id, job.data.messageDB, job.data.schema)
-      await deleteScheduledMessage(job.data.id, job.data.schema);
-    } catch (error) {
-      console.error(error)
-    }
-  },{
-    connection: bullConn,
-  }
-)
 
 const createChat = async (chat, instance, message, etapa, io) => {
   let schema;
@@ -560,6 +560,11 @@ const disableBot = async(chat_id, schema)=>{
   }
 }
 
+const updateChatConnection = async (chat_id, connection_id, schema) => {
+    const result = await pool.query(`UPDATE ${schema}.chats set connection_id=$1 where id=$2 RETURNING *`, [connection_id, chat_id])
+    return result.rows[0]
+  }
+
 module.exports = {
   createChat,
   updateChatMessages,
@@ -583,5 +588,6 @@ module.exports = {
   scheduleMessage,
   getScheduledMessages,
   deleteScheduledMessage,
-  disableBot
+  disableBot,
+  updateChatConnection
 };
