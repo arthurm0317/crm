@@ -1209,30 +1209,54 @@ const handleImageUpload = async (event) => {
     setSelectedImage(null);
   };
 
+  // Função para substituir placeholders nas mensagens rápidas
+  const replacePlaceholders = (message, chat) => {
+    if (!chat) return message;
+    
+    return message
+      .replace(/\{\{nome\}\}/g, chat.contact_name || 'Cliente')
+      .replace(/\{\{telefone\}\}/g, chat.contact_phone || '');
+  };
+
   const handleQuickMsgClick = useCallback((msg, comando) => {
+    const messageWithPlaceholders = replacePlaceholders(msg, selectedChat);
     setNewMessage(prev => {
       if (prev.startsWith('/')) {
         // Substitui o comando digitado (da barra até espaço ou fim) pela mensagem
-        return prev.replace(/^\/[^\s]*/, msg);
+        return prev.replace(/^\/[^\s]*/, messageWithPlaceholders);
       }
-      return msg;
+      return messageWithPlaceholders;
     });
     setShowQuickMsgPopover(false);
     setTimeout(() => {
       if (inputRef.current) inputRef.current.focus();
     }, 0);
-  }, []);
+  }, [selectedChat]);
 
-  // Exemplo de estrutura de mensagens rápidas com tipo e setor
-  const quickMsgOptions = [
-    { comando: '/boasvindas', mensagem: 'Seja bem vindo!', tipo: 'pessoal' },
-    { comando: '/obrigado', mensagem: 'Obrigado pelo contato!', tipo: 'pessoal' },
-    { comando: '/prazo', mensagem: 'O prazo de resposta é de até 24h.', tipo: 'setor', setor: 'Vendas' },
-    { comando: '/encerrar', mensagem: 'Encerrando o atendimento, conte sempre conosco.', tipo: 'setor', setor: 'Suporte' },
-    { comando: '/aguarde', mensagem: 'Por favor, aguarde um momento.', tipo: 'setor', setor: 'Vendas' }
-  ];
+  // Carregar mensagens rápidas do backend
+  useEffect(() => {
+    async function fetchQuickMessages() {
+      try {
+        const res = await axios.get(`${url}/qmessage/get-q-messages-by-user/${userData.id}/${schema}`, { withCredentials: true });
+        const msgs = (res.data.result || []).map(msg => ({
+          comando: msg.shortcut || `/msg${msg.id.slice(0, 4)}`,
+          mensagem: msg.value,
+          tipo: msg.tag,
+          setor: msg.queue_id ? (queues.find(q => q.id === msg.queue_id)?.name || queues.find(q => q.id === msg.queue_id)?.nome || '') : '',
+          id: msg.id
+        }));
+        setQuickMsgList(msgs);
+      } catch (err) {
+        console.error('Erro ao buscar mensagens rápidas:', err);
+        setQuickMsgList([]);
+      }
+    }
+    fetchQuickMessages();
+  }, [schema, url, queues]);
+
+
   // Estado das mensagens rápidas para gerenciamento
-  const [quickMsgList, setQuickMsgList] = useState(quickMsgOptions);
+  const [quickMsgList, setQuickMsgList] = useState([]);
   const [showQuickMsgManage, setShowQuickMsgManage] = useState(false);
 
   const quickMsgFilter = newMessage.startsWith('/') ? newMessage.slice(1).toLowerCase() : '';
@@ -1824,14 +1848,10 @@ const handleImageUpload = async (event) => {
                         height: '100%',
                         cursor: 'pointer',
                       }}
-                      onClick={() => {
-                        setIsRecording(false);
-                        setNewMessage(item.mensagem);
-                        setShowQuickMsgPopover(false);
-                        setTimeout(() => {
-                          if (inputRef.current) inputRef.current.focus();
-                        }, 0);
-                      }}
+                                              onClick={() => {
+                          setIsRecording(false);
+                          handleQuickMsgClick(item.mensagem, item.comando);
+                        }}
                     >{item.comando}</span>
                     <span
                       style={{
@@ -1847,10 +1867,7 @@ const handleImageUpload = async (event) => {
                       }}
                       onClick={e => {
                         setIsRecording(false);
-                        setNewMessage(item.mensagem);
-                        setTimeout(() => {
-                          if (inputRef.current) inputRef.current.focus();
-                        }, 0);
+                        handleQuickMsgClick(item.mensagem, item.comando);
                       }}
                     >
                       {item.mensagem.length > 30 ? item.mensagem.slice(0, 30) + '...' : item.mensagem}
@@ -1897,11 +1914,7 @@ const handleImageUpload = async (event) => {
                         }}
                         onClick={() => {
                           setIsRecording(false);
-                          setNewMessage(item.mensagem);
-                          setShowQuickMsgPopover(false);
-                          setTimeout(() => {
-                            if (inputRef.current) inputRef.current.focus();
-                          }, 0);
+                          handleQuickMsgClick(item.mensagem, item.comando);
                         }}
                       >{item.comando}</span>
                       <span
