@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form, InputGroup } from 'react-bootstrap';
-
+import axios from 'axios';
 // Força a largura do modal-xxl para 75vw
 const modalStyle = `
     .modal {
@@ -12,8 +12,12 @@ const setoresFicticios = ['Vendas', 'Suporte', 'Financeiro', 'RH'];
 
 function QuickMsgManageModal({ theme, show, onHide, mensagens, setMensagens }) {
   const [editIndex, setEditIndex] = useState(null);
-  const [form, setForm] = useState({ comando: '', mensagem: '', tipo: 'pessoal', setor: setoresFicticios[0] });
-  const [formEdit, setFormEdit] = useState({ comando: '', mensagem: '', tipo: 'pessoal', setor: setoresFicticios[0] });
+  const [form, setForm] = useState({ comando: '', mensagem: '', tipo: 'pessoal', setor: '' });
+  const [formEdit, setFormEdit] = useState({ comando: '', mensagem: '', tipo: 'pessoal', setor: '' });
+  const [filas, setFilas] = useState([]);
+   const url = process.env.REACT_APP_URL;
+  const userData = JSON.parse(localStorage.getItem('user'));
+  const schema = userData.schema
 
   useEffect(() => {
     if (editIndex !== null && mensagens[editIndex]) {
@@ -21,7 +25,7 @@ function QuickMsgManageModal({ theme, show, onHide, mensagens, setMensagens }) {
         comando: mensagens[editIndex].comando,
         mensagem: mensagens[editIndex].mensagem,
         tipo: mensagens[editIndex].tipo,
-        setor: mensagens[editIndex].setor || setoresFicticios[0],
+        setor: mensagens[editIndex].setor || '',
       });
     }
   }, [editIndex, mensagens]);
@@ -31,42 +35,124 @@ function QuickMsgManageModal({ theme, show, onHide, mensagens, setMensagens }) {
     setForm(f => ({ ...f, [name]: value }));
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.comando.startsWith('/')) return;
-    if (editIndex !== null) {
-      const novas = mensagens.slice();
-      novas[editIndex] = { ...form };
-      setMensagens(novas);
-    } else {
-      setMensagens([...mensagens, { ...form }]);
+    try {
+      // Monta o payload conforme esperado pelo backend
+      const payload = {
+        type: form.tipo,
+        queue_id: form.setor,
+        user_id: userData.id,
+        message: form.mensagem,
+        is_command_on: true, // ou false, se quiser permitir desativar
+        shortcut: form.comando,
+        schema: schema
+      };
+      await axios.post(`${url}/qmessage/create-q-message`, payload, { withCredentials: true });
+      // Atualiza a lista após criar
+      const res = await axios.get(`${url}/qmessage/get-q-messages-by-user/${userData.id}/${schema}`, { withCredentials: true });
+      const msgs = (res.data.result || []).map(msg => ({
+        comando: msg.shortcut || `/msg${msg.id.slice(0, 4)}`,
+        mensagem: msg.value,
+        tipo: msg.tag,
+        setor: filas.find(f => f.id === msg.queue_id)?.name || '',
+        id: msg.id
+      }));
+      setMensagens(msgs);
+    } catch (err) {
+      // erro silencioso
     }
     setEditIndex(null);
-    setForm({ comando: '', mensagem: '', tipo: 'pessoal', setor: setoresFicticios[0] });
+    setForm({ comando: '', mensagem: '', tipo: 'pessoal', setor: '' });
   }
 
   function handleEdit(idx) {
     setEditIndex(idx);
   }
 
-  function handleDelete(idx) {
+  async function handleDelete(idx) {
     if (!window.confirm('Tem certeza que deseja excluir esta mensagem rápida? Esta ação é irreversível.')) return;
-    setMensagens(mensagens.filter((_, i) => i !== idx));
+    try {
+      const msg = mensagens[idx];
+      await axios.delete(`${url}/qmessage/delete-q-message/${msg.id}/${schema}`, { withCredentials: true });
+      // Atualiza a lista após deletar
+      const res = await axios.get(`${url}/qmessage/get-q-messages-by-user/${userData.id}/${schema}`, { withCredentials: true });
+      const msgs = (res.data.result || []).map(msg => ({
+        comando: msg.shortcut || `/msg${msg.id.slice(0, 4)}`,
+        mensagem: msg.value,
+        tipo: msg.tag,
+        setor: filas.find(f => f.id === msg.queue_id)?.name || '',
+        id: msg.id
+      }));
+      setMensagens(msgs);
+    } catch (err) {
+      // erro silencioso
+    }
     setEditIndex(null);
   }
 
   function handleCancel() {
     setEditIndex(null);
-    setForm({ comando: '', mensagem: '', tipo: 'pessoal', setor: setoresFicticios[0] });
+    setForm({ comando: '', mensagem: '', tipo: 'pessoal', setor: '' });
   }
 
-  function handleSaveEdit(idx) {
+  async function handleSaveEdit(idx) {
     if (!formEdit.comando.startsWith('/')) return;
-    const novas = mensagens.slice();
-    novas[idx] = { ...formEdit };
-    setMensagens(novas);
+    try {
+      const payload = {
+        quick_message_id: mensagens[idx].id,
+        type: formEdit.tipo,
+        queue_id: formEdit.tipo === 'setor' ? formEdit.setor : null,
+        message: formEdit.mensagem,
+        shortcut: formEdit.comando,
+        schema: schema
+      };
+      await axios.put(`${url}/qmessage/update-q-message`, payload, { withCredentials: true });
+      // Atualiza a lista após editar
+      const res = await axios.get(`${url}/qmessage/get-q-messages-by-user/${userData.id}/${schema}`, { withCredentials: true });
+      const msgs = (res.data.result || []).map(msg => ({
+        comando: msg.shortcut || `/msg${msg.id.slice(0, 4)}`,
+        mensagem: msg.value,
+        tipo: msg.tag,
+        setor: filas.find(f => f.id === msg.queue_id)?.name || '',
+        id: msg.id
+      }));
+      setMensagens(msgs);
+    } catch (err) {
+      // erro silencioso
+    }
     setEditIndex(null);
   }
+  useEffect(() => {
+    async function fetchQuickMessages() {
+      try {
+        const res = await axios.get(`${url}/qmessage/get-q-messages-by-user/${userData.id}/${schema}`, { withCredentials: true });
+        const msgs = (res.data.result || []).map(msg => ({
+          comando: msg.shortcut || `/msg${msg.id.slice(0, 4)}`,
+          mensagem: msg.value,
+          tipo: msg.tag,
+          setor: filas.find(f => f.id === msg.queue_id)?.name || '',
+          id: msg.id
+        }));
+        setMensagens(msgs);
+      } catch (err) {
+        setMensagens([]);
+      }
+    }
+    fetchQuickMessages();
+  }, [schema, url, filas]);
 
+  useEffect(() => {
+    async function fetchFilas() {
+      try {
+        const res = await axios.get(`${url}/queue/get-all-queues/${schema}`, { withCredentials: true });
+        setFilas(res.data.result || []);
+      } catch (err) {
+        setFilas([]);
+      }
+    }
+    fetchFilas();
+  }, [schema, url]);
   return (
     <>
       <style>{modalStyle}</style>
@@ -176,7 +262,8 @@ function QuickMsgManageModal({ theme, show, onHide, mensagens, setMensagens }) {
                           style={{ color: `var(--color-${theme})`, background: `var(--bg-color-${theme})`, borderColor: `var(--border-color-${theme})`, minWidth: 90 }}
                           onChange={e => setFormEdit(f => ({ ...f, setor: e.target.value }))}
                         >
-                          {setoresFicticios.map(s => <option key={s} value={s}>{s}</option>)}
+                          <option value="">Selecione o setor</option>
+                          {filas.map(f => <option key={f.id} value={f.id}>{f.name || f.nome}</option>)}
                         </Form.Select>
                       )}
                       <textarea
@@ -237,7 +324,8 @@ function QuickMsgManageModal({ theme, show, onHide, mensagens, setMensagens }) {
                     onChange={e => setForm(f => ({ ...f, setor: e.target.value }))}
                     disabled={editIndex !== null}
                   >
-                    {setoresFicticios.map(s => <option key={s} value={s}>{s}</option>)}
+                    <option value="">Selecione o setor</option>
+                    {filas.map(f => <option key={f.id} value={f.id}>{f.name || f.nome}</option>)}
                   </Form.Select>
                 </Form.Group>
               )}

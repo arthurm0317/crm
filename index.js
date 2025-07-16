@@ -18,6 +18,8 @@ const excelRoutes = require('./routes/ExcelRoutes');
 const lembreteRoutes = require('./routes/LembretesRoutes');
 const preferenceRoutes = require('./routes/UserPreferencesRoutes');
 const passportRoutes = require('./routes/PassportRoutes')
+const qMessagesRoutes = require('./routes/QuickMessagesRoutes')
+
 const { setGlobalSocket } = require('./services/LembreteService');
 
 
@@ -265,6 +267,7 @@ app.use('/excel', excelRoutes);
 app.use('/lembretes', lembreteRoutes);
 app.use('/preferences', preferenceRoutes)
 app.use('/auth', passportRoutes);
+app.use('/qmessage', qMessagesRoutes)
 
 
 

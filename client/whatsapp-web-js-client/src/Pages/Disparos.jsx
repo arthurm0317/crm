@@ -241,7 +241,7 @@ function DisparosPage({ theme }) {
                     {formatInterval(disparo.timer)}
                   </span>
                 </div>
-                <div className={`header-text-${theme} mb-1`}>
+                {/* <div className={`header-text-${theme} mb-1`}>
                   Canais: <span className={`fw-bold`}>
                     {disparo.connection_id ? 
                       (Array.isArray(disparo.connection_id) ? 
@@ -257,7 +257,7 @@ function DisparosPage({ theme }) {
                       'Nenhum canal'
                     }
                   </span>
-                </div>
+                </div> */}
                 <div className={`header-text-${theme}`}>
                   Status: <span className={`fw-bold`}>
                     {disparo.status}
