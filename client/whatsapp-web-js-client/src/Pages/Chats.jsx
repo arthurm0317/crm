@@ -1389,13 +1389,13 @@ const handleImageUpload = async (event) => {
       }
     });
     
-    // Aplicar borda branca apenas na mensagem atualmente focada
+    // Aplicar borda verde apenas na mensagem atualmente focada
     const currentResult = searchResults[currentSearchIndex];
     const currentElement = document.querySelector(`[data-message-id="${currentResult.messageId}"]`);
     
     if (currentElement) {
       currentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      currentElement.style.border = '1px solid white'; // Borda branca apenas na mensagem focada
+      currentElement.style.border = '1px solid var(--success-color)'; // Borda verde apenas na mensagem focada
     }
   };
 
