@@ -25,6 +25,12 @@ function DisparoModal({ theme, disparo = null, onSave }) {
   const [customFields ,setCustomFields] = useState([])
   const textAreasRef = useRef([]);
   const [mensagensImagens, setMensagensImagens] = useState([]);
+  // Remover todos os estados e lógicas de loading, success, errorMsg
+  // Remover feedback visual do botão
+  // Remover exibição de erro
+  // Voltar handleSave para o formato original, sem loading/success/errorMsg
+  // Botão volta ao texto padrão e habilitação padrão
+  const [loading, setLoading] = useState(false);
 
 
   const userData = JSON.parse(localStorage.getItem('user'));
@@ -305,14 +311,16 @@ const limparBase64 = (base64ComPrefixo) => {
 
 
   const handleSave = async () => {
+    if (loading) return;
     if (!titulo || !canais.length || !dataInicio || !horaInicio || mensagens.some(msg => !msg.text)) {
-      console.error('Preencha todos os campos obrigatórios.');
+      alert('Preencha todos os campos obrigatórios.');
       return;
     }
     if (tipoAlvo === 'Tag' && tagsSelecionadas.length === 0) {
-      console.error('Selecione pelo menos uma tag.');
+      alert('Selecione pelo menos uma tag.');
       return;
     }
+    setLoading(true);
     const start_date = dataInicio && horaInicio
       ? `${dataInicio}T${horaInicio}:00-03:00`
       : '';
@@ -359,19 +367,37 @@ const limparBase64 = (base64ComPrefixo) => {
     });
       
       if (response.status === 201) {
+        if (!disparo) {
+          alert('Disparo criado com sucesso!');
+        }
         // Fechar modal
         const modal = bootstrap.Modal.getInstance(document.getElementById('DisparoModal'));
         if (modal) {
-          modal.hide();
+          setTimeout(() => modal.hide(), 1200);
         }
-        
         // Atualizar lista no componente pai
         if (onSave) {
-          onSave();
+          setTimeout(() => onSave(), 1200);
         }
-        
+        // Se for edição, resetar estados para permitir novas edições
+        if (disparo) {
+          setTimeout(() => {
+            setLoading(false);
+          }, 1300);
+        } else {
+          setLoading(false);
+        }
+        return;
       }
+      setLoading(false);
+      alert('Erro inesperado ao criar disparo.');
     } catch (error) {
+      setLoading(false);
+      if (error.response && error.response.data && error.response.data.erro) {
+        alert(error.response.data.erro);
+      } else {
+        alert('Erro ao salvar disparo. Verifique os campos e tente novamente.');
+      }
       console.error('Erro ao salvar disparo:', error);
     }
   };
@@ -719,6 +745,11 @@ const limparBase64 = (base64ComPrefixo) => {
             </div>
           </div>
           <div className="modal-footer">
+            {/* Remover todos os estados e lógicas de loading, success, errorMsg */}
+            {/* Remover feedback visual do botão */}
+            {/* Remover exibição de erro */}
+            {/* Voltar handleSave para o formato original, sem loading/success/errorMsg */}
+            {/* Botão volta ao texto padrão e habilitação padrão */}
             <button
               type="button"
               className={`btn btn-2-${theme}`}
@@ -730,8 +761,16 @@ const limparBase64 = (base64ComPrefixo) => {
               type="button"
               className={`btn btn-1-${theme}`}
               onClick={handleSave}
+              disabled={loading}
             >
-              {disparo ? 'Salvar Alterações' : 'Criar Disparo'}
+              {loading ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  {disparo ? 'Salvando...' : 'Criando...'}
+                </>
+              ) : (
+                disparo ? 'Salvar Alterações' : 'Criar Disparo'
+              )}
             </button>
           </div>
         </div>
