@@ -10,6 +10,25 @@ const modalStyle = `
 
 const setoresFicticios = ['Vendas', 'Suporte', 'Financeiro', 'RH'];
 
+const variaveisFixas = [
+  { id: 'nome', label: 'Nome', field_name: 'nome' },
+  { id: 'telefone', label: 'Telefone', field_name: 'telefone' },
+];
+
+function insertVariableNoCampo(campoId, setCampo, variavel) {
+  const textarea = document.getElementById(campoId);
+  if (!textarea) return;
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const textoAtual = textarea.value;
+  const novoTexto = textoAtual.slice(0, start) + `{{${variavel}}}` + textoAtual.slice(end);
+  setCampo(novoTexto);
+  setTimeout(() => {
+    textarea.focus();
+    textarea.setSelectionRange(start + `{{${variavel}}}`.length, start + `{{${variavel}}}`.length);
+  }, 0);
+}
+
 function QuickMsgManageModal({ theme, show, onHide, mensagens, setMensagens }) {
   const [editIndex, setEditIndex] = useState(null);
   const [form, setForm] = useState({ comando: '', mensagem: '', tipo: 'pessoal', setor: '' });
@@ -295,93 +314,117 @@ function QuickMsgManageModal({ theme, show, onHide, mensagens, setMensagens }) {
               </div>
             ))}
           </div>
-        </Modal.Body>
-        <Modal.Footer style={{ borderTop: `1px solid var(--border-color-${theme})`, background: `var(--bg-color-${theme})`, display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 12, borderBottomLeftRadius: 'var(--bs-modal-inner-border-radius)', borderBottomRightRadius: 'var(--bs-modal-inner-border-radius)' }}>
-          <Form style={{ width: '100%' }}>
-            <div className="row" style={{ gap: 0, alignItems: 'center' }}>
-              <Form.Group className="col-auto" style={{ minWidth: 120 }}>
-                <Form.Label style={{ fontSize: 13, fontWeight: 500, marginBottom: 2, color: `var(--color-${theme})` }}>Categoria</Form.Label>
-                <Form.Select
-                  size="sm"
-                  value={form.tipo}
-                  name="tipo"
-                  style={{ color: `var(--color-${theme})`, background: `var(--bg-color-${theme})`, borderColor: `var(--border-color-${theme})` }}
-                  onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}
-                  disabled={editIndex !== null}
-                >
-                  <option value="pessoal">Pessoal</option>
-                  <option value="setor">Setor</option>
-                </Form.Select>
-              </Form.Group>
-              {form.tipo === 'setor' && (
-                <Form.Group className="col-auto" style={{ minWidth: 130 }}>
-                  <Form.Label style={{ fontSize: 13, fontWeight: 500, marginBottom: 2, color: `var(--color-${theme})` }}>Setor</Form.Label>
+          <Modal.Footer style={{ borderTop: `1px solid var(--border-color-${theme})`, background: `var(--bg-color-${theme})`, display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 12, borderBottomLeftRadius: 'var(--bs-modal-inner-border-radius)', borderBottomRightRadius: 'var(--bs-modal-inner-border-radius)' }}>
+            <Form style={{ width: '100%' }}>
+              {/* Linha de campos alinhados horizontalmente, sem botões de variáveis visíveis */}
+              <div className="row" style={{ marginTop: 8, gap: 0 }}>
+                <div className="col-auto d-flex flex-column align-items-start justify-content-end" style={{ minWidth: 120, flex: '0 0 120px', height: 60 }}>
+                  <Form.Label style={{ fontSize: 13, fontWeight: 500, color: `var(--color-${theme})` }}>Categoria</Form.Label>
                   <Form.Select
                     size="sm"
-                    value={form.setor}
-                    name="setor"
-                    style={{ color: `var(--color-${theme})`, background: `var(--bg-color-${theme})`, borderColor: `var(--border-color-${theme})` }}
-                    onChange={e => setForm(f => ({ ...f, setor: e.target.value }))}
+                    value={form.tipo}
+                    name="tipo"
+                    style={{ color: `var(--color-${theme})`, background: `var(--bg-color-${theme})`, borderColor: `var(--border-color-${theme})`, height: 38 }}
+                    onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}
                     disabled={editIndex !== null}
                   >
-                    <option value="">Selecione o setor</option>
-                    {filas.map(f => <option key={f.id} value={f.id}>{f.name || f.nome}</option>)}
+                    <option value="pessoal">Pessoal</option>
+                    <option value="setor">Setor</option>
                   </Form.Select>
-                </Form.Group>
-              )}
-              <Form.Group className="col-auto" style={{ minWidth: 120 }}>
-                <Form.Label style={{ fontSize: 13, fontWeight: 500, marginBottom: 2, color: `var(--color-${theme})` }}>Comando</Form.Label>
-                <InputGroup size="sm">
-                  <InputGroup.Text style={{ background: `var(--bg-color-${theme})`, color: `var(--color-${theme})`, borderColor: `var(--border-color-${theme})` }}>/</InputGroup.Text>
-                  <Form.Control
-                    size="sm"
-                    type="text"
-                    placeholder="comando"
-                    value={form.comando.startsWith('/') ? form.comando.slice(1) : form.comando}
-                    name="comando"
-                    style={{ color: `var(--color-${theme})`, background: `var(--bg-color-${theme})`, borderColor: `var(--border-color-${theme})` }}
-                    onChange={e => setForm(f => ({ ...f, comando: '/' + e.target.value.replace(/^\/*/, '') }))}
-                    disabled={editIndex !== null}
-                  />
-                </InputGroup>
-                {!form.comando.startsWith('/') && form.comando.length > 0 && (
-                  <div style={{ color: 'var(--error-color)', fontSize: 11, marginTop: 2 }}>
-                    O comando deve começar com /
+                </div>
+                {form.tipo === 'setor' && (
+                  <div className="col-auto d-flex flex-column align-items-start justify-content-end" style={{ minWidth: 130, flex: '0 0 130px', height: 60 }}>
+                    <Form.Label style={{ fontSize: 13, fontWeight: 500, color: `var(--color-${theme})` }}>Setor</Form.Label>
+                    <Form.Select
+                      size="sm"
+                      value={form.setor}
+                      name="setor"
+                      style={{ color: `var(--color-${theme})`, background: `var(--bg-color-${theme})`, borderColor: `var(--border-color-${theme})`, height: 38 }}
+                      onChange={e => setForm(f => ({ ...f, setor: e.target.value }))}
+                      disabled={editIndex !== null}
+                    >
+                      <option value="">Selecione o setor</option>
+                      {filas.map(f => <option key={f.id} value={f.id}>{f.name || f.nome}</option>)}
+                    </Form.Select>
                   </div>
                 )}
-              </Form.Group>
-              <Form.Group className="col" style={{ minWidth: 180 }}>
-                <Form.Label style={{ fontSize: 13, fontWeight: 500, marginBottom: 2, color: `var(--color-${theme})` }}>Mensagem</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  size="sm"
-                  placeholder="Mensagem"
-                  style={{ minHeight: 38, resize: 'vertical', width: '100%', color: `var(--color-${theme})`, background: `var(--bg-color-${theme})`, borderColor: `var(--border-color-${theme})` }}
-                  value={form.mensagem}
-                  name="mensagem"
-                  onChange={e => setForm(f => ({ ...f, mensagem: e.target.value }))}
-                  disabled={editIndex !== null}
-                />
-              </Form.Group>
-              <div className="col-auto d-flex align-items-end" style={{ minWidth: 120, paddingBottom: 0 }}>
-                <Button
-                  variant="secondary"
-                  className={`btn-2-${theme}`}
-                  style={{ minWidth: 120, background: (!form.comando.startsWith('/') || !form.mensagem.trim() || (form.tipo === 'setor' && !form.setor) || editIndex !== null) ? 'transparent' : undefined }}
-                  onClick={handleSave}
-                  disabled={
-                    editIndex !== null ||
-                    !form.comando.startsWith('/') ||
-                    !form.mensagem.trim() ||
-                    (form.tipo === 'setor' && !form.setor)
-                  }
-                >
-                  Adicionar
-                </Button>
+                <div className="col-auto d-flex flex-column align-items-start justify-content-end" style={{ minWidth: 120, flex: '0 0 120px', height: 60 }}>
+                  <Form.Label style={{ fontSize: 13, fontWeight: 500, color: `var(--color-${theme})` }}>Comando</Form.Label>
+                  <InputGroup size="sm">
+                    <InputGroup.Text style={{ background: `var(--bg-color-${theme})`, color: `var(--color-${theme})`, borderColor: `var(--border-color-${theme})`, height: 38 }}>/</InputGroup.Text>
+                    <Form.Control
+                      size="sm"
+                      type="text"
+                      value={form.comando.startsWith('/') ? form.comando.slice(1) : form.comando}
+                      name="comando"
+                      style={{ color: `var(--color-${theme})`, background: `var(--bg-color-${theme})`, borderColor: `var(--border-color-${theme})`, minWidth: 90, height: 38 }}
+                      onChange={e => setForm(f => ({ ...f, comando: '/' + e.target.value.replace(/^\/*/, '') }))}
+                      disabled={editIndex !== null}
+                    />
+                  </InputGroup>
+                </div>
+                <div className="col d-flex flex-column align-items-start justify-content-end" style={{ minWidth: 220, flex: 1, height: 60 }}>
+                  <Form.Label style={{ fontSize: 13, fontWeight: 500, color: `var(--color-${theme})` }}>Mensagem</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    id="mensagemCampo"
+                    rows={2}
+                    value={form.mensagem}
+                    name="mensagem"
+                    onChange={handleChange}
+                    style={{ fontSize: 14, minHeight: 38, resize: 'none', height: 38 }}
+                    placeholder="Digite a mensagem rápida..."
+                    disabled={editIndex !== null}
+                  />
+                </div>
+                <div className="col-auto d-flex align-items-end" style={{ minWidth: 120, paddingBottom: 0, height: 60 }}>
+                  <Button
+                    variant="outline-secondary"
+                    className="w-100"
+                    style={{ height: 38 }}
+                    onClick={handleSave}
+                    disabled={editIndex !== null || !form.comando.startsWith('/') || !form.mensagem.trim()}
+                  >
+                    Adicionar
+                  </Button>
+                </div>
               </div>
-            </div>
-          </Form>
-        </Modal.Footer>
+              {/* Edição */}
+              {editIndex !== null && (
+                <div className="row align-items-end" style={{ marginTop: 8 }}>
+                  <div className="col" style={{ minWidth: 220, position: 'relative' }}>
+                    <Form.Label style={{ fontSize: 13, fontWeight: 500, marginBottom: 2, color: `var(--color-${theme})` }}>Mensagem</Form.Label>
+                    <Form.Control
+                      as="textarea"
+                      id="mensagemCampoEdit"
+                      rows={2}
+                      value={formEdit.mensagem}
+                      name="mensagem"
+                      onChange={e => setFormEdit(f => ({ ...f, mensagem: e.target.value }))}
+                      style={{ fontSize: 14, marginBottom: 8, minHeight: 38 }}
+                      placeholder="Digite a mensagem rápida..."
+                    />
+                    <div className="d-flex gap-1 align-items-center mt-1">
+                      <span style={{ fontSize: 11, color: 'var(--color-'+theme+')' }}>Vars:</span>
+                      {variaveisFixas.map(v => (
+                        <button
+                          key={v.id}
+                          type="button"
+                          className={`btn btn-2-${theme} btn-sm`}
+                          style={{ fontSize: 10, padding: '2px 6px', minWidth: 'auto' }}
+                          tabIndex={-1}
+                          onClick={() => insertVariableNoCampo('mensagemCampoEdit', val => setFormEdit(f => ({ ...f, mensagem: val })), v.field_name)}
+                        >
+                          {`{{${v.label}}}`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </Form>
+          </Modal.Footer>
+        </Modal.Body>
       </Modal>
     </>
   );
