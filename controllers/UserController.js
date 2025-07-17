@@ -124,7 +124,7 @@ const searchUserController = async (req, res) => {
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
       path: '/',
-      domain: process.env.NODE_ENV === 'production' ? '.9znbc3.easypanel.host' : undefined
+      domain: process.env.NODE_ENV === 'production' ? '.easypanel.host' : undefined
     });
 
     res.cookie('refreshToken', refreshToken, {
@@ -133,7 +133,7 @@ const searchUserController = async (req, res) => {
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
       path: '/',
-      domain: process.env.NODE_ENV === 'production' ? '.9znbc3.easypanel.host' : undefined
+      domain: process.env.NODE_ENV === 'production' ? '.easypanel.host' : undefined
     });
 
     res.status(200).json({
