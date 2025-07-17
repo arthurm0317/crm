@@ -35,7 +35,7 @@ const refreshTokenController = (req, res) => {
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
       path: '/',
-      domain: process.env.NODE_ENV === 'production' ? '.9znbc3.easypanel.host' : undefined
+      domain: process.env.COOKIE_DOMAIN || undefined
     });
     return res.status(200).json({ success: true });
   } catch (refreshError) {
@@ -124,7 +124,7 @@ const searchUserController = async (req, res) => {
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
       path: '/',
-      domain: process.env.NODE_ENV === 'production' ? '.8rxpnw.easypanel.host' : undefined
+      domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : undefined
     });
 
     res.cookie('refreshToken', refreshToken, {
@@ -133,7 +133,7 @@ const searchUserController = async (req, res) => {
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
       path: '/',
-      domain: process.env.NODE_ENV === 'production' ? '.8rxpnw.easypanel.host' : undefined
+      domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : undefined
     });
 
     res.status(200).json({
@@ -223,15 +223,17 @@ const logoutController = async (req, res) => {
     res.clearCookie('token', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/'
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+      path: '/',
+      domain: process.env.COOKIE_DOMAIN || undefined
     });
 
     res.clearCookie('refreshToken', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/'
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+      path: '/',
+      domain: process.env.COOKIE_DOMAIN || undefined
     });
 
     res.status(200).json({

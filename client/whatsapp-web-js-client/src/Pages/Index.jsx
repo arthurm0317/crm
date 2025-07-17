@@ -118,42 +118,45 @@ function Painel() {
 
   useEffect(() => {
     const refreshToken = async () => {
-  try {
-    const response = await axios.post(`${url}/api/refresh-token`, {}, {
-      withCredentials: true
-    });
-    return response.data.success;
-  } catch (error) {
-    console.error('Erro ao renovar token:', error);
-    navigate('/')
-    return false;
-  }
-};
+      try {
+        const response = await axios.post(`${url}/api/refresh-token`, {}, {
+          withCredentials: true
+        });
+        return response.data.success;
+      } catch (error) {
+        console.error('Erro ao renovar token:', error);
+        navigate('/')
+        return false;
+      }
+    };
 
-const intervalId = localStorage.getItem('tokenRefreshInterval');
-if (intervalId) {
-  clearInterval(intervalId);
-  localStorage.removeItem('tokenRefreshInterval');
-}
+    // Limpar intervalo anterior se existir
+    const intervalId = localStorage.getItem('tokenRefreshInterval');
+    if (intervalId) {
+      clearInterval(parseInt(intervalId));
+      localStorage.removeItem('tokenRefreshInterval');
+    }
 
-const tokenRefreshInterval = setInterval(async () => {
-  const success = await refreshToken();
-  if (!success) {
-    clearInterval(tokenRefreshInterval);
-    localStorage.removeItem('tokenRefreshInterval');
-    navigate('/')
-  }
-},14* 60 * 1000); 
-localStorage.setItem('tokenRefreshInterval', tokenRefreshInterval);
-    
+    // Executar refresh inicial
     refreshToken();
     
-    const refreshInterval = setInterval(refreshToken, 14 * 60 * 1000);
+    // Configurar refresh automático a cada 14 minutos
+    const tokenRefreshInterval = setInterval(async () => {
+      const success = await refreshToken();
+      if (!success) {
+        clearInterval(tokenRefreshInterval);
+        localStorage.removeItem('tokenRefreshInterval');
+        navigate('/')
+      }
+    }, 14 * 60 * 1000);
+    
+    localStorage.setItem('tokenRefreshInterval', tokenRefreshInterval);
     
     return () => {
-      clearInterval(refreshInterval);
+      clearInterval(tokenRefreshInterval);
+      localStorage.removeItem('tokenRefreshInterval');
     };
-  }, [navigate])
+  }, [navigate, url])
 
   // Função para atualizar página e salvar preferências
   const handlePageChange = (newPage) => {
