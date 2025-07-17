@@ -37,7 +37,10 @@ const refreshTokenController = (req, res) => {
       path: '/',
       domain: process.env.COOKIE_DOMAIN || undefined
     });
-    return res.status(200).json({ success: true });
+    return res.status(200).json({ 
+      success: true,
+      token: newToken 
+    });
   } catch (refreshError) {
     return res.status(401).json({ error: 'Refresh token inválido' });
   }

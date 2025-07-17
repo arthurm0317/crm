@@ -179,17 +179,25 @@ const scheduleCampaingBlast = async (campaing, sector, schema, intervalo) => {
       return;
     }
 
-    // Distribuir os contatos entre as conexões (round robin de contatos)
-    const contatosPorConexao = Array.from({ length: connections.length }, () => []);
-    for (let i = 0; i < chatIds.length; i++) {
-      const idx = i % connections.length;
-      contatosPorConexao[idx].push(chatIds[i]);
-    }
-
     let jobCount = 0;
-    for (let c = 0; c < connections.length; c++) {
-      const connection = connections[c];
-      const contatos = contatosPorConexao[c];
+    const totalMessages = messageList.length;
+    const totalContacts = chatIds.length;
+    const totalConnections = connections.length;
+    const totalJobs = Math.min(totalMessages * totalConnections, totalContacts); // Limita ao número de contatos disponíveis
+
+    for (let jobIndex = 0; jobIndex < totalJobs; jobIndex++) {
+      // Calcula qual mensagem e qual conexão para este job
+      const messageIndex = Math.floor(jobIndex / totalConnections);
+      const connectionIdx = jobIndex % totalConnections;
+      
+      // Cada contato é usado apenas uma vez, sequencialmente
+      const contactIndex = jobIndex;
+      const connection = connections[connectionIdx];
+      
+      const chat = chatIds[contactIndex];
+      const contactPhone = chat.contact_phone;
+      const message = messageList[messageIndex];
+
       // Buscar a instância da conexão
       const instance = await pool.query(
         `SELECT * FROM ${schema}.connections WHERE id=$1`, [connection.connection_id]
@@ -198,108 +206,56 @@ const scheduleCampaingBlast = async (campaing, sector, schema, intervalo) => {
         console.error('Conexão não encontrada para a campanha');
         continue;
       }
-      for (let m = 0; m < messageList.length; m++) {
-        const message = messageList[m];
-        if (contatos[m]) { // Só agenda se houver contato suficiente
-          const chat = contatos[m];
-          const contactPhone = chat.contact_phone;
-          // 1. Procurar chat 'open' para o número (qualquer conexão)
-          const openChatQuery = await pool.query(
-            `SELECT * FROM ${schema}.chats WHERE contact_phone=$1 AND status='open' LIMIT 1`,
-            [contactPhone]
+      
+      // 1. Procurar chat 'open' para o número NA conexão sorteada
+      const openChatQuery = await pool.query(
+        `SELECT * FROM ${schema}.chats WHERE contact_phone=$1 AND status='open' AND connection_id=$2 LIMIT 1`,
+        [contactPhone, instance.rows[0].id]
+      );
+      
+      let chatToUse = null;
+      if (openChatQuery.rowCount > 0) {
+        // Chat 'open' pertence à conexão sorteada - usa ele
+        chatToUse = openChatQuery.rows[0];
+      } else {
+        // Não existe chat 'open' na conexão sorteada - procura um 'importado' de qualquer conexão
+        const importadoQuery = await pool.query(
+          `SELECT * FROM ${schema}.chats WHERE contact_phone=$1 AND status='importado' LIMIT 1`,
+          [contactPhone]
+        );
+        if (importadoQuery.rowCount > 0) {
+          // Transfere o chat 'importado' para a conexão sorteada e status 'open'
+          const updated = await pool.query(
+            `UPDATE ${schema}.chats SET connection_id=$1, status='open' WHERE id=$2 RETURNING *`,
+            [instance.rows[0].id, importadoQuery.rows[0].id]
           );
-          let chatToUse = null;
-          if (openChatQuery.rowCount > 0) {
-            const openChat = openChatQuery.rows[0];
-            if (openChat.connection_id === instance.rows[0].id) {
-              // Já está na conexão correta
-              chatToUse = openChat;
-            } else {
-              // Procurar chat 'importado' para a conexão sorteada
-              const importadoQuery = await pool.query(
-                `SELECT * FROM ${schema}.chats WHERE connection_id=$1 AND contact_phone=$2 AND status='importado' LIMIT 1`,
-                [instance.rows[0].id, contactPhone]
-              );
-              if (importadoQuery.rowCount > 0) {
-                // Transferir o chat para a conexão Y e status 'open'
-                const updated = await pool.query(
-                  `UPDATE ${schema}.chats SET connection_id=$1, status='open' WHERE id=$2 RETURNING *`,
-                  [instance.rows[0].id, importadoQuery.rows[0].id]
-                );
-                chatToUse = updated.rows[0];
-              } else {
-                // Procurar chat 'importado' em QUALQUER conexão
-                const importadoAnyQuery = await pool.query(
-                  `SELECT * FROM ${schema}.chats WHERE contact_phone=$1 AND status='importado' LIMIT 1`,
-                  [contactPhone]
-                );
-                if (importadoAnyQuery.rowCount > 0) {
-                  // Transferir o chat para a conexão Y e status 'open'
-                  const updated = await pool.query(
-                    `UPDATE ${schema}.chats SET connection_id=$1, status='open' WHERE id=$2 RETURNING *`,
-                    [instance.rows[0].id, importadoAnyQuery.rows[0].id]
-                  );
-                  chatToUse = updated.rows[0];
-                } else {
-                  console.warn(`Nenhum chat 'importado' encontrado para o número ${contactPhone} em nenhuma conexão. Pulando.`);
-                  continue;
-                }
-              }
-            }
-          } else {
-            // Não existe chat 'open', procurar 'importado' para a conexão sorteada
-            const importadoQuery = await pool.query(
-              `SELECT * FROM ${schema}.chats WHERE connection_id=$1 AND contact_phone=$2 AND status='importado' LIMIT 1`,
-              [instance.rows[0].id, contactPhone]
-            );
-            if (importadoQuery.rowCount > 0) {
-              // Atualizar status para 'open'
-              const updated = await pool.query(
-                `UPDATE ${schema}.chats SET status='open' WHERE id=$1 RETURNING *`,
-                [importadoQuery.rows[0].id]
-              );
-              chatToUse = updated.rows[0];
-            } else {
-              // Procurar chat 'importado' em qualquer conexão
-              const importadoAnyQuery = await pool.query(
-                `SELECT * FROM ${schema}.chats WHERE contact_phone=$1 AND status='importado' LIMIT 1`,
-                [contactPhone]
-              );
-              if (importadoAnyQuery.rowCount > 0) {
-                // Transferir o chat para a conexão Y e status 'open'
-                const updated = await pool.query(
-                  `UPDATE ${schema}.chats SET connection_id=$1, status='open' WHERE id=$2 RETURNING *`,
-                  [instance.rows[0].id, importadoAnyQuery.rows[0].id]
-                );
-                chatToUse = updated.rows[0];
-              } else {
-                console.warn(`Nenhum chat 'importado' encontrado para o número ${contactPhone} em nenhuma conexão. Pulando.`);
-                continue;
-              }
-            }
-          }
-          // O delay é calculado por conexão e mensagem
-          const messageDelay = baseDelay + (c * intervalEmSegundos * 1000) + (m * connections.length * intervalEmSegundos * 1000);
-          console.log(`Agendando mensagem ${m + 1}/${messageList.length} para conexão ${c + 1}/${connections.length} (contato ${contactPhone}) para:`, new Date(Date.now() + messageDelay).toLocaleString());
-          const job = await blastQueue.add('sendMessage', {
-            instance: instance.rows[0].id,
-            number: contactPhone,
-            chat_id: chatToUse.id,
-            message: message.value,
-            image: message.image,
-            schema: schema
-          }, { 
-            delay: messageDelay, 
-            attempts: 3,
-            backoff: {
-              type: 'exponential',
-              delay: 2000
-            }
-          }); 
-          console.log(`Job ${job.id} agendado com sucesso, enviando pelo numero ${instance.rows[0].id}, para o ${contactPhone}`);
-          jobCount++;
+          chatToUse = updated.rows[0];
+        } else {
+          console.warn(`Nenhum chat 'importado' encontrado para o número ${contactPhone} em nenhuma conexão. Pulando.`);
+          continue;
         }
       }
+      
+      // O delay é calculado por job
+      const messageDelay = baseDelay + (jobIndex * intervalEmSegundos * 1000);
+      console.log(`Agendando mensagem ${messageIndex + 1}/${totalMessages} para conexão ${connectionIdx + 1}/${connections.length} (contato ${contactPhone}) para:`, new Date(Date.now() + messageDelay).toLocaleString());
+      const job = await blastQueue.add('sendMessage', {
+        instance: instance.rows[0].id,
+        number: contactPhone,
+        chat_id: chatToUse.id,
+        message: message.value,
+        image: message.image,
+        schema: schema
+      }, { 
+        delay: messageDelay, 
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 2000
+        }
+      }); 
+      console.log(`Job ${job.id} agendado com sucesso, enviando pelo numero ${instance.rows[0].id}, para o ${contactPhone}`);
+      jobCount++;
     }
     console.log(`Campanha ${campaing.campaing_name} agendada com ${jobCount} mensagens`);
   } catch (error) {

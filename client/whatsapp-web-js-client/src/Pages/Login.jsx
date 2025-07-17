@@ -41,27 +41,7 @@ function Login() {
     }
   }, [username]);
 
-  // Limpar intervalo de refresh ao entrar na página de login
-  useEffect(() => {
-    const intervalId = localStorage.getItem('tokenRefreshInterval');
-    if (intervalId) {
-      clearInterval(parseInt(intervalId));
-      localStorage.removeItem('tokenRefreshInterval');
-    }
-  }, []);
 
-  // Função de refresh token dentro do componente
-  const refreshToken = async () => {
-    try {
-      const response = await axios.post(`${url}/api/refresh-token`, {}, {
-        withCredentials: true
-      });
-      return response.data.success;
-    } catch (error) {
-      console.error('Erro ao renovar token:', error);
-      return false;
-    }
-  };
   
 const handleLogin = async (e) => {
   e.preventDefault();
@@ -90,18 +70,6 @@ const handleLogin = async (e) => {
         delete rememberedCredentials[username];
       }
       localStorage.setItem('rememberedCredentials', JSON.stringify(rememberedCredentials));
-
-      // Configurar refresh automático de token
-      // const tokenRefreshInterval = setInterval(async () => {
-      //   const success = await refreshToken();
-      //   if (!success) {
-      //     clearInterval(tokenRefreshInterval);
-      //     localStorage.removeItem('user');
-      //     navigate('/');
-      //   }
-      // }, 8000); // Refresh a cada 8 segundos (antes dos 9 segundos do token)
-
-      // localStorage.setItem('tokenRefreshInterval', tokenRefreshInterval);
    
       setTimeout(() => {
         setLoading(false);
