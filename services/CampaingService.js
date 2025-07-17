@@ -202,21 +202,89 @@ const scheduleCampaingBlast = async (campaing, sector, schema, intervalo) => {
         const message = messageList[m];
         if (contatos[m]) { // Só agenda se houver contato suficiente
           const chat = contatos[m];
-          const instanceId = await pool.query(
-            `SELECT * FROM ${schema}.chats WHERE id=$1`, [chat.id]
+          const contactPhone = chat.contact_phone;
+          // 1. Procurar chat 'open' para o número (qualquer conexão)
+          const openChatQuery = await pool.query(
+            `SELECT * FROM ${schema}.chats WHERE contact_phone=$1 AND status='open' LIMIT 1`,
+            [contactPhone]
           );
-          if (!instanceId.rows[0] || !instanceId.rows[0].contact_phone) {
-            console.warn(`Chat inválido ou número não encontrado para chat ID ${chat.id}`);
-            continue;
+          let chatToUse = null;
+          if (openChatQuery.rowCount > 0) {
+            const openChat = openChatQuery.rows[0];
+            if (openChat.connection_id === instance.rows[0].id) {
+              // Já está na conexão correta
+              chatToUse = openChat;
+            } else {
+              // Procurar chat 'importado' para a conexão sorteada
+              const importadoQuery = await pool.query(
+                `SELECT * FROM ${schema}.chats WHERE connection_id=$1 AND contact_phone=$2 AND status='importado' LIMIT 1`,
+                [instance.rows[0].id, contactPhone]
+              );
+              if (importadoQuery.rowCount > 0) {
+                // Transferir o chat para a conexão Y e status 'open'
+                const updated = await pool.query(
+                  `UPDATE ${schema}.chats SET connection_id=$1, status='open' WHERE id=$2 RETURNING *`,
+                  [instance.rows[0].id, importadoQuery.rows[0].id]
+                );
+                chatToUse = updated.rows[0];
+              } else {
+                // Procurar chat 'importado' em QUALQUER conexão
+                const importadoAnyQuery = await pool.query(
+                  `SELECT * FROM ${schema}.chats WHERE contact_phone=$1 AND status='importado' LIMIT 1`,
+                  [contactPhone]
+                );
+                if (importadoAnyQuery.rowCount > 0) {
+                  // Transferir o chat para a conexão Y e status 'open'
+                  const updated = await pool.query(
+                    `UPDATE ${schema}.chats SET connection_id=$1, status='open' WHERE id=$2 RETURNING *`,
+                    [instance.rows[0].id, importadoAnyQuery.rows[0].id]
+                  );
+                  chatToUse = updated.rows[0];
+                } else {
+                  console.warn(`Nenhum chat 'importado' encontrado para o número ${contactPhone} em nenhuma conexão. Pulando.`);
+                  continue;
+                }
+              }
+            }
+          } else {
+            // Não existe chat 'open', procurar 'importado' para a conexão sorteada
+            const importadoQuery = await pool.query(
+              `SELECT * FROM ${schema}.chats WHERE connection_id=$1 AND contact_phone=$2 AND status='importado' LIMIT 1`,
+              [instance.rows[0].id, contactPhone]
+            );
+            if (importadoQuery.rowCount > 0) {
+              // Atualizar status para 'open'
+              const updated = await pool.query(
+                `UPDATE ${schema}.chats SET status='open' WHERE id=$1 RETURNING *`,
+                [importadoQuery.rows[0].id]
+              );
+              chatToUse = updated.rows[0];
+            } else {
+              // Procurar chat 'importado' em qualquer conexão
+              const importadoAnyQuery = await pool.query(
+                `SELECT * FROM ${schema}.chats WHERE contact_phone=$1 AND status='importado' LIMIT 1`,
+                [contactPhone]
+              );
+              if (importadoAnyQuery.rowCount > 0) {
+                // Transferir o chat para a conexão Y e status 'open'
+                const updated = await pool.query(
+                  `UPDATE ${schema}.chats SET connection_id=$1, status='open' WHERE id=$2 RETURNING *`,
+                  [instance.rows[0].id, importadoAnyQuery.rows[0].id]
+                );
+                chatToUse = updated.rows[0];
+              } else {
+                console.warn(`Nenhum chat 'importado' encontrado para o número ${contactPhone} em nenhuma conexão. Pulando.`);
+                continue;
+              }
+            }
           }
-          await updateChatConnection(instanceId.rows[0].id, instance.rows[0].id, schema);
           // O delay é calculado por conexão e mensagem
           const messageDelay = baseDelay + (c * intervalEmSegundos * 1000) + (m * connections.length * intervalEmSegundos * 1000);
-          console.log(`Agendando mensagem ${m + 1}/${messageList.length} para conexão ${c + 1}/${connections.length} (contato ${instanceId.rows[0].contact_phone}) para:`, new Date(Date.now() + messageDelay).toLocaleString());
+          console.log(`Agendando mensagem ${m + 1}/${messageList.length} para conexão ${c + 1}/${connections.length} (contato ${contactPhone}) para:`, new Date(Date.now() + messageDelay).toLocaleString());
           const job = await blastQueue.add('sendMessage', {
             instance: instance.rows[0].id,
-            number: instanceId.rows[0].contact_phone,
-            chat_id: instanceId.rows[0].id,
+            number: contactPhone,
+            chat_id: chatToUse.id,
             message: message.value,
             image: message.image,
             schema: schema
@@ -228,7 +296,7 @@ const scheduleCampaingBlast = async (campaing, sector, schema, intervalo) => {
               delay: 2000
             }
           }); 
-          console.log(`Job ${job.id} agendado com sucesso, enviando pelo numero ${instance.rows[0].id}, para o ${instanceId.rows[0].contact_phone}`);
+          console.log(`Job ${job.id} agendado com sucesso, enviando pelo numero ${instance.rows[0].id}, para o ${contactPhone}`);
           jobCount++;
         }
       }

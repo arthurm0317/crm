@@ -43,113 +43,58 @@ const insertInKanbanStage = async (stageName, connection_id, sector, number, sch
 
 
   if (stageId.rowCount > 0) {
-    const stageExists = await pool.query(
-      `SELECT id FROM ${schema}.kanban_${sector} WHERE id=$1`,
-      [stageId.rows[0].id]
-    );
-
-    if (stageExists.rowCount === 0) {
-      console.error(`ID da etapa "${stageName}" não encontrado na tabela kanban_${sector}.`);
-      return null;
-    }
-
-    const existingChat = await pool.query(
-      `SELECT * FROM ${schema}.chats 
-      WHERE connection_id = $1 AND contact_phone = $2 
-      ORDER BY 
-        CASE 
-          WHEN status IN ('open', 'waiting') THEN 0
-          WHEN status = 'closed' THEN 1
-          ELSE 2
-        END`,
+    // Verificar se já existe chat 'importado' para a conexão e número
+    const existingImportado = await pool.query(
+      `SELECT * FROM ${schema}.chats WHERE connection_id=$1 AND contact_phone=$2 AND status='importado' LIMIT 1`,
       [connection_id, number]
     );
-
-    if (existingChat.rowCount > 0) {
-      if (existingChat.rows[0].status === 'closed') {
-        const contactName = await pool.query(
-          `SELECT contact_name FROM ${schema}.contacts WHERE number=$1`,
-          [number]
-        );
-        const queueId = await pool.query(
-          `SELECT * FROM ${schema}.connections WHERE id=$1`,
-          [connection_id]
-        )
-        const newChat = await pool.query(
-          `INSERT INTO ${schema}.chats 
-           (id, chat_id, connection_id, queue_id, isgroup, contact_name, assigned_user, status, created_at, messages, contact_phone, etapa_id) 
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
-          [
-            uuidv4(), 
-            `${number}@s.whatsapp.net`, 
-            connection_id,
-            queueId.rows[0].queue_id,
-            false,
-            contactName.rows[0]?.contact_name ?? 'Sem nome',
-            null,
-            'open',
-            new Date().getTime(), 
-            JSON.stringify([]),
-            number,
-            stageId.rows[0].id
-          ]
-        );
-        global.socketIoServer.to(`schema_${schema}`).emit('contatosImportados', {
+    if (existingImportado.rowCount > 0) {
+      // Só atualiza a etapa
+      const updated = await pool.query(
+        `UPDATE ${schema}.chats SET etapa_id=$1 WHERE id=$2 RETURNING *`,
+        [stageId.rows[0].id, existingImportado.rows[0].id]
+      );
+      global.socketIoServer.to(`schema_${schema}`).emit('contatosImportados', {
+          newChat: updated.rows,
+          sector: sector,
+          schema: schema
+        });
+      return updated.rows[0];
+    }
+    // Se não existe, cria normalmente
+    const contactName = await pool.query(
+      `SELECT contact_name FROM ${schema}.contacts WHERE number=$1`,
+      [number]
+    );
+    const queueId = await pool.query(
+      `SELECT * FROM ${schema}.connections WHERE id=$1`,
+      [connection_id]
+    )
+    const newChat = await pool.query(
+      `INSERT INTO ${schema}.chats 
+       (id, chat_id, connection_id, queue_id, isgroup, contact_name, assigned_user, status, created_at, messages, contact_phone, etapa_id) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+      [
+        uuidv4(), 
+        `${number}@s.whatsapp.net`, 
+        connection_id,
+        queueId.rows[0].queue_id,
+        false,
+        contactName.rows[0]?.contact_name ?? 'Sem nome',
+        null,
+        'importado',
+        new Date().getTime(), 
+        JSON.stringify([]),
+        number,
+        stageId.rows[0].id
+      ]
+    );
+    global.socketIoServer.to(`schema_${schema}`).emit('contatosImportados', {
           newChat: newChat.rows[0],
           sector: sector,
           schema: schema
         });
-        return newChat.rows[0];
-      } else {
-        // Se o chat não está fechado, apenas atualiza a etapa
-        const result = await pool.query(
-          `UPDATE ${schema}.chats SET etapa_id=$1 WHERE connection_id=$2 AND contact_phone=$3 RETURNING *`,
-          [stageId.rows[0].id, connection_id, number]
-        );
-        const chat = result.rows[0]
-        global.socketIoServer.to(`schema_${schema}`).emit('contatosImportados', {
-          chat,
-          sector: sector,
-          schema: schema
-        })
-        return result.rows[0];
-      }
-    } else {
-      const contactName = await pool.query(
-        `SELECT contact_name FROM ${schema}.contacts WHERE number=$1`,
-        [number]
-      );
-      const queueId = await pool.query(
-        `SELECT * FROM ${schema}.connections WHERE id=$1`,
-        [connection_id]
-      )
-      const newChat = await pool.query(
-        `INSERT INTO ${schema}.chats 
-         (id, chat_id, connection_id, queue_id, isgroup, contact_name, assigned_user, status, created_at, messages, contact_phone, etapa_id) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
-        [
-          uuidv4(), 
-          `${number}@s.whatsapp.net`, 
-          connection_id,
-          queueId.rows[0].queue_id,
-          false,
-          contactName.rows[0]?.contact_name ?? 'Sem nome',
-          null,
-          'open',
-          new Date().getTime(), 
-          JSON.stringify([]),
-          number,
-          stageId.rows[0].id
-        ]
-      );
-      SocketServer.io.to(`schema_${schema}`).emit('contatosImportados', {
-      newChat,
-      sector: sector,
-      schema: schema
-    });
-
     return newChat.rows[0];
-    }
   } else {
     console.error(`Etapa "${stageName}" não encontrada no esquema "${schema}".`);
     return null;
