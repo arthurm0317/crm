@@ -11,6 +11,7 @@ import SchemasPage from './Pages/Schemas';
 import reportWebVitals from './reportWebVitals';
 
 // Importar configuração global do axios
+import './utils/axiosConfig';
 
 // Importar estilos
 import 'bootstrap/dist/css/bootstrap.min.css';
