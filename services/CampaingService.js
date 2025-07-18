@@ -1,6 +1,6 @@
 const pool = require('../db/queries');
 const { v4: uuidv4 } = require('uuid');
-const { getChatsInKanbanStage } = require('./KanbanService');
+const { getContactsInKanbanStage } = require('./KanbanService');
 const { sendTextMessage, fetchInstanceEvo } = require('../requests/evolution');
 const { sendBlastMessage, sendMediaBlastMessage } = require('./MessageBlast');
 const createRedisConnection = require('../config/Redis');
@@ -8,7 +8,7 @@ const { Queue, Worker } = require('bullmq');
 const { saveMessage } = require('./MessageService');
 const { Message } = require('../entities/Message');
 const { getCurrentTimestamp, parseLocalDateTime } = require('./getCurrentTimestamp');
-const { updateChatConnection } = require('./ChatService');
+const { updateChatConnection, createNewChat } = require('./ChatService');
 const { fetchInstance } = require('./ConnectionService');
 
 const bullConn = createRedisConnection();
@@ -146,9 +146,9 @@ const createCampaing = async (campaing_id, campName, sector, kanbanStage, connec
       }else{
          result = await pool.query(
         `UPDATE ${schema}.campaing 
-         SET campaing_name=$1, sector=$2, kanban_stage=$3, start_date=$4, timer=$5
+         SET campaing_name=$1, sector=$2, kanban_stage=$3, start_date=$4, timer=$5, min=$7, max=$8
          WHERE id=$6 RETURNING *`,
-        [campName, sector, kanbanStage, unixStartDate, intervalEmSegundos, campaing_id]
+        [campName, sector, kanbanStage, unixStartDate, intervalEmSegundos, campaing_id, null, null]
       );
       campaing = result.rows[0];
       await deleteAllConnectionsFromCampaing(campaing.id, schema)
@@ -199,10 +199,10 @@ const scheduleCampaingBlast = async (campaing, sector, schema, intervalo) => {
       return; 
     }
     
-    const chatIds = await getChatsInKanbanStage(campaing.kanban_stage, schema);
+    const contacts = await getContactsInKanbanStage(campaing.kanban_stage, schema);
     
-    if (!chatIds || chatIds.length === 0) {
-      console.log('Nenhum chat encontrado na etapa Kanban');
+    if (!contacts || contacts.length === 0) {
+      console.log('Nenhum contato encontrado na etapa Kanban');
       return;
     }
     
@@ -230,30 +230,42 @@ const scheduleCampaingBlast = async (campaing, sector, schema, intervalo) => {
 
     let jobCount = 0;
     const totalMessages = messageList.length;
-    const totalContacts = chatIds.length;
+    const totalContacts = contacts.length;
     const totalConnections = connections.length;
-    const totalJobs = Math.min(totalMessages * totalConnections, totalContacts); // Limita ao número de contatos disponíveis
+    
+    // Calcula quantos grupos de contatos serão processados
+    // Cada grupo tem o tamanho do número de conexões
+    const totalGroups = Math.ceil(totalContacts / totalConnections);
+    const totalJobs = totalContacts; // Um job para cada contato
 
     let accumulatedDelay = baseDelay;
 
     for (let jobIndex = 0; jobIndex < totalJobs; jobIndex++) {
-      // Calcula qual mensagem e qual conexão para este job
-      const messageIndex = Math.floor(jobIndex / totalConnections);
-      const connectionIdx = jobIndex % totalConnections;
+      // Calcula o grupo atual e a posição dentro do grupo
+      const groupIndex = Math.floor(jobIndex / totalConnections);
+      const positionInGroup = jobIndex % totalConnections;
       
-      // Cada contato é usado apenas uma vez, sequencialmente
-      const contactIndex = jobIndex;
+      // Calcula qual contato e qual conexão para este job
+      const contactIndex = groupIndex * totalConnections + positionInGroup;
+      
+      // Se o contato não existe, pula
+      if (contactIndex >= totalContacts) {
+        continue;
+      }
+      
+      const messageIndex = groupIndex % totalMessages; // Rotação de mensagens por grupo
+      const connectionIdx = positionInGroup; // Cada conexão tem sua posição fixa no grupo
+      
       const connection = connections[connectionIdx];
-      
-      const chat = chatIds[contactIndex];
-      const contactPhone = chat.contact_phone;
+      const contact = contacts[contactIndex];
+      const contactPhone = contact.number;
+      const contactName = contact.contact_name;
       const message = messageList[messageIndex];
 
       if(campaing.min){
         const min = Number(campaing.min);
         const max = Number(campaing.max);
         intervalEmSegundos = Math.floor(Math.random() * (max - min + 1)) + min;
-        console.log('interval sorteado:', intervalEmSegundos);
       }
 
       // Buscar a instância da conexão
@@ -265,31 +277,29 @@ const scheduleCampaingBlast = async (campaing, sector, schema, intervalo) => {
         continue;
       }
       
-      // 1. Procurar chat 'open' para o número NA conexão sorteada
-      const openChatQuery = await pool.query(
-        `SELECT * FROM ${schema}.chats WHERE contact_phone=$1 AND status='open' AND connection_id=$2 LIMIT 1`,
+      // Verificar se existe chat para o contato na conexão sorteada
+      const existingChatQuery = await pool.query(
+        `SELECT * FROM ${schema}.chats WHERE contact_phone=$1 AND connection_id=$2 LIMIT 1`,
         [contactPhone, instance.rows[0].id]
       );
       
       let chatToUse = null;
-      if (openChatQuery.rowCount > 0) {
-        // Chat 'open' pertence à conexão sorteada - usa ele
-        chatToUse = openChatQuery.rows[0];
+      if (existingChatQuery.rowCount > 0) {
+        // Chat existe - usa ele
+        chatToUse = existingChatQuery.rows[0];
       } else {
-        // Não existe chat 'open' na conexão sorteada - procura um 'importado' de qualquer conexão
-        const importadoQuery = await pool.query(
-          `SELECT * FROM ${schema}.chats WHERE contact_phone=$1 AND status='importado' LIMIT 1`,
-          [contactPhone]
-        );
-        if (importadoQuery.rowCount > 0) {
-          // Transfere o chat 'importado' para a conexão sorteada e status 'open'
-          const updated = await pool.query(
-            `UPDATE ${schema}.chats SET connection_id=$1, status='open' WHERE id=$2 RETURNING *`,
-            [instance.rows[0].id, importadoQuery.rows[0].id]
+        // Chat não existe - cria um novo para o contato na conexão sorteada
+        try {
+          chatToUse = await createNewChat(
+            contactName, 
+            contactPhone, 
+            instance.rows[0].id, 
+            instance.rows[0].queue_id, 
+            null, 
+            schema
           );
-          chatToUse = updated.rows[0];
-        } else {
-          console.warn(`Nenhum chat 'importado' encontrado para o número ${contactPhone} em nenhuma conexão. Pulando.`);
+        } catch (error) {
+          console.error(`Erro ao criar chat para contato ${contactPhone}:`, error.message);
           continue;
         }
       }
@@ -298,7 +308,6 @@ const scheduleCampaingBlast = async (campaing, sector, schema, intervalo) => {
       const messageDelay = accumulatedDelay;
       accumulatedDelay += intervalEmSegundos * 1000;
       
-      console.log(`Agendando mensagem ${messageIndex + 1}/${totalMessages} para conexão ${connectionIdx + 1}/${connections.length} (contato ${contactPhone}) para:`, new Date(Date.now() + messageDelay).toLocaleString());
       const job = await blastQueue.add('sendMessage', {
         instance: instance.rows[0].id,
         number: contactPhone,
@@ -314,7 +323,9 @@ const scheduleCampaingBlast = async (campaing, sector, schema, intervalo) => {
           delay: 2000
         }
       }); 
-      console.log(`Job ${job.id} agendado com sucesso, enviando pelo numero ${instance.rows[0].id}, para o ${contactPhone}`);
+        console.log(`Agendando mensagem ${messageIndex + 1}/${totalMessages} para conexão ${connectionIdx + 1}/${connections.length} (contato ${contactPhone}) para:`, new Date(Date.now() + messageDelay).toLocaleString());
+        console.log(`Job ${job.id} agendado com sucesso, enviando pelo numero ${instance.rows[0].id}, para o ${contactPhone}`);
+
       jobCount++;
     }
     console.log(`Campanha ${campaing.campaing_name} agendada com ${jobCount} mensagens`);
@@ -343,10 +354,10 @@ const startCampaing = async (campaing_id, timer, schema) => {
       return;
     }
     
-    const chatId = await getChatsInKanbanStage(campaing.rows[0].kanban_stage, schema);
+    const contacts = await getContactsInKanbanStage(campaing.rows[0].kanban_stage, schema);
     
-    if (!chatId || chatId.length === 0) {
-      console.log('Nenhum chat encontrado na etapa Kanban');
+    if (!contacts || contacts.length === 0) {
+      console.log('Nenhum contato encontrado na etapa Kanban');
       return;
     }
     
@@ -363,39 +374,73 @@ const startCampaing = async (campaing_id, timer, schema) => {
     // Usar o intervalo do banco de dados ou o timer passado como parâmetro
     const intervalEmSegundos = Number(campaing.rows[0].timer) || timer || 30;
     
-    console.log(`Iniciando campanha ${campaing.rows[0].campaing_name} com ${chatId.length} chats`);
+    console.log(`Iniciando campanha ${campaing.rows[0].campaing_name} com ${contacts.length} contatos`);
     
-    for (let i = 0; i < chatId.length; i++) {
-      const instanceId = await pool.query(
-        `SELECT * FROM ${schema}.chats WHERE id=$1`, [chatId[i].id]
-      );
+    for (let i = 0; i < contacts.length; i++) {
+      const contact = contacts[i];
+      const contactPhone = contact.number;
+      const contactName = contact.contact_name;
       
-      if (!instanceId.rows[0] || !instanceId.rows[0].contact_phone) {
-        console.warn(`Chat inválido ou número não encontrado para chat ID ${chatId[i].id}`);
+      // Buscar uma conexão disponível (round robin por grupo)
+      const connections = await getAllCampaingConnections(campaing_id, schema);
+      if (!connections || connections.length === 0) {
+        console.error('Nenhuma conexão encontrada para a campanha');
         continue;
       }
       
+      // Calcula qual conexão usar baseado no grupo
+      const groupIndex = Math.floor(i / connections.length);
+      const positionInGroup = i % connections.length;
+      const connectionIndex = positionInGroup;
+      const connection = connections[connectionIndex];
+      
       const instance = await pool.query(
-        `SELECT * FROM ${schema}.connections WHERE id=$1`, [instanceId.rows[0].connection_id]
+        `SELECT * FROM ${schema}.connections WHERE id=$1`, [connection.connection_id]
       );
       
       if (!instance.rows[0]) {
-        console.warn(`Conexão não encontrada para chat ID ${chatId[i].id}`);
+        console.warn(`Conexão não encontrada para connection_id ${connection.connection_id}`);
         continue;
+      }
+      
+      // Procurar chat existente ou criar novo
+      const existingChat = await pool.query(
+        `SELECT * FROM ${schema}.chats WHERE contact_phone=$1 AND connection_id=$2 LIMIT 1`,
+        [contactPhone, instance.rows[0].id]
+      );
+      
+      let chatToUse = null;
+      if (existingChat.rowCount > 0) {
+        chatToUse = existingChat.rows[0];
+      } else {
+        // Chat não existe - cria um novo para o contato na conexão
+        try {
+          chatToUse = await createNewChat(
+            contactName, 
+            contactPhone, 
+            instance.rows[0].id, 
+            instance.rows[0].queue_id, 
+            null, 
+            schema
+          );
+        } catch (error) {
+          console.error(`Erro ao criar chat para contato ${contactPhone}:`, error.message);
+          continue;
+        }
       }
       
       const message = messageList[messageIndex];
       messageIndex = (messageIndex + 1) % messageList.length;
       
-      console.log(`Enviando mensagem ${i + 1}/${chatId.length} para ${instanceId.rows[0].contact_phone}`);
+      console.log(`Enviando mensagem ${i + 1}/${contacts.length} para ${contactPhone}`);
       
       // Verifica se a mensagem tem imagem
       if (message.image) {
         await sendMediaBlastMessage(
           instance.rows[0].id,
           message.value,
-          instanceId.rows[0].contact_phone,
-          instanceId.rows[0].id,
+          contactPhone,
+          chatToUse.id,
           message.image,
           schema
         );
@@ -403,13 +448,13 @@ const startCampaing = async (campaing_id, timer, schema) => {
         await sendBlastMessage(
           instance.rows[0].id,
           message.value,
-          instanceId.rows[0].contact_phone,
-          instanceId.rows[0].id,
+          contactPhone,
+          chatToUse.id,
           schema
         );
       }
       
-      if (i < chatId.length - 1) {
+      if (i < contacts.length - 1) {
         console.log(`Aguardando ${intervalEmSegundos} segundos antes da próxima mensagem`);
         await sleep(intervalEmSegundos * 1000);
       }

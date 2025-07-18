@@ -294,7 +294,7 @@ function DisparosPage({ theme }) {
       >
         <i className="bi bi-trash-fill"></i>
       </button>
-      <button
+      {/* <button
         className={`btn success-btn`}
         data-bs-toggle="tooltip"
         data-bs-placement="left"
@@ -306,7 +306,7 @@ function DisparosPage({ theme }) {
 
       >
         <i className="bi bi-play-fill"></i>
-      </button>
+      </button> */}
     </div>
   </div>
 ))}
