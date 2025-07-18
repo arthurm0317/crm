@@ -279,7 +279,7 @@ const scheduleCampaingBlast = async (campaing, sector, schema, intervalo) => {
       
       // Verificar se existe chat para o contato na conexão sorteada
       const existingChatQuery = await pool.query(
-        `SELECT * FROM ${schema}.chats WHERE contact_phone=$1 AND connection_id=$2 LIMIT 1`,
+        `SELECT * FROM ${schema}.chats WHERE contact_phone=$1 AND connection_id=$2 AND status<>'closed' LIMIT 1`,
         [contactPhone, instance.rows[0].id]
       );
       
@@ -296,7 +296,8 @@ const scheduleCampaingBlast = async (campaing, sector, schema, intervalo) => {
             instance.rows[0].id, 
             instance.rows[0].queue_id, 
             null, 
-            schema
+            schema,
+            'disparo' // Status específico para chats criados por disparo
           );
         } catch (error) {
           console.error(`Erro ao criar chat para contato ${contactPhone}:`, error.message);
@@ -421,7 +422,8 @@ const startCampaing = async (campaing_id, timer, schema) => {
             instance.rows[0].id, 
             instance.rows[0].queue_id, 
             null, 
-            schema
+            schema,
+            'disparo' // Status específico para chats criados por disparo
           );
         } catch (error) {
           console.error(`Erro ao criar chat para contato ${contactPhone}:`, error.message);

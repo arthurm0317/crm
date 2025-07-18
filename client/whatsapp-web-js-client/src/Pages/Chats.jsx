@@ -359,9 +359,11 @@ function ChatPage({ theme, chat_id} ) {
   
   // Função para ordenar chats por timestamp mais recente
   const sortChatsByTimestamp = (chats) => {
-    // Chats com status 'importado' vão para o final
-    const notImportado = chats.filter(c => c.status !== 'importado');
+    // Chats com status 'importado' e 'disparo' vão para o final
+    const notImportado = chats.filter(c => c.status !== 'importado' && c.status !== 'disparo');
     const importado = chats.filter(c => c.status === 'importado');
+    const disparo = chats.filter(c => c.status === 'disparo');
+    
     // Ordena os não importados por timestamp
     notImportado.sort((a, b) => {
       const timestampA = a.updated_time || a.timestamp || a.updated_at || a.created_at || a.last_message_time || a.last_message_at || 0;
@@ -370,7 +372,8 @@ function ChatPage({ theme, chat_id} ) {
       const timeB = typeof timestampB === 'string' ? parseInt(timestampB) : timestampB;
       return timeB - timeA;
     });
-    // Ordena os importados por timestamp (opcional, pode deixar como está)
+    
+    // Ordena os importados por timestamp
     importado.sort((a, b) => {
       const timestampA = a.updated_time || a.timestamp || a.updated_at || a.created_at || a.last_message_time || a.last_message_at || 0;
       const timestampB = b.updated_time || b.timestamp || b.updated_at || b.created_at || b.last_message_time || b.last_message_at || 0;
@@ -378,7 +381,17 @@ function ChatPage({ theme, chat_id} ) {
       const timeB = typeof timestampB === 'string' ? parseInt(timestampB) : timestampB;
       return timeB - timeA;
     });
-    return [...notImportado, ...importado];
+    
+    // Ordena os disparos por timestamp
+    disparo.sort((a, b) => {
+      const timestampA = a.updated_time || a.timestamp || a.updated_at || a.created_at || a.last_message_time || a.last_message_at || 0;
+      const timestampB = b.updated_time || b.timestamp || b.updated_at || b.created_at || b.last_message_time || b.last_message_at || 0;
+      const timeA = typeof timestampA === 'string' ? parseInt(timestampA) : timestampA;
+      const timeB = typeof timestampB === 'string' ? parseInt(timestampB) : timestampB;
+      return timeB - timeA;
+    });
+    
+    return [...notImportado, ...importado, ...disparo];
   };
 
   useEffect(()=>{

@@ -86,6 +86,39 @@ const emitWaitingChatsToQueue = async (serverTest, schema, connectionId, queueId
   }
 };
 
+const updateChatStatusFromDisparo = async (chatId, schema) => {
+  try {
+    // Primeiro, buscar informações da fila do chat
+    const chatInfo = await pool.query(
+      `SELECT queue_id FROM ${schema}.chats WHERE id = $1`,
+      [chatId]
+    );
+    
+    if (chatInfo.rowCount > 0 && chatInfo.rows[0].queue_id) {
+      // Buscar informações da fila
+      const queueInfo = await pool.query(
+        `SELECT distribution FROM ${schema}.queues WHERE id = $1`,
+        [chatInfo.rows[0].queue_id]
+      );
+      
+      let newStatus = 'waiting'; // Padrão
+      
+      if (queueInfo.rowCount > 0 && queueInfo.rows[0].distribution) {
+        // Se a fila tem distribuição automática ligada, usa 'open'
+        newStatus = 'open';
+      }
+      
+      // Atualiza o status baseado na configuração da fila
+      await pool.query(
+        `UPDATE ${schema}.chats SET status = $1 WHERE id = $2 AND status = 'disparo'`,
+        [newStatus, chatId]
+      );
+    }
+  } catch (error) {
+    console.error('Erro ao atualizar status do chat de disparo:', error);
+  }
+};
+
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
 module.exports = (broadcastMessage) => {
@@ -154,6 +187,8 @@ module.exports = (broadcastMessage) => {
       const baseChat = await getChatService(createChats.chat.id, createChats.chat.connection_id, createChats.schema)
       if(result.data.key.fromMe===false){
         await setMessageIsUnread(baseChat.id, schema)
+        // Se a mensagem não é do sistema (fromMe = false), atualiza o status de 'disparo' para 'open'
+        await updateChatStatusFromDisparo(baseChat.id, schema)
       }
       if (baseChat.assigned_user !== null) {
         // Chat já tem usuário atribuído - emitir para o usuário específico e para admins/técnicos

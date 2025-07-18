@@ -379,7 +379,7 @@ const saveMediaMessage = async (id,fromMe, chat_id, createdAt, message_type, aud
   }
 };
 
-const createNewChat = async(name, number, connectionId, queueId, user_id, schema) => {
+const createNewChat = async(name, number, connectionId, queueId, user_id, schema, status = 'open') => {
   try {
     const { v4: uuidv4 } = require('uuid');
     const timestamp = getCurrentTimestamp();
@@ -394,7 +394,7 @@ const createNewChat = async(name, number, connectionId, queueId, user_id, schema
         false, 
         name, 
         user_id, 
-        'open', 
+        status, 
         timestamp, 
         JSON.stringify([]),
         number,
