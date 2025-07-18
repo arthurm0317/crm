@@ -9,30 +9,31 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
   const [preview, setPreview] = useState([]);
   const [availableColumns, setAvailableColumns] = useState([]);
   const [errorMsg, setErrorMsg] = useState('');
-  const [canal, setCanal] = useState('');
-  const [conexao, setConexao] = useState([]);
+  // Remover o estado e busca de conexões
+  // const [canal, setCanal] = useState('');
+  // const [conexao, setConexao] = useState([]);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef(null);
   const userData = JSON.parse(localStorage.getItem('user'));
   const schema = userData?.schema;
   const url = process.env.REACT_APP_URL
 
-  // Buscar conexões disponíveis
-  useEffect(() => {
-    const fetchConn = async () => {
-      try {
-        const response = await axios.get(`${url}/connection/get-all-connections/${schema}`,
-        {
-      withCredentials: true
-    });
-        setConexao(Array.isArray(response.data) ? response.data : []);
-      } catch (error) {
-        console.error('Erro ao buscar conexões:', error);
-        setConexao([]);
-      }
-    };
-    fetchConn();
-  }, [url, schema]);
+  // Remover o useEffect que busca conexões
+  // useEffect(() => {
+  //   const fetchConn = async () => {
+  //     try {
+  //       const response = await axios.get(`${url}/connection/get-all-connections/${schema}`,
+  //       {
+  //     withCredentials: true
+  //   });
+  //       setConexao(Array.isArray(response.data) ? response.data : []);
+  //     } catch (error) {
+  //       console.error('Erro ao buscar conexões:', error);
+  //       setConexao([]);
+  //     }
+  //   };
+  //   fetchConn();
+  // }, [url, schema]);
 
   const handleFileChange = (event) => {
     setErrorMsg('');
@@ -63,15 +64,16 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
     reader.readAsArrayBuffer(file);
   };
 
+  // Remover validação do canal na importação
   const handleImport = async () => {
     if (!file) {
       setErrorMsg('Selecione um arquivo para importar.');
       return;
     }
-    if (!canal) {
-      setErrorMsg('Selecione um canal para importar.');
-      return;
-    }
+    // if (!canal) {
+    //   setErrorMsg('Selecione um canal para importar.');
+    //   return;
+    // }
     setErrorMsg('');
     setIsImporting(true);
     try {
@@ -79,15 +81,11 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
       formData.append('file', file);
       formData.append('sector', funil);
       formData.append('schema', schema);
-      formData.append('connection_id', canal);
+      // formData.append('connection_id', canal); // Remover
 
       const res = await axios.post(`${url}/excel/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
-      },
-        {
-      withCredentials: true
-    });
-
+      });
 
       if (res.data.success) {
         console.log('✅ Importação bem-sucedida!');
@@ -95,7 +93,7 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
         setFile(null);
         setPreview([]);
         setAvailableColumns([]);
-        setCanal('');
+        // setCanal(''); // Remover
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
@@ -117,7 +115,7 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
     setFile(null);
     setPreview([]);
     setAvailableColumns([]);
-    setCanal('');
+    // setCanal(''); // Remover
     setErrorMsg('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -158,7 +156,8 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
             </Form.Group>
           </div>
 
-          <div style={{ width: '40%' }}>
+          {/* Remover campo de seleção de canal do JSX */}
+          {/* <div style={{ width: '40%' }}>
             <Form.Group>
               <Form.Label className={`header-text-${theme}`}>Canal</Form.Label>
               <Form.Select
@@ -177,7 +176,7 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
                 Contato nosso para interação
               </Form.Text>
             </Form.Group>
-          </div>
+          </div> */}
         </div>
 
         {errorMsg && (
@@ -225,8 +224,8 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
           <Button
             onClick={handleImport}
             className={`btn-1-${theme}`}
-            disabled={!file || !canal || isImporting}
-            style={(!file || !canal || isImporting) ? { backgroundColor: 'transparent' } : {}}
+            disabled={!file || isImporting}
+            style={(!file || isImporting) ? { backgroundColor: 'transparent' } : {}}
           >
             {isImporting ? 'Importando...' : 'Importar'}
           </Button>

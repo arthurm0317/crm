@@ -2,6 +2,7 @@ const pool = require("../db/queries");
 const { v4: uuidv4 } = require("uuid");
 const { get } = require("../routes/ConnectionRoutes");
 const SocketServer = require("../server");
+const { getContactByNumber } = require("./ContactService");
 
 const createKanbanStage = async (name, pos, color, sector, schema) => {
   const stageExists = await pool.query(
@@ -19,8 +20,18 @@ const createKanbanStage = async (name, pos, color, sector, schema) => {
   }
 };
 
-const insertInKanbanStage = async (stageName, connection_id, sector, number, schema) => {
-  
+const insertContactInKanban = async (number, stage_id, schema) => {
+  const result = await pool.query(`INSERT INTO ${schema}.contacts_stage(contact_number, stage) VALUES ($1, $2) RETURNING *`, [number, stage_id])
+  return result.rows[0]
+}
+
+const updateContactInKanban = async (number, stage_id, schema) => {
+  const result = await pool.query(`UPDATE ${schema}.contacts_stage SET stage=$1 WHERE contact_number=$2 RETURNING *`, [stage_id, number])
+  return result.rows[0]
+}
+
+const insertInKanbanStage = async (stageName, sector, number, schema) => {
+  // Verifica se a tabela do kanban existe
   const tableExists = await pool.query(
     `SELECT EXISTS (
       SELECT FROM information_schema.tables 
@@ -30,82 +41,86 @@ const insertInKanbanStage = async (stageName, connection_id, sector, number, sch
     [schema, `kanban_${sector}`]
   );
 
-
   if (!tableExists.rows[0].exists) {
     console.error(`Tabela kanban_${sector} não existe no esquema ${schema}`);
     return null;
   }
 
-  const stageId = await pool.query(
+  // Busca o id da etapa
+  const stageIdResult = await pool.query(
     `SELECT id FROM ${schema}.kanban_${sector} WHERE etapa=$1`,
     [stageName]
   );
 
-
-  if (stageId.rowCount > 0) {
-    // Verificar se já existe chat 'importado' para a conexão e número
-    const existingImportado = await pool.query(
-      `SELECT * FROM ${schema}.chats WHERE connection_id=$1 AND contact_phone=$2 AND status='importado' LIMIT 1`,
-      [connection_id, number]
-    );
-    if (existingImportado.rowCount > 0) {
-      // Só atualiza a etapa
-      const updated = await pool.query(
-        `UPDATE ${schema}.chats SET etapa_id=$1 WHERE id=$2 RETURNING *`,
-        [stageId.rows[0].id, existingImportado.rows[0].id]
-      );
-      global.socketIoServer.to(`schema_${schema}`).emit('contatosImportados', {
-          newChat: updated.rows,
-          sector: sector,
-          schema: schema
-        });
-      return updated.rows[0];
-    }
-    // Se não existe, cria normalmente
-    const contactName = await pool.query(
-      `SELECT contact_name FROM ${schema}.contacts WHERE number=$1`,
-      [number]
-    );
-    const queueId = await pool.query(
-      `SELECT * FROM ${schema}.connections WHERE id=$1`,
-      [connection_id]
-    )
-    const newChat = await pool.query(
-      `INSERT INTO ${schema}.chats 
-       (id, chat_id, connection_id, queue_id, isgroup, contact_name, assigned_user, status, created_at, messages, contact_phone, etapa_id) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
-      [
-        uuidv4(), 
-        `${number}@s.whatsapp.net`, 
-        connection_id,
-        queueId.rows[0].queue_id,
-        false,
-        contactName.rows[0]?.contact_name ?? 'Sem nome',
-        null,
-        'importado',
-        new Date().getTime(), 
-        JSON.stringify([]),
-        number,
-        stageId.rows[0].id
-      ]
-    );
-    global.socketIoServer.to(`schema_${schema}`).emit('contatosImportados', {
-          newChat: newChat.rows[0],
-          sector: sector,
-          schema: schema
-        });
-    return newChat.rows[0];
-  } else {
-    console.error(`Etapa "${stageName}" não encontrada no esquema "${schema}".`);
+  if (stageIdResult.rowCount === 0) {
+    console.error(`Etapa ${stageName} não encontrada no kanban_${sector}`);
     return null;
   }
-};
+  const stageId = stageIdResult.rows[0].id;
+
+  // Busca o contato
+  const contact = await pool.query(
+    `SELECT * FROM ${schema}.contacts WHERE number=$1`,
+    [number]
+  );
+  if (contact.rowCount === 0) {
+    console.error(`Contato ${number} não encontrado no schema ${schema}`);
+    return null;
+  }
+
+  // Verifica se já existe relação na contacts_stage
+  const existing = await pool.query(
+    `SELECT * FROM ${schema}.contacts_stage WHERE contact_number=$1`,
+    [number]
+  );
+
+  let result;
+  if (existing.rowCount > 0) {
+    // Atualiza a etapa do contato
+    result = await pool.query(
+      `UPDATE ${schema}.contacts_stage SET stage=$1 WHERE contact_number=$2 RETURNING *`,
+      [stageId, number]
+    );
+  } else {
+    // Insere o contato na etapa
+    result = await pool.query(
+      `INSERT INTO ${schema}.contacts_stage(contact_number, stage) VALUES ($1, $2) RETURNING *`,
+      [number, stageId]
+    );
+  }
+
+  // Emite evento de contato importado
+  global.socketIoServer.to(`schema_${schema}`).emit('contatosImportados', {
+    contato: contact.rows[0],
+    sector: sector,
+    schema: schema
+  });
+
+  return contact.rows[0];
+}
+
 
 const getChatsInKanbanStage = async (stage, schema) => {
   if (stage) {
     const result = await pool.query(
       `SELECT * FROM ${schema}.chats WHERE etapa_id=$1 AND status<>$2`,
       [stage, 'closed']
+    );
+    return result.rows;
+  } else {
+    console.error(`Etapa "${stage}" não encontrada no esquema "${schema}".`);
+    return [];
+  }
+};
+
+const getContactsInKanbanStage = async (stage, schema) => {
+  if (stage) {
+    // Busca todos os números de contato na etapa
+    const result = await pool.query(
+      `SELECT c.* FROM ${schema}.contacts_stage cs
+       JOIN ${schema}.contacts c ON cs.contact_number = c.number
+       WHERE cs.stage = $1`,
+      [stage]
     );
     return result.rows;
   } else {
@@ -218,10 +233,12 @@ module.exports = {
   createKanbanStage,
   insertInKanbanStage,
   getChatsInKanbanStage,
+  getContactsInKanbanStage,
   getKanbanStages,
   getFunis,
   getChatsInKanban,
   changeKanbanStage,
+  updateContactInKanban,
   updateStageName,
   updateStageIndex,
   createFunil,

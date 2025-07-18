@@ -103,10 +103,12 @@ const updateContactName = async(number, name, schema)=>{
     }
 }
 
+
+
 module.exports = { 
     createCustomField, 
     insertValueCustomField,
     createContact,
     updateContactName,
-    getChatsForUser
+    getChatsForUser,
 };

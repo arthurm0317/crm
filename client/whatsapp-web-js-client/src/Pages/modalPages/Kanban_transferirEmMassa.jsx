@@ -16,15 +16,23 @@ function TransferirEmMassaModal({ theme, show, onHide, etapaOrigem, etapas, funi
 
     setLoading(true);
     try {
-      await axios.put(`${url}/kanban/transfer-all-chats`, {
+      // Buscar todos os contatos da etapa de origem
+      const response = await axios.get(`${url}/kanban/get-contacts-in-stage/${etapaOrigem.id}/${schema}`, {
+        withCredentials: true
+      });
+      const contatos = Array.isArray(response.data) ? response.data : [response.data];
+      const numbers = contatos.map(c => c.number);
+      // Enviar para o backend para transferir todos os contatos
+      await axios.put(`${url}/kanban/transfer-all-contacts`, {
+        numbers,
         stage_id: etapaOrigem.id,
         new_stage: etapaDestino,
         sector: funil,
         schema: schema
       },
         {
-      withCredentials: true
-    });
+          withCredentials: true
+        });
 
       if (onTransferComplete) {
         onTransferComplete(etapaOrigem.id, etapaDestino);
@@ -32,7 +40,7 @@ function TransferirEmMassaModal({ theme, show, onHide, etapaOrigem, etapas, funi
       
       onHide();
     } catch (error) {
-      console.error('Erro ao transferir cards:', error);
+      console.error('Erro ao transferir contatos:', error);
     } finally {
       setLoading(false);
     }

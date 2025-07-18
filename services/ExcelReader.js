@@ -8,7 +8,7 @@ const { insertInKanbanStage } = require('./KanbanService');
 
 const folderPath = path.join(__dirname, '..', 'uploads');
 
-function processExcelFile(connection_id, sector, schema) {
+function processExcelFile(sector, schema) {
   const files = fs.readdirSync(folderPath).filter(file => file.endsWith('.xlsx'));
 
   if (files.length === 0) {
@@ -21,22 +21,19 @@ function processExcelFile(connection_id, sector, schema) {
   const sheetName = workbook.SheetNames[0]; 
   const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-
-  getInformationFromExcel(data, connection_id, sector, schema) 
+  getInformationFromExcel(data, sector, schema) 
   
   fs.unlinkSync(filePath);
   return data;
-
-  
 }
 
-const getInformationFromExcel = async (data, connection, sector, schema) => {
+const getInformationFromExcel = async (data, sector, schema) => {
   for (const row of data) {
     let numero = row.numero?.toString();
-     if (!row.nome) {
-    console.warn('Linha ignorada: nome ausente.', row);
-    continue;
-  }
+    if (!row.nome) {
+      console.warn('Linha ignorada: nome ausente.', row);
+      continue;
+    }
     const nomeSeparado = row.nome.split(' ');
     const etapa = row.etapa;
     
@@ -64,7 +61,7 @@ const getInformationFromExcel = async (data, connection, sector, schema) => {
         }
       }
       if (etapa) {
-        const result = await insertInKanbanStage(etapa, connection, sector, numero, schema);
+        const result = await insertInKanbanStage(etapa, sector, numero, schema);
         if (result === null) {
           console.warn(`Linha ignorada: etapa "${etapa}" não encontrada no funil "${sector}".`, row);
         }

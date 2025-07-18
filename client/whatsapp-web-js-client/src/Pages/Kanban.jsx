@@ -82,6 +82,7 @@ styleSheet.innerText = styles;
 document.head.appendChild(styleSheet);
 
 function maskPhone(num) {
+  if (!num) return '';
   // Remove tudo que não for dígito
   const digits = num.replace(/\D/g, '');
   // Aplica a máscara
@@ -269,20 +270,31 @@ function KanbanPage({ theme }) {
     fetchEtapas();
   }, [funilSelecionado, schema]);
 
-  useEffect(()=>{
-    const fetchCards = async()=>{
-    try {
-        const response = await axios.get(`${url}/kanban/get-cards/${funilSelecionado}/${schema}`,
-        {
-      withCredentials: true
-    })
-        setCards(Array.isArray(response.data)?response.data:[response.data])
-      }catch (error) {
-      console.error(error)
-    } 
-  }
-  fetchCards()
-  }, [funilSelecionado])
+  // Substituir o carregamento dos cards para buscar contatos por etapa
+  useEffect(() => {
+    const fetchContactsInKanban = async () => {
+      if (!funilSelecionado || etapas.length === 0) {
+        setCards([]);
+        return;
+      }
+      try {
+        let allContacts = [];
+        for (const etapa of etapas) {
+          const response = await axios.get(`${url}/kanban/get-contacts-in-stage/${etapa.id}/${schema}`, {
+            withCredentials: true
+          });
+          const contatos = Array.isArray(response.data) ? response.data : [response.data];
+          // Adiciona o campo etapa_id para facilitar o filtro na renderização
+          allContacts = allContacts.concat(contatos.map(c => ({ ...c, etapa_id: etapa.id })));
+        }
+        setCards(allContacts);
+      } catch (error) {
+        setCards([]);
+        console.error('Erro ao buscar contatos do kanban:', error);
+      }
+    };
+    fetchContactsInKanban();
+  }, [funilSelecionado, etapas, schema, url]);
 
   // Listener para contatos importados
   useEffect(() => {
@@ -304,13 +316,27 @@ function KanbanPage({ theme }) {
   const recarregarCards = async () => {
     if (!funilSelecionado) return;
     try {
-      const response = await axios.get(`${url}/kanban/get-cards/${funilSelecionado}/${schema}`,
-        {
-      withCredentials: true
-    });
-      const novosCards = Array.isArray(response.data) ? response.data : [response.data];
-      setCards(novosCards);
+      // Buscar etapas atualizadas antes de buscar os contatos
+      const etapasResp = await axios.get(`${url}/kanban/get-stages/${funilSelecionado.charAt(0).toLowerCase() + funilSelecionado.slice(1)}/${schema}`, {
+        withCredentials: true
+      });
+      const etapasAtualizadas = Array.isArray(etapasResp.data) ? etapasResp.data : [];
+      console.log('Etapas do backend:', etapasAtualizadas);
+      let allContacts = [];
+      for (const etapa of etapasAtualizadas) {
+        const response = await axios.get(`${url}/kanban/get-contacts-in-stage/${etapa.id}/${schema}`, {
+          withCredentials: true
+        });
+        console.log(`Contatos da etapa ${etapa.etapa} (${etapa.id}):`, response.data);
+        const contatos = Array.isArray(response.data) ? response.data : [response.data];
+        allContacts = allContacts.concat(contatos.map(c => ({ ...c, etapa_id: etapa.id })));
+      }
+      setEtapas(etapasAtualizadas); // Atualiza as etapas no estado também
+      console.log('Todos os contatos montados para o kanban:', allContacts);
+      setCards(allContacts);
     } catch (error) {
+      setCards([]);
+      console.error('Erro ao buscar contatos do kanban:', error);
     }
   };
 
@@ -423,13 +449,13 @@ function KanbanPage({ theme }) {
    if (draggedLead) {
     setCards(cards =>
       cards.map(l =>
-        l.id === draggedLead.id ? { ...l, etapa_id: etapaId } : l
+        l.number === draggedLead.number ? { ...l, etapa_id: etapaId } : l
       )
     );
     setDraggedLead(null);
     try {
-      const respose = await axios.put(`${url}/kanban/change-stage`,{
-        chat_id: draggedLead.id,
+      await axios.put(`${url}/kanban/change-stage`,{
+        number: draggedLead.number,
         stage_id: etapaId,
         schema: schema
       },
@@ -438,7 +464,7 @@ function KanbanPage({ theme }) {
     })
       
       socketInstance.emit('leadMoved',{
-        chat_id: draggedLead.id,
+        number: draggedLead.number,
         stage_id: etapaId,
         schema: schema
       })
@@ -449,11 +475,15 @@ function KanbanPage({ theme }) {
   }
   };
   useEffect(() => {
-function handleLeadMoved({ chat_id, etapa_id, stage_id }) {
+function handleLeadMoved({ chat_id, etapa_id, stage_id, number }) {
   const novoEtapaId = etapa_id || stage_id;
   setCards(cards =>
     cards.map(l =>
-      l.id === chat_id ? { ...l, etapa_id: novoEtapaId } : l
+      (number && l.number === number)
+        ? { ...l, etapa_id: novoEtapaId }
+        : (chat_id && l.id === chat_id)
+          ? { ...l, etapa_id: novoEtapaId }
+          : l
     )
   );
 }
@@ -750,7 +780,7 @@ useEffect(() => {
           <div className="d-flex flex-row gap-4"
             style={{ minHeight: 0, minWidth: '100%', width: 'max-content' }}>
             {etapas.map(etapa => {
-              const etapaTemLeads = leads.some(lead => lead.funilId === funilSelecionado && lead.etapaId === etapa.id);
+              const etapaTemLeads = cards.some(lead => lead.etapa_id === etapa.id);
               return   (
                 <div key={etapa.id} className={`kanban-col card-${theme} border border-${theme} rounded px-2 pt-2`} 
                   style={{ 
@@ -821,7 +851,7 @@ useEffect(() => {
                     }}>
                       {/* Renderizando os leads filtrados */}
                       {(cards.filter(lead => lead.etapa_id === etapa.id) || []).map(lead => (
-                        <div key={lead.id} className={`kanban-card card-${theme} border border-${theme} mb-2 py-2 px-3`}
+                        <div key={lead.number} className={`kanban-card card-${theme} border border-${theme} mb-2 py-2 px-3`}
                           draggable
                           onDragStart={() => onDragStart(lead)}
                         >
@@ -829,7 +859,7 @@ useEffect(() => {
                             <span className={`fw-bold header-text-${theme} me-1`} style={{ fontSize: '0.8rem' }}>{lead.contact_name}</span>
                             <div className="d-flex gap-1">
                               {/* Dropdown de gerenciamento de tags */}
-                              <DropdownButton icon="tags" theme={theme}>
+                              {/* <DropdownButton icon="tags" theme={theme}>
                                 <div>
                                   {allTags.map(tag => (
                                     <div
@@ -892,7 +922,7 @@ useEffect(() => {
                                     </div>
                                   ))}
                                 </div>
-                              </DropdownButton>
+                              </DropdownButton> */}
 
                               {/* Dropdown de alterar funil */}
                               <DropdownButton icon="funnel-fill" theme={theme} style={{ backgroundColor: 'red' }}>
@@ -941,14 +971,14 @@ useEffect(() => {
                                 </div>
                               </DropdownButton>
 
-                              <button
+                              {/* <button
                                 className="btn btn-sm btn-2-light"
                                 title="Abrir chat"
                                 style={{ cursor: 'pointer', minWidth: 35, minHeight: 35 }}
                                 onClick={() => setLeadSelecionado(lead)}
                               >
                                 <i className="bi bi-chat-dots"></i>
-                              </button>
+                              </button> */}
                             </div>
                           </div>
                           {/* Exibir tags do lead */}
@@ -957,7 +987,7 @@ useEffect(() => {
                               <span key={tag.id} className="badge bg-secondary">{tag.name}</span>
                             ))}
                           </div>
-                          <div className={`small header-text-${theme}`}>{maskPhone(lead.contact_phone)}</div>
+                          <div className={`small header-text-${theme}`}>{maskPhone(lead.contact_phone || lead.number)}</div>
                         </div>
                       ))}
                     </div>
