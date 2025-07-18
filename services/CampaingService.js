@@ -86,6 +86,9 @@ const createCampaing = async (campaing_id, campName, sector, kanbanStage, connec
 
     // Converter o intervalo para segundos baseado na unidade
     let intervalEmSegundos;
+    let intervalMinEmSegundos
+    let intervalMaxEmSegundos
+
     if (intervalo && intervalo.unidade) {
       switch (intervalo.unidade) {
         case 'horas':
@@ -99,15 +102,49 @@ const createCampaing = async (campaing_id, campName, sector, kanbanStage, connec
           intervalEmSegundos = intervalo.timer;
           break;
       }
-    } else {
-      intervalEmSegundos = 30; // valor padrão se não for fornecido
+    } else if(intervalo.min && intervalo.max){
+        switch(intervalo.unidade_min){
+          case 'horas':
+          intervalMinEmSegundos = intervalo.min * 3600;
+          break;
+        case 'minutos':
+          intervalMinEmSegundos = intervalo.min * 60;
+          break;
+        case 'segundos':
+        default:
+          intervalMinEmSegundos = intervalo.min;
+          break;
+        }
+        switch(intervalo.unidade_max){
+          case 'horas':
+          intervalMaxEmSegundos = intervalo.max * 3600;
+          break;
+        case 'minutos':
+          intervalMaxEmSegundos = intervalo.max * 60;
+          break;
+        case 'segundos':
+        default:
+          intervalMaxEmSegundos = intervalo.max;
+          break;
+        }
     }
 
     let result;
     let campaing;
 
     if (campaing_id) {
-      result = await pool.query(
+      if(intervalMinEmSegundos){
+        result = await pool.query(
+        `UPDATE ${schema}.campaing 
+         SET campaing_name=$1, sector=$2, kanban_stage=$3, start_date=$4, timer=$5, min=$7, max=$8
+         WHERE id=$6  RETURNING *`,
+        [campName, sector, kanbanStage, unixStartDate, null, campaing_id, intervalMinEmSegundos, intervalMaxEmSegundos]
+      );
+      campaing = result.rows[0];
+      await deleteAllConnectionsFromCampaing(campaing.id, schema)
+      insertConnectionsForCampaing(campaing.id,connectionId, schema)
+      }else{
+         result = await pool.query(
         `UPDATE ${schema}.campaing 
          SET campaing_name=$1, sector=$2, kanban_stage=$3, start_date=$4, timer=$5
          WHERE id=$6 RETURNING *`,
@@ -116,14 +153,24 @@ const createCampaing = async (campaing_id, campName, sector, kanbanStage, connec
       campaing = result.rows[0];
       await deleteAllConnectionsFromCampaing(campaing.id, schema)
       insertConnectionsForCampaing(campaing.id,connectionId, schema)
+      }
+     
     } else {
-      result = await pool.query(
-        `INSERT INTO ${schema}.campaing (id, campaing_name, sector, kanban_stage, start_date, timer) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-        [uuidv4(), campName, sector, kanbanStage, unixStartDate, intervalEmSegundos]
-      );
-      campaing = result.rows[0];
-      insertConnectionsForCampaing(campaing.id,connectionId, schema)
-
+      if(intervalMinEmSegundos) {
+        result = await pool.query(
+          `INSERT INTO ${schema}.campaing (id, campaing_name, sector, kanban_stage, start_date, timer, min, max) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+          [uuidv4(), campName, sector, kanbanStage, unixStartDate, null, intervalMinEmSegundos, intervalMaxEmSegundos]
+        );
+        campaing = result.rows[0];
+        insertConnectionsForCampaing(campaing.id,connectionId, schema)
+      } else {
+        result = await pool.query(
+          `INSERT INTO ${schema}.campaing (id, campaing_name, sector, kanban_stage, start_date, timer) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+          [uuidv4(), campName, sector, kanbanStage, unixStartDate, intervalEmSegundos]
+        );
+        campaing = result.rows[0];
+        insertConnectionsForCampaing(campaing.id,connectionId, schema)
+      }
     }
     await scheduleCampaingBlast(campaing, campaing.sector, schema, intervalo);
 
@@ -170,8 +217,10 @@ const scheduleCampaingBlast = async (campaing, sector, schema, intervalo) => {
     
     const baseDelay = Math.max(0, startDate - now);
     
-    // Usar o intervalo salvo no banco de dados
-    const intervalEmSegundos = Number(campaing.timer) || 30;
+    let intervalEmSegundos;
+    if(!campaing.min){
+      intervalEmSegundos = Number(campaing.timer) || 30;
+    }
     
     const connections = await getAllCampaingConnections(campaing.id, schema);
     if (!connections || connections.length === 0) {
@@ -185,6 +234,8 @@ const scheduleCampaingBlast = async (campaing, sector, schema, intervalo) => {
     const totalConnections = connections.length;
     const totalJobs = Math.min(totalMessages * totalConnections, totalContacts); // Limita ao número de contatos disponíveis
 
+    let accumulatedDelay = baseDelay;
+
     for (let jobIndex = 0; jobIndex < totalJobs; jobIndex++) {
       // Calcula qual mensagem e qual conexão para este job
       const messageIndex = Math.floor(jobIndex / totalConnections);
@@ -197,6 +248,13 @@ const scheduleCampaingBlast = async (campaing, sector, schema, intervalo) => {
       const chat = chatIds[contactIndex];
       const contactPhone = chat.contact_phone;
       const message = messageList[messageIndex];
+
+      if(campaing.min){
+        const min = Number(campaing.min);
+        const max = Number(campaing.max);
+        intervalEmSegundos = Math.floor(Math.random() * (max - min + 1)) + min;
+        console.log('interval sorteado:', intervalEmSegundos);
+      }
 
       // Buscar a instância da conexão
       const instance = await pool.query(
@@ -237,7 +295,9 @@ const scheduleCampaingBlast = async (campaing, sector, schema, intervalo) => {
       }
       
       // O delay é calculado por job
-      const messageDelay = baseDelay + (jobIndex * intervalEmSegundos * 1000);
+      const messageDelay = accumulatedDelay;
+      accumulatedDelay += intervalEmSegundos * 1000;
+      
       console.log(`Agendando mensagem ${messageIndex + 1}/${totalMessages} para conexão ${connectionIdx + 1}/${connections.length} (contato ${contactPhone}) para:`, new Date(Date.now() + messageDelay).toLocaleString());
       const job = await blastQueue.add('sendMessage', {
         instance: instance.rows[0].id,

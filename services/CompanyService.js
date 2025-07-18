@@ -88,7 +88,7 @@ const createCompany = async (company, schema) => {
         );
         `);
         await pool.query(`
-            CREATE TABLE ${schema}.custom_fields (
+            CREATE TABLE IF NOT EXISTS ${schema}.custom_fields (
             id UUID PRIMARY KEY,
             field_name TEXT NOT NULL,
             label TEXT NOT NULL,
@@ -96,7 +96,7 @@ const createCompany = async (company, schema) => {
             );
             `)
         await pool.query(`
-            CREATE TABLE ${schema}.contact_custom_values (id UUID PRIMARY KEY,
+            CREATE TABLE IF NOT EXISTS ${schema}.contact_custom_values (id UUID PRIMARY KEY,
             contact_number TEXT NOT NULL REFERENCES ${schema}.contacts(number) ON DELETE CASCADE,
             field_id UUID NOT NULL REFERENCES ${schema}.custom_fields(id) ON DELETE CASCADE,
             value TEXT,
@@ -104,7 +104,7 @@ const createCompany = async (company, schema) => {
             );
         `)
         await pool.query(`
-            create table ${schema}.message_blast(
+            create table IF NOT EXISTS ${schema}.message_blast(
             id uuid primary key not null,
             value text not null,
             sector text not null,
@@ -130,19 +130,20 @@ const createCompany = async (company, schema) => {
             );`
         )
         await pool.query(`
-            create table ${schema}.campaing(
+            create table IF NOT EXISTS ${schema}.campaing(
             id UUID primary key,
             campaing_name text not null,
             sector text not null,
             kanban_stage UUID not null,
-            connection_id UUID not null,
             start_date bigint,
             status text,
-            timer bigint
+            timer bigint,
+            min_timer bigint,
+            max_timer bigint,
             )
             `)
         await pool.query(
-            `create table ${schema}.lembretes(
+            `create table IF NOT EXISTS ${schema}.lembretes(
             id uuid primary key not null,
             lembrete_name text not null,
             tag text,
@@ -153,7 +154,7 @@ const createCompany = async (company, schema) => {
             )`
         )
         await pool.query(`
-                CREATE TABLE ${schema}.lembretes_queues (
+                CREATE TABLE IF NOT EXISTS ${schema}.lembretes_queues (
                 lembrete_id UUID NOT NULL,
                 queue_id UUID NOT NULL,
                 PRIMARY KEY (lembrete_id, queue_id),
@@ -162,25 +163,36 @@ const createCompany = async (company, schema) => {
                 )`
         );
         await pool.query(
-            `CREATE TABLE ${schema}.scheduled_message (
+            `CREATE TABLE IF NOT EXISTS ${schema}.scheduled_message (
             id UUID PRIMARY KEY,
             message TEXT NOT NULL,
             chat_id UUID NOT NULL REFERENCES ${schema}.chats(id) ON DELETE CASCADE,
             scheduled_date BIGINT NOT NULL
             );`
         )
-        await pool.query(`CREATE TABLE ${schema}.user_preferences (
+        await pool.query(`CREATE TABLE IF NOT EXISTS ${schema}.user_preferences (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         user_id uuid REFERENCES ${schema}.users(id),
         key text NOT NULL,
         value text,
         CONSTRAINT user_preferences_user_key_unique UNIQUE (user_id, key)
         );`)
-        await pool.query(`CREATE TABLE ${schema}.campaing_connections (
-            campaing_id UUID NOT NULL,
-            connection_id UUID,
-            CONSTRAINT unique_pair UNIQUE (campaing_id, connection_id)
-            );`)
+
+        await pool.query(`CREATE TABLE IF NOT EXISTS ${schema}.quick_messages (
+                    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+                    tag text NOT NULL,
+                    queue_id uuid REFERENCES ${schema}.queues(id) ON DELETE SET NULL,
+                    user_id uuid REFERENCES ${schema}.users(id) ON DELETE SET NULL,
+                    value text,
+                    is_command_on boolean NOT NULL DEFAULT false,
+                    shortcut text
+        );`)
+        await pool.query(`CREATE TABLE IF NOT EXISTS ${schema}.campaing_connections (
+                    campaing_id UUID NOT NULL,
+                    connection_id UUID,
+                    CONSTRAINT unique_pair UNIQUE (campaing_id, connection_id)
+        );`)
+
 
     const superAdmin = new Users(
         superAdminId,

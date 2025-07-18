@@ -21,6 +21,11 @@ function DisparoModal({ theme, disparo = null, onSave }) {
   const [horaInicio, setHoraInicio] = useState('');
   const [intervaloTempo, setIntervaloTempo] = useState(30);
   const [intervaloUnidade, setIntervaloUnidade] = useState('segundos');
+  const [intervaloDinamico, setIntervaloDinamico] = useState(false);
+  const [intervaloMinimo, setIntervaloMinimo] = useState(30);
+  const [intervaloMaximo, setIntervaloMaximo] = useState(60);
+  const [intervaloUnidadeMin, setIntervaloUnidadeMin] = useState('segundos');
+  const [intervaloUnidadeMax, setIntervaloUnidadeMax] = useState('segundos');
   const [conexao, setConexao] = useState([]);
   const [customFields ,setCustomFields] = useState([])
   const textAreasRef = useRef([]);
@@ -116,6 +121,37 @@ const limparBase64 = (base64ComPrefixo) => {
       setIntervaloUnidade('segundos');
     }
 
+    // Carregar dados do intervalo dinâmico se existir
+    if (disparo.intervalo && disparo.intervalo.dinamico) {
+      setIntervaloDinamico(true);
+      if (disparo.intervalo.minimo) {
+        const minEmSegundos = Number(disparo.intervalo.minimo.valor) || 30;
+        if (minEmSegundos >= 3600) {
+          setIntervaloMinimo(Math.floor(minEmSegundos / 3600));
+          setIntervaloUnidadeMin('horas');
+        } else if (minEmSegundos >= 60) {
+          setIntervaloMinimo(Math.floor(minEmSegundos / 60));
+          setIntervaloUnidadeMin('minutos');
+        } else {
+          setIntervaloMinimo(minEmSegundos);
+          setIntervaloUnidadeMin('segundos');
+        }
+      }
+      if (disparo.intervalo.maximo) {
+        const maxEmSegundos = Number(disparo.intervalo.maximo.valor) || 60;
+        if (maxEmSegundos >= 3600) {
+          setIntervaloMaximo(Math.floor(maxEmSegundos / 3600));
+          setIntervaloUnidadeMax('horas');
+        } else if (maxEmSegundos >= 60) {
+          setIntervaloMaximo(Math.floor(maxEmSegundos / 60));
+          setIntervaloUnidadeMax('minutos');
+        } else {
+          setIntervaloMaximo(maxEmSegundos);
+          setIntervaloUnidadeMax('segundos');
+        }
+      }
+    }
+
     try {
       const response = await axios.get(`${url}/campaing/get-messages/${disparo.id}/${schema}`,
         {
@@ -158,6 +194,11 @@ const limparBase64 = (base64ComPrefixo) => {
     setHoraInicio('');
     setIntervaloTempo(30);
     setIntervaloUnidade('segundos');
+    setIntervaloDinamico(false);
+    setIntervaloMinimo(30);
+    setIntervaloMaximo(60);
+    setIntervaloUnidadeMin('segundos');
+    setIntervaloUnidadeMax('segundos');
   }
 };
 
@@ -283,6 +324,61 @@ const limparBase64 = (base64ComPrefixo) => {
     setIntervaloUnidade(unidade);
   };
 
+  const handleIntervaloDinamicoChange = (valor, unidade, tipo) => {
+    // Converte valor para segundos para validação
+    const toSeconds = (v, u) => {
+      switch (u) {
+        case 'horas': return v * 3600;
+        case 'minutos': return v * 60;
+        default: return v;
+      }
+    };
+    let valorEmSegundos = toSeconds(valor, unidade);
+    let minEmSegundos = toSeconds(tipo === 'min' ? valor : intervaloMinimo, tipo === 'min' ? unidade : intervaloUnidadeMin);
+    let maxEmSegundos = toSeconds(tipo === 'max' ? valor : intervaloMaximo, tipo === 'max' ? unidade : intervaloUnidadeMax);
+
+    // min nunca menor que 30 segundos
+    if (tipo === 'min' && valorEmSegundos < 30) {
+      valorEmSegundos = 30;
+      valor = unidade === 'horas' ? Math.ceil(30 / 3600) : unidade === 'minutos' ? Math.ceil(30 / 60) : 30;
+    }
+    // max nunca menor que 31 segundos
+    if (tipo === 'max' && valorEmSegundos < 31) {
+      valorEmSegundos = 31;
+      valor = unidade === 'horas' ? Math.ceil(31 / 3600) : unidade === 'minutos' ? Math.ceil(31 / 60) : 31;
+    }
+
+    // max sempre maior que min
+    if (tipo === 'min' && valorEmSegundos >= maxEmSegundos) {
+      // Ajusta max para ser 1 segundo maior
+      maxEmSegundos = valorEmSegundos + 1;
+      if (unidade === intervaloUnidadeMax) {
+        // Mantém unidade
+        setIntervaloMaximo(unidade === 'horas' ? Math.ceil(maxEmSegundos / 3600) : unidade === 'minutos' ? Math.ceil(maxEmSegundos / 60) : maxEmSegundos);
+      } else {
+        // Converte para unidade atual de max
+        setIntervaloMaximo(intervaloUnidadeMax === 'horas' ? Math.ceil(maxEmSegundos / 3600) : intervaloUnidadeMax === 'minutos' ? Math.ceil(maxEmSegundos / 60) : maxEmSegundos);
+      }
+    }
+    if (tipo === 'max' && valorEmSegundos <= minEmSegundos) {
+      // Ajusta min para ser 1 segundo menor
+      minEmSegundos = valorEmSegundos - 1;
+      if (unidade === intervaloUnidadeMin) {
+        setIntervaloMinimo(unidade === 'horas' ? Math.floor(minEmSegundos / 3600) : unidade === 'minutos' ? Math.floor(minEmSegundos / 60) : minEmSegundos);
+      } else {
+        setIntervaloMinimo(intervaloUnidadeMin === 'horas' ? Math.floor(minEmSegundos / 3600) : intervaloUnidadeMin === 'minutos' ? Math.floor(minEmSegundos / 60) : minEmSegundos);
+      }
+    }
+
+    if (tipo === 'min') {
+      setIntervaloMinimo(valor);
+      setIntervaloUnidadeMin(unidade);
+    } else {
+      setIntervaloMaximo(valor);
+      setIntervaloUnidadeMax(unidade);
+    }
+  };
+
   const handleTagSelection = (e) => {
     const selectedOptions = Array.from(e.target.selectedOptions, option => parseInt(option.value));
     setTagsSelecionadas(selectedOptions);
@@ -342,7 +438,7 @@ const limparBase64 = (base64ComPrefixo) => {
 
   const disparoData = {
     name: titulo,
-    connection_id: canais, // Envia array de strings!
+    connection_id: canais, 
     sector: funilSelecionado.charAt(0).toLowerCase() + funilSelecionado.slice(1),
     kanban_stage: etapa,
     start_date,
@@ -351,8 +447,12 @@ const limparBase64 = (base64ComPrefixo) => {
     ...(tipoAlvo === 'Funil' ? { etapa } : { tags: tagsSelecionadas }),
     mensagem: mensagensParaSalvar,
     intervalo: {
-      timer: intervaloTempo,
-      unidade: intervaloUnidade
+      timer: intervaloDinamico ? null : intervaloTempo,
+      unidade: intervaloDinamico ? null : intervaloUnidade,
+      min: intervaloDinamico ? intervaloMinimo : null,
+      unidade_min: intervaloDinamico ? intervaloUnidadeMin : null,
+      max: intervaloDinamico ? intervaloMaximo : null,
+      unidade_max: intervaloDinamico ? intervaloUnidadeMax : null
     }
 };
 
@@ -719,27 +819,95 @@ const limparBase64 = (base64ComPrefixo) => {
                 {/* Intervalo */}
                 <div className="mb-3">
                   <label className={`form-label card-subtitle-${theme}`}>Intervalo</label>
-                  <div className="d-flex gap-2">
-                    <input
-                      type="number"
-                      className={`form-control input-${theme}`}
-                      id="intervaloTempo"
-                      min="1"
-                      value={intervaloTempo}
-                      onChange={(e) => handleIntervaloChange(parseInt(e.target.value) || 1, intervaloUnidade)}
-                      style={{ width: '100px' }}
-                    />
-                    <select
-                      className={`form-select input-${theme}`}
-                      id="intervaloUnidade"
-                      value={intervaloUnidade}
-                      onChange={(e) => handleIntervaloChange(intervaloTempo, e.target.value)}
-                    >
-                      <option value="segundos">Segundos</option>
-                      <option value="minutos">Minutos</option>
-                      <option value="horas">Horas</option>
-                    </select>
+                  
+                  {/* Toggle para intervalo dinâmico */}
+                  <div className="mb-2">
+                    <div className="form-check form-switch">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        id="intervaloDinamico"
+                        checked={intervaloDinamico}
+                        onChange={(e) => setIntervaloDinamico(e.target.checked)}
+                      />
+                      <label className={`form-check-label card-subtitle-${theme}`} htmlFor="intervaloDinamico">
+                        Intervalo Dinâmico
+                      </label>
+                    </div>
                   </div>
+
+                  {!intervaloDinamico ? (
+                    /* Intervalo Fixo */
+                    <div className="d-flex gap-2">
+                      <input
+                        type="number"
+                        className={`form-control input-${theme}`}
+                        id="intervaloTempo"
+                        min="1"
+                        value={intervaloTempo}
+                        onChange={(e) => handleIntervaloChange(parseInt(e.target.value) || 1, intervaloUnidade)}
+                        style={{ width: '100px' }}
+                      />
+                      <select
+                        className={`form-select input-${theme}`}
+                        id="intervaloUnidade"
+                        value={intervaloUnidade}
+                        onChange={(e) => handleIntervaloChange(intervaloTempo, e.target.value)}
+                      >
+                        <option value="segundos">Segundos</option>
+                        <option value="minutos">Minutos</option>
+                        <option value="horas">Horas</option>
+                      </select>
+                    </div>
+                  ) : (
+                    /* Intervalo Dinâmico */
+                    <div className="d-flex flex-column gap-2">
+                      <div className="d-flex gap-2 align-items-center">
+                        <label className={`form-label card-subtitle-${theme} mb-0`} style={{ minWidth: '80px' }}>
+                          Mínimo:
+                        </label>
+                        <input
+                          type="number"
+                          className={`form-control input-${theme}`}
+                          min="1"
+                          value={intervaloMinimo}
+                          onChange={(e) => handleIntervaloDinamicoChange(parseInt(e.target.value) || 1, intervaloUnidadeMin, 'min')}
+                          style={{ width: '100px' }}
+                        />
+                        <select
+                          className={`form-select input-${theme}`}
+                          value={intervaloUnidadeMin}
+                          onChange={(e) => handleIntervaloDinamicoChange(intervaloMinimo, e.target.value, 'min')}
+                        >
+                          <option value="segundos">Segundos</option>
+                          <option value="minutos">Minutos</option>
+                          <option value="horas">Horas</option>
+                        </select>
+                      </div>
+                      <div className="d-flex gap-2 align-items-center">
+                        <label className={`form-label card-subtitle-${theme} mb-0`} style={{ minWidth: '80px' }}>
+                          Máximo:
+                        </label>
+                        <input
+                          type="number"
+                          className={`form-control input-${theme}`}
+                          min="1"
+                          value={intervaloMaximo}
+                          onChange={(e) => handleIntervaloDinamicoChange(parseInt(e.target.value) || 1, intervaloUnidadeMax, 'max')}
+                          style={{ width: '100px' }}
+                        />
+                        <select
+                          className={`form-select input-${theme}`}
+                          value={intervaloUnidadeMax}
+                          onChange={(e) => handleIntervaloDinamicoChange(intervaloMaximo, e.target.value, 'max')}
+                        >
+                          <option value="segundos">Segundos</option>
+                          <option value="minutos">Minutos</option>
+                          <option value="horas">Horas</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
