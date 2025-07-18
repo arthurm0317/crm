@@ -59,18 +59,22 @@ const createChat = async (chat, instance, message, etapa, io) => {
 
   try {
     const existingChat = await pool.query(
-      `SELECT * FROM ${schema}.chats WHERE chat_id = $1 AND connection_id = $2 order by (status='closed') `,
-      [chat.getChatId(), chat.getConnectionId()]
+      `SELECT * FROM ${schema}.chats WHERE contact_phone = $1 AND connection_id = $2 AND status <> 'closed' `,
+      [chat.getChatId().split('@')[0], chat.getConnectionId()]
     );
 
+
     if (existingChat.rowCount > 0) {
-      if(existingChat.rows[0].status !== 'closed'){
+      // Procura o chat mais recente que NÃO está 'closed'
+      const chatValido = existingChat.rows.find(c => c.status !== 'closed');
+      if (chatValido) {
+        // Atualiza mensagens e retorna o chat válido
         const updated = await updateChatMessages(chat, schema, message);
-        if(existingChat.rows[0].queue_id===null){
-          await setChatQueue(schema, existingChat.rows[0].id)
+        if(chatValido.queue_id===null){
+          await setChatQueue(schema, chatValido.id)
         }
         return {
-          chat: existingChat.rows[0],
+          chat: chatValido,
           schema: schema
         };
       }
@@ -133,6 +137,7 @@ const createChat = async (chat, instance, message, etapa, io) => {
     }
 
     const result = await pool.query(query, values);
+    console.log(`createChat: Novo chat criado - ID: ${result.rows[0].id}, Status: ${result.rows[0].status}`);
     if(result.rows[0].queue_id===null){
       await setChatQueue(schema, result.rows[0].id)
     }
