@@ -25,6 +25,11 @@ const insertValueCustomField = async(fieldName, contactNumber, value, schema)=>{
     );
     return result.rows[0];
 }
+const getCustomFieldsByContact = async (contact_number, schema) => {
+    const result = await pool.query(`SELECT * FROM ${schema}.contact_custom_values WHERE contact_number=$1`,[contact_number])
+
+    return result.rows
+}
 const getChatsForUser = async (userId, schema) => {
   const result = await pool.query(
     `SELECT * FROM ${schema}.chats WHERE assigned_user = $1 OR $1 IN (SELECT id FROM ${schema}.users WHERE permission = 'admin')`,
@@ -103,6 +108,21 @@ const updateContactName = async(number, name, schema)=>{
     }
 }
 
+const changeKanbanPreference = async (sector, label, color, schema) => {
+    const kanbanExists = await pool.query(`SELECT * FROM ${schema}.preferences_kanban WHERE sector=$1`, [sector])
+    if(kanbanExists.rowCount>0){
+        const result = await pool.query(`UPDATE ${schema}.preferences_kanban SET label=$1, color=$2 WHERE sector=$3 RETURNING *`, [label, color, sector])
+        return result.rows[0]
+    }else{
+        const result = await pool.query(`INSERT INTO ${schema}.preferences_kanban(sector, label, color) VALUES($1,$2,$3) RETURNING *`,[sector, label, color])
+        return result.rows[0]
+    }
+}
+
+const getKanbanPreference = async (sector, schema) => {
+    const result = await pool.query(`SELECT * FROM ${schema}.preferences_kanban WHERE sector=$1 LIMIT 1`, [sector]);
+    return result.rows[0] || null;
+};
 
 
 module.exports = { 
@@ -111,4 +131,7 @@ module.exports = {
     createContact,
     updateContactName,
     getChatsForUser,
+    getCustomFieldsByContact,
+    changeKanbanPreference,
+    getKanbanPreference
 };

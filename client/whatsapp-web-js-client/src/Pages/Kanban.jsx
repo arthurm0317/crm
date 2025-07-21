@@ -189,6 +189,10 @@ function KanbanPage({ theme }) {
   const [dropdownStates, setDropdownStates] = useState({});
   const dropdownRefs = useRef({});
   const { preferences, updateKanbanFunnel } = useUserPreferences();
+  const [showCustomFieldModal, setShowCustomFieldModal] = useState(false);
+  const [customFields, setCustomFields] = useState([]);
+  const [selectedCustomField, setSelectedCustomField] = useState(null);
+  const [customFieldColor, setCustomFieldColor] = useState('#007bff');
 
   // Restaurar funil selecionado das preferências
   useEffect(() => {
@@ -287,14 +291,30 @@ function KanbanPage({ theme }) {
           // Adiciona o campo etapa_id para facilitar o filtro na renderização
           allContacts = allContacts.concat(contatos.map(c => ({ ...c, etapa_id: etapa.id })));
         }
-        setCards(allContacts);
+        // Buscar custom value para cada contato
+        const contatosComCustomValue = await Promise.all(
+          allContacts.map(async contato => {
+            let customValue = '';
+            try {
+              const resp = await axios.get(`${url}/contact/get-custom-values/${contato.number}/${schema}`);
+              console.log('DEBUG custom values', contato.number, resp.data, 'selectedCustomField:', selectedCustomField);
+              const resultArr = resp.data.result && Array.isArray(resp.data.result) ? resp.data.result : [];
+              if (selectedCustomField) {
+                const found = resultArr.find(f => String(f.field_id) === String(selectedCustomField));
+                if (found && found.value) customValue = found.value;
+              }
+            } catch {}
+            return { ...contato, customValue };
+          })
+        );
+        setCards(contatosComCustomValue);
       } catch (error) {
         setCards([]);
         console.error('Erro ao buscar contatos do kanban:', error);
       }
     };
     fetchContactsInKanban();
-  }, [funilSelecionado, etapas, schema, url]);
+  }, [funilSelecionado, etapas, schema, url, selectedCustomField]);
 
   // Listener para contatos importados
   useEffect(() => {
@@ -582,6 +602,16 @@ useEffect(() => {
     fetchTags();
   }, [schema, url]);
 
+  // Buscar campos customizados ao abrir modal
+  const fetchCustomFields = async () => {
+    try {
+      const response = await axios.get(`${url}/kanban/get-custom-fields/${schema}`, { withCredentials: true });
+      setCustomFields(Array.isArray(response.data) ? response.data : [response.data]);
+    } catch {
+      setCustomFields([]);
+    }
+  };
+
   const renderPage = () => {
   if (!leadSelecionado) return null;
   return <ChatPage theme={theme} chat_id={leadSelecionado.id} />;
@@ -641,6 +671,19 @@ useEffect(() => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [dropdownStates]);
 
+  // Buscar preferência ao abrir Kanban
+  useEffect(() => {
+    if (!funilSelecionado) return;
+    const fetchPreference = async () => {
+      try {
+        const resp = await axios.get(`${url}/kanban/get-preference/${funilSelecionado}/${schema}`);
+        if (resp.data && resp.data.label) setSelectedCustomField(resp.data.label);
+        if (resp.data && resp.data.color) setCustomFieldColor(resp.data.color);
+      } catch {}
+    };
+    fetchPreference();
+  }, [funilSelecionado, schema]);
+
   return leadSelecionado ? (
     renderPage()
   ) :(
@@ -682,6 +725,15 @@ useEffect(() => {
                 <i className="bi bi-funnel me-2"></i>Novo Funil
             </button>
             
+            <button
+  className={`btn btn-2-${theme}`}
+  style={{ minWidth: 50 }}
+  title="Escolher campo personalizado"
+  onClick={() => { setShowCustomFieldModal(true); fetchCustomFields(); }}
+>
+  <i className="bi bi-gear"></i>
+</button>
+
             <button className={`btn btn-1-${theme}`} style={{ minWidth: 140 }} onClick={handleAddEtapa}>
                 <i className="bi bi-layout-sidebar-inset me-2"></i>Gerir Etapas
             </button>
@@ -987,7 +1039,14 @@ useEffect(() => {
                               <span key={tag.id} className="badge bg-secondary">{tag.name}</span>
                             ))}
                           </div>
-                          <div className={`small header-text-${theme}`}>{maskPhone(lead.contact_phone || lead.number)}</div>
+                          <div className="d-flex justify-content-between align-items-center">
+                            <div className={`small header-text-${theme}`}>{maskPhone(lead.contact_phone || lead.number)}</div>
+                            {selectedCustomField && (
+                              <div className={`small`} style={{ color: customFieldColor, fontWeight: 500, fontSize: '0.75em', marginLeft: 8, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {lead.customValue ? lead.customValue : '—'}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1050,6 +1109,71 @@ useEffect(() => {
         onHide={() => setShowDeletarFunilModal(false)}
         funil={funilSelecionado}
       />
+
+      {/* Modal simples para seleção do campo customizado */}
+      {showCustomFieldModal && (
+        <div className="modal show" style={{ display: 'block', background: 'rgba(0,0,0,0.3)' }}>
+          <div className="modal-dialog">
+            <div className={`modal-content bg-form-${theme}`}> 
+              <div className="modal-header">
+                <h5 className="modal-title">Escolher campo personalizado</h5>
+                <button type="button" className="btn-close" onClick={() => setShowCustomFieldModal(false)}></button>
+              </div>
+              <div className="modal-body">
+                {customFields.length === 0 && <div>Nenhum campo encontrado.</div>}
+                {customFields.map(field => (
+                  <div key={field.id} className="form-check">
+                    <input
+                      className="form-check-input"
+                      type="radio"
+                      name="customField"
+                      id={`customField-${field.id}`}
+                      checked={selectedCustomField === field.id}
+                      onChange={() => setSelectedCustomField(field.id)}
+                    />
+                    <label className="form-check-label" htmlFor={`customField-${field.id}`}>{field.label || field.name}</label>
+                  </div>
+                ))}
+                <div className="mt-3 d-flex align-items-center">
+                  <label className="form-label mb-0" style={{ marginRight: 8 }}>Cor do valor:</label>
+                  <input
+                    type="color"
+                    value={customFieldColor}
+                    onChange={e => setCustomFieldColor(e.target.value)}
+                    style={{
+                      width: 18,
+                      height: 18,
+                      border: 'none',
+                      background: 'none',
+                      padding: 0,
+                      margin: 0,
+                      display: 'inline-block',
+                      verticalAlign: 'middle'
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button className="btn btn-secondary" onClick={() => setShowCustomFieldModal(false)}>Cancelar</button>
+                <button className="btn btn-primary" onClick={async () => {
+                  setShowCustomFieldModal(false);
+                  setSelectedCustomField(selectedCustomField);
+                  try {
+                    await axios.put(`${url}/kanban/change-preference`, {
+                      sector: funilSelecionado,
+                      label: selectedCustomField,
+                      color: customFieldColor,
+                      schema
+                    }, { withCredentials: true });
+                  } catch {}
+                }}>
+                  Salvar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

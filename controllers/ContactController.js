@@ -1,5 +1,5 @@
 const { updateChatNameByNumber } = require('../services/ChatService');
-const { createCustomField, insertValueCustomField, createContact, updateContactName } = require('../services/ContactService');
+const { createCustomField, insertValueCustomField, createContact, updateContactName, getCustomFieldsByContact } = require('../services/ContactService');
 
 const createCustomFieldController = async (req, res) => {
     const { fieldName } = req.body;
@@ -59,9 +59,25 @@ const updateContactNameController = async(req, res)=>{
         console.error(error)
     }
 }
+const getCustomFieldsByContactController = async (req, res) => {
+    const {contact_number, schema} = req.params
+    try {
+        const result = await getCustomFieldsByContact(contact_number, schema)
+        res.status(200).json({
+            success:true,
+            result
+        })
+    } catch (error) {
+        console.error(error)
+        res.status(400).json({
+            success:false
+        })
+    }
+}
 module.exports = {
     createCustomFieldController,
     insertValueCustomFieldController,
     createContactController,
-    updateContactNameController
+    updateContactNameController,
+    getCustomFieldsByContactController
  };

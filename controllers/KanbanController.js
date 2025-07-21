@@ -2,6 +2,7 @@ const e = require("express");
 const SocketServer = require("../server");
 const { createKanbanStage, getFunis, getKanbanStages, getChatsInKanban, changeKanbanStage, updateStageName, updateStageIndex, createFunil, deleteEtapa, getCustomFields, getChatsInKanbanStage, deleteFunil, getContactsInKanbanStage } = require("../services/KanbanService");
 const { createMessageForBlast } = require("../services/MessageBlast");
+const { changeKanbanPreference, getKanbanPreference } = require("../services/ContactService");
 
 const createKanbanStageController = async (req, res) => {
     try {
@@ -222,6 +223,31 @@ const transferAllContactsToStage = async (req, res) => {
         res.status(500).json({ error: 'Erro ao transferir contatos em massa' });
     }
 };
+const changeKanbanPreferenceController = async (req, res) => {
+    const {sector, label, color, schema} = req.body
+    try {
+        const result = await changeKanbanPreference(sector, label, color, schema)
+        res.status(200).json({
+            success:true,
+            result
+        })
+    } catch (error) {
+        console.error(error);
+        res.status(400).json({
+            success:false,
+        })
+    }
+}
+const getKanbanPreferenceController = async (req, res) => {
+    const { sector, schema } = req.params;
+    try {
+        const result = await getKanbanPreference(sector, schema);
+        res.status(200).json(result || {});
+    } catch (error) {
+        console.error(error);
+        res.status(400).json({});
+    }
+};
 module.exports = {
     createKanbanStageController,
     createMessageForBlastController,
@@ -236,5 +262,7 @@ module.exports = {
     getCustomFieldsController,
     transferAllChatsToStage,
     getContactsInKanbanStageController,
-    transferAllContactsToStage
+    transferAllContactsToStage,
+    changeKanbanPreferenceController,
+    getKanbanPreferenceController
 }
