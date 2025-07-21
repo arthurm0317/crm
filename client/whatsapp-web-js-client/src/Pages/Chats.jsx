@@ -18,6 +18,7 @@ import useNotificationSound from '../hooks/useNotificationSound';
 import { useNavigate } from 'react-router-dom';
 import { Modal, Button, Form } from 'react-bootstrap';
 import QuickMsgManageModal from './modalPages/Chats_mensagensRapidas';
+import CustomValuesModal from './modalPages/CustomValuesModal';
 
 function formatHour(timestamp) {
   const date = new Date(Number(timestamp));
@@ -317,6 +318,7 @@ function ChatPage({ theme, chat_id} ) {
   const quickMsgBtnRef = useRef();
   const inputRef = useRef(null);
   const [quickMsgIndex, setQuickMsgIndex] = useState(-1);
+  const [showCustomValuesModal, setShowCustomValuesModal] = useState(false);
 
   useEffect(() => {
     if (!showQuickMsgPopover) setQuickMsgIndex(-1);
@@ -2394,6 +2396,12 @@ const handleImageUpload = async (event) => {
         setMensagens={setQuickMsgList}
       />
       
+      <CustomValuesModal
+        show={showCustomValuesModal}
+        onHide={() => setShowCustomValuesModal(false)}
+        theme={theme}
+        schema={schema}
+      />
     </div>
   );
 }

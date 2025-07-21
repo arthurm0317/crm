@@ -22,6 +22,7 @@ import AjudaPage from './Ajuda';
 import LembretesPage from './Lembretes';
 import axios from 'axios';
 import useUserPreferences from '../hooks/useUserPreferences';
+import CustomValuesModal from './modalPages/CustomValuesModal';
 
 window.addEventListener('error', function (event) {
   if (
@@ -100,6 +101,7 @@ function Painel() {
   const schema = userData?.schema;
   const url = process.env.REACT_APP_URL;
   const [socketInstance] = useState(() => socket());
+  const [showCustomValuesModal, setShowCustomValuesModal] = useState(false);
 
 
   // Atualizar página quando as preferências mudarem
@@ -570,7 +572,16 @@ useEffect(() => {
                   <i className="bi bi-bounding-box"></i>
                 </button>
               )}
-
+              <button
+                type="button"
+                data-bs-toggle="tooltip"
+                data-bs-placement="right"
+                data-bs-title="Custom Values"
+                className={`btn btn-2-${theme} toggle-${theme} d-none`}
+                onClick={() => setShowCustomValuesModal(true)}
+              >
+                <i className="bi bi-sliders"></i>
+              </button>
               <button type="button" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Mudar Tema" className={`btn btn-2-${theme} toggle-${theme}`} onClick={toggleTheme}>
                 <i className={`${theme === 'light' ? `bi-sun` : `bi-moon-stars`}`}></i>
               </button>
@@ -591,6 +602,11 @@ useEffect(() => {
         theme={theme}
         show={showWhatsappModal}
         onHide={() => setShowWhatsappModal(false)}
+      />
+      <CustomValuesModal
+        show={showCustomValuesModal}
+        onHide={() => setShowCustomValuesModal(false)}
+        theme={theme}
       />
     </div>
   );

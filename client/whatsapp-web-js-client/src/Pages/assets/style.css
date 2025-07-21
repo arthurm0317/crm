@@ -845,3 +845,15 @@ input[type="range"]::-moz-range-progress {
     left: 0 !important;
     right: auto !important;
 }
+.custom-values-modal .modal-dialog {
+  max-width: 350px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+.custom-values-modal .modal-content {
+  min-width: 250px;
+  width: 50%;
+  margin: 0 auto;
+}
