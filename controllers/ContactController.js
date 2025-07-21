@@ -3,20 +3,19 @@ const { createCustomField, insertValueCustomField, createContact, updateContactN
 
 const createCustomFieldController = async (req, res) => {
     const { fieldName } = req.body;
-    const schema = req.body.schema || 'effective_gain';
+    const schema = req.body.schema;
     try {
         const result = await createCustomField(fieldName, schema);
         res.status(201).json(result);
     } catch (error) {
-        console.error("Erro ao criar campo personalizado:", error.message);
+        console.error("Erro ao criar campo personalizado:", error);
         res.status(500).json({ error: 'Erro ao criar campo personalizado' });
     }
 };
 
 const insertValueCustomFieldController = async (req, res) => {
     const { fieldName, contactNumber, value } = req.body;
-    const schema = req.body.schema || 'effective_gain';
-
+    const schema = req.body.schema ;
     try {
         const result = await insertValueCustomField(fieldName, contactNumber, value, schema);
         res.status(201).json(result);
@@ -28,7 +27,7 @@ const insertValueCustomFieldController = async (req, res) => {
 
 const createContactController = async (req, res) => {
     const { name, number, connection, user_id } = req.body;
-    const schema = req.body.schema || 'effective_gain';
+    const schema = req.body.schema ;
     try {
         const result = await createContact(number, name, connection, user_id, schema);
         
@@ -73,6 +72,9 @@ const getCustomFieldsByContactController = async (req, res) => {
             success:false
         })
     }
+}
+const deleteCustomFields = async (custom_field_id, schema) => {
+    
 }
 module.exports = {
     createCustomFieldController,

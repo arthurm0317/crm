@@ -577,7 +577,7 @@ useEffect(() => {
                 data-bs-toggle="tooltip"
                 data-bs-placement="right"
                 data-bs-title="Custom Values"
-                className={`btn btn-2-${theme} toggle-${theme} d-none`}
+                className={`btn btn-2-${theme} toggle-${theme}`}
                 onClick={() => setShowCustomValuesModal(true)}
               >
                 <i className="bi bi-sliders"></i>

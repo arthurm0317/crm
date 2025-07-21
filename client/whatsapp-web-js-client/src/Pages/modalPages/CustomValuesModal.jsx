@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form } from 'react-bootstrap';
 import axios from 'axios';
 
-function CustomValuesModal({ show, onHide, theme, schema }) {
+function CustomValuesModal({ show, onHide, theme}) {
   const [fields, setFields] = useState([]);
   const [newField, setNewField] = useState('');
   const [loading, setLoading] = useState(false);
   const url = process.env.REACT_APP_URL;
+  const userData = JSON.parse(localStorage.getItem('user'));
+  const schema = userData?.schema;
 
   // Buscar campos personalizados ao abrir o modal
   useEffect(() => {
@@ -33,11 +35,9 @@ function CustomValuesModal({ show, onHide, theme, schema }) {
         schema
       }, { withCredentials: true });
       setNewField('');
-      // Atualiza lista após criar
       const res = await axios.get(`${url}/kanban/get-custom-fields/${schema}`, { withCredentials: true });
       setFields(Array.isArray(res.data) ? res.data : [res.data]);
     } catch (err) {
-      // erro simples
     }
     setLoading(false);
   };
@@ -72,10 +72,10 @@ function CustomValuesModal({ show, onHide, theme, schema }) {
         </ul>
       </Modal.Body>
       <Modal.Footer className="d-flex justify-content-end gap-2">
-        <Button variant="secondary" onClick={onHide} disabled={loading}>
+        <Button variant="outline-secondary" onClick={onHide} disabled={loading}>
           Fechar
         </Button>
-        <Button variant="primary" onClick={handleAdd} disabled={loading || !newField}>
+        <Button type="button" variant="outline-primary" onClick={handleAdd} disabled={loading || !newField}>
           Adicionar
         </Button>
       </Modal.Footer>

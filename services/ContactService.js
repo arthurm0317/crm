@@ -5,7 +5,7 @@ const { createNewChat } = require('./ChatService');
 const createCustomField = async(fieldName, schema)=>{
     const result = await pool.query(
         `INSERT INTO ${schema}.custom_fields (id, field_name, label) VALUES ($1, $2, $3) RETURNING *`,
-        [uuidv4(), fieldName.toLowerCase().replace(/\s+/g, '_'), fieldName]
+        [uuidv4(), fieldName.toLowerCase().replace(/\s+/g, '_'), fieldName.charAt(0).toUpperCase()+fieldName.slice(1)]
     );	
     return result.rows[0];
 }
