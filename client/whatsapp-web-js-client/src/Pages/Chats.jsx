@@ -19,6 +19,7 @@ import { useNavigate } from 'react-router-dom';
 import { Modal, Button, Form } from 'react-bootstrap';
 import QuickMsgManageModal from './modalPages/Chats_mensagensRapidas';
 import CustomValuesModal from './modalPages/CustomValuesModal';
+import FinalizarAtendimentoModal from './modalPages/Chats_finalizarAtendimento';
 
 function formatHour(timestamp) {
   const date = new Date(Number(timestamp));
@@ -97,6 +98,7 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
   const [showListaAgendamentosModal, setShowListaAgendamentosModal] = useState(false);
   const [showAgendarMensagemModal, setShowAgendarMensagemModal] = useState(false);
   const [showTransferirUsuarioModal, setShowTransferirUsuarioModal] = useState(false);
+  const [showFinalizarModal, setShowFinalizarModal] = useState(false);
   const [queues, setQueues] = useState([]);
   const [transferLoading, setTransferLoading] = useState(false);
   const navigate = useNavigate(); 
@@ -209,7 +211,7 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
             Transferir para Usuário
           </Dropdown.Item>
           <Dropdown.Item href="#" onClick={() => {
-            handleCloseChat();
+            setShowFinalizarModal(true);
             setIsDropdownOpen(false);
           }}>
             Finalizar Atendimento
@@ -229,42 +231,53 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
         </Dropdown.Menu>
       </Dropdown>
 
-  <ChangeQueueModal
-    show={showChangeQueueModal}
-    onHide={() => setShowChangeQueueModal(false)}
-    theme={theme}
-    selectedChat={selectedChat}
-    schema={schema}
-    url={url}
-    onTransfer={handleTransferQueue}
-/>
+      <ChangeQueueModal
+        show={showChangeQueueModal}
+        onHide={() => setShowChangeQueueModal(false)}
+        theme={theme}
+        selectedChat={selectedChat}
+        schema={schema}
+        url={url}
+        onTransfer={handleTransferQueue}
+      />
 
-  <ListaAgendamentosModal
-    show={showListaAgendamentosModal}
-    onHide={() => setShowListaAgendamentosModal(false)}
-    theme={theme}
-    selectedChat={selectedChat}
-    onAgendarNovaMensagem={() => {
-      setShowListaAgendamentosModal(false);
-      setTimeout(() => setShowAgendarMensagemModal(true), 200);
-    }}
-  />
+      <ListaAgendamentosModal
+        show={showListaAgendamentosModal}
+        onHide={() => setShowListaAgendamentosModal(false)}
+        theme={theme}
+        selectedChat={selectedChat}
+        onAgendarNovaMensagem={() => {
+          setShowListaAgendamentosModal(false);
+          setTimeout(() => setShowAgendarMensagemModal(true), 200);
+        }}
+      />
 
-  <AgendarMensagemModal
-    show={showAgendarMensagemModal}
-    onHide={() => setShowAgendarMensagemModal(false)}
-    theme={theme}
-    selectedChat={selectedChat}
-  />
+      <AgendarMensagemModal
+        show={showAgendarMensagemModal}
+        onHide={() => setShowAgendarMensagemModal(false)}
+        theme={theme}
+        selectedChat={selectedChat}
+      />
 
-  <TransferirUsuarioModal
-    show={showTransferirUsuarioModal}
-    onHide={() => setShowTransferirUsuarioModal(false)}
-    theme={theme}
-    selectedChat={selectedChat}
-    schema={schema}
-    url={url}
-  />
+      <TransferirUsuarioModal
+        show={showTransferirUsuarioModal}
+        onHide={() => setShowTransferirUsuarioModal(false)}
+        theme={theme}
+        selectedChat={selectedChat}
+        schema={schema}
+        url={url}
+      />
+      <FinalizarAtendimentoModal
+        show={showFinalizarModal}
+        onHide={() => setShowFinalizarModal(false)}
+        theme={theme}
+        selectedChat={selectedChat}
+        onFinish={() => {
+          setChats(prevChats => prevChats.filter(c => c.id !== selectedChat.id));
+          setSelectedChat(null);
+          setSelectedMessages([]);
+        }}
+      />
     </>
   );
 }

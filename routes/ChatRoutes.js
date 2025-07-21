@@ -8,6 +8,8 @@ const {
   getScheduledMessagesController,
   deleteScheduledMessageController,
   disableBotController,
+  getStatusController,
+  createStatusController,
 } = require('../controllers/ChatController'); 
 const { updateContactName } = require('../services/ChatService');
 const { verifyToken } = require('../controllers/UserController');
@@ -17,7 +19,9 @@ router.get('/getChats/:schema',verifyToken,  getChatsController);
 router.get('/getChat/:userId/:schema/:role', verifyToken, getChatByUserController);
 router.get('/getChatById/:chatId/:schema', verifyToken, getChatDataController);
 router.get('/scheduled-messages/:chat_id/:schema', verifyToken, getScheduledMessagesController)
+router.get('/get-status/:schema', verifyToken,getStatusController)
 router.get('/:schema/:chatId', verifyToken, getChatDataController);
+router.post('/create-status', verifyToken, createStatusController)
 router.post('/setChat', verifyToken, setUserChatController);
 router.post('/getMessages', verifyToken, getMessagesController);
 router.post('/setQueue', verifyToken, updateQueueController);
