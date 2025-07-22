@@ -1,5 +1,5 @@
 
-const { setUserChat, getChats, getMessages, getChatData, getChatByUser, updateQueue, getChatById, saveMediaMessage, setMessageAsRead, closeChat, setSpecificUser, scheduleMessage, getScheduledMessages, deleteScheduledMessage, disableBot, closeChatContact, createStatus, getStatus } = require('../services/ChatService');
+const { setUserChat, getChats, getMessages, getChatData, getChatByUser, updateQueue, getChatById, saveMediaMessage, setMessageAsRead, closeChat, setSpecificUser, scheduleMessage, getScheduledMessages, deleteScheduledMessage, disableBot, closeChatContact, createStatus, getStatus, getClosedChats } = require('../services/ChatService');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
@@ -9,6 +9,7 @@ const { getBase64FromMediaMessage, sendImageToWhatsApp } = require('../requests/
 const { sendAudioToWhatsApp } = require('../requests/evolution');
 const { searchConnById } = require('../services/ConnectionService');
 const { getCurrentTimestamp } = require('../services/getCurrentTimestamp');
+const { getAllUsers } = require('../services/UserService');
 
 
 const audioStorage = multer.diskStorage({
@@ -308,9 +309,9 @@ const closeChatContoller = async(req, res)=>{
   try{
     const {chat_id, status} = req.body
     const schema = req.body.schema
+    
     const result = await closeChat(chat_id, schema)
-
-    const closeChat = await closeChatContact(chat_id, status, schema)
+    const closeContactChat = await closeChatContact(chat_id, status, schema)
     global.socketIoServer.to(`schema_${schema}`).emit('removeChat', result)
 
    res.status(200).json({
@@ -318,6 +319,23 @@ const closeChatContoller = async(req, res)=>{
   })
   } catch (error) {
     console.error(error)
+  }
+}
+
+const getClosedChatsController = async (req, res) => {
+  const {schema} = req.params
+  try {
+    const result = await getClosedChats(schema)
+    res.status(200).json({
+      success:true,
+      result: result
+    })
+  } catch (error) {
+    console.error(error)
+    res.status(400).json({
+      success:false,
+    })
+    
   }
 }
 
@@ -410,5 +428,6 @@ const disableBotController = async (req, res) => {
     deleteScheduledMessageController,
     disableBotController,
     createStatusController,
-    getStatusController
+    getStatusController,
+    getClosedChatsController
 };

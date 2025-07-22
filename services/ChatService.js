@@ -450,8 +450,8 @@ const closeChat = async(chat_id, schema)=>{
 const closeChatContact = async (chat_id, status, schema) => {
   const number = await pool.query(`SELECT * FROM ${schema}.chats where id=$1`, [chat_id])
   const result = await pool.query(`
-    INSERT INTO ${schema}.chat_contact(id, chat_id, contact_number, status) VALUES($1,$2,$3,$4) RETURNING *  
-  `, [uuid4(), chat_id, number.rows[0].contact_phone, status])
+    INSERT INTO ${schema}.chat_contact(id, chat_id, contact_number, status, user_id) VALUES($1,$2,$3,$4,$5) RETURNING *  
+  `, [uuid4(), chat_id, number.rows[0].contact_phone, status, number.rows[0].assigned_user || null])
   return result.rows[0]
 }
 
@@ -588,6 +588,13 @@ const getStatus = async(schema)=>{
   return result.rows
 }
 
+const getClosedChats = async(schema)=>{
+  const result = await pool.query(
+    `SELECT * FROM ${schema}.chat_contact`
+  )
+  return result.rows
+}
+
 module.exports = {
   createChat,
   updateChatMessages,
@@ -615,5 +622,6 @@ module.exports = {
   updateChatConnection,
   closeChatContact,
   createStatus,
-  getStatus
+  getStatus,
+  getClosedChats
 };
