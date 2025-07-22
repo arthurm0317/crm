@@ -27,6 +27,9 @@ function Dashboard({ theme }) {
   const schema = userData.schema
   const [userNames, setUserNames] = useState({});
   const [rankingFiltro, setRankingFiltro] = useState('diario');
+  const [customFieldsGraph, setCustomFieldsGraph] = useState([]);
+  const [customFieldsValues, setCustomFieldsValues] = useState({});
+  const [selectedCustomFieldId, setSelectedCustomFieldId] = useState('');
 
   useEffect(() => {
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
@@ -217,6 +220,49 @@ function Dashboard({ theme }) {
     },
     cutout: '70%',
   };
+
+  // Buscar campos personalizados com graph=true sempre que a aba de gráficos for aberta
+  useEffect(() => {
+    if (activeTab === 'graficos') {
+      const fetchCustomFields = async () => {
+        try {
+          const res = await axios.get(`${url}/kanban/get-custom-fields/${schema}`, { withCredentials: true });
+          const fields = (Array.isArray(res.data) ? res.data : [res.data]).filter(f => f.graph);
+          setCustomFieldsGraph(fields);
+        } catch {
+          setCustomFieldsGraph([]);
+        }
+      };
+      fetchCustomFields();
+    }
+  }, [activeTab, schema, url]);
+
+  // Buscar valores dos campos personalizados só quando for custom
+  useEffect(() => {
+    if (activeTab === 'graficos' && chartType.startsWith('custom-')) {
+      const fetchCustomFieldValues = async () => {
+        try {
+          const fieldId = chartType.replace('custom-', '');
+          const contatosUnicos = Array.from(new Set(closedChats.map(c => c.contact_number || c.number || c.phone)));
+          const valueArr = [];
+          for (const contato of contatosUnicos) {
+            try {
+              const resp = await axios.get(`${url}/contact/get-custom-values/${contato}/${schema}`);
+              const arr = resp.data.result && Array.isArray(resp.data.result) ? resp.data.result : [];
+              const found = arr.find(f => String(f.field_id) === String(fieldId));
+              if (found && found.value) {
+                valueArr.push(found.value);
+              }
+            } catch {}
+          }
+          setCustomFieldsValues({ [fieldId]: valueArr });
+        } catch {
+          setCustomFieldsValues({});
+        }
+      };
+      fetchCustomFieldValues();
+    }
+  }, [activeTab, chartType, closedChats, schema, url]);
 
   return (
     <div className="container-fluid h-100 pt-3">
@@ -423,7 +469,6 @@ function Dashboard({ theme }) {
                 ></i>
               </div>
             </div>
-
             <div className={`card card-${theme} p-2 d-flex flex-row align-items-center justify-content-evenly`}>
               <i className="bi bi-hourglass-split card-icon" style={{ fontSize: '2.5rem' }}></i>
               <div className="d-flex flex-column align-items-start justify-content-start">
@@ -439,7 +484,6 @@ function Dashboard({ theme }) {
                 ></i>
               </div>
             </div>
-
             <div className={`card p-3 card-${theme}`}>
               <h6 className={`card-subtitle-${theme}`}>Ranking - Tempo de Resposta</h6>
               <div className="btn-group px-5 py-2" role="group">
@@ -484,6 +528,9 @@ function Dashboard({ theme }) {
                 >
                   <option value="bar">Gráfico de Barra</option>
                   <option value="donut">Gráfico Donut</option>
+                  {customFieldsGraph.map(field => (
+                    <option key={field.id} value={`custom-${field.id}`}>{field.label || field.name}</option>
+                  ))}
                 </select>
               </div>
               {/* Botões Ganhos/Perdas só aparecem no gráfico de barra */}
@@ -505,13 +552,50 @@ function Dashboard({ theme }) {
                   </button>
                 </div>
               )}
-              <div style={{ display:'flex', width:'100%', height: '400px', maxHeight:'400px', display: 'flex', alignItems: 'center', margin: '0 auto', justifyContent:'center'}}>
-                {chartType === 'bar' ? (
-                  <Bar data={chartData} options={chartOptions} />
-                ) : (
-                  <Doughnut data={donutData} options={donutOptions} />
-                )}
-              </div>
+              {(chartType === 'bar' || chartType === 'donut') && (
+                <div style={{ minHeight: 500, maxWidth: 700, width: '100%', margin: '40px auto 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {chartType === 'bar' ? (
+                    <Bar data={chartData} options={chartOptions} style={{ width: 700, height: 500 }} />
+                  ) : (
+                    <Doughnut data={donutData} options={donutOptions} />
+                  )}
+                </div>
+              )}
+              {chartType.startsWith('custom-') && customFieldsGraph.length > 0 && (() => {
+                const fieldId = chartType.replace('custom-', '');
+                const field = customFieldsGraph.find(f => String(f.id) === String(fieldId));
+                if (!field) return null;
+                const valuesArr = Array.isArray(customFieldsValues[field.id]) ? customFieldsValues[field.id] : [];
+                const total = valuesArr.reduce((sum, v) => {
+                  const num = parseFloat(v.toString().replace(/[^0-9.,-]+/g, '').replace(',', '.'));
+                  return !isNaN(num) ? sum + num : sum;
+                }, 0);
+                const barData = {
+                  labels: [field.label || field.name],
+                  datasets: [
+                    {
+                      label: 'Total',
+                      data: [total],
+                      backgroundColor: '#007bff',
+                      barPercentage: 1,
+                      categoryPercentage: 0.1,
+                    },
+                  ],
+                };
+                const barOptions = {
+                  responsive: true,
+                  plugins: {
+                    legend: { display: false },
+                    title: { display: true, text: field.label || field.name },
+                  },
+                  scales: { x: { grid: { display: false } }, y: { beginAtZero: true } },
+                };
+                return (
+                  <div key={field.id} style={{ width:'100%', maxWidth: 700, height: '500px', margin: '40px auto 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Bar data={barData} options={barOptions} style={{ width: 700, height: 500 }} />
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>

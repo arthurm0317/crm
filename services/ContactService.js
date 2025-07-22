@@ -2,10 +2,10 @@ const pool = require('../db/queries');
 const { v4: uuidv4 } = require('uuid');
 const { createNewChat } = require('./ChatService');
 
-const createCustomField = async(fieldName, schema)=>{
+const createCustomField = async(fieldName, graph, schema)=>{
     const result = await pool.query(
-        `INSERT INTO ${schema}.custom_fields (id, field_name, label) VALUES ($1, $2, $3) RETURNING *`,
-        [uuidv4(), fieldName.toLowerCase().replace(/\s+/g, '_'), fieldName.charAt(0).toUpperCase()+fieldName.slice(1)]
+        `INSERT INTO ${schema}.custom_fields (id, field_name, label, graph) VALUES ($1, $2, $3, $4) RETURNING *`,
+        [uuidv4(), fieldName.toLowerCase().replace(/\s+/g, '_'), fieldName.charAt(0).toUpperCase()+fieldName.slice(1), graph]
     );	
     return result.rows[0];
 }

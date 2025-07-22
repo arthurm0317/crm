@@ -2,10 +2,10 @@ const { updateChatNameByNumber } = require('../services/ChatService');
 const { createCustomField, insertValueCustomField, createContact, updateContactName, getCustomFieldsByContact } = require('../services/ContactService');
 
 const createCustomFieldController = async (req, res) => {
-    const { fieldName } = req.body;
+    const { fieldName, graph } = req.body;
     const schema = req.body.schema;
     try {
-        const result = await createCustomField(fieldName, schema);
+        const result = await createCustomField(fieldName, graph, schema);
         res.status(201).json(result);
     } catch (error) {
         console.error("Erro ao criar campo personalizado:", error);
