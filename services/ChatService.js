@@ -193,6 +193,14 @@ const getChatService = async(chat_id, connection_id, schema)=>{
     }
 }
 
+const putChatInWaiting = async(chat_id, schema)=>{
+  const result = await pool.query(
+    `UPDATE ${schema}.chats SET status='waiting' WHERE id=$1 RETURNING *`,
+    [chat_id]
+  );
+  return result.rows[0];
+}
+
 const setUserChat = async (chatId, schema) => {
     const chatDb = await pool.query(
       `SELECT * FROM ${schema}.chats WHERE id=$1`,
@@ -204,6 +212,10 @@ const setUserChat = async (chatId, schema) => {
     )
     if (isDistributionOn.rows[0].distribution === true) {
       const onlineUsers = await getOnlineUsers(schema);
+      if(onlineUsers.length === 0) {
+        await putChatInWaiting(chatId, schema);
+        return;
+      }
       const queueUsersQuery = await pool.query(
         `SELECT user_id FROM ${schema}.queue_users WHERE queue_id=$1`,
         [queueId]
