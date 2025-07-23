@@ -147,13 +147,14 @@ const socketIoServer = socketIo(socketServer, {
 
 global.socketIoServer = socketIoServer;
 
-io.on('connection', (socket) => {
+io.on('connection', async (socket) => {
+  await changeOnline(userId, socket.schema)
   
   socket.on('join', (userId) => {
     socket.join(`user_${userId}`);
   });
 
-  socket.on('disconnect', () => {
+  socket.on('disconnect', async () => {
   });
 
   socket.on('contatosImportados', (data) => {
@@ -161,17 +162,16 @@ io.on('connection', (socket) => {
   });
 });
 
-socketIoServer.on('connection', (socket) => {
-
+socketIoServer.on('connection', async(socket) => {
   socket.on('user_login', async (data) => {
     try {
       const { userId, schema } = data;
       // const { changeOnline } = require('./services/UserService');
-      
       // await changeOnline(userId, schema);
       socket.userId = userId;
       socket.schema = schema;
-      
+      await changeOnline(userId, schema);
+
       // userHeartbeats.set(`${userId}_${schema}`, Date.now());
       
     } catch (error) {
@@ -191,10 +191,11 @@ socketIoServer.on('connection', (socket) => {
     socket.leave(roomId);
   });
 
-  socket.on('disconnect', async () => {
-    
+  socket.on('disconnect', async (data) => {
     if (socket.userId && socket.schema) {
       try {
+        await changeOffline(socket.userId, socket.schema);
+        console.log(socket.userId, socket.schema);
         // const { changeOffline } = require('./services/UserService');
         // await changeOffline(socket.userId, socket.schema);
         
@@ -285,6 +286,7 @@ const fs = require('fs');
 const path = require('path');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
+const { changeOnline, changeOffline } = require('./services/UserService');
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
 app.post('/webhook/audio', async (req, res) => {
