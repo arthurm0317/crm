@@ -83,12 +83,12 @@ const buscarFilasLembrete = async (lembreteId, schema) => {
     return result.rows.map(row => row.queue_id);
 };
 
-const createLembrete = async (lembrete_name, tag, message, date, icone, user_id, schema, filas = []) => {
+const createLembrete = async (lembrete_name, tag, message, date, icone, user_id, schema, filas = [], google_event_id = null) => {
     try {
         const lembreteId = uuidv4();
         const result = await pool.query(
-            `INSERT INTO ${schema}.lembretes(id, lembrete_name, tag, message, date, user_id) VALUES($1, $2, $3, $4, $5, $6) RETURNING *`,
-            [lembreteId, lembrete_name, tag, message, date, user_id]
+            `INSERT INTO ${schema}.lembretes(id, lembrete_name, tag, message, date, icone, user_id, google_event_id) VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+            [lembreteId, lembrete_name, tag, message, date, icone, user_id, google_event_id]
         );
         
         if (tag === 'setorial' && filas && filas.length > 0) {
@@ -103,7 +103,8 @@ const createLembrete = async (lembrete_name, tag, message, date, icone, user_id,
             date,
             user_id,
             schema,
-            filas: tag === 'setorial' ? filas : []
+            filas: tag === 'setorial' ? filas : [],
+            google_event_id: google_event_id
         });
         
         const lembreteComFilas = {
@@ -149,11 +150,11 @@ const getLembretes = async (schema) => {
     }
 }
 
-const updateLembretes = async (id, lembrete_name, tag, message, date, icone, schema, filas = []) => {
+const updateLembretes = async (id, lembrete_name, tag, message, date, icone, schema, filas = [], google_event_id = null) => {
     try {
         const result = await pool.query(
-            `UPDATE ${schema}.lembretes SET lembrete_name=$1, tag=$2, message=$3, date=$4 WHERE id=$5 RETURNING *`,
-            [lembrete_name, tag, message, date, id]
+            `UPDATE ${schema}.lembretes SET lembrete_name=$1, tag=$2, message=$3, date=$4, icone=$5, google_event_id=$6 WHERE id=$7 RETURNING *`,
+            [lembrete_name, tag, message, date, icone, google_event_id, id]
         );
         
         // Atualiza as filas se for setorial
@@ -175,7 +176,8 @@ const updateLembretes = async (id, lembrete_name, tag, message, date, icone, sch
             date,
             icone,
             schema,
-            filas: tag === 'setorial' ? filas : []
+            filas: tag === 'setorial' ? filas : [],
+            google_event_id: google_event_id
         });
         
         // Retorna o lembrete atualizado com as filas

@@ -32,6 +32,7 @@
     "emoji-picker-react": "^4.13.2",
     "express": "^5.1.0",
     "express-session": "^1.18.1",
+    "googleapis": "^153.0.0",
     "imapflow": "^1.0.191",
     "ioredis": "^5.6.1",
     "jsonwebtoken": "^9.0.2",

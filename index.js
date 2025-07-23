@@ -20,6 +20,8 @@ const preferenceRoutes = require('./routes/UserPreferencesRoutes');
 const passportRoutes = require('./routes/PassportRoutes')
 const { setGlobalSocket } = require('./services/LembreteService');
 const quickMessagesRoutes = require('./routes/QuickMessagesRoutes');
+const { google } = require('googleapis');
+const googleCalendarRoutes = require('./routes/GoogleCalendarRoutes');
 
 const passport = require('passport')
 const session = require('express-session')
@@ -30,6 +32,12 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 
 const app = express();
+
+const oauth2Client  = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  'http://localhost:3002/auth/redirect'
+)
 
 app.use(session({
   secret: 'secret',
@@ -59,6 +67,7 @@ passport.deserializeUser((user, done)=>done(null, user))
 
 const corsOptions = {
   origin: function (origin, callback) {
+
     // Permitir requests sem origin (como mobile apps ou Postman)
     if (!origin) return callback(null, true);
     
@@ -71,7 +80,9 @@ const corsOptions = {
       'https://barreiras.effectivegain.com',
       'https://campo-grande.effectivegain.com',
       'https://porto-alegre.effectivegain.com',
-      'https://ilha-backend.9znbc3.easypanel.host'
+      'https://ilha-backend.9znbc3.easypanel.host',
+      'http://localhost:3002',
+      'http://localhost:3002/'
     ];
     
     // Em produção, permitir qualquer subdomínio do effectivegain.com e easypanel.host
@@ -266,7 +277,7 @@ app.use('/lembretes', lembreteRoutes);
 app.use('/preferences', preferenceRoutes)
 app.use('/auth', passportRoutes);
 app.use('/qmessage', quickMessagesRoutes);
-
+app.use('/calendar', googleCalendarRoutes);
 
 
 const axios = require('axios');
