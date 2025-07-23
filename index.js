@@ -62,7 +62,7 @@ const corsOptions = {
     // Permitir requests sem origin (como mobile apps ou Postman)
     if (!origin) return callback(null, true);
     
-    const allowedOrigins = [
+const allowedOrigins = [
       'http://localhost:3001',
       'http://localhost:3000',
       'https://landing-page-front.8rxpnw.easypanel.host',
@@ -71,14 +71,12 @@ const corsOptions = {
       'https://barreiras.effectivegain.com',
       'https://campo-grande.effectivegain.com',
       'https://porto-alegre.effectivegain.com',
-      'https://ilha-backend.9znbc3.easypanel.host'
+      'https://ilha-backend.9znbc3.easypanel.host',
+      'http://localhost:3002',
+      'http://localhost:3002/'
     ];
     
-    // Em produção, permitir qualquer subdomínio do effectivegain.com e easypanel.host
-    if (process.env.NODE_ENV === 'production' && (origin.includes('effectivegain.com') || origin.includes('easypanel.host'))) {
-      return callback(null, true);
-    }
-    
+
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
@@ -93,6 +91,8 @@ const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
     origin: ['http://localhost:3001',
+      'http://localhost:3000',
+      'http://localhost:3002',
       'https://landing-page-front.8rxpnw.easypanel.host',
       'https://eg-crm.effectivegain.com',
       'https://landing-page-teste.8rxpnw.easypanel.host/',
@@ -117,7 +117,10 @@ const socketServer = http.createServer();
 const socketIoServer = socketIo(socketServer, {
   cors: {
     origin: [
-      "http://localhost:3001", 
+      "http://localhost:3001",
+      'http://localhost:3000',
+      'http://localhost:3002',
+      
       "chrome-extension://ophmdkgfcjapomjdpfobjfbihojchbko",
       "https://landing-page-teste.8rxpnw.easypanel.host",
       "https://landing-page-front.8rxpnw.easypanel.host",
