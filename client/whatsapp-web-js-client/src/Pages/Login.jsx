@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import ReCAPTCHA from 'react-google-recaptcha';
 
 
 function Redirecionar(){
@@ -21,6 +22,8 @@ function Redirecionar(){
 // Será movido para dentro do componente Login
 
 function Login() {
+  const [errorCount, setErrorCount] = useState(0);
+  const [recaptchaValue, setRecaptchaValue] = useState(null);
   const [theme, setTheme] = useTheme();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -47,13 +50,23 @@ const handleLogin = async (e) => {
   e.preventDefault();
   setLoading(true); 
 
+ if (errorCount >= 5 && !recaptchaValue) {
+      setLoading(false);
+      alert('Por favor, resolva o reCAPTCHA.');
+      return;
+    }
+
   try {
+    const url = process.env.REACT_APP_URL;
     const response = await axios.post(`${url}/api/login`, {
       email: username,  
       password,
+      recaptcha: recaptchaValue,
     }, { withCredentials: true });
 
+
     if (response.data.success) {
+       
       const userData = {
         id: response.data.user.id,
         username: response.data.user.name,
@@ -70,7 +83,7 @@ const handleLogin = async (e) => {
         delete rememberedCredentials[username];
       }
       localStorage.setItem('rememberedCredentials', JSON.stringify(rememberedCredentials));
-   
+      setErrorCount(0);
       setTimeout(() => {
         setLoading(false);
         if (userData.role === 'admin') {
@@ -83,12 +96,14 @@ const handleLogin = async (e) => {
       }, 5000);
     } else {
       setLoading(false);
+      setErrorCount(prev => prev + 1);
       const senhaIncorretaElement = document.getElementById("senhaIncorreta");
       if (senhaIncorretaElement) {
         senhaIncorretaElement.classList.remove("d-none");
       }
     }
   } catch (err) {
+    setErrorCount(prev => prev + 1);
     setLoading(false);
     const senhaIncorretaElement = document.getElementById("senhaIncorreta");
     if (senhaIncorretaElement) {
@@ -171,7 +186,14 @@ const handleLogin = async (e) => {
                 <i className={`${theme === 'light' ? `bi-sun` : `bi-moon-stars`}`}></i>
               </button>
             </div>
-
+            {errorCount >= 5 && (
+              <div className="mb-3">
+              <ReCAPTCHA
+              sitekey={process.env.REACT_APP_RECAPTCHA_SITE_KEY}
+              onChange={setRecaptchaValue}
+              />
+            </div>
+  )}
             <div className="d-flex flex-column">
               <button
                 type="submit"
