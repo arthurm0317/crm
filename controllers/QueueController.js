@@ -1,4 +1,4 @@
-const Queue = require("../entities/Queue");
+    const Queue = require("../entities/Queue");
 const { v4: uuidv4 } = require('uuid');
 const { createQueue, addUserinQueue, getUserQueues, getAllQueues, deleteQueue, getQueueById, transferQueue, updateUserQueues, toggleWebhookStatus, updateWebhookUrl, getUsersInQueue } = require("../services/QueueService");
 const { setUserChat } = require("../services/ChatService");
