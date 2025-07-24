@@ -5,6 +5,58 @@ import LembreteDeletarLembrete from './modalPages/Lembrete_deletarLembrete';
 import anime from 'animejs';
 import axios from 'axios';
 
+// Estilo moderno para o botão Google Calendar
+const style = document.createElement('style');
+style.innerHTML = `
+.google-calendar-btn {
+  background: transparent;
+  color: #F4B400;
+  border: 1.5px solid #F4B400;
+  border-radius: 6px;
+  font-weight: 500;
+  padding: 5px 14px;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(244,180,0,0.08);
+  transition: background 0.2s, color 0.2s;
+  cursor: pointer;
+  outline: none;
+}
+.google-calendar-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+.google-calendar-btn:hover:not(:disabled),
+.google-calendar-btn:focus-visible:not(:disabled) {
+  background: #F4B400;
+  color: #fff;
+}
+`;
+style.innerHTML += `
+.google-calendar-btn-disconnect {
+  background: transparent;
+  color: #e53935;
+  border: 1.5px solid #e53935;
+  border-radius: 6px;
+  font-weight: 500;
+  padding: 5px 14px;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(229,57,53,0.08);
+  transition: background 0.2s, color 0.2s;
+  cursor: pointer;
+  outline: none;
+}
+.google-calendar-btn-disconnect:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+.google-calendar-btn-disconnect:hover:not(:disabled),
+.google-calendar-btn-disconnect:focus-visible:not(:disabled) {
+  background: #e53935;
+  color: #fff;
+}
+`;
+document.head.appendChild(style);
+
 const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
 // Mock de lembretes (mantido para referência, mas os dados da API terão prioridade)
@@ -55,11 +107,63 @@ function LembretesPage({ theme, lembretes, atualizarLembretes }) {
     const userData = JSON.parse(localStorage.getItem('user'));
     const schema = userData?.schema;
     const url = process.env.REACT_APP_URL;
-    
-    
+    const [loadingGoogle, setLoadingGoogle] = useState(false);
+    const [googleEventsLoaded, setGoogleEventsLoaded] = useState(false);
+    const [isGoogleConnected, setIsGoogleConnected] = useState(false);
+
+    // Verifica se está conectado ao Google Calendar
+    useEffect(() => {
+        const checkGoogleStatus = async () => {
+            try {
+                const response = await axios.get('/calendar/events', {
+                  params: {
+                    user_id: userData.id,
+                    schema: schema
+                  }
+                });
+                setIsGoogleConnected(true);
+            } catch (err) {
+                setIsGoogleConnected(false);
+            }
+        };
+        checkGoogleStatus();
+    }, []);
+
+    const handleDisconnectGoogleCalendar = async () => {
+        try {
+            await axios.post('/calendar/disconnect', {
+                user_id: userData.id,
+                schema: schema
+            });
+            setIsGoogleConnected(false);
+        } catch (err) {
+            alert('Erro ao desconectar do Google Calendar');
+        }
+    };
+
+    const handleConnectGoogleCalendar = async () => {
+        setLoadingGoogle(true);
+        try {
+            // Salva user_id e schema na sessão antes do OAuth
+            await axios.post('/calendar/set-session', {
+                user_id: userData.id,
+                schema: schema,
+                userRole: userData.role
+            });
+            const response = await axios.get('/calendar/auth-url');
+            if (response.data.url) {
+                window.location.href = response.data.url;
+            }
+        } catch (err) {
+            alert('Erro ao conectar com o Google Calendar');
+        } finally {
+            setLoadingGoogle(false);
+        }
+    };
 
     // --- Funções Auxiliares para lidar com a inconsistência de dados ---
     const getReminderIconClass = (lembrete) => {
+        if (lembrete.tipo === 'google') return 'bi-calendar-event';
         // Prioriza 'tag' se ela mapear para um ícone padrão
         if (lembrete.tag === 'geral') return 'bi-globe-americas';
         if (lembrete.tag === 'setorial') return 'bi-diagram-3';
@@ -106,20 +210,77 @@ function LembretesPage({ theme, lembretes, atualizarLembretes }) {
 
 const handleSalvarLembrete = (lembreteCriadoOuEditado) => {
   setLembretesState(prev => {
-    const idx = prev.findIndex(l => l.id === lembreteCriadoOuEditado.id);
+    // Mantém os eventos do Google
+    const googleEvents = prev.filter(l => l.tipo === 'google');
+    // Atualiza ou adiciona o lembrete do sistema
+    const outros = prev.filter(l => l.tipo !== 'google');
+    const idx = outros.findIndex(l => l.id === lembreteCriadoOuEditado.id);
+    let novosLembretes;
     if (idx !== -1) {
-      const novoArr = [...prev];
-      novoArr[idx] = lembreteCriadoOuEditado;
-      return novoArr;
+      outros[idx] = lembreteCriadoOuEditado;
+      novosLembretes = outros;
+    } else {
+      novosLembretes = [...outros, lembreteCriadoOuEditado];
     }
-    return [...prev, lembreteCriadoOuEditado];
+    return [...novosLembretes, ...googleEvents];
   });
   setShowNovoLembrete(false);
   setLembreteEditando(null);
 };
  useEffect(() => {
-        setLembretesState(lembretes);
-    }, [lembretes]);
+    setLembretesState(prev => {
+        // Mantém os eventos do Google
+        const googleEvents = prev.filter(l => l.tipo === 'google');
+        // Adiciona os lembretes do sistema recebidos por props
+        return [...lembretes, ...googleEvents];
+    });
+}, [lembretes]);
+
+    // Função para buscar eventos do Google Calendar
+    const fetchGoogleEvents = async () => {
+        try {
+            const response = await axios.get('/calendar/events', {
+              params: {
+                user_id: userData.id,
+                schema: schema
+              }
+            });
+            const googleEvents = (response.data || []).map(ev => {
+              let timestamp;
+              if (ev.start?.dateTime) {
+                timestamp = Math.floor(new Date(ev.start.dateTime).getTime() / 1000);
+              } else if (ev.start?.date) {
+                timestamp = Math.floor(new Date(ev.start.date + 'T00:00:00').getTime() / 1000);
+              } else {
+                timestamp = null;
+              }
+              return {
+                id: 'google-' + ev.id,
+                google_event_id: ev.id,
+                titulo: ev.summary,
+                mensagem: ev.description || '',
+                date: timestamp, // padronizado
+                icone: 'bi-calendar-event',
+                tipo: 'google',
+              };
+            });
+            setLembretesState(prev => {
+                // Filtra eventos do Google que já possuem lembrete do sistema com o mesmo google_event_id
+                const lembretesSistema = prev.filter(l => l.tipo !== 'google');
+                const googleEventIdsSistema = new Set(lembretesSistema.map(l => l.google_event_id).filter(Boolean));
+                const googleEventsFiltrados = googleEvents.filter(ev => !googleEventIdsSistema.has(ev.google_event_id));
+                return [...lembretesSistema, ...googleEventsFiltrados];
+            });
+            setGoogleEventsLoaded(true);
+        } catch (err) {
+            setGoogleEventsLoaded(true);
+        }
+    };
+
+    // Buscar eventos do Google Calendar ao carregar
+    useEffect(() => {
+        fetchGoogleEvents();
+    }, []);
 
     const handleDeleteLembrete = (id) => {
         setLembretesState(prev => prev.filter(l => l.id !== id));
@@ -248,6 +409,28 @@ const handleSalvarLembrete = (lembreteCriadoOuEditado) => {
 
     return (
         <div className="h-100 w-100 pt-3">
+            {/* Botão Google Calendar */}
+            <div className="d-flex justify-content-end mb-2 px-3 gap-2">
+                {isGoogleConnected ? (
+                    <button
+                        className="d-flex align-items-center gap-2 google-calendar-btn-disconnect"
+                        onClick={handleDisconnectGoogleCalendar}
+                        style={{ minWidth: 120 }}
+                    >
+                        
+                        Desconectar Google
+                    </button>
+                ) : (
+                    <button
+                        className="d-flex align-items-center gap-2 google-calendar-btn"
+                        onClick={handleConnectGoogleCalendar}
+                        disabled={loadingGoogle}
+                    >
+                        <i className="bi bi-calendar-event"></i>
+                        {loadingGoogle ? 'Conectando...' : 'Conectar Google Calendar'}
+                    </button>
+                )}
+            </div>
             {/* Container para as notificações Toast */}
             <div id="toast-container" className="toast-container position-fixed bottom-0 end-0 p-3" style={{ zIndex: 1060 }}></div>
 
@@ -272,18 +455,21 @@ const handleSalvarLembrete = (lembreteCriadoOuEditado) => {
 
     return (
         <div key={l.id} className={`d-flex align-items-center gap-2 mb-2 rounded px-3`} style={{ background: 'var(--input-bg-color-' + theme + ')', border: '1px solid var(--border-color-' + theme + ')', minHeight: 44, paddingTop: 8, paddingBottom: 8 }}>
-            <i className={`bi ${getReminderIconClass(l)} fs-5 header-text-${theme}`}></i>
+            <i className={`bi ${getReminderIconClass(l)} fs-5 header-text-${theme} ${l.tipo === 'google' || l.google_event_id ? 'text-primary' : ''}`}></i>
             <div className={`flex-grow-1 header-text-${theme}`}>
-                <div className="fw-semibold">{getReminderTitle(l)}</div>
+                <div className="fw-semibold">
+                  {getReminderTitle(l)}
+                  {isGoogleConnected && (l.tipo === 'google' || l.google_event_id) && <span className="badge bg-primary ms-2">Google</span>}
+                </div>
                 <div className="small">
-                    {new Date(Number(l.date || l.data) * 1000).toLocaleString('pt-BR', {
+                    {new Date(Number(l.date) * 1000).toLocaleString('pt-BR', {
                         day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit'
                     })}
                     {' • '}
                     {l.tag ? l.tag.charAt(0).toUpperCase() + l.tag.slice(1) : (l.tipo ? l.tipo.charAt(0).toUpperCase() + l.tipo.slice(1) : '')}
                 </div>
             </div>
-            {podeExcluir && (
+            {podeExcluir && l.tipo !== 'google' && (
                 <button
                 className={`btn btn-sm btn-2-${theme}`}
                 style={{ maxWidth: '38px' }}
@@ -293,7 +479,7 @@ const handleSalvarLembrete = (lembreteCriadoOuEditado) => {
                 <i className="bi bi-pencil-fill"></i>
             </button>
             )}
-            {podeExcluir && (
+            {podeExcluir && l.tipo !== 'google' && (
                 <button
                     className={`btn btn-sm delete-btn`}
                     style={{ maxWidth: '38px' }}
@@ -531,6 +717,8 @@ const handleSalvarLembrete = (lembreteCriadoOuEditado) => {
                     lembreteEdit: lembreteEditando
                 } : {})}
                 onTestToast={showToast}
+                fetchGoogleEvents={fetchGoogleEvents}
+                isGoogleConnected={isGoogleConnected}
             />
             <LembreteDeletarLembrete
     theme={theme}
