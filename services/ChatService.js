@@ -202,7 +202,6 @@ const redistributeLead = async (chatId, schema) => {
   );
 };
 
-const { Worker } = require('bullmq');
 
 const leadRedistributionWorker = new Worker(
   'lead-redistribution',
@@ -225,7 +224,6 @@ const leadRedistributionWorker = new Worker(
   { connection: bullConn }
 );
 
-const { Queue } = require('bullmq');
 const leadRedistributionQueue = new Queue('lead-redistribution', { connection: bullConn });
 setInterval(() => {
   leadRedistributionQueue.add('check-leads', {});
