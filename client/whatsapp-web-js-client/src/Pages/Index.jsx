@@ -1,5 +1,5 @@
 import * as bootstrap from 'bootstrap';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import shortlogo from './assets/favicon.png';
@@ -102,6 +102,7 @@ function Painel() {
   const url = process.env.REACT_APP_URL;
   const [socketInstance] = useState(() => socket());
   const [showCustomValuesModal, setShowCustomValuesModal] = useState(false);
+  const customValuesBtnRef = useRef(null);
 
 
   // Atualizar página quando as preferências mudarem
@@ -299,6 +300,18 @@ useEffect(() => {
     }
   };
 }, [page]);
+
+useEffect(() => {
+  let tooltipInstance = null;
+  if (customValuesBtnRef.current) {
+    tooltipInstance = new bootstrap.Tooltip(customValuesBtnRef.current, { trigger: 'hover focus' });
+  }
+  return () => {
+    if (tooltipInstance) {
+      tooltipInstance.dispose();
+    }
+  };
+}, [theme, showCustomValuesModal]);
 
 const fetchLembretes = async () => {
   try {
@@ -574,8 +587,9 @@ useEffect(() => {
               )}
               <button
                 type="button"
+                ref={customValuesBtnRef}
                 data-bs-toggle="tooltip"
-                data-bs-placement="right"
+                data-bs-placement="bottom"
                 data-bs-title="Custom Values"
                 className={`btn btn-2-${theme} toggle-${theme}`}
                 onClick={() => setShowCustomValuesModal(true)}
