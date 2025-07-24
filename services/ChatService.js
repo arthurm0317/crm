@@ -202,7 +202,6 @@ const redistributeLead = async (chatId, schema) => {
   );
 };
 
-
 const leadRedistributionWorker = new Worker(
   'lead-redistribution',
   async () => {
