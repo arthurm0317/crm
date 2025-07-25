@@ -286,6 +286,15 @@ function Dashboard({ theme }) {
             Gráficos
           </button>
         </li>
+        <li className="nav-item">
+          <button
+            className={`nav-link${activeTab === 'relatorio' ? ' active' : ''}`}
+            onClick={() => setActiveTab('relatorio')}
+            type="button"
+          >
+            Relatório
+          </button>
+        </li>
       </ul>
       {activeTab === 'dashboard' && (
         <div className="row h-100">
@@ -596,6 +605,38 @@ function Dashboard({ theme }) {
                   </div>
                 );
               })()}
+            </div>
+          </div>
+        </div>
+      )}
+      {activeTab === 'relatorio' && (
+        <div className="row h-100">
+          <div className="col-12">
+            <div className={`card card-${theme} p-4`}>
+              <h4 className={`header-text-${theme}`}>Relatório</h4>
+              <div className={`table-responsive custom-table-${theme}`}>
+                <table className="table table-bordered table-hover m-0">
+                  <thead>
+                    <tr>
+                      <th>Coluna 1</th>
+                      <th>Coluna 2</th>
+                      <th>Coluna 3</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Dado 1</td>
+                      <td>Dado 2</td>
+                      <td>Dado 3</td>
+                    </tr>
+                    <tr>
+                      <td>Dado 4</td>
+                      <td>Dado 5</td>
+                      <td>Dado 6</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>

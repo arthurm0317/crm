@@ -454,6 +454,7 @@ const getChatById = async (chatId, connection_id, schema) => {
     throw new Error('Erro ao buscar chat pelo ID');
   }
 }
+
 const saveMediaMessage = async (id,fromMe, chat_id, createdAt, message_type, audioBase64, schema) => {
   try {
     const result = await pool.query(
