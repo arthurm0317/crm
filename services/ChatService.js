@@ -8,6 +8,7 @@ const { sendTextMessage } = require('../requests/evolution');
 const { saveMessage } = require('./MessageService');
 const { Message } = require('../entities/Message');
 const { createLembrete } = require('./LembreteService');
+const { getGptResponse } = require('./ReportService');
 
 const bullConn = createRedisConnection()
 const messageQueue = new Queue('message', {connection: bullConn});
@@ -536,7 +537,9 @@ const closeChatContact = async (chat_id, status, schema) => {
   const result = await pool.query(`
     INSERT INTO ${schema}.chat_contact(id, chat_id, contact_number, status, user_id) VALUES($1,$2,$3,$4,$5) RETURNING *  
   `, [uuid4(), chat_id, number.rows[0].contact_phone, status, number.rows[0].assigned_user || null])
+  const report = await getGptResponse(chat_id, schema, status)
   return result.rows[0]
+    
 }
 
 const setSpecificUser = async(chat_id, user_id, schema)=>{

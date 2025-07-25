@@ -18,10 +18,12 @@ const excelRoutes = require('./routes/ExcelRoutes');
 const lembreteRoutes = require('./routes/LembretesRoutes');
 const preferenceRoutes = require('./routes/UserPreferencesRoutes');
 const passportRoutes = require('./routes/PassportRoutes')
+const googleCalendarRoutes = require('./routes/GoogleCalendarRoutes');
+const reportRoutes = require('./routes/ReportRoutes');
+
 const { setGlobalSocket } = require('./services/LembreteService');
 const quickMessagesRoutes = require('./routes/QuickMessagesRoutes');
 const { google } = require('googleapis');
-const googleCalendarRoutes = require('./routes/GoogleCalendarRoutes');
 
 const passport = require('passport')
 const session = require('express-session')
@@ -280,7 +282,7 @@ app.use('/preferences', preferenceRoutes)
 app.use('/auth', passportRoutes);
 app.use('/qmessage', quickMessagesRoutes);
 app.use('/calendar', googleCalendarRoutes);
-
+app.use('/report', reportRoutes);
 
 const axios = require('axios');
 const fs = require('fs');

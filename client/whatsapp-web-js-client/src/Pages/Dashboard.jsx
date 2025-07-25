@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import * as bootstrap from 'bootstrap';
 import axios from 'axios';
 import { Bar, Doughnut } from 'react-chartjs-2';
@@ -12,6 +12,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import ChatViewModal from './Componentes/ChatViewModal';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
 
@@ -30,6 +31,12 @@ function Dashboard({ theme }) {
   const [customFieldsGraph, setCustomFieldsGraph] = useState([]);
   const [customFieldsValues, setCustomFieldsValues] = useState({});
   const [selectedCustomFieldId, setSelectedCustomFieldId] = useState('');
+  const [reportData, setReportData] = useState([]);
+  const [userMap, setUserMap] = useState({});
+  const [queueMap, setQueueMap] = useState({});
+  const [connectionMap, setConnectionMap] = useState({});
+  const [showChatModal, setShowChatModal] = useState(false);
+  const [modalChatId, setModalChatId] = useState(null);
 
   useEffect(() => {
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
@@ -264,383 +271,490 @@ function Dashboard({ theme }) {
     }
   }, [activeTab, chartType, closedChats, schema, url]);
 
+  useEffect(() => {
+    if (activeTab === 'relatorio') {
+      const fetchReport = async () => {
+        try {
+          const response = await axios.get(`${url}/report/get-reports/${schema}`, { withCredentials: true });
+          let data = response.data.result;
+          if (typeof data === 'string') {
+            try { data = JSON.parse(data); } catch {}
+          }
+          if (!Array.isArray(data)) data = [data];
+          setReportData(data);
+
+          // Buscar nomes de usuários, filas e conexões
+          const userIds = Array.from(new Set(data.map(r => r.user_id).filter(Boolean)));
+          const queueIds = Array.from(new Set(data.map(r => r.queue_id).filter(Boolean)));
+          const chatIds = Array.from(new Set(data.map(r => r.chat_id).filter(Boolean)));
+
+          // Usuários
+          if (userIds.length > 0) {
+            const res = await axios.get(`${url}/api/users/${schema}`, { withCredentials: true });
+            const users = res.data.users || [];
+            const map = {};
+            userIds.forEach(id => {
+              const u = users.find(x => x.id === id);
+              map[id] = u ? (u.nome || u.username || u.name) : id;
+            });
+            setUserMap(map);
+          } else {
+            setUserMap({});
+          }
+
+          // Filas
+          if (queueIds.length > 0) {
+            const res = await axios.get(`${url}/queue/get-all-queues/${schema}`, { withCredentials: true });
+            const queues = res.data.result || [];
+            const map = {};
+            queueIds.forEach(id => {
+              const q = queues.find(x => x.id === id);
+              map[id] = q ? q.name : id;
+            });
+            setQueueMap(map);
+          } else {
+            setQueueMap({});
+          }
+
+          // Conexões (via chats)
+          if (chatIds.length > 0) {
+            // Buscar todos os chats de uma vez
+            const res = await axios.get(`${url}/connection/get-all-connections/${schema}`, { withCredentials: true });
+            const connections = res.data || [];
+            setConnectionMap({});
+          } else {
+            setConnectionMap({});
+          }
+        } catch (error) {
+          setReportData([]);
+          setUserMap({});
+          setQueueMap({});
+          setConnectionMap({});
+        }
+      };
+      fetchReport();
+    }
+  }, [activeTab, url, schema]);
+
+  // Função para abrir o modal e buscar as mensagens
+  const handleOpenChatModal = (chatId) => {
+    setModalChatId(chatId);
+    setShowChatModal(true);
+  };
+  // Função para fechar o modal
+  const handleCloseChatModal = () => {
+    setShowChatModal(false);
+    setModalChatId(null);
+  };
+
   return (
-    <div className="container-fluid h-100 pt-3">
-      <h2 className={`mb-3 ms-3 header-text-${theme}`} style={{ fontWeight: 400 }}>Dashboard</h2>
-      <ul className="nav nav-tabs mb-3">
-        <li className="nav-item">
-          <button
-            className={`nav-link${activeTab === 'dashboard' ? ' active' : ''}`}
-            onClick={() => setActiveTab('dashboard')}
-            type="button"
-          >
-            Visão Geral
-          </button>
-        </li>
-        <li className="nav-item">
-          <button
-            className={`nav-link${activeTab === 'graficos' ? ' active' : ''}`}
-            onClick={() => setActiveTab('graficos')}
-            type="button"
-          >
-            Gráficos
-          </button>
-        </li>
-        <li className="nav-item">
-          <button
-            className={`nav-link${activeTab === 'relatorio' ? ' active' : ''}`}
-            onClick={() => setActiveTab('relatorio')}
-            type="button"
-          >
-            Relatório
-          </button>
-        </li>
-      </ul>
-      {activeTab === 'dashboard' && (
-        <div className="row h-100">
-          {/* Coluna 1 */}
-          <div className="col-4 offset-2 d-flex flex-column gap-3">
-            <div className={`card card-${theme} p-2 d-flex flex-row align-items-center justify-content-evenly`}>
-              <i className="bi bi-hourglass card-icon" style={{ fontSize: '2.5rem' }}></i>
-              <div className="d-flex flex-column align-items-start justify-content-start">
-                <h6 className={`card-subtitle-${theme} m-0`}>Fila de Atendimento</h6>
-                <h2 id="contatos-aguardando" className={`header-text-${theme}`}>2</h2>
-              </div>
-              <div>
-                <i
-                  className={`bi bi-question-circle question-${theme}`}
-                  data-bs-toggle="tooltip"
-                  data-bs-placement="bottom"
-                  title="Quantidade de filas de atendimento."
-                ></i>
-              </div>
-            </div>
+    <div className="pt-3" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div className="container-fluid ps-2 pe-0" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <h2 className={`mb-3 ms-3 header-text-${theme}`} style={{ fontWeight: 400 }}>Dashboard</h2>
+        <ul className="nav nav-tabs mb-3">
+          <li className="nav-item">
+            <button
+              className={`nav-link${activeTab === 'dashboard' ? ' active' : ''}`}
+              onClick={() => setActiveTab('dashboard')}
+              type="button"
+            >
+              Visão Geral
+            </button>
+          </li>
+          <li className="nav-item">
+            <button
+              className={`nav-link${activeTab === 'graficos' ? ' active' : ''}`}
+              onClick={() => setActiveTab('graficos')}
+              type="button"
+            >
+              Gráficos
+            </button>
+          </li>
+          <li className="nav-item">
+            <button
+              className={`nav-link${activeTab === 'relatorio' ? ' active' : ''}`}
+              onClick={() => setActiveTab('relatorio')}
+              type="button"
+            >
+              Relatório
+            </button>
+          </li>
+        </ul>
+        <div className="pt-3" style={{ flex: 1, width: '100%', display: 'flex', flexDirection: 'column', border: `1px solid var(--border-color-${theme})`, borderRadius: '6px' }}>
+          {activeTab === 'dashboard' && (
+            <div className="d-flex flex-row justify-content-evenly" style={{ flex: 1, width: '100%', height: '100%' }}>
+              {/* Coluna 1 */}
+              <div className="col-4 d-flex flex-column gap-3">
+                <div className={`card card-${theme} p-2 d-flex flex-row align-items-center justify-content-evenly`}>
+                  <i className="bi bi-hourglass card-icon" style={{ fontSize: '2.5rem' }}></i>
+                  <div className="d-flex flex-column align-items-start justify-content-start">
+                    <h6 className={`card-subtitle-${theme} m-0`}>Fila de Atendimento</h6>
+                    <h2 id="contatos-aguardando" className={`header-text-${theme}`}>2</h2>
+                  </div>
+                  <div>
+                    <i
+                      className={`bi bi-question-circle question-${theme}`}
+                      data-bs-toggle="tooltip"
+                      data-bs-placement="bottom"
+                      title="Quantidade de filas de atendimento."
+                    ></i>
+                  </div>
+                </div>
 
-            <div className={`card card-${theme} p-2 d-flex flex-row align-items-center justify-content-evenly`}>
-              <i className="bi bi-person-check card-icon" style={{ fontSize: '2.5rem' }}></i>
-              <div className="d-flex flex-column align-items-start justify-content-start">
-                <h6 className={`card-subtitle-${theme} m-0`}>Atendentes online</h6>
-                <h2 id="atendentes-online" className={`header-text-${theme}`}>
-                {user && Array.isArray(user)
-                  ? user.filter(u => u.online && u.permission === 'user').length
-                  : 0}
-              </h2>
-              </div>
-              <div>
-                <i
-                  className={`bi bi-question-circle question-${theme}`}
-                  data-bs-toggle="tooltip"
-                  data-bs-placement="bottom"
-                  title="Total de atendentes humanos atendendo no momento."
-                ></i>
-              </div>
-            </div>
+                <div className={`card card-${theme} p-2 d-flex flex-row align-items-center justify-content-evenly`}>
+                  <i className="bi bi-person-check card-icon" style={{ fontSize: '2.5rem' }}></i>
+                  <div className="d-flex flex-column align-items-start justify-content-start">
+                    <h6 className={`card-subtitle-${theme} m-0`}>Atendentes online</h6>
+                    <h2 id="atendentes-online" className={`header-text-${theme}`}>
+                    {user && Array.isArray(user)
+                      ? user.filter(u => u.online && u.permission === 'user').length
+                      : 0}
+                  </h2>
+                  </div>
+                  <div>
+                    <i
+                      className={`bi bi-question-circle question-${theme}`}
+                      data-bs-toggle="tooltip"
+                      data-bs-placement="bottom"
+                      title="Total de atendentes humanos atendendo no momento."
+                    ></i>
+                  </div>
+                </div>
 
-            <div className={`card p-3 card-${theme}`}>
-              <h6 className={`card-subtitle-${theme}`}>Atendentes</h6>
-              <ul id="lista-atendentes" className="list-unstyled mb-0 d-flex flex-column lista-tabela">
-                <li className={`d-flex justify-content-between table-header-${theme} px-2 py-1`}>
-                  <span>Nome</span>
-                  <span>Setor</span>
-                  <span>Status</span>
-                </li>
-                {user && user
-                .filter(u => u.permission === 'user')
-                .map((u) => (
-                  <li key={u.id} className={`d-flex justify-content-between px-2 py-1 header-text-${theme}`}>
-                    <span>{u.nome || u.username || u.name}</span>
-                    <span>{u.setor || u.sector || '-'}</span>
-                    <span>
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          width: 12,
-                          height: 12,
-                          borderRadius: '50%',
-                          background: u.online ? '#28a745' : '#dc3545'
-                        }}
-                      ></span>
-                    </span>
-                  </li>
-              ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* Coluna 2 */}
-          <div className="col-4 d-flex flex-column gap-3">
-            {/*
-            <div className={`card card-${theme} p-2 d-flex flex-row align-items-center justify-content-evenly`}>
-              <i className="bi bi-cpu card-icon" style={{ fontSize: '2.5rem' }}></i>
-              <div className="d-flex flex-column align-items-start justify-content-start">
-                <h6 className={`card-subtitle-${theme} m-0`}>Contatos com IA</h6>
-                <h2 id="contatos-ia" className={`header-text-${theme}`}>0</h2>
+                <div className={`card p-3 card-${theme}`}>
+                  <h6 className={`card-subtitle-${theme}`}>Atendentes</h6>
+                  <ul id="lista-atendentes" className="list-unstyled mb-0 d-flex flex-column lista-tabela">
+                    <li className={`d-flex justify-content-between table-header-${theme} px-2 py-1`}>
+                      <span>Nome</span>
+                      <span>Setor</span>
+                      <span>Status</span>
+                    </li>
+                    {user && user
+                    .filter(u => u.permission === 'user')
+                    .map((u) => (
+                      <li key={u.id} className={`d-flex justify-content-between px-2 py-1 header-text-${theme}`}>
+                        <span>{u.nome || u.username || u.name}</span>
+                        <span>{u.setor || u.sector || '-'}</span>
+                        <span>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              width: 12,
+                              height: 12,
+                              borderRadius: '50%',
+                              background: u.online ? '#28a745' : '#dc3545'
+                            }}
+                          ></span>
+                        </span>
+                      </li>
+                  ))}
+                  </ul>
+                </div>
               </div>
-              <div>
-                <i
-                  className={`bi bi-question-circle question-${theme}`}
-                  data-bs-toggle="tooltip"
-                  data-bs-placement="bottom"
-                  title="Conversas em andamento mediadas exclusivamente pela IA."
-                ></i>
+
+              {/* Coluna 2 */}
+              <div className="col-4 d-flex flex-column gap-3">
+                {/*
+              <div className={`card card-${theme} p-2 d-flex flex-row align-items-center justify-content-evenly`}>
+                <i className="bi bi-cpu card-icon" style={{ fontSize: '2.5rem' }}></i>
+                <div className="d-flex flex-column align-items-start justify-content-start">
+                  <h6 className={`card-subtitle-${theme} m-0`}>Contatos com IA</h6>
+                  <h2 id="contatos-ia" className={`header-text-${theme}`}>0</h2>
+                </div>
+                <div>
+                  <i
+                    className={`bi bi-question-circle question-${theme}`}
+                    data-bs-toggle="tooltip"
+                    data-bs-placement="bottom"
+                    title="Conversas em andamento mediadas exclusivamente pela IA."
+                  ></i>
+                </div>
+              </div>
+              */}
+
+                <div className={`card card-${theme} p-2 d-flex flex-row align-items-center justify-content-evenly`}>
+                  <i className="bi bi-check2-all card-icon" style={{ fontSize: '2.5rem' }}></i>
+                  <div className="d-flex flex-column align-items-start justify-content-start">
+                    <h6 className={`card-subtitle-${theme} m-0`}>Conversas finalizadas</h6>
+                    <h2 id="esperando-atendente" className={`header-text-${theme}`}>{closedChats.length}</h2>
+                  </div>
+                  <div>
+                    <i
+                      className={`bi bi-question-circle question-${theme}`}
+                      data-bs-toggle="tooltip"
+                      data-bs-placement="bottom"
+                      title="Conversas que terminaram e foram encerradas."
+                    ></i>
+                  </div>
+                </div>
+
+                <div className={`card p-3 card-${theme}`}>
+                  <h6 className={`card-subtitle-${theme}`}>Ranking - Conversas Encerradas</h6>
+                  <div className="btn-group px-5 py-2" role="group">
+                    <input
+                      type="radio"
+                      className="btn-check"
+                      name="ranking-conversas"
+                      id="btnradio1"
+                      autoComplete="off"
+                      checked={rankingFiltro === 'diario'}
+                      onChange={() => setRankingFiltro('diario')}
+                    />
+                    <label className={`btn btn-primary btn-label-${theme}`} htmlFor="btnradio1">
+                      Diário
+                    </label>
+                    <input
+                      type="radio"
+                      className="btn-check"
+                      name="ranking-conversas"
+                      id="btnradio2"
+                      autoComplete="off"
+                      checked={rankingFiltro === 'semanal'}
+                      onChange={() => setRankingFiltro('semanal')}
+                    />
+                    <label className={`btn btn-primary btn-label-${theme}`} htmlFor="btnradio2">
+                      Semanal
+                    </label>
+                    <input
+                      type="radio"
+                      className="btn-check"
+                      name="ranking-conversas"
+                      id="btnradio3"
+                      autoComplete="off"
+                      checked={rankingFiltro === 'mensal'}
+                      onChange={() => setRankingFiltro('mensal')}
+                    />
+                    <label className={`btn btn-primary btn-label-${theme}`} htmlFor="btnradio3">
+                      Mensal
+                    </label>
+                  </div>
+                  <ul id="ranking-conversas" className="mb-0 d-flex flex-column lista-tabela ps-0">
+                    <li className={`d-flex justify-content-between table-header-${theme} px-2 py-1`}>
+                      <span style={{ width: '20%' }}></span>
+                      <span style={{ width: '50%' }}>Nome</span>
+                      <span style={{ width: '30%', textAlign: 'right' }}>Total</span>
+                    </li>
+                    {ranking.map(([userId, total], idx) => (
+                      <li key={userId} className={`d-flex justify-content-between px-2 py-1 header-text-${theme}`}>
+                        <span style={{ width: '20%' }}>{idx + 1}º</span>
+                        <span style={{ width: '50%' }}>{userNames[userId] || userId}</span>
+                        <span style={{ width: '30%', textAlign: 'right' }}>{total}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Coluna 3 */}
+              {/*
+            <div className="col-4 d-flex flex-column gap-3">
+              <div className={`card card-${theme} p-2 d-flex flex-row align-items-center justify-content-evenly`}>
+                <i className="bi bi-stopwatch card-icon" style={{ fontSize: '2.5rem' }}></i>
+                <div className="d-flex flex-column align-items-start justify-content-start">
+                  <h6 className={`card-subtitle-${theme} m-0`}>Tempo médio de resposta</h6>
+                  <h2 id="tempo-resposta" className={`header-text-${theme}`}>--</h2>
+                </div>
+                <div>
+                  <i
+                    className={`bi bi-question-circle question-${theme}`}
+                    data-bs-toggle="tooltip"
+                    data-bs-placement="bottom"
+                    title="Tempo médio que o atendente leva para responder após o contato ir para a fila de atendimento."
+                  ></i>
+                </div>
+              </div>
+              <div className={`card card-${theme} p-2 d-flex flex-row align-items-center justify-content-evenly`}>
+                <i className="bi bi-hourglass-split card-icon" style={{ fontSize: '2.5rem' }}></i>
+                <div className="d-flex flex-column align-items-start justify-content-start">
+                  <h6 className={`card-subtitle-${theme} m-0`}>Tempo médio de resolução</h6>
+                  <h2 id="tempo-resolucao" className={`header-text-${theme}`}>--</h2>
+                </div>
+                <div>
+                  <i
+                    className={`bi bi-question-circle question-${theme}`}
+                    data-bs-toggle="tooltip"
+                    data-bs-placement="bottom"
+                    title="Tempo médio desde o início da intervenção do atendente até o encerramento."
+                  ></i>
+                </div>
+              </div>
+              <div className={`card p-3 card-${theme}`}>
+                <h6 className={`card-subtitle-${theme}`}>Ranking - Tempo de Resposta</h6>
+                <div className="btn-group px-5 py-2" role="group">
+                  <input
+                    type="radio"
+                    className="btn-check"
+                    name="ranking-tempo"
+                    id="btnradio4"
+                    autoComplete="off"
+                    defaultChecked
+                  />
+                  <label className={`btn btn-primary btn-label-${theme}`} htmlFor="btnradio4">
+                    Diário
+                  </label>
+                  <input type="radio" className="btn-check" name="ranking-tempo" id="btnradio5" autoComplete="off" />
+                  <label className={`btn btn-primary btn-label-${theme}`} htmlFor="btnradio5">
+                    Semanal
+                  </label>
+                  <input type="radio" className="btn-check" name="ranking-tempo" id="btnradio6" autoComplete="off" />
+                  <label className={`btn btn-primary btn-label-${theme}`} htmlFor="btnradio6">
+                    Mensal
+                  </label>
+                </div>
+                <ul id="ranking-tempo" className="mb-0 d-flex flex-column lista-tabela ps-0"></ul>
               </div>
             </div>
             */}
-
-            <div className={`card card-${theme} p-2 d-flex flex-row align-items-center justify-content-evenly`}>
-              <i className="bi bi-check2-all card-icon" style={{ fontSize: '2.5rem' }}></i>
-              <div className="d-flex flex-column align-items-start justify-content-start">
-                <h6 className={`card-subtitle-${theme} m-0`}>Conversas finalizadas</h6>
-                <h2 id="esperando-atendente" className={`header-text-${theme}`}>{closedChats.length}</h2>
-              </div>
-              <div>
-                <i
-                  className={`bi bi-question-circle question-${theme}`}
-                  data-bs-toggle="tooltip"
-                  data-bs-placement="bottom"
-                  title="Conversas que terminaram e foram encerradas."
-                ></i>
-              </div>
             </div>
-
-            <div className={`card p-3 card-${theme}`}>
-              <h6 className={`card-subtitle-${theme}`}>Ranking - Conversas Encerradas</h6>
-              <div className="btn-group px-5 py-2" role="group">
-                <input
-                  type="radio"
-                  className="btn-check"
-                  name="ranking-conversas"
-                  id="btnradio1"
-                  autoComplete="off"
-                  checked={rankingFiltro === 'diario'}
-                  onChange={() => setRankingFiltro('diario')}
-                />
-                <label className={`btn btn-primary btn-label-${theme}`} htmlFor="btnradio1">
-                  Diário
-                </label>
-                <input
-                  type="radio"
-                  className="btn-check"
-                  name="ranking-conversas"
-                  id="btnradio2"
-                  autoComplete="off"
-                  checked={rankingFiltro === 'semanal'}
-                  onChange={() => setRankingFiltro('semanal')}
-                />
-                <label className={`btn btn-primary btn-label-${theme}`} htmlFor="btnradio2">
-                  Semanal
-                </label>
-                <input
-                  type="radio"
-                  className="btn-check"
-                  name="ranking-conversas"
-                  id="btnradio3"
-                  autoComplete="off"
-                  checked={rankingFiltro === 'mensal'}
-                  onChange={() => setRankingFiltro('mensal')}
-                />
-                <label className={`btn btn-primary btn-label-${theme}`} htmlFor="btnradio3">
-                  Mensal
-                </label>
-              </div>
-              <ul id="ranking-conversas" className="mb-0 d-flex flex-column lista-tabela ps-0">
-                <li className={`d-flex justify-content-between table-header-${theme} px-2 py-1`}>
-                  <span style={{ width: '20%' }}></span>
-                  <span style={{ width: '50%' }}>Nome</span>
-                  <span style={{ width: '30%', textAlign: 'right' }}>Total</span>
-                </li>
-                {ranking.map(([userId, total], idx) => (
-                  <li key={userId} className={`d-flex justify-content-between px-2 py-1 header-text-${theme}`}>
-                    <span style={{ width: '20%' }}>{idx + 1}º</span>
-                    <span style={{ width: '50%' }}>{userNames[userId] || userId}</span>
-                    <span style={{ width: '30%', textAlign: 'right' }}>{total}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* Coluna 3 */}
-          {/*
-          <div className="col-4 d-flex flex-column gap-3">
-            <div className={`card card-${theme} p-2 d-flex flex-row align-items-center justify-content-evenly`}>
-              <i className="bi bi-stopwatch card-icon" style={{ fontSize: '2.5rem' }}></i>
-              <div className="d-flex flex-column align-items-start justify-content-start">
-                <h6 className={`card-subtitle-${theme} m-0`}>Tempo médio de resposta</h6>
-                <h2 id="tempo-resposta" className={`header-text-${theme}`}>--</h2>
-              </div>
-              <div>
-                <i
-                  className={`bi bi-question-circle question-${theme}`}
-                  data-bs-toggle="tooltip"
-                  data-bs-placement="bottom"
-                  title="Tempo médio que o atendente leva para responder após o contato ir para a fila de atendimento."
-                ></i>
-              </div>
-            </div>
-            <div className={`card card-${theme} p-2 d-flex flex-row align-items-center justify-content-evenly`}>
-              <i className="bi bi-hourglass-split card-icon" style={{ fontSize: '2.5rem' }}></i>
-              <div className="d-flex flex-column align-items-start justify-content-start">
-                <h6 className={`card-subtitle-${theme} m-0`}>Tempo médio de resolução</h6>
-                <h2 id="tempo-resolucao" className={`header-text-${theme}`}>--</h2>
-              </div>
-              <div>
-                <i
-                  className={`bi bi-question-circle question-${theme}`}
-                  data-bs-toggle="tooltip"
-                  data-bs-placement="bottom"
-                  title="Tempo médio desde o início da intervenção do atendente até o encerramento."
-                ></i>
-              </div>
-            </div>
-            <div className={`card p-3 card-${theme}`}>
-              <h6 className={`card-subtitle-${theme}`}>Ranking - Tempo de Resposta</h6>
-              <div className="btn-group px-5 py-2" role="group">
-                <input
-                  type="radio"
-                  className="btn-check"
-                  name="ranking-tempo"
-                  id="btnradio4"
-                  autoComplete="off"
-                  defaultChecked
-                />
-                <label className={`btn btn-primary btn-label-${theme}`} htmlFor="btnradio4">
-                  Diário
-                </label>
-                <input type="radio" className="btn-check" name="ranking-tempo" id="btnradio5" autoComplete="off" />
-                <label className={`btn btn-primary btn-label-${theme}`} htmlFor="btnradio5">
-                  Semanal
-                </label>
-                <input type="radio" className="btn-check" name="ranking-tempo" id="btnradio6" autoComplete="off" />
-                <label className={`btn btn-primary btn-label-${theme}`} htmlFor="btnradio6">
-                  Mensal
-                </label>
-              </div>
-              <ul id="ranking-tempo" className="mb-0 d-flex flex-column lista-tabela ps-0"></ul>
-            </div>
-          </div>
-          */}
-        </div>
-      )}
-      {activeTab === 'graficos' && (
-        <div className="row h-100">
-          <div className="col-12">
-            <div className={`card card-${theme} p-4 position-relative`}>
-              <h4 className={`header-text-${theme}`}>Gráficos</h4>
-              {/* Dropdown flutuante no topo direito */}
-              <div style={{ position: 'absolute', top: 24, right: 24, zIndex: 2 }}>
-                <select
-                  className="form-select form-select-sm"
-                  value={chartType}
-                  onChange={e => setChartType(e.target.value)}
-                  style={{ minWidth: 120 }}
-                >
-                  <option value="bar">Gráfico de Barra</option>
-                  <option value="donut">Gráfico Donut</option>
-                  {customFieldsGraph.map(field => (
-                    <option key={field.id} value={`custom-${field.id}`}>{field.label || field.name}</option>
-                  ))}
-                </select>
-              </div>
-              {/* Botões Ganhos/Perdas só aparecem no gráfico de barra */}
-              {chartType === 'bar' && (
-                <div className="btn-group mt-2 mb-3" role="group" style={{ maxWidth: 250 }}>
-                  <button
-                    type="button"
-                    className={`btn btn-outline-success btn-sm${activeGraficoTab === 'ganhos' ? ' active' : ''}`}
-                    onClick={() => setActiveGraficoTab('ganhos')}
-                  >
-                    Ganhos
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn btn-outline-danger btn-sm${activeGraficoTab === 'perdas' ? ' active' : ''}`}
-                    onClick={() => setActiveGraficoTab('perdas')}
-                  >
-                    Perdas
-                  </button>
-                </div>
-              )}
-              {(chartType === 'bar' || chartType === 'donut') && (
-                <div style={{ minHeight: 500, maxWidth: 700, width: '100%', margin: '40px auto 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {chartType === 'bar' ? (
-                    <Bar data={chartData} options={chartOptions} style={{ width: 700, height: 500 }} />
-                  ) : (
-                    <Doughnut data={donutData} options={donutOptions} />
-                  )}
-                </div>
-              )}
-              {chartType.startsWith('custom-') && customFieldsGraph.length > 0 && (() => {
-                const fieldId = chartType.replace('custom-', '');
-                const field = customFieldsGraph.find(f => String(f.id) === String(fieldId));
-                if (!field) return null;
-                const valuesArr = Array.isArray(customFieldsValues[field.id]) ? customFieldsValues[field.id] : [];
-                const total = valuesArr.reduce((sum, v) => {
-                  const num = parseFloat(v.toString().replace(/[^0-9.,-]+/g, '').replace(',', '.'));
-                  return !isNaN(num) ? sum + num : sum;
-                }, 0);
-                const barData = {
-                  labels: [field.label || field.name],
-                  datasets: [
-                    {
-                      label: 'Total',
-                      data: [total],
-                      backgroundColor: '#007bff',
-                      barPercentage: 1,
-                      categoryPercentage: 0.1,
-                    },
-                  ],
-                };
-                const barOptions = {
-                  responsive: true,
-                  plugins: {
-                    legend: { display: false },
-                    title: { display: true, text: field.label || field.name },
-                  },
-                  scales: { x: { grid: { display: false } }, y: { beginAtZero: true } },
-                };
-                return (
-                  <div key={field.id} style={{ width:'100%', maxWidth: 700, height: '500px', margin: '40px auto 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Bar data={barData} options={barOptions} style={{ width: 700, height: 500 }} />
+          )}
+          {activeTab === 'graficos' && (
+            <div className="d-flex flex-row justify-content-evenly" style={{ flex: 1, width: '100%', height: '100%' }}>
+              <div className="col-12" style={{ height: '100%' }}>
+                <div className={`p-4 position-relative`} style={{ height: '100%' }}>
+                  <h4 className={`header-text-${theme}`}>Gráficos</h4>
+                  {/* Dropdown flutuante no topo direito */}
+                  <div style={{ position: 'absolute', top: 24, right: 24, zIndex: 2 }}>
+                    <select
+                      className="form-select form-select-sm"
+                      value={chartType}
+                      onChange={e => setChartType(e.target.value)}
+                      style={{ minWidth: 120 }}
+                    >
+                      <option value="bar">Gráfico de Barra</option>
+                      <option value="donut">Gráfico Donut</option>
+                      {customFieldsGraph.map(field => (
+                        <option key={field.id} value={`custom-${field.id}`}>{field.label || field.name}</option>
+                      ))}
+                    </select>
                   </div>
-                );
-              })()}
-            </div>
-          </div>
-        </div>
-      )}
-      {activeTab === 'relatorio' && (
-        <div className="row h-100">
-          <div className="col-12">
-            <div className={`card card-${theme} p-4`}>
-              <h4 className={`header-text-${theme}`}>Relatório</h4>
-              <div className={`table-responsive custom-table-${theme}`}>
-                <table className="table table-bordered table-hover m-0">
-                  <thead>
-                    <tr>
-                      <th>Coluna 1</th>
-                      <th>Coluna 2</th>
-                      <th>Coluna 3</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>Dado 1</td>
-                      <td>Dado 2</td>
-                      <td>Dado 3</td>
-                    </tr>
-                    <tr>
-                      <td>Dado 4</td>
-                      <td>Dado 5</td>
-                      <td>Dado 6</td>
-                    </tr>
-                  </tbody>
-                </table>
+                  {/* Botões Ganhos/Perdas só aparecem no gráfico de barra */}
+                  {chartType === 'bar' && (
+                    <div className="btn-group mt-2 mb-3" role="group" style={{ maxWidth: 250 }}>
+                      <button
+                        type="button"
+                        className={`btn btn-outline-success btn-sm${activeGraficoTab === 'ganhos' ? ' active' : ''}`}
+                        onClick={() => setActiveGraficoTab('ganhos')}
+                      >
+                        Ganhos
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn btn-outline-danger btn-sm${activeGraficoTab === 'perdas' ? ' active' : ''}`}
+                        onClick={() => setActiveGraficoTab('perdas')}
+                      >
+                        Perdas
+                      </button>
+                    </div>
+                  )}
+                  {(chartType === 'bar' || chartType === 'donut') && (
+                    <div style={{ minHeight: 500, maxWidth: 700, width: '100%', margin: '40px auto 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {chartType === 'bar' ? (
+                        <Bar data={chartData} options={chartOptions} style={{ width: 700, height: 500 }} />
+                      ) : (
+                        <Doughnut data={donutData} options={donutOptions} />
+                      )}
+                    </div>
+                  )}
+                  {chartType.startsWith('custom-') && customFieldsGraph.length > 0 && (() => {
+                    const fieldId = chartType.replace('custom-', '');
+                    const field = customFieldsGraph.find(f => String(f.id) === String(fieldId));
+                    if (!field) return null;
+                    const valuesArr = Array.isArray(customFieldsValues[field.id]) ? customFieldsValues[field.id] : [];
+                    const total = valuesArr.reduce((sum, v) => {
+                      const num = parseFloat(v.toString().replace(/[^0-9.,-]+/g, '').replace(',', '.'));
+                      return !isNaN(num) ? sum + num : sum;
+                    }, 0);
+                    const barData = {
+                      labels: [field.label || field.name],
+                      datasets: [
+                        {
+                          label: 'Total',
+                          data: [total],
+                          backgroundColor: '#007bff',
+                          barPercentage: 1,
+                          categoryPercentage: 0.1,
+                        },
+                      ],
+                    };
+                    const barOptions = {
+                      responsive: true,
+                      plugins: {
+                        legend: { display: false },
+                        title: { display: true, text: field.label || field.name },
+                      },
+                      scales: { x: { grid: { display: false } }, y: { beginAtZero: true } },
+                    };
+                    return (
+                      <div key={field.id} style={{ width:'100%', maxWidth: 700, height: '500px', margin: '40px auto 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Bar data={barData} options={barOptions} style={{ width: 700, height: 500 }} />
+                      </div>
+                    );
+                  })()}
+                </div>
               </div>
             </div>
-          </div>
+          )}
+          {activeTab === 'relatorio' && (
+            <div className="row h-100">
+              <div className="col-12">
+                <div className={`card card-${theme} p-4`}>
+                  <h4 className={`header-text-${theme}`}>Relatório</h4>
+                  <div className={`table-responsive custom-table-${theme}`}>  
+                    <table className="table table-bordered table-hover m-0">
+                      <thead>
+                        <tr>
+                          <th>Chat ID</th>
+                          <th>Fila</th>
+                          <th>Usuário</th>
+                          <th>Categoria</th>
+                          <th>Resumo</th>
+                          <th>Assertividade</th>
+                          <th>Status</th>
+                          <th>Próxima Etapa</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {reportData.length === 0 && (
+                          <tr><td colSpan={8}>Nenhum dado encontrado</td></tr>
+                        )}
+                        {reportData.map((row, idx) => (
+                          <tr key={idx}>
+                            <td>
+                              <button
+                                className="btn btn-link p-0"
+                                style={{textDecoration: 'underline', color: '#007bff', cursor: 'pointer', fontSize: '12px' }}
+                                onClick={() => handleOpenChatModal(row.chat_id)}
+                              >
+                                {row.chat_id}
+                              </button>
+                            </td>
+                            <td>{row.queue_id ? (queueMap[row.queue_id] || row.queue_id) : '-'}</td>
+                            <td>{row.user_id ? (userMap[row.user_id] || row.user_id) : '-'}</td>
+                            <td>{row.categoria}</td>
+                            <td>{row.resumo}</td>
+                            <td>{row.assertividade}</td>
+                            <td>{row.status}</td>
+                            <td>{row.proxima_etapa}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
+      {/* Modal de visualização do chat */}
+      <ChatViewModal
+        show={showChatModal}
+        onClose={handleCloseChatModal}
+        theme={theme}
+        chatId={modalChatId}
+        schema={schema}
+        url={url}
+      />
     </div>
   );
 }
