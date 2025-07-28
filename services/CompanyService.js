@@ -7,6 +7,15 @@ const createCompany = async (company, schema) => {
     const superAdminId = uuidv4();
     const superAdminData = company.superAdmin;
 
+    // Verifica se o schema já existe
+    const schemaExists = await pool.query(`
+        SELECT schema_name 
+        FROM information_schema.schemata 
+        WHERE schema_name = $1
+    `, [schema]);
+
+    const isNewSchema = schemaExists.rows.length === 0;
+
     await pool.query(`CREATE SCHEMA IF NOT EXISTS ${schema}`);
     await pool.query(`
         CREATE TABLE IF NOT EXISTS ${schema}.users (
@@ -253,12 +262,16 @@ const createCompany = async (company, schema) => {
 
     await createUser(superAdmin, schema);
 
-    await pool.query('INSERT INTO effective_gain.companies (company_name, schema_name) VALUES ($1, $2)', [
-        company.name,
-        schema
-    ]);
-
-    return { message: "Empresa criada com sucesso!" };
+    // Só insere na tabela effective_gain.companies se for um schema novo
+    if (isNewSchema) {
+        await pool.query('INSERT INTO effective_gain.companies (company_name, schema_name) VALUES ($1, $2)', [
+            company.name,
+            schema
+        ]);
+        return { message: "Empresa criada com sucesso!" };
+    } else {
+        return { message: "Tabelas atualizadas no schema existente!" };
+    }
 };
 
 const getAllCompanies = async () => {
