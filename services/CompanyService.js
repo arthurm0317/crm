@@ -93,7 +93,7 @@ const createCompany = async (company, schema) => {
             field_name TEXT NOT NULL,
             label TEXT NOT NULL,
             UNIQUE(field_name),
-            graph boolean default false,
+            graph boolean default false
             );
             `)
         await pool.query(`
@@ -140,7 +140,7 @@ const createCompany = async (company, schema) => {
             status text,
             timer bigint,
             min bigint,
-            max bigint,
+            max bigint
             )
             `)
         await pool.query(
@@ -152,7 +152,7 @@ const createCompany = async (company, schema) => {
             date bigint,
             icone text,
             user_id uuid references ${schema}.users(id) on delete set null,
-            google_event_id text,
+            google_event_id text
             )`
         )
         await pool.query(`
