@@ -74,14 +74,21 @@ function FilasWebhookModal({ theme, show, onHide, fila, onSave }) {
           <label htmlFor="webhookUrl" className={`form-label header-text-${theme}`}>
             URL do Webhook
           </label>
-          <input
-            type="url"
-            className={`form-control bg-${theme} text-${theme === 'light' ? 'dark' : 'light'}`}
-            id="webhookUrl"
-            value={webhookUrl}
-            onChange={(e) => setWebhookUrl(e.target.value)}
-            placeholder="https://exemplo.com/webhook"
-          />
+          <div className="input-group">
+            <span className={`input-group-text igt-${theme}`}>
+              <i className="bi bi-link-45deg"></i>
+            </span>
+            <input
+              type="url"
+              className={`form-control input-${theme}`}
+              id="webhookUrl"
+              value={webhookUrl}
+              onChange={(e) => setWebhookUrl(e.target.value)}
+              placeholder="https://exemplo.com/webhook"
+              autoComplete="off"
+              disabled={isLoading}
+            />
+          </div>
           <div className="form-text">
             <span className={`card-subtitle-${theme}`}>
               Insira a URL onde os dados desta fila serão enviados
