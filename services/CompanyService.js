@@ -92,7 +92,8 @@ const createCompany = async (company, schema) => {
             id UUID PRIMARY KEY,
             field_name TEXT NOT NULL,
             label TEXT NOT NULL,
-            UNIQUE(field_name)
+            UNIQUE(field_name),
+            graph boolean default false,
             );
             `)
         await pool.query(`
@@ -138,8 +139,8 @@ const createCompany = async (company, schema) => {
             start_date bigint,
             status text,
             timer bigint,
-            min_timer bigint,
-            max_timer bigint,
+            min bigint,
+            max bigint,
             )
             `)
         await pool.query(
@@ -150,7 +151,8 @@ const createCompany = async (company, schema) => {
             message text,
             date bigint,
             icone text,
-            user_id uuid references ${schema}.users(id) on delete set null
+            user_id uuid references ${schema}.users(id) on delete set null,
+            google_event_id text,
             )`
         )
         await pool.query(`
@@ -192,6 +194,53 @@ const createCompany = async (company, schema) => {
                     connection_id UUID,
                     CONSTRAINT unique_pair UNIQUE (campaing_id, connection_id)
         );`)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.contacts_stage (
+            contact_number text NOT NULL REFERENCES ${schema}.contacts(number) ON DELETE CASCADE,
+            stage UUID NOT NULL,
+            PRIMARY KEY (contact_number, stage)
+            );
+        `)
+        await pool.query(`
+            CREATE TABLE ${schema}.kanban_preferences (
+            sector TEXT primary key NOT NULL,
+            label TEXT,
+            color TEXT NOT NULL
+            );
+        `)
+        await pool.query(`
+            CREATE TABLE ${schema}.chat_contact (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            chat_id UUID NOT NULL REFERENCES ${schema}.chats(id) ON DELETE CASCADE,
+            user_id uuid references effective_gain.users(id) on delete set null,
+            contact_number TEXT NOT NULL,
+            status TEXT,
+            custom_field UUID REFERENCES ${schema}.custom_fields(id), 
+            custom_value TEXT, 
+            closed_at TIMESTAMP DEFAULT now()
+            );
+        `)
+        await pool.query(`
+            CREATE TABLE ${schema}.status(
+            id uuid primary key,
+            value text not null,
+            success boolean
+            )    
+        `)
+        await pool.query(`
+            CREATE TABLE ${schema}.reports (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            chat_id UUID REFERENCES ${schema}.chats(id),
+            user_id UUID,
+            queue_id UUID,
+            categoria TEXT NOT NULL,
+            resumo TEXT NOT NULL,
+            assertividade TEXT NOT NULL,
+            status TEXT NOT NULL,
+            proxima_etapa TEXT NOT NULL
+            );
+        `)
+
 
 
     const superAdmin = new Users(

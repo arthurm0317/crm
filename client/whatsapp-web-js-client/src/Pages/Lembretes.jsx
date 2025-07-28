@@ -422,7 +422,7 @@ const handleSalvarLembrete = (lembreteCriadoOuEditado) => {
                     </button>
                 ) : (
                     <button
-                        className="d-flex align-items-center gap-2 google-calendar-btn"
+                        className="d-flex align-items-center gap-2 google-calendar-btn d-none"
                         onClick={handleConnectGoogleCalendar}
                         disabled={loadingGoogle}
                     >

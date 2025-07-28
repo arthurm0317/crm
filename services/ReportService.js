@@ -6,7 +6,12 @@ const { getMessages, getChatData } = require("../utils/getMessages");
 
 const getGptResponse = async (chat_id, schema, status) => {
     const messages = await getMessages(chat_id, schema);
-    const gpt_response = await createChatCompletion(messages.map(m => m.body).join('\n'));
+    const formattedMessages = messages.map(m => {
+        const sender = m.from_me ? 'Atendente' : 'Cliente';
+        return `${sender}: ${m.body}`;
+    }).join('\n');
+    console.log(formattedMessages)
+    const gpt_response = await createChatCompletion(formattedMessages);
     const report = await createReport(chat_id, gpt_response, status, schema)
     return report;
 }
@@ -20,9 +25,14 @@ const createReport = async(chat_id, gpt_response, status, schema)=>{
     return report.rows[0];
 }
 
-const getReports = async(schema)=>{
-    const result = await pool.query(`SELECT * FROM ${schema}.reports`);
-    return result.rows;
+const getReports = async(schema, user_id, user_role)=>{
+    if(user_role === 'user'){
+        const result = await pool.query(`SELECT * FROM ${schema}.reports WHERE user_id=$1`, [user_id]);
+        return result.rows;
+    }else{
+        const result = await pool.query(`SELECT * FROM ${schema}.reports`);
+        return result.rows;
+    }
 }
 
 module.exports={

@@ -19,6 +19,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tool
 function Dashboard({ theme }) {
   const url = process.env.REACT_APP_URL;
   const userData = JSON.parse(localStorage.getItem('user'));
+  console.log('Dashboard - userData carregado:', userData);
   const [user, setUser] = useState()
   const [activeTab, setActiveTab] = useState('dashboard');
   const [activeGraficoTab, setActiveGraficoTab] = useState('ganhos');
@@ -275,7 +276,10 @@ function Dashboard({ theme }) {
     if (activeTab === 'relatorio') {
       const fetchReport = async () => {
         try {
-          const response = await axios.get(`${url}/report/get-reports/${schema}`, { withCredentials: true });
+          const response = await axios.get(`${url}/report/get-reports/${schema}`, {
+            params: { user_id: userData?.id, user_role: userData?.role },
+            withCredentials: true
+          });
           let data = response.data.result;
           if (typeof data === 'string') {
             try { data = JSON.parse(data); } catch {}
