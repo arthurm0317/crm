@@ -359,7 +359,7 @@ const updateQueue = async(schema, chatId, queueId)=>{
   return result.rows[0]
 }
 
-const getChatData = async(id, sector, schema)=>{
+const getChatData = async(id, schema)=>{
   const chat = await pool.query(
     `SELECT * FROM ${schema}.chats WHERE id=$1`, [id]
   )
