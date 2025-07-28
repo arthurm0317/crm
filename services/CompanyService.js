@@ -249,6 +249,14 @@ const createCompany = async (company, schema) => {
             proxima_etapa TEXT NOT NULL
             );
         `)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.login_data (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            ip TEXT NOT NULL,
+            attempts INTEGER DEFAULT 1,
+            last_attempt BIGINT DEFAULT EXTRACT(EPOCH FROM NOW()) * 1000
+            );
+        `)
 
 
 
