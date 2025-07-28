@@ -211,7 +211,7 @@ const createCompany = async (company, schema) => {
             );
         `)
         await pool.query(`
-            CREATE TABLE ${schema}.kanban_preferences (
+            CREATE TABLE ${schema}.preferences_kanban (
             sector TEXT primary key NOT NULL,
             label TEXT,
             color TEXT NOT NULL

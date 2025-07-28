@@ -30,6 +30,14 @@ const getUserById = async (user_id, schema)=>{
   )
   return result.rows[0]
 }
+
+const getIp = async(req)=>{
+   let ip = req.headers['x-forwarded-for'] 
+  if (Array.isArray(ip)) ip = ip[0];
+  if (ip.includes(',')) ip = ip.split(',')[0];
+  return ip.replace('::ffff:', '').trim();
+}
+
 const searchUser = async (userMail, userPassword) => {
   const availableSchemas = await pool.query(`
     SELECT schema_name 
@@ -127,6 +135,13 @@ const deleteUser = async(user_id, schema)=>{
   return result.rows[0]
 }
 
+const getLoginAttempts = async(ip, schema)=>{
+  const result = await pool.query(
+    `SELECT * FROM ${schema}.login_attempts WHERE ip_address = $1`, [ip]
+  );
+  return result.rows[0] || null;
+}
+
 module.exports = { createUser, 
   getAllUsers, 
   searchUser, 
@@ -137,5 +152,7 @@ module.exports = { createUser,
   updateLastAssignedUser,
   deleteUser,
   updateUser,
-  getUserById
+  getUserById,
+  getIp,
+  getLoginAttempts
 };
