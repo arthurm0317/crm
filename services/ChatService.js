@@ -359,7 +359,7 @@ const updateQueue = async(schema, chatId, queueId)=>{
   return result.rows[0]
 }
 
-const getChatData = async(id, schema)=>{
+const getChatData = async(id, sector, schema)=>{
   const chat = await pool.query(
     `SELECT * FROM ${schema}.chats WHERE id=$1`, [id]
   )
@@ -372,15 +372,12 @@ const getChatData = async(id, schema)=>{
   const user = await pool.query(
     `SELECT * FROM ${schema}.users WHERE id=$1`, [chat.rows[0].assigned_user]
   )
-  const etapa = await pool.query(
-    `SELECT * FROM ${schema}.kanban_vendas WHERE id=$1`, [chat.rows[0].etapa_id]
-  )
+
   return {
     chat: chat.rows[0],
     connection: connection.rows[0],
     queue: queue.rows[0],
     user: user.rows[0],
-    etapa: etapa.rows[0]
   }
 }
 
