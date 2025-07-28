@@ -355,13 +355,46 @@ function Dashboard({ theme }) {
     <div className="pt-3" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div className="container-fluid ps-2 pe-0" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <h2 className={`mb-3 ms-3 header-text-${theme}`} style={{ fontWeight: 400 }}>Dashboard</h2>
-        <ul className="nav nav-tabs mb-3">
+        <ul 
+          className="nav nav-tabs ps-3"
+          style={{
+            borderBottom: 'none',
+          }}
+        >
           <li className="nav-item">
             <button
               className={`nav-link${activeTab === 'dashboard' ? ' active' : ''}`}
               onClick={() => setActiveTab('dashboard')}
               type="button"
+              style={{
+                transition: 'var(--TT) all',
+                backgroundColor: 'transparent',
+                border: `1px solid var(--border-color-${theme})`,
+                borderTop: activeTab === 'dashboard' ? `1px solid var(--primary-color)` : `1px solid var(--border-color-${theme})`,
+                position: 'relative',
+                paddingTop: activeTab === 'dashboard' ? '0.5rem' : undefined,
+                color: `var(--color-${theme})`,
+                fontWeight: activeTab === 'dashboard' ? 600 : 400,
+                outline: 'none'
+              }}
+              onFocus={e => e.currentTarget.style.transition = 'var(--TT) all'}
+              onBlur={e => e.currentTarget.style.transition = 'var(--TT) all'}
             >
+              {activeTab === 'dashboard' && (
+                <span
+                  style={{
+                    transition: 'var(--TT) all',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '0',
+                    borderTop: '5px solid var(--primary-color)',
+                    borderRadius: '6px 6px 0 0',
+                    pointerEvents: 'none',
+                  }}
+                ></span>
+              )}
               Visão Geral
             </button>
           </li>
@@ -370,7 +403,35 @@ function Dashboard({ theme }) {
               className={`nav-link${activeTab === 'graficos' ? ' active' : ''}`}
               onClick={() => setActiveTab('graficos')}
               type="button"
+              style={{
+                transition: 'var(--TT) all',
+                backgroundColor: 'transparent',
+                border: `1px solid var(--border-color-${theme})`,
+                borderTop: activeTab === 'graficos' ? `1px solid var(--primary-color)` : `1px solid var(--border-color-${theme})`,
+                position: 'relative',
+                paddingTop: activeTab === 'graficos' ? '0.5rem' : undefined,
+                color: `var(--color-${theme})`,
+                fontWeight: activeTab === 'graficos' ? 600 : 400,
+                outline: 'none'
+              }}
+              onFocus={e => e.currentTarget.style.transition = 'var(--TT) all'}
+              onBlur={e => e.currentTarget.style.transition = 'var(--TT) all'}
             >
+              {activeTab === 'graficos' && (
+                <span
+                  style={{
+                    transition: 'var(--TT) all',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '0',
+                    borderTop: '5px solid var(--primary-color)',
+                    borderRadius: '6px 6px 0 0',
+                    pointerEvents: 'none',
+                  }}
+                ></span>
+              )}
               Gráficos
             </button>
           </li>
@@ -379,7 +440,35 @@ function Dashboard({ theme }) {
               className={`nav-link${activeTab === 'relatorio' ? ' active' : ''}`}
               onClick={() => setActiveTab('relatorio')}
               type="button"
+              style={{
+                transition: 'var(--TT) all',
+                backgroundColor: 'transparent',
+                border: `1px solid var(--border-color-${theme})`,
+                borderTop: activeTab === 'relatorio' ? `1px solid var(--primary-color)` : `1px solid var(--border-color-${theme})`,
+                position: 'relative',
+                paddingTop: activeTab === 'relatorio' ? '0.5rem' : undefined,
+                color: `var(--color-${theme})`,
+                fontWeight: activeTab === 'relatorio' ? 600 : 400,
+                outline: 'none'
+              }}
+              onFocus={e => e.currentTarget.style.transition = 'var(--TT) all'}
+              onBlur={e => e.currentTarget.style.transition = 'var(--TT) all'}
             >
+              {activeTab === 'relatorio' && (
+                <span
+                  style={{
+                    transition: 'var(--TT) all',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '0',
+                    borderTop: '5px solid var(--primary-color)',
+                    borderRadius: '6px 6px 0 0',
+                    pointerEvents: 'none',
+                  }}
+                ></span>
+              )}
               Relatório
             </button>
           </li>
