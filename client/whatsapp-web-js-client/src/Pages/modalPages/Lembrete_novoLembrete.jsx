@@ -18,7 +18,7 @@ const mockFilas = [
   { id: '5', nome: 'RH' }
 ];
 
-function LembreteNovoLembrete({ show, onHide, onSave, tipoDefault = 'geral', filas = mockFilas, theme, lembreteEdit, onTestToast }) {
+function LembreteNovoLembrete({ show, onHide, onSave, tipoDefault = 'geral', filas = mockFilas, theme, lembreteEdit, onTestToast, fetchGoogleEvents, isGoogleConnected }) {
   const [tipo, setTipo] = useState(lembreteEdit ? lembreteEdit.tipo : tipoDefault);
   const [titulo, setTitulo] = useState(lembreteEdit ? lembreteEdit.titulo : '');
   const [mensagem, setMensagem] = useState(lembreteEdit ? lembreteEdit.mensagem : '');
@@ -39,6 +39,7 @@ const [filasSelecionadas, setFilasSelecionadas] = useState(
   const [hoveredFila, setHoveredFila] = useState(null);
   const [filasSuperUser, setFilasSuperUser] = useState([]);
   const userRole = userData?.role
+  const [addToGoogle, setAddToGoogle] = useState(false);
 
 
   const now = new Date();
@@ -196,6 +197,26 @@ const filasInvalidas = () => {
       withCredentials: true
     });
       lembreteCriado = response.data;
+    } else if (addToGoogle) {
+      // Cria evento no Google Calendar e lembrete do sistema juntos
+      try {
+        const response = await axios.post('/calendar/events', {
+          summary: titulo,
+          description: mensagem,
+          start: new Date(data).toISOString(),
+          end: new Date(new Date(data).getTime() + 30 * 60 * 1000).toISOString(),
+          user_id: userData.id,
+          schema: schema,
+          tag: tipo,
+          icone: icone || null,
+          filas: filasSelecionadas
+        });
+        lembreteCriado = response.data.lembrete;
+        if (fetchGoogleEvents) fetchGoogleEvents();
+      } catch (err) {
+        alert('Lembrete criado, mas não foi possível adicionar ao Google Calendar. Faça login no Google e tente novamente.');
+        return;
+      }
     } else {
       const response = await axios.post(`${url}/lembretes/create-lembrete`, {
         tag: tipo,
@@ -210,8 +231,6 @@ const filasInvalidas = () => {
         {
       withCredentials: true
     });
-
-
       lembreteCriado = response.data;
     }
   
@@ -443,6 +462,20 @@ const filasInvalidas = () => {
                 min={minDate}
               />
             </div>
+            {isGoogleConnected && (
+            <div className="form-check mb-2">
+  <input
+    className="form-check-input"
+    type="checkbox"
+    id="addToGoogle"
+    checked={addToGoogle}
+    onChange={e => setAddToGoogle(e.target.checked)}
+  />
+  <label className="form-check-label" htmlFor="addToGoogle">
+    Adicionar ao Google Calendar
+  </label>
+</div>
+            )}
           </div>
           <div className="modal-footer">
             <button type="button" className={`btn btn-2-${theme}`} onClick={onHide}>Cancelar</button>

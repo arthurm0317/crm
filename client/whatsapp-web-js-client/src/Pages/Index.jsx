@@ -1,5 +1,5 @@
 import * as bootstrap from 'bootstrap';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import shortlogo from './assets/favicon.png';
@@ -102,6 +102,7 @@ function Painel() {
   const url = process.env.REACT_APP_URL;
   const [socketInstance] = useState(() => socket());
   const [showCustomValuesModal, setShowCustomValuesModal] = useState(false);
+  const customValuesBtnRef = useRef(null);
 
 
   // Atualizar página quando as preferências mudarem
@@ -300,6 +301,18 @@ useEffect(() => {
   };
 }, [page]);
 
+useEffect(() => {
+  let tooltipInstance = null;
+  if (customValuesBtnRef.current) {
+    tooltipInstance = new bootstrap.Tooltip(customValuesBtnRef.current, { trigger: 'hover focus' });
+  }
+  return () => {
+    if (tooltipInstance) {
+      tooltipInstance.dispose();
+    }
+  };
+}, [theme, showCustomValuesModal]);
+
 const fetchLembretes = async () => {
   try {
     const response = await axios.get(`${url}/lembretes/get-lembretes/${schema}`, {
@@ -414,7 +427,7 @@ useEffect(() => {
               data-bs-toggle="tooltip"
               data-bs-placement="right"
               data-bs-title="Dashboard"
-              className={`btn ${page === 'dashboard' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''}`}
+              className={`btn ${page === 'dashboard' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''} d-none`}
             >
               <i className="bi bi-speedometer2"></i>
               <span className="sidebar-label d-none">Dashboard</span>
@@ -574,8 +587,9 @@ useEffect(() => {
               )}
               <button
                 type="button"
+                ref={customValuesBtnRef}
                 data-bs-toggle="tooltip"
-                data-bs-placement="right"
+                data-bs-placement="bottom"
                 data-bs-title="Custom Values"
                 className={`btn btn-2-${theme} toggle-${theme}`}
                 onClick={() => setShowCustomValuesModal(true)}

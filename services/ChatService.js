@@ -8,6 +8,7 @@ const { sendTextMessage } = require('../requests/evolution');
 const { saveMessage } = require('./MessageService');
 const { Message } = require('../entities/Message');
 const { createLembrete } = require('./LembreteService');
+const { getGptResponse } = require('./ReportService');
 
 const bullConn = createRedisConnection()
 const messageQueue = new Queue('message', {connection: bullConn});
@@ -265,6 +266,14 @@ const getChatService = async(chat_id, connection_id, schema)=>{
     }
 }
 
+const putChatInWaiting = async(chat_id, schema)=>{
+  const result = await pool.query(
+    `UPDATE ${schema}.chats SET status='waiting' WHERE id=$1 RETURNING *`,
+    [chat_id]
+  );
+  return result.rows[0];
+}
+
 const setUserChat = async (chatId, schema) => {
     const chatDb = await pool.query(
       `SELECT * FROM ${schema}.chats WHERE id=$1`,
@@ -276,6 +285,10 @@ const setUserChat = async (chatId, schema) => {
     )
     if (isDistributionOn.rows[0].distribution === true) {
       const onlineUsers = await getOnlineUsers(schema);
+      if(onlineUsers.length === 0) {
+        await putChatInWaiting(chatId, schema);
+        return;
+      }
       const queueUsersQuery = await pool.query(
         `SELECT user_id FROM ${schema}.queue_users WHERE queue_id=$1`,
         [queueId]
@@ -360,15 +373,12 @@ const getChatData = async(id, schema)=>{
   const user = await pool.query(
     `SELECT * FROM ${schema}.users WHERE id=$1`, [chat.rows[0].assigned_user]
   )
-  const etapa = await pool.query(
-    `SELECT * FROM ${schema}.kanban_vendas WHERE id=$1`, [chat.rows[0].etapa_id]
-  )
+
   return {
     chat: chat.rows[0],
     connection: connection.rows[0],
     queue: queue.rows[0],
     user: user.rows[0],
-    etapa: etapa.rows[0]
   }
 }
 
@@ -443,6 +453,7 @@ const getChatById = async (chatId, connection_id, schema) => {
     throw new Error('Erro ao buscar chat pelo ID');
   }
 }
+
 const saveMediaMessage = async (id,fromMe, chat_id, createdAt, message_type, audioBase64, schema) => {
   try {
     const result = await pool.query(
@@ -524,7 +535,9 @@ const closeChatContact = async (chat_id, status, schema) => {
   const result = await pool.query(`
     INSERT INTO ${schema}.chat_contact(id, chat_id, contact_number, status, user_id) VALUES($1,$2,$3,$4,$5) RETURNING *  
   `, [uuid4(), chat_id, number.rows[0].contact_phone, status, number.rows[0].assigned_user || null])
+  const report = await getGptResponse(chat_id, schema, status)
   return result.rows[0]
+    
 }
 
 const setSpecificUser = async(chat_id, user_id, schema)=>{

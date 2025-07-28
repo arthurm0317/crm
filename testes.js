@@ -1,8 +1,10 @@
-const { getInformationFromExcel, processExcelFile } = require("./services/ExcelReader");
+const { createChatCompletion } = require("./services/OpenAi");
+const { getGptResponse, createReport } = require("./services/ReportService");
 
 
-const teste = async () => {
-    const planilha = await processExcelFile('025de7b9-619d-49ce-a6df-25e79f6043ca', 'relacionamento','ilha_do_gov')
+const test = async () => {
+    const gpt_response = await getGptResponse('3ff86a1b-1f9e-4dcf-b987-7b7f5619d3bf', 'effective_gain')
+    await createReport('3ff86a1b-1f9e-4dcf-b987-7b7f5619d3bf', gpt_response, 'effective_gain');
 }
 
-teste()
+test()

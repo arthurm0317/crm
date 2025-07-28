@@ -30,6 +30,17 @@ const getUserById = async (user_id, schema)=>{
   )
   return result.rows[0]
 }
+
+const getIp = async(req)=>{
+   if (!req || !req.headers) {
+     return 'unknown';
+   }
+   let ip = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.connection?.remoteAddress || 'unknown';
+  if (Array.isArray(ip)) ip = ip[0];
+  if (ip && ip.includes(',')) ip = ip.split(',')[0];
+  return ip ? ip.replace('::ffff:', '').trim() : 'unknown';
+}
+
 const searchUser = async (userMail, userPassword) => {
   const availableSchemas = await pool.query(`
     SELECT schema_name 
@@ -80,16 +91,14 @@ const searchUser = async (userMail, userPassword) => {
   }
 
   const changeOnline = async(userId, schema)=>{
-    console.log(`🟢 Marcando usuário ${userId} como online no schema ${schema}`);
     const result = await pool.query(
       `UPDATE ${schema}.users SET online=true WHERE id=$1`,[userId]
     )
-    console.log(`✅ Usuário ${userId} marcado como online. Linhas afetadas: ${result.rowCount}`);
     return result.rows[0]
   }
 
   const changeOffline = async(userId, schema)=>{
-    console.log(`🔴 Marcando usuário ${userId} como offline no schema ${schema}`);
+    console.log(userId, schema)
     const result = await pool.query(
       `UPDATE ${schema}.users SET online=false WHERE id=$1`,[userId]
     )
@@ -129,6 +138,37 @@ const deleteUser = async(user_id, schema)=>{
   return result.rows[0]
 }
 
+const getLoginAttempts = async(ip, schema)=>{
+  const result = await pool.query(
+    `SELECT * FROM ${schema}.login_data WHERE ip = $1`, [ip]
+  );
+  return result.rows[0] || null;
+}
+
+const saveLoginAttempt = async(ip, schema)=>{
+  try {
+    const existingAttempt = await pool.query(
+      `SELECT * FROM ${schema}.login_data WHERE ip = $1`, [ip]
+    );
+    
+    if (existingAttempt.rows.length > 0) {
+      // Atualiza tentativa existente
+      await pool.query(
+        `UPDATE ${schema}.login_data SET attempts = attempts + 1, last_attempt = EXTRACT(EPOCH FROM NOW()) * 1000 WHERE ip = $1`,
+        [ip]
+      );
+    } else {
+      // Cria nova tentativa
+      await pool.query(
+        `INSERT INTO ${schema}.login_data (id, ip, attempts, last_attempt) VALUES (gen_random_uuid(), $1, 1, EXTRACT(EPOCH FROM NOW()) * 1000)`,
+        [ip]
+      );
+    }
+  } catch (error) {
+    console.error('Erro ao salvar tentativa de login:', error);
+  }
+}
+
 module.exports = { createUser, 
   getAllUsers, 
   searchUser, 
@@ -139,5 +179,8 @@ module.exports = { createUser,
   updateLastAssignedUser,
   deleteUser,
   updateUser,
-  getUserById
+  getUserById,
+  getIp,
+  getLoginAttempts,
+  saveLoginAttempt
 };

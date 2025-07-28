@@ -727,7 +727,7 @@ useEffect(() => {
             
             <button
   className={`btn btn-2-${theme}`}
-  style={{ minWidth: 50 }}
+  style={{ minWidth: 42 }}
   title="Escolher campo personalizado"
   onClick={() => { setShowCustomFieldModal(true); fetchCustomFields(); }}
 >
@@ -1042,7 +1042,7 @@ useEffect(() => {
                           <div className="d-flex justify-content-between align-items-center">
                             <div className={`small header-text-${theme}`}>{maskPhone(lead.contact_phone || lead.number)}</div>
                             {selectedCustomField && (
-                              <div className={`small`} style={{ color: customFieldColor, fontWeight: 500, fontSize: '0.75em', marginLeft: 8, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              <div className={`small`} style={{ color: `var(--color-${theme})`, fontWeight: 500, fontSize: '0.75em', marginLeft: 8, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                 {lead.customValue ? lead.customValue : '—'}
                               </div>
                             )}

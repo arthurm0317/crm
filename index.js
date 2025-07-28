@@ -18,8 +18,12 @@ const excelRoutes = require('./routes/ExcelRoutes');
 const lembreteRoutes = require('./routes/LembretesRoutes');
 const preferenceRoutes = require('./routes/UserPreferencesRoutes');
 const passportRoutes = require('./routes/PassportRoutes')
+const googleCalendarRoutes = require('./routes/GoogleCalendarRoutes');
+const reportRoutes = require('./routes/ReportRoutes');
+
 const { setGlobalSocket } = require('./services/LembreteService');
 const quickMessagesRoutes = require('./routes/QuickMessagesRoutes');
+const { google } = require('googleapis');
 
 const passport = require('passport')
 const session = require('express-session')
@@ -30,6 +34,12 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 
 const app = express();
+
+const oauth2Client  = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  'http://localhost:3002/auth/redirect'
+)
 
 app.use(session({
   secret: 'secret',
@@ -59,6 +69,7 @@ passport.deserializeUser((user, done)=>done(null, user))
 
 const corsOptions = {
   origin: function (origin, callback) {
+
     // Permitir requests sem origin (como mobile apps ou Postman)
     if (!origin) return callback(null, true);
     
@@ -139,13 +150,14 @@ const socketIoServer = socketIo(socketServer, {
 
 global.socketIoServer = socketIoServer;
 
-io.on('connection', (socket) => {
+io.on('connection', async (socket) => {
+  await changeOnline(userId, socket.schema)
   
   socket.on('join', (userId) => {
     socket.join(`user_${userId}`);
   });
 
-  socket.on('disconnect', () => {
+  socket.on('disconnect', async () => {
   });
 
   socket.on('contatosImportados', (data) => {
@@ -153,17 +165,16 @@ io.on('connection', (socket) => {
   });
 });
 
-socketIoServer.on('connection', (socket) => {
-
+socketIoServer.on('connection', async(socket) => {
   socket.on('user_login', async (data) => {
     try {
       const { userId, schema } = data;
       // const { changeOnline } = require('./services/UserService');
-      
       // await changeOnline(userId, schema);
       socket.userId = userId;
       socket.schema = schema;
-      
+      await changeOnline(userId, schema);
+
       // userHeartbeats.set(`${userId}_${schema}`, Date.now());
       
     } catch (error) {
@@ -183,10 +194,11 @@ socketIoServer.on('connection', (socket) => {
     socket.leave(roomId);
   });
 
-  socket.on('disconnect', async () => {
-    
+  socket.on('disconnect', async (data) => {
     if (socket.userId && socket.schema) {
       try {
+        await changeOffline(socket.userId, socket.schema);
+        console.log(socket.userId, socket.schema);
         // const { changeOffline } = require('./services/UserService');
         // await changeOffline(socket.userId, socket.schema);
         
@@ -269,14 +281,15 @@ app.use('/lembretes', lembreteRoutes);
 app.use('/preferences', preferenceRoutes)
 app.use('/auth', passportRoutes);
 app.use('/qmessage', quickMessagesRoutes);
-
-
+app.use('/calendar', googleCalendarRoutes);
+app.use('/report', reportRoutes);
 
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const ffmpeg = require('fluent-ffmpeg');
 const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
+const { changeOnline, changeOffline } = require('./services/UserService');
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
 app.post('/webhook/audio', async (req, res) => {

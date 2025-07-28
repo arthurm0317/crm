@@ -1,4 +1,4 @@
-const { createUser, getAllUsers, searchUser, changeOnline, getOnlineUsers, changeOffline, deleteUser, updateUser, getUserById} = require('../services/UserService');
+const { createUser, getAllUsers, searchUser, changeOnline, getOnlineUsers, changeOffline, deleteUser, updateUser, getUserById, getLoginAttempts, getIp, saveLoginAttempt} = require('../services/UserService');
 const { Users } = require('../entities/Users');
 const { v4: uuidv4 } = require('uuid');
 const jwt = require('jsonwebtoken');
@@ -98,13 +98,20 @@ const getAllUsersController = async (req, res) => {
 };
 const searchUserController = async (req, res) => {
   const { email, password } = req.body;
+  const ip = await getIp(req);
 
   try {
     const result = await searchUser(email, password);
-
+    
     if (!result) {
       console.log("Usuário não encontrado");
+      await saveLoginAttempt(ip, 'effective_gain');
       return res.status(404).json({success:false});
+    }
+
+    const isBlocked = await getLoginAttempts(ip, result.company.schema_name);
+    if(isBlocked===true){
+      return res.status(403).json({ error: 'IP bloqueado por tentativas excessivas' });
     }
 
     changeOnline(result.user.id, result.company.schema_name);

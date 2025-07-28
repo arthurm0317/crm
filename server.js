@@ -3,6 +3,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
+const { changeOffline } = require('./services/UserService');
 
 
 class SocketServer {
@@ -84,6 +85,7 @@ class SocketServer {
 
 
             socket.on('disconnect', async () => {
+                await changeOffline(socket.userId, socket.schema);
                 
                 if (socket.userId && socket.schema) {
                     try {

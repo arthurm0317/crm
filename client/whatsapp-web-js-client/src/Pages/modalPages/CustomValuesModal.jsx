@@ -54,22 +54,23 @@ function CustomValuesModal({ show, onHide, theme}) {
   }, [show]);
 
   return (
-    <Modal show={show} onHide={onHide} centered dialogClassName="custom-values-modal" contentClassName="custom-values-modal-content">
-      <Modal.Header closeButton className={`header-text-${theme}`}> 
-        <Modal.Title>Campo personalizado</Modal.Title>
+    <Modal show={show} onHide={onHide} centered dialogClassName="custom-values-modal" contentClassName={`custom-values-modal-content bg-form-${theme} border-${theme}`}> 
+      <Modal.Header closeButton className={`header-text-${theme} border-${theme} bg-form-${theme}`}> 
+        <Modal.Title className={`header-text-${theme}`}>Campos Personalizados</Modal.Title>
       </Modal.Header>
-      <Modal.Body style={{ backgroundColor: `var(--bg-color-${theme})` }}>
+      <Modal.Body className={`bg-form-${theme}`} style={{ backgroundColor: `var(--bg-color-${theme})` }}>
         <Form>
           <Form.Group className="mb-3">
-            <Form.Label>Campo personalizado</Form.Label>
+            <Form.Label className={`card-subtitle-${theme}`}>Nome do campo</Form.Label>
             <Form.Control
-              as="textarea"
-              rows={2}
+              as="input"
+              className={`input-${theme}`}
               value={newField}
               onChange={e => setNewField(e.target.value)}
               placeholder="Digite o nome do campo personalizado"
-              style={{ resize: 'none' }}
+              style={{ resize: 'none', backgroundColor: `var(--input-bg-color-${theme})`, color: `var(--color-${theme})`, borderColor: `var(--border-color-${theme})` }}
               disabled={loading}
+              autoFocus
             />
           </Form.Group>
           <Form.Group className="mb-3 d-flex align-items-center gap-2">
@@ -81,6 +82,7 @@ function CustomValuesModal({ show, onHide, theme}) {
                 checked={graph}
                 onChange={e => setGraph(e.target.checked)}
                 disabled={loading}
+                style={{ cursor: loading ? 'not-allowed' : 'pointer' }}
               />
               <label className={`form-check-label card-subtitle-${theme}`} htmlFor="graphSwitch">
                 Gráfico
@@ -91,27 +93,32 @@ function CustomValuesModal({ show, onHide, theme}) {
               tabIndex="0"
               data-bs-toggle="tooltip"
               data-bs-placement="right"
-              data-bs-title="Quando ativado, o valor deste campo será somado para exibição em um gráfico."
-              style={{ cursor: 'pointer' }}
+              title="Quando ativado, o valor deste campo será somado para exibição em um gráfico."
+              style={{ cursor: 'pointer', color: `var(--primary-color)` }}
             >
               <i className="bi bi-info-circle"></i>
             </span>
           </Form.Group>
         </Form>
-        {loading && <div className="text-center">Carregando...</div>}
-        <ul className="list-group">
+        {loading && <div className={`text-center card-subtitle-${theme}`}>Carregando...</div>}
+        <ul className={`list-group mt-3 ${fields.length ? '' : 'd-none'}`}
+            style={{ background: 'transparent', border: 'none' }}>
           {fields.map((item, idx) => (
-            <li key={item.id || idx} className="list-group-item d-flex justify-content-between align-items-center">
+            <li key={item.id || idx} className={`list-group-item d-flex justify-content-between align-items-center bg-form-${theme} border-${theme}`}
+                style={{ color: `var(--color-${theme})`, backgroundColor: `var(--input-bg-color-${theme})`, borderColor: `var(--border-color-${theme})` }}>
               <span>{item.label || item.field_name}</span>
             </li>
           ))}
         </ul>
+        {!fields.length && !loading && (
+          <div className={`text-center card-subtitle-${theme} mt-2`}>Nenhum campo personalizado cadastrado.</div>
+        )}
       </Modal.Body>
-      <Modal.Footer className="d-flex justify-content-end gap-2">
-        <Button variant="outline-secondary" onClick={onHide} disabled={loading}>
+      <Modal.Footer className={`bg-form-${theme} border-${theme} d-flex justify-content-end gap-2`}>
+        <Button className={`btn-2-${theme}`} onClick={onHide} disabled={loading}>
           Fechar
         </Button>
-        <Button type="button" variant="outline-primary" onClick={handleAdd} disabled={loading || !newField}>
+        <Button type="button" className={`btn-1-${theme}`} onClick={handleAdd} disabled={loading || !newField}>
           Adicionar
         </Button>
       </Modal.Footer>

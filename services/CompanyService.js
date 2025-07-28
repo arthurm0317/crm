@@ -7,6 +7,15 @@ const createCompany = async (company, schema) => {
     const superAdminId = uuidv4();
     const superAdminData = company.superAdmin;
 
+    // Verifica se o schema já existe
+    const schemaExists = await pool.query(`
+        SELECT schema_name 
+        FROM information_schema.schemata 
+        WHERE schema_name = $1
+    `, [schema]);
+
+    const isNewSchema = schemaExists.rows.length === 0;
+
     await pool.query(`CREATE SCHEMA IF NOT EXISTS ${schema}`);
     await pool.query(`
         CREATE TABLE IF NOT EXISTS ${schema}.users (
@@ -92,7 +101,8 @@ const createCompany = async (company, schema) => {
             id UUID PRIMARY KEY,
             field_name TEXT NOT NULL,
             label TEXT NOT NULL,
-            UNIQUE(field_name)
+            UNIQUE(field_name),
+            graph boolean default false
             );
             `)
         await pool.query(`
@@ -138,8 +148,8 @@ const createCompany = async (company, schema) => {
             start_date bigint,
             status text,
             timer bigint,
-            min_timer bigint,
-            max_timer bigint,
+            min bigint,
+            max bigint
             )
             `)
         await pool.query(
@@ -150,7 +160,8 @@ const createCompany = async (company, schema) => {
             message text,
             date bigint,
             icone text,
-            user_id uuid references ${schema}.users(id) on delete set null
+            user_id uuid references ${schema}.users(id) on delete set null,
+            google_event_id text
             )`
         )
         await pool.query(`
@@ -192,6 +203,61 @@ const createCompany = async (company, schema) => {
                     connection_id UUID,
                     CONSTRAINT unique_pair UNIQUE (campaing_id, connection_id)
         );`)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.contacts_stage (
+            contact_number text NOT NULL REFERENCES ${schema}.contacts(number) ON DELETE CASCADE,
+            stage UUID NOT NULL,
+            PRIMARY KEY (contact_number, stage)
+            );
+        `)
+        await pool.query(`
+            CREATE TABLE ${schema}.preferences_kanban (
+            sector TEXT primary key NOT NULL,
+            label TEXT,
+            color TEXT NOT NULL
+            );
+        `)
+        await pool.query(`
+            CREATE TABLE ${schema}.chat_contact (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            chat_id UUID NOT NULL REFERENCES ${schema}.chats(id) ON DELETE CASCADE,
+            user_id uuid references effective_gain.users(id) on delete set null,
+            contact_number TEXT NOT NULL,
+            status TEXT,
+            custom_field UUID REFERENCES ${schema}.custom_fields(id), 
+            custom_value TEXT, 
+            closed_at TIMESTAMP DEFAULT now()
+            );
+        `)
+        await pool.query(`
+            CREATE TABLE ${schema}.status(
+            id uuid primary key,
+            value text not null,
+            success boolean
+            )    
+        `)
+        await pool.query(`
+            CREATE TABLE ${schema}.reports (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            chat_id UUID REFERENCES ${schema}.chats(id),
+            user_id UUID,
+            queue_id UUID,
+            categoria TEXT NOT NULL,
+            resumo TEXT NOT NULL,
+            assertividade TEXT NOT NULL,
+            status TEXT NOT NULL,
+            proxima_etapa TEXT NOT NULL
+            );
+        `)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.login_data (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            ip TEXT NOT NULL,
+            attempts INTEGER DEFAULT 1,
+            last_attempt BIGINT DEFAULT EXTRACT(EPOCH FROM NOW()) * 1000
+            );
+        `)
+
 
 
     const superAdmin = new Users(
@@ -204,12 +270,16 @@ const createCompany = async (company, schema) => {
 
     await createUser(superAdmin, schema);
 
-    await pool.query('INSERT INTO effective_gain.companies (company_name, schema_name) VALUES ($1, $2)', [
-        company.name,
-        schema
-    ]);
-
-    return { message: "Empresa criada com sucesso!" };
+    // Só insere na tabela effective_gain.companies se for um schema novo
+    if (isNewSchema) {
+        await pool.query('INSERT INTO effective_gain.companies (company_name, schema_name) VALUES ($1, $2)', [
+            company.name,
+            schema
+        ]);
+        return { message: "Empresa criada com sucesso!" };
+    } else {
+        return { message: "Tabelas atualizadas no schema existente!" };
+    }
 };
 
 const getAllCompanies = async () => {
