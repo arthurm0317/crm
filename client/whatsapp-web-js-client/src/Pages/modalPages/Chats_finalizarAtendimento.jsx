@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Modal, Button, Form, InputGroup } from 'react-bootstrap';
 import axios from 'axios';
 
-function NovoMotivoModal({ show, onHide, onCreate, theme, loading }) {
+const NovoMotivoModal = ({ show, onHide, onCreate, theme, loading }) => {
   const [nome, setNome] = useState('');
   const [erro, setErro] = useState('');
   const [success, setSuccess] = useState(true); // true = Ganho, false = Perda
@@ -26,98 +26,112 @@ function NovoMotivoModal({ show, onHide, onCreate, theme, loading }) {
   };
 
   return (
-    <Modal show={show} onHide={onHide} centered dialogClassName="modal-sm" contentClassName="p-0" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: '100%', maxWidth: '150vw', margin: '0 auto' }}>
-        <Modal.Header closeButton className={`header-text-${theme}`} style={{ padding: '16px 24px' }}>
-          <Modal.Title style={{ fontSize: 20 }}>Novo motivo</Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ backgroundColor: `var(--bg-color-${theme})`, padding: '20px 24px', width: '100%' }}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontSize: 15 }}>Nome do motivo</Form.Label>
-            <Form.Control
-              type="text"
-              value={nome}
-              onChange={e => setNome(e.target.value)}
-              placeholder="Digite o motivo"
-              disabled={loading}
-              style={{ fontSize: 16 }}
-            />
-          </Form.Group>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontSize: 15 }}>Tipo</Form.Label>
-            <div style={{ display: 'flex', marginTop: 4, width: '100%', borderRadius: 8, overflow: 'hidden', border: '1.2px solid #d1d5db', background: '#f7f7f7', marginLeft: 'auto', marginRight: 'auto', maxWidth: 260, boxShadow: 'none' }}>
-              <div
-                onClick={() => setSuccess(true)}
-                style={{
-                  flex: 1,
-                  cursor: 'pointer',
-                  background: success ? '#a8ffb0' : 'transparent',
-                  color: success ? '#222' : '#222',
-                  padding: '12px 0',
-                  fontWeight: 700,
-                  textAlign: 'center',
-                  borderRight: '1.2px solid #d1d5db',
-                  borderRadius: '8px 0 0 8px',
-                  transition: 'all 0.18s',
-                  boxShadow: 'none',
-                  fontSize: 16,
-                  outline: 'none',
-                  userSelect: 'none',
-                  position: 'relative',
-                  zIndex: 1,
-                }}
-                onMouseOver={e => {
-                  if (!success) e.currentTarget.style.background = 'rgba(168,255,176,0.18)';
-                }}
-                onMouseOut={e => {
-                  if (!success) e.currentTarget.style.background = 'transparent';
-                }}
-              >
-                Ganho
+    <Modal show={show} onHide={onHide} centered size="lg" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* Container principal do modal de novo motivo - aumentado para 550px */}
+      <div style={{ width: '550px', maxWidth: '95vw' }}>
+        
+        {/* Header do modal de novo motivo */}
+        <div style={{ width: '100%' }}>
+          <Modal.Header closeButton className={`header-text-${theme}`} style={{ padding: '16px 20px', borderBottom: '1px solid #e9ecef' }}>
+            <Modal.Title style={{ fontSize: 18, fontWeight: 600 }}>Novo motivo</Modal.Title>
+          </Modal.Header>
+        </div>
+        
+        {/* Body do modal de novo motivo */}
+        <div style={{ width: '100%' }}>
+          <Modal.Body style={{ backgroundColor: `var(--bg-color-${theme})`, padding: '24px' }}>
+            <Form.Group className="mb-3">
+              <Form.Label style={{ fontSize: 15, fontWeight: 500, marginBottom: '8px' }}>Nome do motivo</Form.Label>
+              <Form.Control
+                type="text"
+                value={nome}
+                onChange={e => setNome(e.target.value)}
+                placeholder="Digite o motivo"
+                disabled={loading}
+                style={{ fontSize: 14 }}
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label style={{ fontSize: 15, fontWeight: 500, marginBottom: '8px' }}>Tipo</Form.Label>
+              {/* Container dos botões Ganho/Perda */}
+              <div style={{ display: 'flex', width: '100%', borderRadius: 6, overflow: 'hidden', border: '1px solid #d1d5db', background: '#f7f7f7' }}>
+                {/* Botão Ganho */}
+                <div style={{ width: '50%' }}>
+                  <div
+                    onClick={() => setSuccess(true)}
+                    style={{
+                      width: '100%',
+                      cursor: 'pointer',
+                      background: success ? '#a8ffb0' : 'transparent',
+                      color: success ? '#222' : '#222',
+                      padding: '10px 0',
+                      fontWeight: 600,
+                      textAlign: 'center',
+                      borderRight: '1px solid #d1d5db',
+                      borderRadius: '6px 0 0 6px',
+                      transition: 'all 0.18s',
+                      fontSize: 14,
+                      outline: 'none',
+                      userSelect: 'none',
+                    }}
+                    onMouseOver={e => {
+                      if (!success) e.currentTarget.style.background = 'rgba(168,255,176,0.18)';
+                    }}
+                    onMouseOut={e => {
+                      if (!success) e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    Ganho
+                  </div>
+                </div>
+                {/* Botão Perda */}
+                <div style={{ width: '50%' }}>
+                  <div
+                    onClick={() => setSuccess(false)}
+                    style={{
+                      width: '100%',
+                      cursor: 'pointer',
+                      background: !success ? 'linear-gradient(90deg, #ff5252 0%, #ff1744 100%)' : 'transparent',
+                      color: !success ? '#fff' : '#222',
+                      padding: '10px 0',
+                      fontWeight: 600,
+                      textAlign: 'center',
+                      borderLeft: 'none',
+                      borderRadius: '0 6px 6px 0',
+                      transition: 'all 0.18s',
+                      fontSize: 14,
+                      outline: 'none',
+                      userSelect: 'none',
+                    }}
+                    onMouseOver={e => {
+                      if (success) e.currentTarget.style.background = 'rgba(255, 23, 68, 0.13)';
+                    }}
+                    onMouseOut={e => {
+                      if (success) e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    Perda
+                  </div>
+                </div>
               </div>
-              <div
-                onClick={() => setSuccess(false)}
-                style={{
-                  flex: 1,
-                  cursor: 'pointer',
-                  background: !success ? 'linear-gradient(90deg, #ff5252 0%, #ff1744 100%)' : 'transparent',
-                  color: !success ? '#fff' : '#222',
-                  padding: '12px 0',
-                  fontWeight: 700,
-                  textAlign: 'center',
-                  borderLeft: 'none',
-                  borderRadius: '0 8px 8px 0',
-                  transition: 'all 0.18s',
-                  boxShadow: 'none',
-                  fontSize: 16,
-                  outline: 'none',
-                  userSelect: 'none',
-                  position: 'relative',
-                  zIndex: 1,
-                }}
-                onMouseOver={e => {
-                  if (success) e.currentTarget.style.background = 'rgba(255, 23, 68, 0.13)';
-                }}
-                onMouseOut={e => {
-                  if (success) e.currentTarget.style.background = 'transparent';
-                }}
-              >
-                Perda
-              </div>
-            </div>
-          </Form.Group>
-          {erro && <div className="text-danger mb-2">{erro}</div>}
-        </Modal.Body>
-        <Modal.Footer style={{ padding: '12px 24px' }}>
-          <Button variant="outline-secondary" onClick={onHide} disabled={loading} style={{ fontSize: 16 }}>Cancelar</Button>
-          <Button variant="outline-primary" onClick={handleSalvar} disabled={loading || !nome.trim()} style={{ fontSize: 16 }}>Salvar</Button>
-        </Modal.Footer>
+            </Form.Group>
+            {erro && <div className="text-danger mb-2" style={{ fontSize: 14 }}>{erro}</div>}
+          </Modal.Body>
+        </div>
+        
+        {/* Footer do modal de novo motivo */}
+        <div style={{ width: '100%' }}>
+          <Modal.Footer style={{ padding: '16px 20px', borderTop: '1px solid #e9ecef', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+            <Button variant="outline-secondary" onClick={onHide} disabled={loading} style={{ fontSize: 14, padding: '8px 16px' }}>Cancelar</Button>
+            <Button variant="outline-primary" onClick={handleSalvar} disabled={loading || !nome.trim()} style={{ fontSize: 14, padding: '8px 16px' }}>Salvar</Button>
+          </Modal.Footer>
+        </div>
       </div>
     </Modal>
   );
-}
+};
 
-function CustomDropdownMotivo({ statusList, value, onChange, loading }) {
+const CustomDropdownMotivo = ({ statusList, value, onChange, loading }) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const ref = useRef();
@@ -267,9 +281,9 @@ function CustomDropdownMotivo({ statusList, value, onChange, loading }) {
       )}
     </div>
   );
-}
+};
 
-function FinalizarAtendimentoModal({ show, onHide, theme, selectedChat, onFinish }) {
+const FinalizarAtendimentoModal = ({ show, onHide, theme, selectedChat, onFinish }) => {
   const [status, setStatus] = useState('');
   const [statusList, setStatusList] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -346,36 +360,63 @@ function FinalizarAtendimentoModal({ show, onHide, theme, selectedChat, onFinish
 
   return (
     <>
-      <Modal show={show} onHide={onHide} centered dialogClassName="modal-sm" contentClassName="p-0" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: 600, maxWidth: '98vw', margin: '0 auto' }}>
-          <Modal.Header closeButton className={`header-text-${theme}`} style={{ padding: '20px 32px' }}>
-            <Modal.Title style={{ fontSize: 22 }}>Finalizar Atendimento</Modal.Title>
-          </Modal.Header>
-          <Modal.Body style={{ backgroundColor: `var(--bg-color-${theme})`, padding: '28px 32px', width: '100%' }}>
-            <Form>
-              <Form.Group className="mb-3">
-                <Form.Label style={{ fontSize: 16 }}>Motivo</Form.Label>
-                <InputGroup>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <CustomDropdownMotivo
-                      statusList={statusList}
-                      value={status}
-                      onChange={setStatus}
-                      loading={loading}
-                    />
-                  </div>
-                  <Button variant="outline-primary" onClick={() => setShowNovoMotivo(true)} disabled={loadingNovo || loading} style={{ marginLeft: 10, fontSize: 16 }}>
-                    Novo motivo
-                  </Button>
-                </InputGroup>
-              </Form.Group>
-              {error && <div className="text-danger mb-2">{error}</div>}
-            </Form>
-          </Modal.Body>
-          <Modal.Footer style={{ padding: '16px 32px' }}>
-            <Button variant="outline-secondary" onClick={onHide} disabled={loading} style={{ fontSize: 16 }}>Cancelar</Button>
-            <Button type="button" variant="outline-primary" onClick={handleFinalizar} disabled={loading || !status} style={{ fontSize: 16 }}>Finalizar</Button>
-          </Modal.Footer>
+      <Modal show={show} onHide={onHide} centered size="lg" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {/* Container principal - aumentado para 600px */}
+        <div style={{ width: '600px', maxWidth: '95vw', margin: '0 auto' }}>
+          
+          {/* Header */}
+          <div style={{ width: '100%' }}>
+            <Modal.Header closeButton className={`header-text-${theme}`} style={{ padding: '20px 24px' }}>
+              <Modal.Title style={{ fontSize: 20 }}>Finalizar Atendimento</Modal.Title>
+            </Modal.Header>
+          </div>
+          
+          {/* Body */}
+          <div style={{ width: '100%' }}>
+            <Modal.Body style={{ backgroundColor: `var(--bg-color-${theme})`, padding: '24px', width: '100%' }}>
+              <Form>
+                <Form.Group className="mb-3">
+                  <Form.Label style={{ fontSize: 15, marginBottom: '8px' }}>Motivo</Form.Label>
+                  <InputGroup>
+                    {/* Dropdown - ajustado para 65% */}
+                    <div style={{ flex: 1, minWidth: 0, width: '65%' }}>
+                      <CustomDropdownMotivo
+                        statusList={statusList}
+                        value={status}
+                        onChange={setStatus}
+                        loading={loading}
+                      />
+                    </div>
+                    {/* Botão Novo motivo - ajustado para 35% */}
+                    <div style={{ width: '35%', marginLeft: '8px' }}>
+                      <Button 
+                        variant="outline-primary" 
+                        onClick={() => setShowNovoMotivo(true)} 
+                        disabled={loadingNovo || loading} 
+                        style={{ 
+                          fontSize: 13, 
+                          width: '100%',
+                          whiteSpace: 'nowrap',
+                          padding: '8px 12px'
+                        }}
+                      >
+                        Novo motivo
+                      </Button>
+                    </div>
+                  </InputGroup>
+                </Form.Group>
+                {error && <div className="text-danger mb-2" style={{ fontSize: 14 }}>{error}</div>}
+              </Form>
+            </Modal.Body>
+          </div>
+          
+          {/* Footer */}
+          <div style={{ width: '100%' }}>
+            <Modal.Footer style={{ padding: '16px 24px' }}>
+              <Button variant="outline-secondary" onClick={onHide} disabled={loading} style={{ fontSize: 14, padding: '8px 16px' }}>Cancelar</Button>
+              <Button type="button" variant="outline-primary" onClick={handleFinalizar} disabled={loading || !status} style={{ fontSize: 14, padding: '8px 16px' }}>Finalizar</Button>
+            </Modal.Footer>
+          </div>
         </div>
       </Modal>
       <NovoMotivoModal
@@ -387,19 +428,19 @@ function FinalizarAtendimentoModal({ show, onHide, theme, selectedChat, onFinish
       />
       {/* Adicionar CSS para hover glass verde e vermelho nas opções da lista de motivos */}
       <style>{`
-select option[data-success="ganho"]:hover, select optgroup[label="GANHO"] option:hover {
-  background: linear-gradient(90deg, rgba(168,255,176,0.22) 0%, rgba(168,255,176,0.32) 100%);
-  color: #0a3d2e !important;
-  backdrop-filter: blur(2px);
-}
-select option[data-success="perda"]:hover, select optgroup[label="PERDA"] option:hover {
-  background: linear-gradient(90deg, rgba(255,82,82,0.18) 0%, rgba(255,23,68,0.22) 100%);
-  color: #7a1a1a !important;
-  backdrop-filter: blur(2px);
-}
+      select option[data-success="ganho"]:hover, select optgroup[label="GANHO"] option:hover {
+        background: linear-gradient(90deg, rgba(168,255,176,0.22) 0%, rgba(168,255,176,0.32) 100%);
+        color: #0a3d2e !important;
+        backdrop-filter: blur(2px);
+      }
+      select option[data-success="perda"]:hover, select optgroup[label="PERDA"] option:hover {
+        background: linear-gradient(90deg, rgba(255,82,82,0.18) 0%, rgba(255,23,68,0.22) 100%);
+        color: #7a1a1a !important;
+        backdrop-filter: blur(2px);
+      }
 `}</style>
     </>
   );
-}
+};
 
 export default FinalizarAtendimentoModal; 
