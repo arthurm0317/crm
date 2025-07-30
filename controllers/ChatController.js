@@ -5,11 +5,29 @@ const fs = require('fs');
 const path = require('path');
 const pool = require('../db/queries');
 const axios = require('axios'); 
+const { Queue, Worker } = require('bullmq');
+const createRedisConnection = require('../config/Redis');
 const { getBase64FromMediaMessage, sendImageToWhatsApp } = require('../requests/evolution');
 const { sendAudioToWhatsApp } = require('../requests/evolution');
 const { searchConnById } = require('../services/ConnectionService');
 const { getCurrentTimestamp } = require('../services/getCurrentTimestamp');
 const { getAllUsers } = require('../services/UserService');
+
+const bullConn = createRedisConnection();
+const closeChatQueue = new Queue('closeQueue', { connection: bullConn });
+
+new Worker('closeQueue', async (job) => {
+  const { chat_id, status, schema } = job.data;
+  try { 
+    await closeChatContact(chat_id, status, schema);
+    } catch (error) {
+    console.error('Erro ao processar o fechamento do chat:', error);
+  }
+}, { 
+  connection: bullConn
+});
+
+
 
 
 const audioStorage = multer.diskStorage({
@@ -311,7 +329,7 @@ const closeChatContoller = async(req, res)=>{
     const schema = req.body.schema
     
     const result = await closeChat(chat_id, schema)
-    const closeContactChat = await closeChatContact(chat_id, status, schema)
+    const job = await closeChatQueue.add('closeChat', { chat_id, status, schema },{attempts: 3});
     global.socketIoServer.to(`schema_${schema}`).emit('removeChat', result)
 
    res.status(200).json({

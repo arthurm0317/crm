@@ -296,7 +296,10 @@ const setUserChat = async (chatId, schema) => {
       const eligibleUsers = onlineUsers.filter(user =>
         user.permission === 'user' && userIdsInQueue.includes(user.id)
       );
-      if (eligibleUsers.length === 0) return;
+      if (eligibleUsers.length === 0){
+        await putChatInWaiting(chatId, schema);
+        return;
+      } 
       const lastAssigned = await getLastAssignedUser(queueId, schema);
       let nextUser;
       if (!lastAssigned) {
@@ -530,13 +533,23 @@ const closeChat = async(chat_id, schema)=>{
 }
 
 const closeChatContact = async (chat_id, status, schema) => {
-  const number = await pool.query(`SELECT * FROM ${schema}.chats where id=$1`, [chat_id])
-  const result = await pool.query(`
-    INSERT INTO ${schema}.chat_contact(id, chat_id, contact_number, status, user_id) VALUES($1,$2,$3,$4,$5) RETURNING *  
-  `, [uuid4(), chat_id, number.rows[0].contact_phone, status, number.rows[0].assigned_user || null])
-  const report = await getGptResponse(chat_id, schema, status)
-  return result.rows[0]
+  try {
+    const number = await pool.query(`SELECT * FROM ${schema}.chats where id=$1`, [chat_id])
+    const result = await pool.query(`
+      INSERT INTO ${schema}.chat_contact(id, chat_id, contact_number, status, user_id) VALUES($1,$2,$3,$4,$5) RETURNING *  
+    `, [uuid4(), chat_id, number.rows[0].contact_phone, status, number.rows[0].assigned_user || null])
     
+    try {
+      const report = await getGptResponse(chat_id, schema, status)
+    } catch (gptError) {
+      console.error('Erro ao gerar relatório GPT:', gptError.message);
+    }
+    
+    return result.rows[0]
+  } catch (error) {
+    console.error('❌ Erro ao fechar chat:', error);
+    throw error;
+  }
 }
 
 const setSpecificUser = async(chat_id, user_id, schema)=>{

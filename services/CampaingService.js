@@ -142,7 +142,7 @@ const createCampaing = async (campaing_id, campName, sector, kanbanStage, connec
       );
       campaing = result.rows[0];
       await deleteAllConnectionsFromCampaing(campaing.id, schema)
-      insertConnectionsForCampaing(campaing.id,connectionId, schema)
+      await insertConnectionsForCampaing(campaing.id,connectionId, schema)
       }else{
          result = await pool.query(
         `UPDATE ${schema}.campaing 
@@ -152,7 +152,7 @@ const createCampaing = async (campaing_id, campName, sector, kanbanStage, connec
       );
       campaing = result.rows[0];
       await deleteAllConnectionsFromCampaing(campaing.id, schema)
-      insertConnectionsForCampaing(campaing.id,connectionId, schema)
+      await insertConnectionsForCampaing(campaing.id,connectionId, schema)
       }
      
     } else {
@@ -162,17 +162,16 @@ const createCampaing = async (campaing_id, campName, sector, kanbanStage, connec
           [uuidv4(), campName, sector, kanbanStage, unixStartDate, null, intervalMinEmSegundos, intervalMaxEmSegundos]
         );
         campaing = result.rows[0];
-        insertConnectionsForCampaing(campaing.id,connectionId, schema)
+        await insertConnectionsForCampaing(campaing.id,connectionId, schema)
       } else {
         result = await pool.query(
           `INSERT INTO ${schema}.campaing (id, campaing_name, sector, kanban_stage, start_date, timer) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
           [uuidv4(), campName, sector, kanbanStage, unixStartDate, intervalEmSegundos]
         );
         campaing = result.rows[0];
-        insertConnectionsForCampaing(campaing.id,connectionId, schema)
+        await insertConnectionsForCampaing(campaing.id,connectionId, schema)
       }
     }
-    await scheduleCampaingBlast(campaing, campaing.sector, schema, intervalo);
 
     return campaing;
   } catch (error) {
