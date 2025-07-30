@@ -184,9 +184,9 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
         <Dropdown.Toggle
           variant={theme === 'light' ? 'light' : 'dark'}
           id="dropdown-basic"
-          className={`btn-2-${theme}`}
+          className={`btn-2-${theme} no-caret dropdown-toggle`}
         >
-          Opções
+          <i className="bi bi-gear"></i>
         </Dropdown.Toggle>
 
         <Dropdown.Menu
@@ -199,7 +199,6 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
             left: 'auto'
           }}
         >
-          <Dropdown.Divider />
           <Dropdown.Item href="#" onClick={() => {
             setShowChangeQueueModal(true);
             setIsDropdownOpen(false);
@@ -2055,10 +2054,10 @@ const handleImageUpload = async (event) => {
               data-message-id={msg.id}
               style={{
                 backgroundColor: msg.from_me ? 'var(--hover)' : '#f1f0f0',
-                textAlign: msg.from_me ? 'right' : 'left',
+                textAlign: 'left',
                 padding: '10px 10px 5px 10px',
                 borderRadius: '10px',
-                maxWidth: '100%',
+                maxWidth: '50%',
                 width: (msg.message_type === 'audio' || msg.message_type === 'audioMessage') ? '50%' : 'fit-content',
               }}
             >

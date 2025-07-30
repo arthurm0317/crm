@@ -1023,3 +1023,28 @@ input[type="range"]::-moz-range-progress {
 .modal-50vw.modal-blur .modal-content * {
   pointer-events: none;
 }
+
+/* Remover seta do botão de opções */
+.btn-2-light.no-caret::after,
+.btn-2-dark.no-caret::after {
+  display: none !important;
+}
+
+.no-caret::after { 
+  display: none !important; 
+}
+
+/* Regras mais específicas para remover a seta do dropdown */
+.dropdown-toggle.no-caret::after,
+.dropdown-toggle.no-caret::before {
+  display: none !important;
+}
+
+.btn.dropdown-toggle.no-caret::after {
+  display: none !important;
+}
+
+/* Forçar remoção da seta em todos os dropdowns com no-caret */
+[class*="btn"][class*="no-caret"]::after {
+  display: none !important;
+}
