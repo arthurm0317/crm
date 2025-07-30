@@ -5,7 +5,7 @@ import axios from 'axios';
 const NovoMotivoModal = ({ show, onHide, onCreate, theme, loading }) => {
   const [nome, setNome] = useState('');
   const [erro, setErro] = useState('');
-  const [success, setSuccess] = useState(true); // true = Ganho, false = Perda
+  const [success, setSuccess] = useState(true);
 
   useEffect(() => {
     if (!show) {
@@ -26,117 +26,104 @@ const NovoMotivoModal = ({ show, onHide, onCreate, theme, loading }) => {
   };
 
   return (
-    <Modal show={show} onHide={onHide} centered size="lg" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      {/* Container principal do modal de novo motivo - aumentado para 550px */}
-      <div style={{ width: '550px', maxWidth: '95vw' }}>
-        
-        {/* Header do modal de novo motivo */}
-        <div style={{ width: '100%' }}>
-          <Modal.Header closeButton className={`header-text-${theme}`} style={{ padding: '16px 20px', borderBottom: '1px solid #e9ecef' }}>
-            <Modal.Title style={{ fontSize: 18, fontWeight: 600 }}>Novo motivo</Modal.Title>
-          </Modal.Header>
+    <Modal 
+      show={show} 
+      onHide={onHide} 
+      centered 
+      className={`modal-${theme} modal-novo-motivo`}
+    >
+      <Modal.Header 
+        closeButton 
+        style={{ backgroundColor: `var(--bg-color-${theme})` }}
+      >
+        <div className="d-flex align-items-center gap-3">
+          <i className={`bi bi-plus-circle header-text-${theme}`}></i>
+          <h5 className={`modal-title header-text-${theme} mb-0`}>
+            Novo Motivo
+          </h5>
         </div>
-        
-        {/* Body do modal de novo motivo */}
-        <div style={{ width: '100%' }}>
-          <Modal.Body style={{ backgroundColor: `var(--bg-color-${theme})`, padding: '24px' }}>
-            <Form.Group className="mb-3">
-              <Form.Label style={{ fontSize: 15, fontWeight: 500, marginBottom: '8px' }}>Nome do motivo</Form.Label>
-              <Form.Control
-                type="text"
-                value={nome}
-                onChange={e => setNome(e.target.value)}
-                placeholder="Digite o motivo"
-                disabled={loading}
-                style={{ fontSize: 14 }}
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label style={{ fontSize: 15, fontWeight: 500, marginBottom: '8px' }}>Tipo</Form.Label>
-              {/* Container dos botões Ganho/Perda */}
-              <div style={{ display: 'flex', width: '100%', borderRadius: 6, overflow: 'hidden', border: '1px solid #d1d5db', background: '#f7f7f7' }}>
-                {/* Botão Ganho */}
-                <div style={{ width: '50%' }}>
-                  <div
-                    onClick={() => setSuccess(true)}
-                    style={{
-                      width: '100%',
-                      cursor: 'pointer',
-                      background: success ? '#a8ffb0' : 'transparent',
-                      color: success ? '#222' : '#222',
-                      padding: '10px 0',
-                      fontWeight: 600,
-                      textAlign: 'center',
-                      borderRight: '1px solid #d1d5db',
-                      borderRadius: '6px 0 0 6px',
-                      transition: 'all 0.18s',
-                      fontSize: 14,
-                      outline: 'none',
-                      userSelect: 'none',
-                    }}
-                    onMouseOver={e => {
-                      if (!success) e.currentTarget.style.background = 'rgba(168,255,176,0.18)';
-                    }}
-                    onMouseOut={e => {
-                      if (!success) e.currentTarget.style.background = 'transparent';
-                    }}
-                  >
-                    Ganho
-                  </div>
-                </div>
-                {/* Botão Perda */}
-                <div style={{ width: '50%' }}>
-                  <div
-                    onClick={() => setSuccess(false)}
-                    style={{
-                      width: '100%',
-                      cursor: 'pointer',
-                      background: !success ? 'linear-gradient(90deg, #ff5252 0%, #ff1744 100%)' : 'transparent',
-                      color: !success ? '#fff' : '#222',
-                      padding: '10px 0',
-                      fontWeight: 600,
-                      textAlign: 'center',
-                      borderLeft: 'none',
-                      borderRadius: '0 6px 6px 0',
-                      transition: 'all 0.18s',
-                      fontSize: 14,
-                      outline: 'none',
-                      userSelect: 'none',
-                    }}
-                    onMouseOver={e => {
-                      if (success) e.currentTarget.style.background = 'rgba(255, 23, 68, 0.13)';
-                    }}
-                    onMouseOut={e => {
-                      if (success) e.currentTarget.style.background = 'transparent';
-                    }}
-                  >
-                    Perda
-                  </div>
-                </div>
-              </div>
-            </Form.Group>
-            {erro && <div className="text-danger mb-2" style={{ fontSize: 14 }}>{erro}</div>}
-          </Modal.Body>
-        </div>
-        
-        {/* Footer do modal de novo motivo */}
-        <div style={{ width: '100%' }}>
-          <Modal.Footer style={{ padding: '16px 20px', borderTop: '1px solid #e9ecef', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-            <Button variant="outline-secondary" onClick={onHide} disabled={loading} style={{ fontSize: 14, padding: '8px 16px' }}>Cancelar</Button>
-            <Button variant="outline-primary" onClick={handleSalvar} disabled={loading || !nome.trim()} style={{ fontSize: 14, padding: '8px 16px' }}>Salvar</Button>
-          </Modal.Footer>
-        </div>
-      </div>
+      </Modal.Header>
+
+      <Modal.Body style={{ backgroundColor: `var(--bg-color-${theme})` }}>
+        <Form>
+          <Form.Group className="mb-3">
+            <Form.Label className={`form-label card-subtitle-${theme}`}>
+              Nome do Motivo
+            </Form.Label>
+            <Form.Control
+              type="text"
+              className={`form-control input-${theme}`}
+              value={nome}
+              onChange={e => setNome(e.target.value)}
+              placeholder="Digite o motivo"
+              disabled={loading}
+            />
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label className={`form-label card-subtitle-${theme}`}>
+              Tipo
+            </Form.Label>
+            <div className="d-flex gap-2">
+              <Button
+                variant={success ? 'success' : 'outline-secondary'}
+                onClick={() => setSuccess(true)}
+                className="flex-fill"
+              >
+                <i className="bi bi-check-circle me-2"></i>
+                Ganho
+              </Button>
+              <Button
+                variant={!success ? 'danger' : 'outline-secondary'}
+                onClick={() => setSuccess(false)}
+                className="flex-fill"
+              >
+                <i className="bi bi-x-circle me-2"></i>
+                Perda
+              </Button>
+            </div>
+          </Form.Group>
+
+          {erro && (
+            <div className="text-danger mb-2" style={{ fontSize: 14 }}>
+              {erro}
+            </div>
+          )}
+        </Form>
+      </Modal.Body>
+
+      <Modal.Footer style={{ backgroundColor: `var(--bg-color-${theme})` }}>
+        <Button 
+          variant="outline-secondary" 
+          onClick={onHide} 
+          disabled={loading}
+          className="btn-2-light"
+        >
+          Cancelar
+        </Button>
+        <Button 
+          variant="primary" 
+          onClick={handleSalvar} 
+          disabled={loading || !nome.trim()}
+          className={loading || !nome.trim() ? "btn-disabled" : "btn-1-light"}
+          style={{
+            background: loading || !nome.trim() ? 'transparent' : undefined,
+            color: loading || !nome.trim() ? 'var(--placeholder-color)' : undefined,
+            border: loading || !nome.trim() ? '1px solid var(--border-color-light)' : undefined
+          }}
+        >
+          Salvar
+        </Button>
+      </Modal.Footer>
     </Modal>
   );
 };
 
-const CustomDropdownMotivo = ({ statusList, value, onChange, loading }) => {
+const CustomDropdownMotivo = ({ statusList, value, onChange, loading, theme }) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const ref = useRef();
 
-  // Fecha dropdown ao clicar fora
   useEffect(() => {
     function handleClick(e) {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false);
@@ -145,9 +132,10 @@ const CustomDropdownMotivo = ({ statusList, value, onChange, loading }) => {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [open]);
 
-  // Agrupa motivos
-  const motivosGanho = statusList.filter(s => s.success === true && (!search || (s.status || s.value || s.nome || s.label).toLowerCase().includes(search.toLowerCase())));
-  const motivosPerda = statusList.filter(s => s.success === false && (!search || (s.status || s.value || s.nome || s.label).toLowerCase().includes(search.toLowerCase())));
+  const motivosGanho = statusList.filter(s => s.success === true && 
+    (!search || (s.status || s.value || s.nome || s.label).toLowerCase().includes(search.toLowerCase())));
+  const motivosPerda = statusList.filter(s => s.success === false && 
+    (!search || (s.status || s.value || s.nome || s.label).toLowerCase().includes(search.toLowerCase())));
 
   function handleSelect(val) {
     onChange(val);
@@ -160,76 +148,85 @@ const CustomDropdownMotivo = ({ statusList, value, onChange, loading }) => {
   }
 
   return (
-    <div ref={ref} style={{ position: 'relative', width: '100%', maxWidth: 320 }}>
+    <div ref={ref} style={{ position: 'relative', width: '100%' }}>
       <div
         onClick={() => setOpen(v => !v)}
+        className={`form-control input-${theme}`}
         style={{
-          border: '1.2px solid #d1d5db',
-          borderRadius: 8,
-          background: '#fff',
-          padding: '10px 12px',
-          fontSize: 15,
           cursor: loading ? 'not-allowed' : 'pointer',
-          color: value ? '#222' : '#888',
+          color: value ? `var(--color-${theme})` : 'var(--placeholder-color)',
           fontWeight: 500,
           userSelect: 'none',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           minHeight: 40,
+          backgroundColor: `var(--bg-color-${theme})`,
+          borderColor: `var(--border-color-${theme})`,
         }}
       >
-        <span>{getLabel(value) || 'Selecione...'}</span>
-        <span style={{ fontSize: 18, marginLeft: 8, color: '#bbb' }}>&#9662;</span>
+        <span>{getLabel(value) || 'Selecione um motivo...'}</span>
+        <i className="bi bi-chevron-down" style={{ fontSize: 14, color: 'var(--placeholder-color)' }}></i>
       </div>
+      
       {open && (
         <div style={{
           position: 'absolute',
           top: '110%',
           left: 0,
           width: '100%',
-          background: '#fff',
-          border: '1.2px solid #d1d5db',
+          background: `var(--bg-color-${theme})`,
+          border: `1px solid var(--border-color-${theme})`,
           borderRadius: 8,
           boxShadow: '0 4px 24px rgba(0,0,0,0.10)',
           zIndex: 1000,
           maxHeight: 260,
           overflowY: 'auto',
         }}>
-          <div style={{ padding: 8 }}>
+          <div style={{ padding: 12 }}>
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Buscar motivo..."
-              style={{ width: '100%', border: '1px solid #eee', borderRadius: 6, padding: '6px 10px', fontSize: 14, marginBottom: 6 }}
+              className={`form-control input-${theme}`}
+              style={{ fontSize: 14 }}
               autoFocus
             />
           </div>
+          
           {motivosGanho.length > 0 && (
-            <div style={{ padding: '2px 12px 2px 12px', fontSize: 12, color: '#1dbf73', fontWeight: 700, letterSpacing: 0.5, background: 'rgba(168,255,176,0.10)' }}>GANHO</div>
+            <div style={{ 
+              padding: '8px 16px', 
+              fontSize: 12, 
+              color: '#1dbf73', 
+              fontWeight: 700, 
+              background: 'rgba(168,255,176,0.10)' 
+            }}>
+              GANHO
+            </div>
           )}
+          
           {motivosGanho.map((s, idx) => (
             <div
               key={s.id || 'ganho-' + idx}
               onClick={() => handleSelect(s.status || s.value || s.nome || s.label)}
               style={{
-                padding: '10px 16px',
+                padding: '12px 16px',
                 cursor: 'pointer',
                 background: value === (s.status || s.value || s.nome || s.label)
                   ? 'linear-gradient(90deg, #a8ffb0 0%, #eafff0 100%)'
                   : 'transparent',
-                color: value === (s.status || s.value || s.nome || s.label) ? '#0a3d2e' : '#222',
+                color: value === (s.status || s.value || s.nome || s.label) ? '#0a3d2e' : `var(--color-${theme})`,
                 fontWeight: value === (s.status || s.value || s.nome || s.label) ? 700 : 500,
-                borderBottom: '1px solid #f2f2f2',
+                borderBottom: `1px solid var(--border-color-${theme})`,
                 transition: 'all 0.15s',
-                borderRadius: 6,
-                margin: '2px 8px',
-                marginBottom: 2,
-                boxShadow: 'none',
+                fontSize: 14,
               }}
               onMouseOver={e => {
-                e.currentTarget.style.background = 'linear-gradient(90deg, rgba(168,255,176,0.22) 0%, rgba(168,255,176,0.32) 100%)';
+                if (value !== (s.status || s.value || s.nome || s.label)) {
+                  e.currentTarget.style.background = 'linear-gradient(90deg, rgba(168,255,176,0.22) 0%, rgba(168,255,176,0.32) 100%)';
+                }
               }}
               onMouseOut={e => {
                 e.currentTarget.style.background = value === (s.status || s.value || s.nome || s.label)
@@ -240,30 +237,39 @@ const CustomDropdownMotivo = ({ statusList, value, onChange, loading }) => {
               {s.status || s.value || s.nome || s.label}
             </div>
           ))}
+          
           {motivosPerda.length > 0 && (
-            <div style={{ padding: '2px 12px 2px 12px', fontSize: 12, color: '#ff5252', fontWeight: 700, letterSpacing: 0.5, background: 'rgba(255,82,82,0.10)' }}>PERDA</div>
+            <div style={{ 
+              padding: '8px 16px', 
+              fontSize: 12, 
+              color: '#ff5252', 
+              fontWeight: 700, 
+              background: 'rgba(255,82,82,0.10)' 
+            }}>
+              PERDA
+            </div>
           )}
+          
           {motivosPerda.map((s, idx) => (
             <div
               key={s.id || 'perda-' + idx}
               onClick={() => handleSelect(s.status || s.value || s.nome || s.label)}
               style={{
-                padding: '10px 16px',
+                padding: '12px 16px',
                 cursor: 'pointer',
                 background: value === (s.status || s.value || s.nome || s.label)
                   ? 'linear-gradient(90deg, #ffd6d6 0%, #fff0f0 100%)'
                   : 'transparent',
-                color: value === (s.status || s.value || s.nome || s.label) ? '#7a1a1a' : '#222',
+                color: value === (s.status || s.value || s.nome || s.label) ? '#7a1a1a' : `var(--color-${theme})`,
                 fontWeight: value === (s.status || s.value || s.nome || s.label) ? 700 : 500,
-                borderBottom: '1px solid #f2f2f2',
+                borderBottom: `1px solid var(--border-color-${theme})`,
                 transition: 'all 0.15s',
-                borderRadius: 6,
-                margin: '2px 8px',
-                marginBottom: 2,
-                boxShadow: 'none',
+                fontSize: 14,
               }}
               onMouseOver={e => {
-                e.currentTarget.style.background = 'linear-gradient(90deg, rgba(255,82,82,0.18) 0%, rgba(255,23,68,0.22) 100%)';
+                if (value !== (s.status || s.value || s.nome || s.label)) {
+                  e.currentTarget.style.background = 'linear-gradient(90deg, rgba(255,82,82,0.18) 0%, rgba(255,23,68,0.22) 100%)';
+                }
               }}
               onMouseOut={e => {
                 e.currentTarget.style.background = value === (s.status || s.value || s.nome || s.label)
@@ -274,8 +280,11 @@ const CustomDropdownMotivo = ({ statusList, value, onChange, loading }) => {
               {s.status || s.value || s.nome || s.label}
             </div>
           ))}
+          
           {motivosGanho.length === 0 && motivosPerda.length === 0 && (
-            <div style={{ padding: 16, color: '#aaa', textAlign: 'center' }}>Nenhum motivo encontrado</div>
+            <div style={{ padding: 16, color: 'var(--placeholder-color)', textAlign: 'center', fontSize: 14 }}>
+              Nenhum motivo encontrado
+            </div>
           )}
         </div>
       )}
@@ -293,14 +302,12 @@ const FinalizarAtendimentoModal = ({ show, onHide, theme, selectedChat, onFinish
 
   const userData = JSON.parse(localStorage.getItem('user'));
   const schema = userData?.schema;
-  console.log('schema', schema);
   const url = process.env.REACT_APP_URL;
 
   const fetchStatus = async () => {
     setLoading(true);
     try {
       const res = await axios.get(`${url}/chat/get-status/${schema}`, { withCredentials: true });
-      console.log('res', res.data);
       setStatusList(Array.isArray(res.data.result) ? res.data.result : []);
     } catch {
       setStatusList([]);
@@ -360,65 +367,87 @@ const FinalizarAtendimentoModal = ({ show, onHide, theme, selectedChat, onFinish
 
   return (
     <>
-      <Modal show={show} onHide={onHide} centered size="lg" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {/* Container principal - aumentado para 600px */}
-        <div style={{ width: '600px', maxWidth: '95vw', margin: '0 auto' }}>
-          
-          {/* Header */}
-          <div style={{ width: '100%' }}>
-            <Modal.Header closeButton className={`header-text-${theme}`} style={{ padding: '20px 24px' }}>
-              <Modal.Title style={{ fontSize: 20 }}>Finalizar Atendimento</Modal.Title>
-            </Modal.Header>
+      <Modal 
+        show={show} 
+        onHide={onHide} 
+        centered 
+        className={`modal-${theme} modal-50vw ${showNovoMotivo ? 'modal-blur' : ''}`}
+      >
+        <Modal.Header 
+          closeButton 
+          style={{ backgroundColor: `var(--bg-color-${theme})` }}
+        >
+          <div className="d-flex align-items-center gap-3">
+            <i className={`bi bi-check-circle header-text-${theme}`}></i>
+            <h5 className={`modal-title header-text-${theme} mb-0`}>
+              Finalizar Atendimento
+            </h5>
           </div>
-          
-          {/* Body */}
-          <div style={{ width: '100%' }}>
-            <Modal.Body style={{ backgroundColor: `var(--bg-color-${theme})`, padding: '24px', width: '100%' }}>
-              <Form>
-                <Form.Group className="mb-3">
-                  <Form.Label style={{ fontSize: 15, marginBottom: '8px' }}>Motivo</Form.Label>
-                  <InputGroup>
-                    {/* Dropdown - ajustado para 65% */}
-                    <div style={{ flex: 1, minWidth: 0, width: '65%' }}>
-                      <CustomDropdownMotivo
-                        statusList={statusList}
-                        value={status}
-                        onChange={setStatus}
-                        loading={loading}
-                      />
-                    </div>
-                    {/* Botão Novo motivo - ajustado para 35% */}
-                    <div style={{ width: '35%', marginLeft: '8px' }}>
-                      <Button 
-                        variant="outline-primary" 
-                        onClick={() => setShowNovoMotivo(true)} 
-                        disabled={loadingNovo || loading} 
-                        style={{ 
-                          fontSize: 13, 
-                          width: '100%',
-                          whiteSpace: 'nowrap',
-                          padding: '8px 12px'
-                        }}
-                      >
-                        Novo motivo
-                      </Button>
-                    </div>
-                  </InputGroup>
-                </Form.Group>
-                {error && <div className="text-danger mb-2" style={{ fontSize: 14 }}>{error}</div>}
-              </Form>
-            </Modal.Body>
-          </div>
-          
-          {/* Footer */}
-          <div style={{ width: '100%' }}>
-            <Modal.Footer style={{ padding: '16px 24px' }}>
-              <Button variant="outline-secondary" onClick={onHide} disabled={loading} style={{ fontSize: 14, padding: '8px 16px' }}>Cancelar</Button>
-              <Button type="button" variant="outline-primary" onClick={handleFinalizar} disabled={loading || !status} style={{ fontSize: 14, padding: '8px 16px' }}>Finalizar</Button>
-            </Modal.Footer>
-          </div>
-        </div>
+        </Modal.Header>
+
+        <Modal.Body style={{ backgroundColor: `var(--bg-color-${theme})` }}>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label className={`form-label card-subtitle-${theme}`}>
+                Motivo do Encerramento
+              </Form.Label>
+              <InputGroup>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <CustomDropdownMotivo
+                    statusList={statusList}
+                    value={status}
+                    onChange={setStatus}
+                    loading={loading}
+                    theme={theme}
+                  />
+                </div>
+                <Button 
+                  variant="outline-primary" 
+                  onClick={() => setShowNovoMotivo(true)} 
+                  disabled={loadingNovo || loading}
+                  className="btn-2-light"
+                  style={{ marginLeft: 8 }}
+                >
+                  <i className="bi bi-plus-circle me-1"></i>
+                  Novo
+                </Button>
+              </InputGroup>
+            </Form.Group>
+
+            {error && (
+              <div className="text-danger mb-2" style={{ fontSize: 14 }}>
+                {error}
+              </div>
+            )}
+          </Form>
+        </Modal.Body>
+
+        <Modal.Footer style={{ backgroundColor: `var(--bg-color-${theme})` }}>
+          <Button 
+            variant="outline-secondary" 
+            onClick={onHide} 
+            disabled={loading}
+            className="btn-2-light"
+          >
+            Cancelar
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={handleFinalizar} 
+            disabled={loading || !status}
+            className={loading || !status ? "btn-disabled" : "btn-1-light"}
+            style={{
+              background: loading || !status ? 'transparent' : undefined,
+              color: loading || !status ? 'var(--placeholder-color)' : undefined,
+              border: loading || !status ? '1px solid var(--border-color-light)' : undefined
+            }}
+          >
+            <i className="bi bi-check-circle me-1"></i>
+            Finalizar
+          </Button>
+        </Modal.Footer>
       </Modal>
+
       <NovoMotivoModal
         show={showNovoMotivo}
         onHide={() => setShowNovoMotivo(false)}
@@ -426,19 +455,6 @@ const FinalizarAtendimentoModal = ({ show, onHide, theme, selectedChat, onFinish
         theme={theme}
         loading={loadingNovo}
       />
-      {/* Adicionar CSS para hover glass verde e vermelho nas opções da lista de motivos */}
-      <style>{`
-      select option[data-success="ganho"]:hover, select optgroup[label="GANHO"] option:hover {
-        background: linear-gradient(90deg, rgba(168,255,176,0.22) 0%, rgba(168,255,176,0.32) 100%);
-        color: #0a3d2e !important;
-        backdrop-filter: blur(2px);
-      }
-      select option[data-success="perda"]:hover, select optgroup[label="PERDA"] option:hover {
-        background: linear-gradient(90deg, rgba(255,82,82,0.18) 0%, rgba(255,23,68,0.22) 100%);
-        color: #7a1a1a !important;
-        backdrop-filter: blur(2px);
-      }
-`}</style>
     </>
   );
 };

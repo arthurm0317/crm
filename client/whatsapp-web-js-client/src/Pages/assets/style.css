@@ -823,6 +823,10 @@ input[type="range"]::-moz-range-progress {
     z-index: 9999 !important;
     position: absolute !important;
     overflow: visible !important;
+    right: 0 !important;
+    left: auto !important;
+    top: 100% !important;
+    transform: none !important;
 }
 
 .chat-dropdown-menu.show {
@@ -830,6 +834,9 @@ input[type="range"]::-moz-range-progress {
     position: absolute !important;
     transform: none !important;
     inset: auto !important;
+    right: 0 !important;
+    left: auto !important;
+    top: 100% !important;
 }
 
 /* Garantir que o dropdown não seja cortado */
@@ -842,8 +849,30 @@ input[type="range"]::-moz-range-progress {
     margin-top: 0.125rem !important;
     margin-left: 0 !important;
     min-width: 200px !important;
-    left: 0 !important;
-    right: auto !important;
+    left: auto !important;
+    right: 0 !important;
+    transform-origin: bottom right !important;
+}
+
+/* Ajuste específico para o dropdown de opções dos chats */
+.chat .dropdown[data-bs-popper="static"] .dropdown-menu {
+    position: absolute !important;
+    top: 100% !important;
+    right: 0 !important;
+    left: auto !important;
+    transform: none !important;
+}
+
+/* Forçar posicionamento correto do dropdown de opções */
+.chat .dropdown-menu.show {
+    position: absolute !important;
+    top: 100% !important;
+    right: 0 !important;
+    left: auto !important;
+    transform: none !important;
+    margin-top: 0.125rem !important;
+    margin-right: 0 !important;
+    margin-left: auto !important;
 }
 .custom-values-modal .modal-dialog {
   max-width: 350px;
@@ -961,4 +990,36 @@ input[type="range"]::-moz-range-progress {
   color: #bbb !important;
   opacity: 1 !important;
   cursor: not-allowed !important;
+}
+
+.modal-50vw .modal-dialog {
+  max-width: 40vw !important;
+  width: 40vw !important;
+  margin: 1.75rem auto !important;
+}
+
+.modal-50vw .modal-content {
+  width: 100%;
+  margin: 0;
+}
+
+.modal-novo-motivo .modal-dialog {
+  max-width: 30vw !important;
+  width: 30vw !important;
+  margin: 1.75rem auto !important;
+}
+
+.modal-novo-motivo .modal-content {
+  width: 100%;
+  margin: 0;
+}
+
+/* Desfoque no modal principal quando o modal de novo motivo estiver aberto */
+.modal-50vw.modal-blur .modal-content {
+  filter: blur(3px);
+  transition: filter 0.3s ease;
+}
+
+.modal-50vw.modal-blur .modal-content * {
+  pointer-events: none;
 }

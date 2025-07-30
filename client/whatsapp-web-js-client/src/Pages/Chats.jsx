@@ -180,7 +180,7 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
   };
   return (
     <>
-      <Dropdown drop="end" onToggle={setIsDropdownOpen}>
+      <Dropdown drop="start" onToggle={setIsDropdownOpen}>
         <Dropdown.Toggle
           variant={theme === 'light' ? 'light' : 'dark'}
           id="dropdown-basic"
@@ -194,7 +194,9 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
           className={`chat-dropdown-menu ${theme === 'dark' ? 'dark' : ''}`}
           style={{
             zIndex: 9999,
-            position: 'absolute'
+            position: 'absolute',
+            right: '0',
+            left: 'auto'
           }}
         >
           <Dropdown.Divider />
