@@ -163,73 +163,74 @@ const createChat = async (chat, instance, message, etapa, io) => {
 //redistribuir
 
 
-const redistributeLead = async (chatId, schema) => {
-  const chatDb = await pool.query(
-    `SELECT * FROM ${schema}.chats WHERE id=$1`, [chatId]
-  );
-  const chat = chatDb.rows[0];
-  if (!chat) return;
+// const redistributeLead = async (chatId, schema) => {
+//   const chatDb = await pool.query(
+//     `SELECT * FROM ${schema}.chats WHERE id=$1`, [chatId]
+//   );
+//   const chat = chatDb.rows[0];
+//   if (!chat) return;
 
-  const queueId = chat.queue_id;
-  const isDistributionOn = await pool.query(
-    `SELECT * FROM ${schema}.queues WHERE id=$1`, [queueId]
-  );
-  if (!isDistributionOn.rows[0] || !isDistributionOn.rows[0].distribution) return;
+//   const queueId = chat.queue_id;
+//   const isDistributionOn = await pool.query(
+//     `SELECT * FROM ${schema}.queues WHERE id=$1`, [queueId]
+//   );
+//   if (!isDistributionOn.rows[0] || !isDistributionOn.rows[0].distribution) return;
 
-  const onlineUsers = await getOnlineUsers(schema);
-  const queueUsersQuery = await pool.query(
-    `SELECT user_id FROM ${schema}.queue_users WHERE queue_id=$1`,
-    [queueId]
-  );
-  const userIdsInQueue = queueUsersQuery.rows.map(row => row.user_id);
-  const eligibleUsers = onlineUsers.filter(user =>
-    user.permission === 'user' && userIdsInQueue.includes(user.id) && user.id !== chat.assigned_user
-  );
-  if (eligibleUsers.length === 0) return;
+//   const onlineUsers = await getOnlineUsers(schema);
+//   const queueUsersQuery = await pool.query(
+//     `SELECT user_id FROM ${schema}.queue_users WHERE queue_id=$1`,
+//     [queueId]
+//   );
+//   const userIdsInQueue = queueUsersQuery.rows.map(row => row.user_id);
+//   const eligibleUsers = onlineUsers.filter(user =>
+//     user.permission === 'user' && userIdsInQueue.includes(user.id) && user.id !== chat.assigned_user
+//   );
+//   if (eligibleUsers.length === 0) return;
 
-  const lastAssigned = await getLastAssignedUser(queueId, schema);
-  let nextUser;
-  if (!lastAssigned) {
-    nextUser = eligibleUsers[0];
-  } else {
-    const lastIndex = eligibleUsers.findIndex(u => u.id === lastAssigned.user_id);
-    nextUser = eligibleUsers[(lastIndex + 1) % eligibleUsers.length];
-  }
-  await updateLastAssignedUser(queueId, nextUser.id, schema);
+//   const lastAssigned = await getLastAssignedUser(queueId, schema);
+//   let nextUser;
+//   if (!lastAssigned) {
+//     nextUser = eligibleUsers[0];
+//   } else {
+//     const lastIndex = eligibleUsers.findIndex(u => u.id === lastAssigned.user_id);
+//     nextUser = eligibleUsers[(lastIndex + 1) % eligibleUsers.length];
+//   }
+//   await updateLastAssignedUser(queueId, nextUser.id, schema);
 
-  await pool.query(
-    `UPDATE ${schema}.chats SET assigned_user=$1 WHERE id=$2`,
-    [nextUser.id, chatId]
-  );
-};
+//   await pool.query(
+//     `UPDATE ${schema}.chats SET assigned_user=$1 WHERE id=$2`,
+//     [nextUser.id, chatId]
+//   );
+// };
 
-const leadRedistributionWorker = new Worker(
-  'lead-redistribution',
-  async () => {
-    const schemas = await pool.query(
-      `SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('pg_catalog', 'information_schema', 'pg_toast', 'public')`
-    );
-    for (const { schema_name } of schemas.rows) {
-      const chats = await pool.query(
-        `SELECT * FROM ${schema_name}.chats WHERE status='open' AND assigned_user IS NOT NULL`
-      );
-      for (const chat of chats.rows) {
-        const lastMsgTime = chat.updated_time || chat.created_at;
-        if (Date.now() - new Date(lastMsgTime).getTime() > 1 * 60 * 1000) {
-          await redistributeLead(chat.id, schema_name);
-        }
-      }
-    }
-  },
-  { connection: bullConn }
-);
 
-const leadRedistributionQueue = new Queue('lead-redistribution', { connection: bullConn });
-setInterval(() => {
-  leadRedistributionQueue.add('check-leads', {});
-}, 5 * 60 * 1000);
+// const leadRedistributionWorker = new Worker(
+//   'lead-redistribution',
+//   async () => {
+//     const schemas = await pool.query(
+//       `SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('pg_catalog', 'information_schema', 'pg_toast', 'public')`
+//     );
+//     for (const { schema_name } of schemas.rows) {
+//       const chats = await pool.query(
+//         `SELECT * FROM ${schema_name}.chats WHERE status='open' AND assigned_user IS NOT NULL`
+//       );
+//       for (const chat of chats.rows) {
+//         const lastMsgTime = chat.updated_time || chat.created_at;
+//         if (Date.now() - new Date(lastMsgTime).getTime() > 1 * 60 * 1000) {
+//           await redistributeLead(chat.id, schema_name);
+//         }
+//       }
+//     }
+//   },
+//   { connection: bullConn }
+// );
 
-//final
+// const leadRedistributionQueue = new Queue('lead-redistribution', { connection: bullConn });
+// setInterval(() => {
+//   leadRedistributionQueue.add('check-leads', {});
+// }, 5 * 60 * 1000);
+
+// //final
 
 const updateChatMessages = async (chat, schema, message) => {
   try {

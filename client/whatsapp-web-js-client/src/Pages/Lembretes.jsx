@@ -282,6 +282,18 @@ const handleSalvarLembrete = (lembreteCriadoOuEditado) => {
         fetchGoogleEvents();
     }, []);
 
+    // Inicializar tooltips do Bootstrap
+    useEffect(() => {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        return () => {
+            tooltipList.forEach(tooltip => tooltip.dispose());
+        };
+    }, [lembretesState]);
+
     const handleDeleteLembrete = (id) => {
         setLembretesState(prev => prev.filter(l => l.id !== id));
         setLembreteDeletando(null);
@@ -456,10 +468,28 @@ const handleSalvarLembrete = (lembreteCriadoOuEditado) => {
     return (
         <div key={l.id} className={`d-flex align-items-center gap-2 mb-2 rounded px-3`} style={{ background: 'var(--input-bg-color-' + theme + ')', border: '1px solid var(--border-color-' + theme + ')', minHeight: 44, paddingTop: 8, paddingBottom: 8 }}>
             <i className={`bi ${getReminderIconClass(l)} fs-5 header-text-${theme} ${l.tipo === 'google' || l.google_event_id ? 'text-primary' : ''}`}></i>
-            <div className={`flex-grow-1 header-text-${theme}`}>
-                <div className="fw-semibold">
-                  {getReminderTitle(l)}
-                  {isGoogleConnected && (l.tipo === 'google' || l.google_event_id) && <span className="badge bg-primary ms-2">Google</span>}
+                                <div className={`flex-grow-1 header-text-${theme}`}>
+                <div className="fw-semibold d-flex align-items-center">
+                  {isGoogleConnected && (l.tipo === 'google' || l.google_event_id) && (
+                                                                  <span 
+                          className="badge bg-primary me-2 flex-shrink-0" 
+                          data-bs-toggle="tooltip"
+                          data-bs-placement="right"
+                          data-bs-title="Evento no Google Calendar"
+                          style={{ 
+                            cursor: 'help',
+                            width: '20.5px',
+                            height: '20px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '0'
+                          }}
+                        >
+                        <i className="bi bi-google d-flex align-items-center justify-content-center" style={{ flex: 1 }}></i>
+                      </span>
+                  )}
+                  <span>{getReminderTitle(l)}</span>
                 </div>
                 <div className="small">
                     {new Date(Number(l.date) * 1000).toLocaleString('pt-BR', {
