@@ -1739,7 +1739,7 @@ const handleImageUpload = async (event) => {
   className={`w-100 chat-messages-${theme} d-flex flex-column`}
   style={{ borderTopRightRadius: '10px', position: 'relative' }}
 >
-{selectedChat && (
+  {/* Cabeçalho da conversa - sempre visível */}
   <div
     className="d-flex justify-content-between align-items-center flex-row px-3 py-2"
     style={{
@@ -1752,7 +1752,6 @@ const handleImageUpload = async (event) => {
       maxWidth:'1700px',
     }}
   >
-
     <div>
      {isEditingName ? (
   <input
@@ -1782,11 +1781,11 @@ const handleImageUpload = async (event) => {
     style={{ fontSize: '1.1rem', fontWeight: 700, cursor: 'pointer' }}
     onClick={handleEditNameStart}
   >
-    {selectedChat.contact_name || 'Sem Nome'}
+    {selectedChat?.contact_name || 'Sem Nome'}
   </strong>
 )}
       <div style={{ fontSize: '0.95rem', opacity: 0.8 }}>
-        {selectedChat.contact_phone || selectedChat.id}
+        {selectedChat?.contact_phone || selectedChat?.id || ''}
       </div>
     </div>
 
@@ -1796,6 +1795,7 @@ const handleImageUpload = async (event) => {
         className={`btn btn-2-${theme} d-flex gap-2`}
         onClick={() => setShowSearch(!showSearch)}
         title="Pesquisar na conversa"
+        disabled={!selectedChat}
       >
         <i className="bi bi-search"></i>
       </button>
@@ -1803,7 +1803,7 @@ const handleImageUpload = async (event) => {
       <button
         className={`btn btn-2-${theme} d-flex gap-2`}
         onClick={isBotActive ? disableBot : undefined}
-        disabled={!isBotActive}
+        disabled={!isBotActive || !selectedChat}
         title={isBotActive ? "Desativar Bot" : "Bot Desativado"}
       >
         <i className={`bi ${isBotActive ? 'bi-pause':'bi-play-fill'}`}></i>
@@ -1864,6 +1864,7 @@ const handleImageUpload = async (event) => {
           setShowSideMenu(true);
           setTimeout(() => setSideMenuActive(true), 10);
         }}
+        disabled={!selectedChat}
       >
         <i className="bi bi-person-gear"></i>
       </button>
@@ -1887,7 +1888,8 @@ const handleImageUpload = async (event) => {
     </div>
 
   </div>
-)}
+
+  {/* Área de conteúdo da conversa */}
   <div
     style={{
       height: '100%',
@@ -2166,6 +2168,7 @@ const handleImageUpload = async (event) => {
     id="imagem"
     className={`btn btn-2-${theme}`}
     onClick={() => document.getElementById('imageInput').click()} 
+    disabled={!selectedChat}
   >
     <i className="bi bi-image"></i>
   </button>
@@ -2182,6 +2185,7 @@ const handleImageUpload = async (event) => {
     style={{}}
     title="Mensagens rápidas"
     onClick={() => setShowQuickMsgPopover(v => !v)}
+    disabled={!selectedChat}
   >
     <i className="bi bi-lightning-charge"></i>
   </button>
@@ -2384,6 +2388,7 @@ const handleImageUpload = async (event) => {
             border: 'none',
           }}
           onClick={() => setShowEmojiPicker((prev) => !prev)}
+          disabled={!selectedChat}
         >
           <i className="bi bi-emoji-smile"></i>
         </button>
@@ -2433,6 +2438,7 @@ const handleImageUpload = async (event) => {
           backgroundColor: 'transparent',
           border: 'none',
         }}
+        disabled={!selectedChat}
       />
       {isRecording && (
         <div
@@ -2479,6 +2485,7 @@ const handleImageUpload = async (event) => {
         color: isRecording ? 'var(--error-color)' : '',
         borderColor: isRecording ? 'var(--error-color)' : '',
       }}
+      disabled={!selectedChat}
     >
       <i className={`bi ${isRecording ? 'bi-x' : 'bi-mic'}`}></i>
     </button>
@@ -2498,11 +2505,70 @@ const handleImageUpload = async (event) => {
           handleSendMessage();
         }
       }}
+      disabled={!selectedChat}
     >
       <i className="bi bi-send"></i>
     </button>
 
   </div>
+
+  {/* Overlay para quando nenhuma conversa está selecionada */}
+  {!selectedChat && (
+    <div
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: `var(--bg-color-${theme})`,
+        color: `var(--color-${theme})`,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10,
+        borderTopRightRadius: '5px',
+        borderBottomRightRadius: '5px',
+      }}
+    >
+      <div
+        style={{
+          textAlign: 'center',
+          padding: '20px',
+        }}
+      >
+        <i 
+          className="bi bi-chat-left-text" 
+          style={{
+            fontSize: '4rem',
+            color: `var(--placeholder-color)`,
+            marginBottom: '1rem',
+            opacity: 0.5,
+          }}
+        ></i>
+        <h5 
+          style={{
+            color: `var(--color-${theme})`,
+            marginBottom: '0.5rem',
+            fontWeight: '600',
+          }}
+        >
+          Selecione uma conversa
+        </h5>
+        <p 
+          style={{
+            color: `var(--placeholder-color)`,
+            fontSize: '0.9rem',
+            margin: '0',
+            opacity: 0.7,
+          }}
+        >
+          Escolha uma conversa da lista para começar a enviar mensagens
+        </p>
+      </div>
+    </div>
+  )}
 </div>
     </div>
       <NewContactModal 
