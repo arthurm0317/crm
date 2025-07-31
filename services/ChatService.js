@@ -693,6 +693,7 @@ const getClosedChats = async(schema)=>{
   return result.rows
 }
 
+
 module.exports = {
   createChat,
   updateChatMessages,

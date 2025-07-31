@@ -11,6 +11,7 @@ const {
   getStatusController,
   createStatusController,
   getClosedChatsController,
+  redistributeWaitingChatsController,
 } = require('../controllers/ChatController'); 
 const { updateContactName } = require('../services/ChatService');
 const { verifyToken } = require('../controllers/UserController');
@@ -35,5 +36,6 @@ router.post('/close', verifyToken, closeChatContoller)
 router.post('/setUser', verifyToken, setSpecificUserController)
 router.post('/schedule-message', verifyToken, scheduleMessageController)
 router.post('/disable-bot', verifyToken, disableBotController)
+router.post('/redistribute-waiting', verifyToken, redistributeWaitingChatsController)
 router.delete('/scheduled-message/:id/:schema', verifyToken, deleteScheduledMessageController)
 module.exports = router;

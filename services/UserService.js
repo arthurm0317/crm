@@ -19,6 +19,17 @@ const createUser = async (user, schema) => {
     return result.rows[0];
 };
 
+const changePassword = async (user_mail, new_password, schema) => {
+  const passwordHash = await hash(new_password, 10)
+
+  const result = await pool.query(
+    `UPDATE ${schema}.users SET password = $1 WHERE email = $2 RETURNING *`,
+    [passwordHash, user_mail]
+  );
+
+  return result.rows[0];
+}
+
 const getAllUsers = async (schema) => {
     const result = await pool.query(`SELECT * FROM ${schema}.users`);
     return result.rows;

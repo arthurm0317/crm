@@ -334,6 +334,7 @@ function ChatPage({ theme, chat_id} ) {
   const [quickMsgIndex, setQuickMsgIndex] = useState(-1);
   const [showCustomValuesModal, setShowCustomValuesModal] = useState(false);
   const [users, setUsers] = useState([]);
+  const [redistributing, setRedistributing] = useState(false);
 
   useEffect(() => {
     if (!showQuickMsgPopover) setQuickMsgIndex(-1);
@@ -663,6 +664,41 @@ const disableBot = async () => {
     setIsBotActive(false);
   } catch (error) {
     console.error('Erro ao desativar bot:', error);
+  }
+};
+
+const handleRedistributeWaitingChats = async () => {
+  if (selectedTab !== 'aguardando') return;
+  
+  setRedistributing(true);
+  try {
+    // Obter todos os chats em espera ordenados por timestamp
+    const waitingChats = getFilteredChats().filter(chat => chat.status === 'waiting');
+    
+    if (waitingChats.length === 0) {
+      alert('Não há chats aguardando para redistribuir.');
+      return;
+    }
+
+    // Enviar para o backend para redistribuição
+    await axios.post(`${url}/chat/redistribute-waiting`, {
+      chats: waitingChats,
+      schema: schema,
+      user_id: userData.id
+    }, {
+      withCredentials: true
+    });
+
+    // Recarregar a lista de chats após redistribuição
+    await loadChats();
+    
+    alert(`Redistribuição concluída! ${waitingChats.length} chats foram redistribuídos.`);
+    
+  } catch (error) {
+    console.error('Erro ao redistribuir chats:', error);
+    alert('Erro ao redistribuir chats. Tente novamente.');
+  } finally {
+    setRedistributing(false);
   }
 };
 
@@ -1639,11 +1675,25 @@ const handleImageUpload = async (event) => {
 
             {/* Lista filtrada */}
             <div className='p-3'>
-              <h6 
-                className={`header-text-${theme} m-0`}
-              >
-                {selectedTab === 'conversas' ? 'Conversas' : 'Sala de Espera'}
-              </h6>
+              <div className='d-flex justify-content-between align-items-center'>
+                <h6 
+                  className={`header-text-${theme} m-0`}
+                >
+                  {selectedTab === 'conversas' ? 'Conversas' : 'Sala de Espera'}
+                </h6>
+                {selectedTab === 'aguardando' && (
+                  <button
+                    className={`btn btn-sm btn-1-${theme} d-flex align-items-center gap-1`}
+                    onClick={handleRedistributeWaitingChats}
+                    disabled={redistributing}
+                    title="Redistribuir leads aguardando"
+                    style={{ fontSize: '0.8rem', padding: '4px 8px' }}
+                  >
+                    <i className="bi bi-arrow-left-right"></i>
+                    {redistributing ? 'Redistribuindo...' : 'Redistribuir'}
+                  </button>
+                )}
+              </div>
             </div>
 
           </div>
