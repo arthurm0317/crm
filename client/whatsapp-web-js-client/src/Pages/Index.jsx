@@ -427,7 +427,6 @@ useEffect(() => {
               data-bs-toggle="tooltip"
               data-bs-placement="right"
               data-bs-title="Dashboard"
-              className={`btn ${page === 'dashboard' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''} d-none`}
             >
               <i className="bi bi-speedometer2"></i>
               <span className="sidebar-label d-none">Dashboard</span>
