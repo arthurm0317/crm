@@ -26,6 +26,7 @@ const insertContactInKanban = async (number, stage_id, schema) => {
 }
 
 const updateContactInKanban = async (number, stage_id, schema) => {
+  console.log(`Atualizando contato ${number} para a etapa ${stage_id} no schema ${schema}`);
   const result = await pool.query(`UPDATE ${schema}.contacts_stage SET stage=$1 WHERE contact_number=$2 RETURNING *`, [stage_id, number])
   return result.rows[0]
 }

@@ -30,6 +30,9 @@ function DisparoModal({ theme, disparo = null, onSave }) {
   const [customFields ,setCustomFields] = useState([])
   const textAreasRef = useRef([]);
   const [mensagensImagens, setMensagensImagens] = useState([]);
+  // Estados para transferência de contatos
+  const [transferirContato, setTransferirContato] = useState(false);
+  const [etapaDestino, setEtapaDestino] = useState('');
   // Remover todos os estados e lógicas de loading, success, errorMsg
   // Remover feedback visual do botão
   // Remover exibição de erro
@@ -179,6 +182,15 @@ const limparBase64 = (base64ComPrefixo) => {
       setMensagensImagens([null]);
       setNumMensagens(1);
     }
+
+    // Carregar dados de transferência se existir
+    if (disparo && disparo.transferir_contato) {
+      setTransferirContato(true);
+      setEtapaDestino(disparo.new_stage || '');
+    } else {
+      setTransferirContato(false);
+      setEtapaDestino('');
+    }
   } else {
     setTitulo('');
     setNumMensagens(1);
@@ -199,6 +211,8 @@ const limparBase64 = (base64ComPrefixo) => {
     setIntervaloMaximo(60);
     setIntervaloUnidadeMin('segundos');
     setIntervaloUnidadeMax('segundos');
+    setTransferirContato(false);
+    setEtapaDestino('');
   }
 };
 
@@ -297,8 +311,17 @@ const limparBase64 = (base64ComPrefixo) => {
     } else {
       setFunilSelecionado('');
       setEtapas([]);
+      setTransferirContato(false);
+      setEtapaDestino('');
     }
   }, [tipoAlvo]);
+
+  // Limpar etapa de destino quando a etapa atual mudar
+  useEffect(() => {
+    if (etapaDestino === etapa) {
+      setEtapaDestino('');
+    }
+  }, [etapa, etapaDestino]);
 
   const handleIntervaloChange = (valor, unidade) => {
     let valorEmSegundos;
@@ -416,6 +439,10 @@ const limparBase64 = (base64ComPrefixo) => {
       alert('Selecione pelo menos uma tag.');
       return;
     }
+    if (transferirContato && !etapaDestino) {
+      alert('Selecione uma etapa de destino para a transferência.');
+      return;
+    }
     setLoading(true);
     const start_date = dataInicio && horaInicio
       ? `${dataInicio}T${horaInicio}:00-03:00`
@@ -453,7 +480,9 @@ const limparBase64 = (base64ComPrefixo) => {
       unidade_min: intervaloDinamico ? intervaloUnidadeMin : null,
       max: intervaloDinamico ? intervaloMaximo : null,
       unidade_max: intervaloDinamico ? intervaloUnidadeMax : null
-    }
+    },
+    transferir_contato: transferirContato,
+    ...(transferirContato && etapaDestino ? { new_stage: etapaDestino } : {})
 };
 
     try {
@@ -785,6 +814,52 @@ const limparBase64 = (base64ComPrefixo) => {
                       }}
                     >
                     </div>
+                  </div>
+                )}
+                
+                {/* Transferência de Contatos */}
+                {tipoAlvo === 'Funil' && (
+                  <div className="mb-3">
+                    <div className="form-check">
+                      <input
+                        type="checkbox"
+                        className="form-check-input"
+                        id="transferirContato"
+                        checked={transferirContato}
+                        onChange={(e) => {
+                          setTransferirContato(e.target.checked);
+                          if (!e.target.checked) {
+                            setEtapaDestino('');
+                          }
+                        }}
+                      />
+                      <label className={`form-check-label card-subtitle-${theme}`} htmlFor="transferirContato">
+                        Transferir contato após disparo
+                      </label>
+                    </div>
+                    
+                    {transferirContato && (
+                      <div className="mt-2">
+                        <label htmlFor="etapaDestino" className={`form-label card-subtitle-${theme}`}>
+                          Etapa de Destino
+                        </label>
+                        <select
+                          className={`form-select input-${theme}`}
+                          id="etapaDestino"
+                          value={etapaDestino}
+                          onChange={(e) => setEtapaDestino(e.target.value)}
+                        >
+                          <option value="" disabled>Selecione uma etapa de destino</option>
+                          {Array.isArray(etapas) && etapas
+                            .filter(etapaObj => etapaObj.id !== etapa) // Excluir a etapa atual
+                            .map((etapaObj) => (
+                              <option key={etapaObj.id} value={etapaObj.id}>
+                                {etapaObj.etapa}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
