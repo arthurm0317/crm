@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import * as bootstrap from 'bootstrap';
+import axios from 'axios';
 
-function DespesaModal({ show, onHide, theme, despesa = null, onSave }) {
+function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias = [], onCategoryCreated, onVendorCreated }) {
   const [formData, setFormData] = useState({
     descricao: '',
     valor: '',
@@ -30,17 +31,46 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave }) {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [documentUrl, setDocumentUrl] = useState('');
 
-  const categorias = [
-    'Alimentação',
-    'Transporte',
-    'Serviços',
-    'Equipamentos',
-    'Marketing',
-    'RH',
-    'TI',
-    'Manutenção',
-    'Outros'
-  ];
+  // Estados para criação de novos fornecedores e categorias
+  const [showNewCategoryModal, setShowNewCategoryModal] = useState(false);
+  const [showNewVendorModal, setShowNewVendorModal] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newVendorName, setNewVendorName] = useState('');
+  const [creatingCategory, setCreatingCategory] = useState(false);
+  const [creatingVendor, setCreatingVendor] = useState(false);
+  const [categoriasDisponiveis, setCategoriasDisponiveis] = useState(categorias);
+  const [fornecedores, setFornecedores] = useState([]);
+  const userData = JSON.parse(localStorage.getItem('user'));
+  const schema = userData?.schema;
+
+
+  
+
+  useEffect(()=>{
+    const fetchCategories = async()=>{
+      const response = await axios.get(`${process.env.REACT_APP_URL}/category/get-categories/${JSON.parse(localStorage.getItem('user')).schema}`, { withCredentials: true });
+      if (response.data.success === true) {
+        const result = response.data;
+        setCategoriasDisponiveis(Array.isArray(result.data) ? result.data : [result.data]);
+      } else {
+        console.error('Erro ao buscar categorias:', response.data.message);
+      }
+    }
+    fetchCategories();
+  }, []);
+
+  useEffect(()=>{
+    const fetchVendors = async()=>{
+      const response = await axios.get(`${process.env.REACT_APP_URL}/vendor/get-vendors/${schema}`, { withCredentials: true });
+      if (response.data.success === true) {
+        const result = response.data;
+        setFornecedores(Array.isArray(result.data) ? result.data : [result.data]);
+      } else {
+        console.error('Erro ao buscar fornecedores:', response.data.message);
+      }
+    }
+    fetchVendors();
+  }, []);
 
   const tiposImposto = [
     'ICMS',
@@ -56,7 +86,13 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave }) {
 
   useEffect(() => {
     if (despesa) {
-      setFormData(despesa);
+      // Garantir que as propriedades de array existam
+      setFormData({
+        ...despesa,
+        documentos: despesa.documentos || [],
+        impostos: despesa.impostos || [],
+        itens: despesa.itens || []
+      });
       setIsEditing(true);
     } else {
       setFormData({
@@ -89,6 +125,82 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave }) {
       ...prev,
       [field]: value
     }));
+  };
+
+  // Função para criar nova categoria
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) return;
+    
+    setCreatingCategory(true);
+    try {
+      const user = JSON.parse(localStorage.getItem('user'));
+      const schema = user?.schema;
+
+      const response = await axios.post(`${process.env.REACT_APP_URL}/category/create-category`, {
+        name: newCategoryName.trim(),
+        schema: schema
+      },
+    { withCredentials: true });
+
+      if (response.data.success === true) {
+        const result = response.data;
+        // Atualizar o estado local do modal
+        if (result.data) {
+          setCategoriasDisponiveis(prev => [...prev, result.data]);
+        }
+        // Chamar callback do componente pai
+        if (onCategoryCreated && result.data) {
+          onCategoryCreated(result.data);
+        }
+        setNewCategoryName('');
+        setShowNewCategoryModal(false);
+      } else {
+        alert('Erro ao criar categoria');
+      }
+    } catch (error) {
+      console.error('Erro ao criar categoria:', error);
+      alert('Erro ao criar categoria');
+    } finally {
+      setCreatingCategory(false);
+    }
+  };
+
+  // Função para criar novo fornecedor
+  const handleCreateVendor = async () => {
+    if (!newVendorName.trim()) return;
+    
+    setCreatingVendor(true);
+    try {
+      const user = JSON.parse(localStorage.getItem('user'));
+      const schema = user?.schema;
+
+      const response = await axios.post(`${process.env.REACT_APP_URL}/vendor/create-vendor`, {
+        vendor_name: newVendorName.trim(),
+        schema: schema
+      },
+    { withCredentials: true });
+
+      if (response.data.success === true) {
+        const result = response.data;
+        // Atualizar o estado local do modal
+        if (result.data) {
+          setFornecedores(prev => [...prev, result.data]);
+        }
+        // Chamar callback do componente pai
+        if (onVendorCreated && result.data) {
+          onVendorCreated(result.data);
+        }
+        setNewVendorName('');
+        setShowNewVendorModal(false);
+      } else {
+        alert('Erro ao criar fornecedor');
+      }
+    } catch (error) {
+      console.error('Erro ao criar fornecedor:', error);
+      alert('Erro ao criar fornecedor');
+    } finally {
+      setCreatingVendor(false);
+    }
   };
 
   const handleFileUpload = (event) => {
@@ -274,6 +386,22 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave }) {
   };
 
   const handleSave = () => {
+    // Validação básica
+    if (!formData.descricao || !formData.descricao.trim()) {
+      alert('Por favor, preencha a descrição da despesa.');
+      return;
+    }
+    
+    if (!formData.valor || parseFloat(formData.valor) <= 0) {
+      alert('Por favor, preencha um valor válido para a despesa.');
+      return;
+    }
+    
+    if (!formData.data) {
+      alert('Por favor, selecione uma data para a despesa.');
+      return;
+    }
+    
     // Calcular valor total real (itens + impostos)
     const totalItens = calcularTotalItens();
     const totalImpostos = calcularTotalImpostos();
@@ -398,16 +526,29 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave }) {
               <div className="row">
                 <div className="col-md-6 mb-3">
                   <label className={`form-label card-subtitle-${theme}`}>Categoria</label>
-                  <select
-                    className={`form-select input-${theme}`}
-                    value={formData.categoria}
-                    onChange={(e) => handleInputChange('categoria', e.target.value)}
-                  >
-                    <option value="">Selecione uma categoria</option>
-                    {categorias.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
+                  <div className="d-flex gap-2">
+                    <select
+                      className={`form-select input-${theme}`}
+                      value={formData.categoria_id || ''}
+                      onChange={(e) => handleInputChange('categoria_id', e.target.value)}
+                    >
+                      <option value="">Selecione uma categoria</option>
+                      {categoriasDisponiveis.map(cat => (
+                        <option key={cat.id } value={cat.id }>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      className={`btn btn-outline-${theme === 'light' ? 'primary' : 'light'} btn-sm`}
+                      onClick={() => setShowNewCategoryModal(true)}
+                      title="Adicionar nova categoria"
+                      style={{ whiteSpace: 'nowrap' }}
+                    >
+                      <i className="bi bi-plus-circle"></i>
+                    </button>
+                  </div>
                 </div>
                 <div className="col-md-6 mb-3">
                   <label className={`form-label card-subtitle-${theme}`}>Data *</label>
@@ -423,13 +564,29 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave }) {
               <div className="row">
                 <div className="col-md-6 mb-3">
                   <label className={`form-label card-subtitle-${theme}`}>Fornecedor</label>
-                  <input
-                    type="text"
-                    className={`form-control input-${theme}`}
-                    value={formData.fornecedor}
-                    onChange={(e) => handleInputChange('fornecedor', e.target.value)}
-                    placeholder="Nome do fornecedor"
-                  />
+                  <div className="d-flex gap-2">
+                    <select
+                      className={`form-select input-${theme}`}
+                      value={formData.fornecedor_id || ''}
+                      onChange={(e) => handleInputChange('fornecedor_id', e.target.value)}
+                    >
+                      <option value="">Selecione um fornecedor</option>
+                      {fornecedores.map(fornecedor => (
+                        <option key={fornecedor.id} value={fornecedor.id}>
+                          {fornecedor.vendor_name}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      className={`btn btn-outline-${theme === 'light' ? 'primary' : 'light'} btn-sm`}
+                      onClick={() => setShowNewVendorModal(true)}
+                      title="Adicionar novo fornecedor"
+                      style={{ whiteSpace: 'nowrap' }}
+                    >
+                      <i className="bi bi-plus-circle"></i>
+                    </button>
+                  </div>
                 </div>
                 <div className="col-md-6 mb-3">
                   <label className={`form-label card-subtitle-${theme}`}>Status</label>
@@ -490,7 +647,7 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave }) {
                   </div>
                 </div>
                 
-                {formData.documentos.length > 0 && (
+                {formData.documentos && formData.documentos.length > 0 && (
                   <div className="table-responsive">
                     <table className={`table custom-table-${theme} mb-0`}>
                       <thead>
@@ -577,7 +734,7 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave }) {
                     {editingItem ? 'Atualizar' : 'Adicionar'} Item
                   </button>
                 </div>
-                {formData.itens.length > 0 && (
+                {formData.itens && formData.itens.length > 0 && (
                   <div className="table-responsive">
                                          <table className={`table custom-table-${theme} mb-0`}>
                                                <thead>
@@ -649,7 +806,7 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave }) {
                     {editingImposto ? 'Atualizar' : 'Adicionar'} Imposto
                   </button>
                 </div>
-                {formData.impostos.length > 0 && (
+                {formData.impostos && formData.impostos.length > 0 && (
                   <div className="table-responsive">
                                          <table className={`table custom-table-${theme} mb-0`}>
                        <thead>
@@ -925,6 +1082,234 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave }) {
         editingItem={editingItem}
         setEditingItem={setEditingItem}
       />
+
+      {/* Modal para Nova Categoria */}
+      {showNewCategoryModal && (
+        <div 
+          className="modal-backdrop"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1070,
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowNewCategoryModal(false);
+              setNewCategoryName('');
+            }
+          }}
+        >
+          <div 
+            className="modal-dialog"
+            style={{
+              margin: 0,
+              maxWidth: '400px',
+              width: '98%',
+              borderRadius: '16px',
+              boxShadow: '0 4px 32px rgba(0,0,0,0.18)',
+              background: 'transparent',
+              padding: 0,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-content" style={{ 
+              backgroundColor: `var(--bg-color-${theme})`,
+              borderRadius: '16px',
+              padding: '24px',
+              boxShadow: '0 4px 32px rgba(0,0,0,0.18)',
+            }}>
+              <div className="modal-header gap-3" style={{ borderTopLeftRadius: '16px', borderTopRightRadius: '16px', paddingLeft: 0, paddingRight: 0, paddingTop: 0 }}>
+                <i className={`bi bi-tags header-text-${theme}`}></i>
+                <h5 className={`modal-title header-text-${theme}`}>
+                  Nova Categoria
+                </h5>
+                <button 
+                  type="button" 
+                  className="btn-close" 
+                  onClick={() => {
+                    setShowNewCategoryModal(false);
+                    setNewCategoryName('');
+                  }}
+                  aria-label="Fechar"
+                ></button>
+              </div>
+              <div className="modal-body" style={{ padding: 0 }}>
+                <div className="mb-3">
+                  <label className={`form-label card-subtitle-${theme}`}>Nome da Categoria</label>
+                  <input
+                    type="text"
+                    className={`form-control input-${theme}`}
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="Digite o nome da categoria"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        handleCreateCategory();
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="modal-footer" style={{ 
+                borderTop: `1px solid var(--border-color-${theme})`,
+                padding: '16px 0 0 0',
+                marginTop: '24px'
+              }}>
+                <div className="d-flex justify-content-end gap-2 w-100">
+                  <button 
+                    type="button" 
+                    className={`btn btn-2-${theme}`} 
+                    onClick={() => {
+                      setShowNewCategoryModal(false);
+                      setNewCategoryName('');
+                    }}
+                    style={{ minWidth: '120px' }}
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="button" 
+                    className={`btn btn-1-${theme}`} 
+                    onClick={handleCreateCategory}
+                    disabled={creatingCategory || !newCategoryName.trim()}
+                    style={{ minWidth: '120px' }}
+                  >
+                    {creatingCategory ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        Criando...
+                      </>
+                    ) : (
+                      'Criar Categoria'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Novo Fornecedor */}
+      {showNewVendorModal && (
+        <div 
+          className="modal-backdrop"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1070,
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowNewVendorModal(false);
+              setNewVendorName('');
+            }
+          }}
+        >
+          <div 
+            className="modal-dialog"
+            style={{
+              margin: 0,
+              maxWidth: '400px',
+              width: '98%',
+              borderRadius: '16px',
+              boxShadow: '0 4px 32px rgba(0,0,0,0.18)',
+              background: 'transparent',
+              padding: 0,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-content" style={{ 
+              backgroundColor: `var(--bg-color-${theme})`,
+              borderRadius: '16px',
+              padding: '24px',
+              boxShadow: '0 4px 32px rgba(0,0,0,0.18)',
+            }}>
+              <div className="modal-header gap-3" style={{ borderTopLeftRadius: '16px', borderTopRightRadius: '16px', paddingLeft: 0, paddingRight: 0, paddingTop: 0 }}>
+                <i className={`bi bi-building header-text-${theme}`}></i>
+                <h5 className={`modal-title header-text-${theme}`}>
+                  Novo Fornecedor
+                </h5>
+                <button 
+                  type="button" 
+                  className="btn-close" 
+                  onClick={() => {
+                    setShowNewVendorModal(false);
+                    setNewVendorName('');
+                  }}
+                  aria-label="Fechar"
+                ></button>
+              </div>
+              <div className="modal-body" style={{ padding: 0 }}>
+                <div className="mb-3">
+                  <label className={`form-label card-subtitle-${theme}`}>Nome do Fornecedor</label>
+                  <input
+                    type="text"
+                    className={`form-control input-${theme}`}
+                    value={newVendorName}
+                    onChange={(e) => setNewVendorName(e.target.value)}
+                    placeholder="Digite o nome do fornecedor"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        handleCreateVendor();
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="modal-footer" style={{ 
+                borderTop: `1px solid var(--border-color-${theme})`,
+                padding: '16px 0 0 0',
+                marginTop: '24px'
+              }}>
+                <div className="d-flex justify-content-end gap-2 w-100">
+                  <button 
+                    type="button" 
+                    className={`btn btn-2-${theme}`} 
+                    onClick={() => {
+                      setShowNewVendorModal(false);
+                      setNewVendorName('');
+                    }}
+                    style={{ minWidth: '120px' }}
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="button" 
+                    className={`btn btn-1-${theme}`} 
+                    onClick={handleCreateVendor}
+                    disabled={creatingVendor || !newVendorName.trim()}
+                    style={{ minWidth: '120px' }}
+                  >
+                    {creatingVendor ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        Criando...
+                      </>
+                    ) : (
+                      'Criar Fornecedor'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
 
     </>

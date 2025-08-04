@@ -20,6 +20,9 @@ const preferenceRoutes = require('./routes/UserPreferencesRoutes');
 const passportRoutes = require('./routes/PassportRoutes')
 const googleCalendarRoutes = require('./routes/GoogleCalendarRoutes');
 const reportRoutes = require('./routes/ReportRoutes');
+const categoryRoutes = require('./routes/CategoryRoute');
+const vendorRoutes = require('./routes/VendorRoutes');
+const expensesRoutes = require('./routes/ExpensesRoutes');
 
 const { setGlobalSocket } = require('./services/LembreteService');
 const quickMessagesRoutes = require('./routes/QuickMessagesRoutes');
@@ -283,6 +286,9 @@ app.use('/auth', passportRoutes);
 app.use('/qmessage', quickMessagesRoutes);
 app.use('/calendar', googleCalendarRoutes);
 app.use('/report', reportRoutes);
+app.use('/category', categoryRoutes);
+app.use('/vendor', vendorRoutes);
+app.use('/expenses', expensesRoutes);
 
 const axios = require('axios');
 const fs = require('fs');

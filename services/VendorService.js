@@ -9,6 +9,14 @@ const createVendor = async (vendor_name, schema) => {
     return result.rows[0];
 }
 
+const getVendors = async (schema) => {
+    const result = await pool.query(
+        `SELECT * FROM ${schema}.vendors`
+    );
+    return result.rows; 
+}
+
 module.exports = {
-    createVendor
+    createVendor,
+    getVendors
 }

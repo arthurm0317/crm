@@ -258,6 +258,38 @@ const createCompany = async (company, schema) => {
             );
         `)
 
+        // Tabelas para o módulo financeiro
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.expenses (
+                id UUID PRIMARY KEY,
+                user_id UUID REFERENCES ${schema}.users(id) ON DELETE SET NULL,
+                vendor_id UUID,
+                description TEXT NOT NULL,
+                category_id UUID,
+                total_amount DECIMAL(10,2) NOT NULL,
+                currency TEXT DEFAULT 'BRL',
+                date_incurred DATE NOT NULL,
+                due_date DATE,
+                payment_date DATE,
+                payment_method TEXT DEFAULT 'dinheiro',
+                status TEXT DEFAULT 'pendente',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.category (
+                id UUID PRIMARY KEY,
+                category_name TEXT NOT NULL UNIQUE
+            );
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.vendors (
+                id UUID PRIMARY KEY,
+                vendor_name TEXT NOT NULL UNIQUE
+            );
+        `);
 
 
     const superAdmin = new Users(

@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import * as bootstrap from 'bootstrap';
 import DespesaModal from './modalPages/DespesaModal';
+import { ExpensesService, CategoriesService, VendorsService } from '../services/FinanceiroService';
 
 function Financeiro({ theme }) {
   const [activeTab, setActiveTab] = useState('resumo');
   const [despesas, setDespesas] = useState([]);
+  const [categorias, setCategorias] = useState([]);
+  const [fornecedores, setFornecedores] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [showDespesaModal, setShowDespesaModal] = useState(false);
   const [despesaEditando, setDespesaEditando] = useState(null);
   const [filtros, setFiltros] = useState({
@@ -15,6 +19,10 @@ function Financeiro({ theme }) {
     dataFim: '',
     categorizada: ''
   });
+
+  // Obter schema do usuário logado
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const schema = user.schema 
 
   useEffect(() => {
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
@@ -31,6 +39,40 @@ function Financeiro({ theme }) {
     }
   }, [activeTab]);
 
+  // Carregar dados iniciais
+  useEffect(() => {
+    const carregarDados = async () => {
+      setLoading(true);
+      try {
+        // Carregar despesas
+        const expensesResponse = await ExpensesService.getExpenses(schema);
+        if (expensesResponse.success) {
+          setDespesas(expensesResponse.data || []);
+        }
+
+        // Carregar categorias
+        const categoriesResponse = await CategoriesService.getCategories(schema);
+        if (categoriesResponse.success) {
+          setCategorias(categoriesResponse.data || []);
+        }
+
+        // Carregar fornecedores
+        const vendorsResponse = await VendorsService.getVendors(schema);
+        if (vendorsResponse.success) {
+          setFornecedores(vendorsResponse.data || []);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    carregarDados();
+  }, [schema]);
+
+
+
   // Funções de gestão de despesas
   const handleNovaDespesa = () => {
     setDespesaEditando(null);
@@ -42,11 +84,42 @@ function Financeiro({ theme }) {
     setShowDespesaModal(true);
   };
 
-  const handleSalvarDespesa = (despesa) => {
-    if (despesaEditando) {
-      setDespesas(prev => prev.map(d => d.id === despesa.id ? despesa : d));
-    } else {
-      setDespesas(prev => [...prev, despesa]);
+  const handleSalvarDespesa = async (despesa) => {
+    try {
+      setLoading(true);
+      
+      // Preparar dados para a API
+      const expenseData = {
+        user_id: user.id,
+        vendor_id: despesa.fornecedor_id || null,
+        description: despesa.descricao,
+        category_id: despesa.categoria_id || null,
+        total_amount: parseFloat(despesa.valor) || 0,
+        currency: 'BRL',
+        date_incurred: despesa.data,
+        due_date: despesa.dataVencimento || null,
+        payment_date: despesa.dataPagamento || null,
+        payment_method: despesa.metodoPagamento || 'dinheiro',
+        status: despesa.status || 'pendente',
+        created_at: new Date().toISOString(),
+        schema: schema
+      };
+
+      if (despesaEditando) {
+        // Atualizar despesa existente (implementar quando tiver endpoint de update)
+        setDespesas(prev => prev.map(d => d.id === despesa.id ? despesa : d));
+      } else {
+        // Criar nova despesa
+        const response = await ExpensesService.createExpense(expenseData);
+        if (response.success) {
+          setDespesas(prev => [...prev, response.data]);
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao salvar despesa:', error);
+      alert('Erro ao salvar despesa. Tente novamente.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -54,6 +127,15 @@ function Financeiro({ theme }) {
     if (window.confirm('Tem certeza que deseja excluir esta despesa?')) {
       setDespesas(prev => prev.filter(d => d.id !== despesaId));
     }
+  };
+
+  // Funções de callback para atualizar listas quando novos itens são criados
+  const handleCategoryCreated = (newCategory) => {
+    setCategorias(prev => [...prev, newCategory]);
+  };
+
+  const handleVendorCreated = (newVendor) => {
+    setFornecedores(prev => [...prev, newVendor]);
   };
 
   const handleFiltroChange = (campo, valor) => {
@@ -65,36 +147,35 @@ function Financeiro({ theme }) {
 
   const despesasFiltradas = despesas.filter(despesa => {
     const matchBusca = !filtros.busca || 
-      despesa.descricao.toLowerCase().includes(filtros.busca.toLowerCase()) ||
-      despesa.fornecedor?.toLowerCase().includes(filtros.busca.toLowerCase());
+      despesa.description?.toLowerCase().includes(filtros.busca.toLowerCase()) ||
+      despesa.vendor_name?.toLowerCase().includes(filtros.busca.toLowerCase());
     
-    const matchCategoria = !filtros.categoria || despesa.categoria === filtros.categoria;
+    const matchCategoria = !filtros.categoria || despesa.category_name === filtros.categoria;
     const matchStatus = !filtros.status || despesa.status === filtros.status;
     const matchCategorizada = !filtros.categorizada || 
-      (filtros.categorizada === 'categorizada' && despesa.categoria) ||
-      (filtros.categorizada === 'nao_categorizada' && !despesa.categoria);
+      (filtros.categorizada === 'categorizada' && despesa.category_name) ||
+      (filtros.categorizada === 'nao_categorizada' && !despesa.category_name);
     
-    const matchData = (!filtros.dataInicio || despesa.data >= filtros.dataInicio) &&
-                     (!filtros.dataFim || despesa.data <= filtros.dataFim);
+    const matchData = (!filtros.dataInicio || despesa.date_incurred >= filtros.dataInicio) &&
+                     (!filtros.dataFim || despesa.date_incurred <= filtros.dataFim);
     
     return matchBusca && matchCategoria && matchStatus && matchCategorizada && matchData;
   });
 
   // Funções de exportação
   const exportarCSV = () => {
-    const headers = ['ID', 'Descrição', 'Valor', 'Categoria', 'Data', 'Fornecedor', 'Status', 'Total Impostos', 'Valor Total'];
+    const headers = ['ID', 'Descrição', 'Valor', 'Categoria', 'Data', 'Fornecedor', 'Status', 'Valor Total'];
     const csvContent = [
       headers.join(','),
       ...despesasFiltradas.map(d => [
         d.id,
-        `"${d.descricao}"`,
-        d.valor,
-        d.categoria || 'Não categorizada',
-        d.data,
-        `"${d.fornecedor || ''}"`,
+        `"${d.description}"`,
+        d.total_amount,
+        d.category_name || 'Não categorizada',
+        d.date_incurred,
+        `"${d.vendor_name || ''}"`,
         d.status,
-        d.totalImpostos || 0,
-        d.valorTotal || d.valor
+        d.total_amount
       ].join(','))
     ].join('\n');
 
@@ -113,7 +194,7 @@ function Financeiro({ theme }) {
   const exportarPDF = () => {
     // Simulação de exportação PDF
     const conteudo = despesasFiltradas.map(d => 
-      `${d.descricao} - R$ ${d.valor} - ${d.data}`
+      `${d.description} - R$ ${d.total_amount} - ${d.date_incurred}`
     ).join('\n');
     
     const blob = new Blob([conteudo], { type: 'text/plain' });
@@ -125,35 +206,14 @@ function Financeiro({ theme }) {
 
   const calcularTotais = () => {
     const totais = despesasFiltradas.reduce((acc, despesa) => {
-      // Calcular total de todos os itens (sem impostos)
-      const totalItens = (despesa.itens || []).reduce((sum, item) => {
-        const valorItem = parseFloat(item.valor) || 0;
-        const quantidade = parseFloat(item.quantidade) || 1;
-        const valorTotalItem = valorItem * quantidade;
-        return sum + valorTotalItem;
-      }, 0);
-      
-      // Calcular total de todos os impostos (item + total)
-      const totalImpostos = (despesa.impostos || []).reduce((sum, imposto) => {
-        // Usar valorCalculado se disponível, senão usar valor, senão calcular baseado na alíquota
-        const valorImposto = parseFloat(imposto.valorCalculado) || 
-          parseFloat(imposto.valor) || 
-          (parseFloat(imposto.aliquota) * parseFloat(imposto.valorBase) / 100) || 0;
-        return sum + valorImposto;
-      }, 0);
-      
-      // Valor total real = itens + impostos
-      const valorTotalReal = totalItens + totalImpostos;
-      
-      // Se não há itens categorizados, usar o valor base
-      const valorFinal = despesa.itens && despesa.itens.length > 0 ? valorTotalReal : (parseFloat(despesa.valor) || 0);
+      const valorDespesa = parseFloat(despesa.total_amount) || 0;
       
       return {
-        total: acc.total + valorFinal,
-        base: acc.base + (parseFloat(despesa.valor) || 0),
-        impostos: acc.impostos + totalImpostos,
-        categorizadas: acc.categorizadas + (despesa.categoria ? valorFinal : 0),
-        naoCategorizadas: acc.naoCategorizadas + (!despesa.categoria ? valorFinal : 0)
+        total: acc.total + valorDespesa,
+        base: acc.base + valorDespesa,
+        impostos: acc.impostos + 0, // Impostos não implementados na API ainda
+        categorizadas: acc.categorizadas + (despesa.category_name ? valorDespesa : 0),
+        naoCategorizadas: acc.naoCategorizadas + (!despesa.category_name ? valorDespesa : 0)
       };
     }, { total: 0, base: 0, impostos: 0, categorizadas: 0, naoCategorizadas: 0 });
 
@@ -426,22 +486,18 @@ function Financeiro({ theme }) {
                      />
                    </div>
                                      <div className="col-md-2 mb-2">
-                     <select 
-                       className={`form-select input-${theme}`}
-                       value={filtros.categoria}
-                       onChange={(e) => handleFiltroChange('categoria', e.target.value)}
-                     >
-                       <option value="">Todas as Categorias</option>
-                       <option value="Alimentação">Alimentação</option>
-                       <option value="Transporte">Transporte</option>
-                       <option value="Serviços">Serviços</option>
-                       <option value="Equipamentos">Equipamentos</option>
-                       <option value="Marketing">Marketing</option>
-                       <option value="RH">RH</option>
-                       <option value="TI">TI</option>
-                       <option value="Manutenção">Manutenção</option>
-                       <option value="Outros">Outros</option>
-                     </select>
+                                         <select 
+                      className={`form-select input-${theme}`}
+                      value={filtros.categoria}
+                      onChange={(e) => handleFiltroChange('categoria', e.target.value)}
+                    >
+                      <option value="">Todas as Categorias</option>
+                      {categorias.map(categoria => (
+                        <option key={categoria.id} value={categoria.name}>
+                          {categoria.name}
+                        </option>
+                      ))}
+                    </select>
                    </div>
                    <div className="col-md-2 mb-2">
                      <select 
@@ -499,6 +555,13 @@ function Financeiro({ theme }) {
                   <h5 className={`header-text-${theme} mb-0`}>
                     Lista de Despesas ({despesasFiltradas.length})
                   </h5>
+                  {loading && (
+                    <div className="ms-2">
+                      <div className="spinner-border spinner-border-sm" role="status">
+                        <span className="visually-hidden">Carregando...</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="d-flex align-items-center gap-3">
                   <div className="dropdown">
@@ -540,21 +603,21 @@ function Financeiro({ theme }) {
                             </tr>
                           </thead>
                          <tbody>
-                           {despesasFiltradas.map((despesa, index) => (
-                             <tr key={despesa.id}>
-                               <td className={`text-${theme === 'light' ? 'dark' : 'light'}`}>
-                                 {new Date(despesa.data).toLocaleDateString('pt-BR')}
+                                                       {despesasFiltradas.map((despesa, index) => (
+                              <tr key={despesa.id}>
+                                <td className={`text-${theme === 'light' ? 'dark' : 'light'}`}>
+                                  {new Date(despesa.date_incurred).toLocaleDateString('pt-BR')}
+                                </td>
+                                <td>
+                                 <div>
+                                   <strong className={`header-text-${theme}`}>{despesa.description}</strong>
+                                   {despesa.vendor_name && (
+                                     <small className={`text-${theme === 'light' ? 'muted' : 'light'} d-block`}>
+                                       {despesa.vendor_name}
+                                     </small>
+                                   )}
+                                 </div>
                                </td>
-                               <td>
-                                <div>
-                                  <strong className={`header-text-${theme}`}>{despesa.descricao}</strong>
-                                  {despesa.fornecedor && (
-                                    <small className={`text-${theme === 'light' ? 'muted' : 'light'} d-block`}>
-                                      {despesa.fornecedor}
-                                    </small>
-                                  )}
-                                </div>
-                              </td>
                                                                                                <td style={{ textAlign: 'center' }}>
                                    <span className={`badge bg-${
                                      despesa.status === 'pago' ? 'success' : 
@@ -568,13 +631,13 @@ function Financeiro({ theme }) {
                                      {despesa.status}
                                    </span>
                                  </td>
-                                <td style={{ textAlign: 'center' }}>
-                                  {despesa.categoria ? (
-                                    <span className={`badge bg-success`}>{despesa.categoria}</span>
-                                  ) : (
-                                    <span className={`badge bg-warning`}>Não categorizada</span>
-                                  )}
-                                </td>
+                                                                 <td style={{ textAlign: 'center' }}>
+                                   {despesa.category_name ? (
+                                     <span className={`badge bg-success`}>{despesa.category_name}</span>
+                                   ) : (
+                                     <span className={`badge bg-warning`}>Não categorizada</span>
+                                   )}
+                                 </td>
                                 <td style={{ textAlign: 'center' }}>
                                    <div className="d-flex align-items-center justify-content-center gap-1">
                                      {despesa.documentos && despesa.documentos.length > 0 && (
@@ -601,41 +664,9 @@ function Financeiro({ theme }) {
                                  </td>
                                                                <td>
                                   <div>
-                                                                         {(() => {
-                                       // Calcular total de todos os itens (sem impostos)
-                                       const totalItens = (despesa.itens || []).reduce((sum, item) => {
-                                         const valorItem = parseFloat(item.valor) || 0;
-                                         const quantidade = parseFloat(item.quantidade) || 1;
-                                         const valorTotalItem = valorItem * quantidade;
-                                         return sum + valorTotalItem;
-                                       }, 0);
-                                       
-                                                                               // Calcular total de todos os impostos (item + total)
-                                        const totalImpostos = (despesa.impostos || []).reduce((sum, imposto) => {
-                                          // Usar valorCalculado se disponível, senão usar valor, senão calcular baseado na alíquota
-                                          const valorImposto = parseFloat(imposto.valorCalculado) || 
-                                            parseFloat(imposto.valor) || 
-                                            (parseFloat(imposto.aliquota) * parseFloat(imposto.valorBase) / 100) || 0;
-                                          return sum + valorImposto;
-                                        }, 0);
-                                       
-                                       // Valor total real = itens + impostos
-                                       const valorTotalReal = totalItens + totalImpostos;
-                                       
-                                       // Se não há itens categorizados, usar o valor base
-                                       const valorFinal = despesa.itens && despesa.itens.length > 0 ? valorTotalReal : (parseFloat(despesa.valor) || 0);
-                                       
-                                       return (
-                                         <>
-                                           <strong className={`text-${theme === 'light' ? 'dark' : 'light'}`}>R$ {valorFinal.toFixed(2)}</strong>
-                                           {totalImpostos > 0 && (
-                                             <small className={`text-${theme === 'light' ? 'muted' : 'light'} d-block`}>
-                                               + R$ {totalImpostos.toFixed(2)} impostos
-                                             </small>
-                                           )}
-                                         </>
-                                       );
-                                     })()}
+                                    <strong className={`text-${theme === 'light' ? 'dark' : 'light'}`}>
+                                      R$ {parseFloat(despesa.total_amount || 0).toFixed(2)}
+                                    </strong>
                                   </div>
                                 </td>
                                                                <td style={{ textAlign: 'center' }}>
@@ -909,6 +940,10 @@ function Financeiro({ theme }) {
         theme={theme}
         despesa={despesaEditando}
         onSave={handleSalvarDespesa}
+        categorias={categorias}
+        fornecedores={fornecedores}
+        onCategoryCreated={handleCategoryCreated}
+        onVendorCreated={handleVendorCreated}
       />
     </div>
   );
