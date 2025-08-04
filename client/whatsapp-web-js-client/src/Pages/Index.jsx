@@ -20,6 +20,7 @@
   import Manutencao from './Manutencao';
   import AjudaPage from './Ajuda';
   import LembretesPage from './Lembretes';
+  import FinanceiroPage from './Financeiro';
   import axios from 'axios';
   import useUserPreferences from '../hooks/useUserPreferences';
   import CustomValuesModal from './modalPages/CustomValuesModal';
@@ -377,6 +378,7 @@
     const renderPage = () => {
       switch (page) {
         case 'dashboard': return <Dashboard theme={theme} />;
+        case 'financeiro': return <FinanceiroPage theme={theme} />;
         case 'chats': return <ChatPage theme={theme} />;
         case 'kanban': return <KanbanPage theme={theme} />;
         case 'filas': return <FilaPage theme={theme} />;
@@ -431,6 +433,17 @@
               >
                 <i className="bi bi-speedometer2"></i>
                 <span className="sidebar-label d-none">Dashboard</span>
+              </button>
+              <button
+                id="financeiro"
+                onClick={() => handlePageChange('financeiro')}
+                data-bs-toggle="tooltip"
+                data-bs-placement="right"
+                data-bs-title="Financeiro"
+                className={`btn ${page === 'financeiro' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''}`}
+              >
+                <i className="bi bi-cash-stack"></i>
+                <span className="sidebar-label d-none">Financeiro</span>
               </button>
               <hr className={`hr-${theme} mx-auto my-0 d-none`} style={{ width: '50%' }} />
               <button
