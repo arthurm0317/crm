@@ -1046,5 +1046,99 @@ input[type="range"]::-moz-range-progress {
 
 /* Forçar remoção da seta em todos os dropdowns com no-caret */
 [class*="btn"][class*="no-caret"]::after {
-  display: none !important;
+    display: none !important;
+}
+
+/* Animações para o painel de visualização de documentos */
+@keyframes slideInLeft {
+    from {
+        transform: translateX(-100%) translateY(-50%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0) translateY(-50%);
+        opacity: 1;
+    }
+}
+
+/* Estilos para o painel de visualização de documentos */
+.document-viewer-panel {
+    animation: slideInLeft 0.3s ease-out;
+    position: fixed;
+    top: 50%;
+    left: 10px;
+    transform: translateY(-50%);
+    width: 32%;
+    height: 85vh;
+    background-color: var(--bg-color-light);
+    border-radius: 16px;
+    box-shadow: 0 4px 32px rgba(0,0,0,0.18);
+    z-index: 1060;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.document-viewer-panel.dark {
+    background-color: var(--bg-color-dark);
+}
+
+.document-container {
+    transition: transform 0.2s ease;
+}
+
+/* Responsividade para o painel de documentos */
+@media (max-width: 1400px) {
+    .document-viewer-panel {
+        width: 38% !important;
+        left: 8px !important;
+    }
+}
+
+@media (max-width: 1200px) {
+    .document-viewer-panel {
+        width: 42% !important;
+        left: 5px !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .document-viewer-panel {
+        width: 90% !important;
+        left: 5% !important;
+        height: 80vh !important;
+    }
+}
+
+/* Modal positioning when document viewer is open */
+.modal-with-viewer {
+    margin-left: auto !important;
+    margin-right: 5px !important;
+    max-width: 58% !important;
+    width: 58% !important;
+}
+
+@media (max-width: 1400px) {
+    .modal-with-viewer {
+        max-width: 54% !important;
+        width: 54% !important;
+        margin-right: 3px !important;
+    }
+}
+
+@media (max-width: 1200px) {
+    .modal-with-viewer {
+        max-width: 48% !important;
+        width: 48% !important;
+        margin-right: 2px !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .modal-with-viewer {
+        max-width: 90% !important;
+        width: 90% !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
 }
