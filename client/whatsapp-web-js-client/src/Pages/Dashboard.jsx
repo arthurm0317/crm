@@ -19,7 +19,6 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tool
 function Dashboard({ theme }) {
   const url = process.env.REACT_APP_URL;
   const userData = JSON.parse(localStorage.getItem('user'));
-  console.log('Dashboard - userData carregado:', userData);
   const [user, setUser] = useState()
   const [activeTab, setActiveTab] = useState('dashboard');
   const [activeGraficoTab, setActiveGraficoTab] = useState('ganhos');
@@ -38,6 +37,7 @@ function Dashboard({ theme }) {
   const [connectionMap, setConnectionMap] = useState({});
   const [showChatModal, setShowChatModal] = useState(false);
   const [modalChatId, setModalChatId] = useState(null);
+  const [filas, setFilas] = useState([]);
 
   useEffect(() => {
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
@@ -58,7 +58,14 @@ function Dashboard({ theme }) {
         console.error('Erro ao buscar usuários:', error);
       }
     };
+    const fetchAllQueues = async () => {
+      const response = await axios.get(`${url}/queue/get-all-queues/${schema}`, {
+        withCredentials: true
+      });
+      setFilas(response.data.result || []);
+    };
     fetchUsuarios();
+    fetchAllQueues()
   }, []);
 
   useEffect(() => {
@@ -482,7 +489,7 @@ function Dashboard({ theme }) {
                   <i className="bi bi-hourglass card-icon" style={{ fontSize: '2.5rem' }}></i>
                   <div className="d-flex flex-column align-items-start justify-content-start">
                     <h6 className={`card-subtitle-${theme} m-0`}>Fila de Atendimento</h6>
-                    <h2 id="contatos-aguardando" className={`header-text-${theme}`}>2</h2>
+                    <h2 id="contatos-aguardando" className={`header-text-${theme}`}>{ filas.length }</h2>
                   </div>
                   <div>
                     <i
