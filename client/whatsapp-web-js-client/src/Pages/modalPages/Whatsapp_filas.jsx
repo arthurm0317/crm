@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Modal } from 'react-bootstrap';
 import { useEffect } from 'react';
 import axios from 'axios';
+import { useToast } from '../../contexts/ToastContext';
 
 function WhatsappFilasModal({ theme, show, onHide, contato, onQueueChange }) {
+  const { showSuccess } = useToast();
   const [filas, setFilas] = useState([])
   const [todasFilas, setTodasFilas] = useState([])
   const [filaAtual, setFilaAtual] = useState(null)
@@ -97,7 +99,7 @@ function WhatsappFilasModal({ theme, show, onHide, contato, onQueueChange }) {
         }
         
         // Feedback visual
-        alert('Contato desvinculado da fila com sucesso!');
+        showSuccess('Contato desvinculado da fila com sucesso!');
       }
     } catch (error) {
       console.error('Erro ao desvincular fila:', error);

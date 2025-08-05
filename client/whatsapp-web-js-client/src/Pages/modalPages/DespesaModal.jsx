@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import * as bootstrap from 'bootstrap';
 import axios from 'axios';
+import { useToast } from '../../contexts/ToastContext';
 
 function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias = [], onCategoryCreated, onVendorCreated }) {
+  const { showError } = useToast();
   const [formData, setFormData] = useState({
     descricao: '',
     valor: '',
@@ -155,11 +157,11 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
         setNewCategoryName('');
         setShowNewCategoryModal(false);
       } else {
-        alert('Erro ao criar categoria');
+        showError('Erro ao criar categoria');
       }
     } catch (error) {
       console.error('Erro ao criar categoria:', error);
-      alert('Erro ao criar categoria');
+      showError('Erro ao criar categoria');
     } finally {
       setCreatingCategory(false);
     }
@@ -193,11 +195,11 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
         setNewVendorName('');
         setShowNewVendorModal(false);
       } else {
-        alert('Erro ao criar fornecedor');
+        showError('Erro ao criar fornecedor');
       }
     } catch (error) {
       console.error('Erro ao criar fornecedor:', error);
-      alert('Erro ao criar fornecedor');
+      showError('Erro ao criar fornecedor');
     } finally {
       setCreatingVendor(false);
     }
@@ -388,17 +390,17 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
   const handleSave = () => {
     // Validação básica
     if (!formData.descricao || !formData.descricao.trim()) {
-      alert('Por favor, preencha a descrição da despesa.');
+      showError('Por favor, preencha a descrição da despesa.');
       return;
     }
     
     if (!formData.valor || parseFloat(formData.valor) <= 0) {
-      alert('Por favor, preencha um valor válido para a despesa.');
+      showError('Por favor, preencha um valor válido para a despesa.');
       return;
     }
     
     if (!formData.data) {
-      alert('Por favor, selecione uma data para a despesa.');
+      showError('Por favor, selecione uma data para a despesa.');
       return;
     }
     

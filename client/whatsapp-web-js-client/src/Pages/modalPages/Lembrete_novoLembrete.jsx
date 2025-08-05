@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
+import { useToast } from '../../contexts/ToastContext';
 
 const iconesPessoais = [
   'bi-person', 'bi-briefcase', 'bi-calendar', 'bi-alarm', 'bi-envelope',
@@ -19,6 +20,7 @@ const mockFilas = [
 ];
 
 function LembreteNovoLembrete({ show, onHide, onSave, tipoDefault = 'geral', filas = mockFilas, theme, lembreteEdit, onTestToast, fetchGoogleEvents, isGoogleConnected }) {
+  const { showError } = useToast();
   const [tipo, setTipo] = useState(lembreteEdit ? lembreteEdit.tipo : tipoDefault);
   const [titulo, setTitulo] = useState(lembreteEdit ? lembreteEdit.titulo : '');
   const [mensagem, setMensagem] = useState(lembreteEdit ? lembreteEdit.mensagem : '');
@@ -168,12 +170,12 @@ const filasInvalidas = () => {
   const agora = new Date();
   const dataSelecionada = new Date(data);
   if (dataSelecionada < agora) {
-    alert('A data do lembrete não pode ser anterior ao momento atual.');
+    showError('A data do lembrete não pode ser anterior ao momento atual.');
     return;
   }
 
   if (tipo === 'setorial' && (!filasSelecionadas || filasSelecionadas.length === 0)) {
-    alert('Para lembretes setoriais, é necessário selecionar pelo menos uma fila.');
+    showError('Para lembretes setoriais, é necessário selecionar pelo menos uma fila.');
     return;
   }
   
@@ -214,7 +216,7 @@ const filasInvalidas = () => {
         lembreteCriado = response.data.lembrete;
         if (fetchGoogleEvents) fetchGoogleEvents();
       } catch (err) {
-        alert('Lembrete criado, mas não foi possível adicionar ao Google Calendar. Faça login no Google e tente novamente.');
+        showError('Lembrete criado, mas não foi possível adicionar ao Google Calendar. Faça login no Google e tente novamente.');
         return;
       }
     } else {

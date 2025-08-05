@@ -3,8 +3,10 @@ import axios from 'axios';
 import * as bootstrap from 'bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
+import { useToast } from '../../contexts/ToastContext';
 
 function DeleteDisparoModal({ theme, disparo, onDelete }) {
+  const { showError, showSuccess } = useToast();
   const userData = JSON.parse(localStorage.getItem('user')); 
   const schema = userData?.schema;
   const url = process.env.REACT_APP_URL;
@@ -18,13 +20,13 @@ function DeleteDisparoModal({ theme, disparo, onDelete }) {
       
       if (response.data.success) {
         onDelete(); 
-        alert('Disparo deletado com sucesso!');
+        showSuccess('Disparo deletado com sucesso!');
       } else {
-        alert('Erro ao deletar disparo');
+        showError('Erro ao deletar disparo');
       }
     } catch (error) {
       console.error('Erro ao deletar disparo:', error);
-      alert('Erro ao deletar disparo');
+      showError('Erro ao deletar disparo');
     }
   }
 

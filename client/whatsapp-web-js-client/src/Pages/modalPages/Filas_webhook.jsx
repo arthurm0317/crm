@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Modal } from 'react-bootstrap';
 import axios from 'axios';
+import { useToast } from '../../contexts/ToastContext';
 
 function FilasWebhookModal({ theme, show, onHide, fila, onSave }) {
+  const { showError } = useToast();
   const [webhookUrl, setWebhookUrl] = useState(fila?.webhook_url || '');
   const [webhookEnabled, setWebhookEnabled] = useState(fila?.webhook_enabled || false);
   const [isLoading, setIsLoading] = useState(false);
@@ -12,7 +14,7 @@ function FilasWebhookModal({ theme, show, onHide, fila, onSave }) {
 
   const handleSave = async () => {
     if (!webhookUrl.trim()) {
-      alert('Por favor, insira uma URL de webhook válida');
+      showError('Por favor, insira uma URL de webhook válida');
       return;
     }
 
@@ -44,7 +46,7 @@ function FilasWebhookModal({ theme, show, onHide, fila, onSave }) {
       }
     } catch (error) {
       console.error('Erro ao salvar webhook:', error);
-      alert('Erro ao salvar webhook. Tente novamente.');
+      showError('Erro ao salvar webhook. Tente novamente.');
     } finally {
       setIsLoading(false);
     }

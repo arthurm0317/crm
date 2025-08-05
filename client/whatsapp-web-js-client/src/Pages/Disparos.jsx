@@ -6,6 +6,7 @@ import axios from 'axios';
 import { Card, Button } from 'react-bootstrap';
 import DisparoModal from './modalPages/Disparos_novoDisparo';
 import DeleteDisparoModal from './modalPages/Disparos_delete';
+import { useToast } from '../contexts/ToastContext';
 
 const userData = JSON.parse(localStorage.getItem('user'));
 const isAdmin = userData?.role === 'admin' || userData?.role === 'tecnico';
@@ -38,6 +39,7 @@ function formatInterval(intervalInSeconds) {
   }
 }
 function DisparosPage({ theme }) {
+  const { showError, showSuccess } = useToast();
   const [disparoSelecionado, setDisparoSelecionado] = useState(null);
   const userData = JSON.parse(localStorage.getItem('user')); 
   const schema = userData?.schema
@@ -66,10 +68,10 @@ function DisparosPage({ theme }) {
         {
       withCredentials: true
     });
-    alert('Campanha iniciada!');
+    showSuccess('Campanha iniciada!');
   } catch (error) {
     console.error('Erro ao iniciar disparo:', error);
-    alert('Erro ao iniciar disparo');
+    showError('Erro ao iniciar disparo');
   }
 };
 

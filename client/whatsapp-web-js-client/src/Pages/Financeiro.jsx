@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import * as bootstrap from 'bootstrap';
 import DespesaModal from './modalPages/DespesaModal';
 import { ExpensesService, CategoriesService, VendorsService } from '../services/FinanceiroService';
+import { useToast } from '../contexts/ToastContext';
 
 function Financeiro({ theme }) {
+  const { showError } = useToast();
   const [activeTab, setActiveTab] = useState('resumo');
   const [despesas, setDespesas] = useState([]);
   const [categorias, setCategorias] = useState([]);
@@ -117,7 +119,7 @@ function Financeiro({ theme }) {
       }
     } catch (error) {
       console.error('Erro ao salvar despesa:', error);
-      alert('Erro ao salvar despesa. Tente novamente.');
+      showError('Erro ao salvar despesa. Tente novamente.');
     } finally {
       setLoading(false);
     }

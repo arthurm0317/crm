@@ -4,6 +4,7 @@ import LembreteNovoLembrete from './modalPages/Lembrete_novoLembrete';
 import LembreteDeletarLembrete from './modalPages/Lembrete_deletarLembrete';
 import anime from 'animejs';
 import axios from 'axios';
+import { useToast } from '../contexts/ToastContext';
 
 // Estilo moderno para o botão Google Calendar
 const style = document.createElement('style');
@@ -94,6 +95,7 @@ function getFirstDayOfWeek(year, month) {
 
 
 function LembretesPage({ theme, lembretes, atualizarLembretes }) {
+    const { showError } = useToast();
     const [showNovoLembrete, setShowNovoLembrete] = useState(false);
     const hoje = new Date();
     const [mesAtual, setMesAtual] = useState(hoje.getMonth());
@@ -137,7 +139,7 @@ function LembretesPage({ theme, lembretes, atualizarLembretes }) {
             });
             setIsGoogleConnected(false);
         } catch (err) {
-            alert('Erro ao desconectar do Google Calendar');
+            showError('Erro ao desconectar do Google Calendar');
         }
     };
 
@@ -155,7 +157,7 @@ function LembretesPage({ theme, lembretes, atualizarLembretes }) {
                 window.location.href = response.data.url;
             }
         } catch (err) {
-            alert('Erro ao conectar com o Google Calendar');
+            showError('Erro ao conectar com o Google Calendar');
         } finally {
             setLoadingGoogle(false);
         }

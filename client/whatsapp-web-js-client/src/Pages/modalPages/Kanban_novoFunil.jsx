@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useToast } from '../../contexts/ToastContext';
 
 function NovoFunilModal({ theme, show, onHide, onSave }) {
+  const { showError } = useToast();
   const [titulo, setTitulo] = useState('');
   const userData = JSON.parse(localStorage.getItem('user'));
   const schema = userData?.schema;
@@ -9,7 +11,7 @@ function NovoFunilModal({ theme, show, onHide, onSave }) {
 
   const handleSave = async () => {
   if (!titulo) {
-    alert('Preencha o título do funil.');
+    showError('Preencha o título do funil.');
     return;
   }
   try {

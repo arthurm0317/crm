@@ -1,9 +1,11 @@
 import axios from 'axios';
 import React, { useState, useEffect, useRef } from 'react';
 import * as bootstrap from 'bootstrap';
+import { useToast } from '../../contexts/ToastContext';
 
 
 function DisparoModal({ theme, disparo = null, onSave }) {
+  const { showError, showSuccess } = useToast();
   const [titulo, setTitulo] = useState('');
   const [numMensagens, setNumMensagens] = useState(1);
   const [mensagens, setMensagens] = useState([
@@ -564,7 +566,7 @@ const limparBase64 = (base64ComPrefixo) => {
       
       if (response.status === 201) {
         if (!disparo) {
-          alert('Disparo criado com sucesso!');
+          showSuccess('Disparo criado com sucesso!');
         }
         // Fechar modal
         const modal = bootstrap.Modal.getInstance(document.getElementById('DisparoModal'));
@@ -586,13 +588,13 @@ const limparBase64 = (base64ComPrefixo) => {
         return;
       }
       setLoading(false);
-      alert('Erro inesperado ao criar disparo.');
+      showError('Erro inesperado ao criar disparo.');
     } catch (error) {
       setLoading(false);
       if (error.response && error.response.data && error.response.data.erro) {
-        alert(error.response.data.erro);
+        showError(error.response.data.erro);
       } else {
-        alert('Erro ao salvar disparo. Verifique os campos e tente novamente.');
+        showError('Erro ao salvar disparo. Verifique os campos e tente novamente.');
       }
       console.error('Erro ao salvar disparo:', error);
     }
