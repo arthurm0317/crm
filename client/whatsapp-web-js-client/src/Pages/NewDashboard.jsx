@@ -39,7 +39,7 @@ function NewDashboard({ theme }) {
   const [closedChats, setClosedChats] = useState([]);
   const [statusList, setStatusList] = useState([]);
   const [reportData, setReportData] = useState([]);
-  const [activeChats] = useState([]);
+  const [activeChats, setActiveChats] = useState([]);
   const [queues, setQueues] = useState([]);
   const [userNames, setUserNames] = useState({});
   const [queueMap, setQueueMap] = useState({});
@@ -126,7 +126,7 @@ function NewDashboard({ theme }) {
   };
 
   // Função para filtrar dados por período
-  const filterDataByPeriod = (data) => {
+  const filterDataByPeriod = (data, useClosedAt = false) => {
     const now = new Date();
     const periodMap = {
       'diario': 1,
@@ -134,13 +134,98 @@ function NewDashboard({ theme }) {
       'mensal': 30
     };
     const days = periodMap[selectedPeriod] || 1;
+    // Corrigir: a data de corte deve ser há X dias atrás, não no futuro
     const cutoffDate = new Date(now.getTime() - (days * 24 * 60 * 60 * 1000));
     
-    return data.filter(item => {
-      const itemDate = new Date(item.created_at || item.closed_at || now);
-      return itemDate >= cutoffDate;
+    // TEMPORÁRIO: Para teste, usar uma data de corte mais antiga se não houver dados recentes
+    let adjustedCutoffDate = cutoffDate;
+    if (data.length > 0) {
+      // Verificar se há dados recentes
+      const hasRecentData = data.some(item => {
+        if (useClosedAt) {
+          return item.closed_at && new Date(item.closed_at) >= cutoffDate;
+        } else {
+          if (!item.chat_created_at) return false;
+          let itemDate;
+          if (item.chat_created_at > 1000000000000) {
+            itemDate = new Date(item.chat_created_at);
+          } else {
+            itemDate = new Date(item.chat_created_at * 1000);
+          }
+          return itemDate >= cutoffDate;
+        }
+      });
+      
+      if (!hasRecentData) {
+        // Se não há dados recentes, usar uma data de corte mais antiga (últimos 30 dias)
+        adjustedCutoffDate = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+      }
+    }
+    
+    
+    // Contar quantos itens têm chat_created_at válido
+    if (!useClosedAt) {
+      const validItems = data.filter(item => item.chat_created_at);
+      const invalidItems = data.filter(item => !item.chat_created_at);
+    }
+    
+    // Log dos primeiros 3 itens para debug
+    if (data.length > 0) {
+      for (let i = 0; i < Math.min(3, data.length); i++) {
+        const item = data[i];
+        if (useClosedAt) {
+        } else {
+        }
+      }
+      
+      // Log adicional para verificar todos os campos dos primeiros itens
+      for (let i = 0; i < Math.min(3, data.length); i++) {
+        const item = data[i];
+      }
+    }
+    
+    const filtered = data.filter(item => {
+      if (useClosedAt) {
+        // Para taxa de conversão, usar closed_at (formato ISO string)
+        if (!item.closed_at) return false;
+        const itemDate = new Date(item.closed_at);
+        const isIncluded = itemDate >= adjustedCutoffDate;
+        if (data.length <= 5) { // Log apenas para os primeiros itens
+        }
+        return isIncluded;
+      } else {
+        // Para outros KPIs, usar chat_created_at (Unix timestamp)
+        if (!item.chat_created_at) {
+          return false;
+        }
+        
+        // Verificar se chat_created_at está em segundos ou milissegundos
+        let itemDate;
+        if (item.chat_created_at > 1000000000000) {
+          // Se o valor é maior que 1000000000000, está em milissegundos
+          itemDate = new Date(item.chat_created_at);
+        } else {
+          // Se o valor é menor, está em segundos, converter para milissegundos
+          itemDate = new Date(item.chat_created_at * 1000);
+        }
+        
+        const isIncluded = itemDate >= adjustedCutoffDate;
+        return isIncluded;
+      }
     });
+    
+    
+    return filtered;
   };
+
+  useEffect(() => {
+    const fetchChats = async()=>{
+      const response = await axios.get(`${url}/chat/getChats/${schema}`,{withCredentials: true});
+      const openChats = response.data.filter(c=>c.status!=='closed')
+      setActiveChats(openChats)
+    }
+    fetchChats()
+  }, [schema])
 
   // Função para filtrar dados por setor
   const filterDataBySector = (data) => {
@@ -154,18 +239,22 @@ function NewDashboard({ theme }) {
   // Função para filtrar dados por canal
   const filterDataByChannel = (data) => {
     if (selectedChannel === 'todos') return data;
+    // Por enquanto, todos os chats são WhatsApp
     return data.filter(item => {
-      // Simular filtro por canal - implementar lógica real quando disponível
-      return true;
+      return selectedChannel === 'whatsapp';
     });
   };
 
   // Função para aplicar filtros globais
   const applyGlobalFilters = useCallback((data) => {
+    
     let filteredData = data;
     filteredData = filterDataByPeriod(filteredData);
+    
     filteredData = filterDataBySector(filteredData);
+    
     filteredData = filterDataByChannel(filteredData);
+    
     return filteredData;
   }, [selectedPeriod, selectedSector, selectedChannel, users]);
 
@@ -177,12 +266,13 @@ function NewDashboard({ theme }) {
         const usersResponse = await axios.get(`${url}/api/users/${schema}`, {
           withCredentials: true
         });
-        const usersData = usersResponse.data.users || [];
-        setUsers(usersData);
+        const usersData = usersResponse.data || [];
+        const usersArray = Array.isArray(usersData) ? usersData : [usersData];
+        setUsers(usersArray[0].users);
 
         // Criar mapeamento de nomes de usuários
         const namesMap = {};
-        usersData.forEach(user => {
+        usersArray[0].users.forEach(user => {
           namesMap[user.id] = user.nome || user.username || user.name || `Usuário ${user.id}`;
         });
         setUserNames(namesMap);
@@ -238,33 +328,69 @@ function NewDashboard({ theme }) {
   // Calcular KPIs com filtros aplicados
   useEffect(() => {
     if (closedChats.length > 0 && statusList.length > 0) {
-      const filteredChats = applyGlobalFilters(closedChats);
+      // Para taxa de conversão, usar closed_at para filtro de período
+      const conversionFilteredChats = filterDataByPeriod(closedChats, true);
+      const conversionFilteredBySector = filterDataBySector(conversionFilteredChats);
+      const conversionFilteredByChannel = filterDataByChannel(conversionFilteredBySector);
+      
       const statusSuccessMap = {};
       statusList.forEach(s => {
         statusSuccessMap[s.value] = s.success;
       });
 
-      const ganhos = filteredChats.filter(c => statusSuccessMap[c.status] === true);
-      const totalChats = filteredChats.length;
+      const ganhos = conversionFilteredByChannel.filter(c => {
+        const isSuccess = statusSuccessMap[c.status] === true;
+        return isSuccess;
+      });
+      
+      const totalChats = conversionFilteredByChannel.length;
       const conversionRate = totalChats > 0 ? (ganhos.length / totalChats) * 100 : 0;
+      
+      // Para outros KPIs, usar created_at para filtro de período
+      const otherFilteredChats = applyGlobalFilters(closedChats);
 
-      // Calcular tempo médio de resolução
-      const resolutionTimes = filteredChats
-        .filter(c => c.closed_at && c.created_at)
+
+      const resolutionTimes = conversionFilteredChats
+        .filter(c => c.chat_created_at && c.closed_at)
         .map(c => {
-          const closed = new Date(c.closed_at);
-          const created = new Date(c.created_at);
-          return (closed - created) / (1000 * 60); // em minutos
-        });
+          try {
+            // Verificar se chat_created_at está em segundos ou milissegundos
+            let createdTimeUnix;
+            if (c.chat_created_at > 1000000000000) {
+              // Se o valor é maior que 1000000000000, está em milissegundos
+              createdTimeUnix = Math.floor(c.chat_created_at / 1000);
+            } else {
+              // Se o valor é menor, está em segundos
+              createdTimeUnix = c.chat_created_at;
+            }
+            
+            // closed_at está em formato ISO string, converter para Unix timestamp (segundos)
+            const closedTimeUnix = Math.floor(new Date(c.closed_at).getTime() / 1000);
+            const diffMinutes = (closedTimeUnix - createdTimeUnix) / 60; // em minutos
+            
+            // Validar se o tempo é razoável (entre 0 e 30 dias)
+            if (diffMinutes >= 0 && diffMinutes <= 43200) { // 30 dias em minutos
+              return diffMinutes;
+            } else {
+              return null;
+            }
+          } catch (error) {
+            console.error('Erro ao calcular tempo de resolução para chat:', c.chat_id, error);
+            return null;
+          }
+        })
+        .filter(time => time !== null);
+      
+
 
       const avgResolutionTime = resolutionTimes.length > 0 
         ? resolutionTimes.reduce((a, b) => a + b, 0) / resolutionTimes.length 
         : 0;
-
+      
       setKpis({
         conversionRate: Math.round(conversionRate * 100) / 100,
         avgResolutionTime: Math.round(avgResolutionTime * 10) / 10,
-        totalVolume: totalChats,
+        totalVolume: conversionFilteredChats.length,
         slaCompliance: 94 // Placeholder - implementar cálculo real
       });
     }
@@ -273,8 +399,8 @@ function NewDashboard({ theme }) {
   // Calcular Live Ops com filtros aplicados
   useEffect(() => {
     const filteredUsers = applyGlobalFilters(users);
-    const onlineUsers = filteredUsers.filter(u => u.online && u.permission === 'user').length;
-    const activeQueues = queues.filter(q => q.active_chats > 0).length;
+    const onlineUsers = users.filter(u => u.online && u.permission === 'user').length;
+    const activeQueues = queues.length
     
     setLiveOps({
       onlineUsers,
@@ -306,18 +432,25 @@ function NewDashboard({ theme }) {
         .sort((a, b) => b.count - a.count)
         .slice(0, 5);
 
-      // Calcular conversão por canal
+      // Calcular conversão por canal usando a mesma lógica de status
       const channelStats = {};
       const channelTotal = {};
+      const statusSuccessMap = {};
+      statusList.forEach(s => {
+        statusSuccessMap[s.value] = s.success;
+      });
       
       filteredChats.forEach(chat => {
-        const channel = chat.channel || 'WhatsApp';
+        // Por enquanto, todos os chats são considerados WhatsApp
+        const channel = 'WhatsApp';
         if (!channelStats[channel]) {
           channelStats[channel] = 0;
           channelTotal[channel] = 0;
         }
         channelTotal[channel]++;
-        if (chat.status === 'converted' || chat.status === 'success') {
+        
+        // Usar a mesma lógica de status dos KPIs
+        if (statusSuccessMap[chat.status] === true) {
           channelStats[channel]++;
         }
       });
@@ -349,7 +482,7 @@ function NewDashboard({ theme }) {
 
   // Dados para gráficos com filtros aplicados
   const performanceChartData = {
-    labels: ['00h', '04h', '08h', '12h', '16h', '20h'],
+    labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'],
     datasets: [{
       label: 'Volume por Hora',
       data: [12, 8, 15, 25, 18, 10],
@@ -524,8 +657,8 @@ function NewDashboard({ theme }) {
               </select>
             </div>
             
-            <div className="input-group" style={{ minWidth: '200px' }}>
-              <span className={`input-group-text igt-${theme}`}>
+            <div className="input-group d-none" style={{ minWidth: '200px' }}>
+              <span className={`input-group-text igt-${theme} d-none`}>
                 <i className="bi bi-building"></i>
               </span>
               <select 
@@ -535,7 +668,7 @@ function NewDashboard({ theme }) {
                 style={{
                   fontSize: '0.875rem',
                   padding: '8px 12px',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
                 }}
               >
                 <option value="todos">Todos os Setores</option>
@@ -544,12 +677,12 @@ function NewDashboard({ theme }) {
               </select>
             </div>
             
-            <div className="input-group" style={{ minWidth: '220px' }}>
+            <div className="input-group d-none" style={{ minWidth: '220px' }}>
               <span className={`input-group-text igt-${theme}`}>
                 <i className="bi bi-phone"></i>
               </span>
               <select 
-                className={`form-control input-${theme} custom-select-${theme}`}
+                className={`form-control input-${theme} custom-select-${theme} d-none`}
                 value={selectedChannel}
                 onChange={(e) => setSelectedChannel(e.target.value)}
                 style={{
@@ -577,7 +710,7 @@ function NewDashboard({ theme }) {
           <div className="row">
             <div className="col-3">
               <div className={`card card-${theme} p-3 text-center`} style={{ height: '120px', overflow: 'hidden' }}>
-                <div className="d-flex align-items-center justify-content-between mb-2">
+                <div className="d-flex align-items-center  mb-2">
                   <span className="d-flex align-items-center">
                     <i className="bi bi-graph-up-arrow me-2 text-success"></i>
                     <h6 className={`card-subtitle-${theme} mb-0`}>
@@ -595,26 +728,7 @@ function NewDashboard({ theme }) {
                 </small>
               </div>
             </div>
-            <div className="col-3">
-              <div className={`card card-${theme} p-3 text-center`} style={{ height: '120px', overflow: 'hidden' }}>
-                <div className="d-flex align-items-center justify-content-between mb-2">
-                  <span className="d-flex align-items-center">
-                    <i className="bi bi-clock me-2 text-primary"></i>
-                    <h6 className={`card-subtitle-${theme} mb-0`}>
-                      Conformidade SLA
-                    </h6>
-                  </span>
-                  <OverlayTrigger placement="top" overlay={renderTooltip('Percentual de conversas encerradas dentro do tempo máximo permitido por setor.')}>
-                    <i className={`bi bi-question-circle ms-1 kpi-tooltip kpi-tooltip-${theme}`}></i>
-                  </OverlayTrigger>
-                </div>
-                <h3 className={`header-text-${theme} mb-1`}>{kpis.slaCompliance}%</h3>
-                <small className="text-success">
-                  <i className="bi bi-arrow-up me-1"></i>
-                  +2.1%
-                </small>
-              </div>
-            </div>
+          
             <div className="col-3">
               <div className={`card card-${theme} p-3 text-center`} style={{ height: '120px', overflow: 'hidden' }}>
                 <div className="d-flex align-items-center justify-content-between mb-2">
@@ -722,7 +836,7 @@ function NewDashboard({ theme }) {
                   </OverlayTrigger>
                 </div>
                 <h3 className={`header-text-${theme} mb-1`}>{liveOps.activeChats}</h3>
-                <small className={`header-text-${theme}`}>Tempo médio: {liveOps.avgResponseTime}min</small>
+                <small className={`header-text-${theme} d-none`}>Tempo médio: {liveOps.avgResponseTime}min</small>
               </div>
             </div>
           </div>

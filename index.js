@@ -154,8 +154,6 @@ const socketIoServer = socketIo(socketServer, {
 global.socketIoServer = socketIoServer;
 
 io.on('connection', async (socket) => {
-  await changeOnline(userId, socket.schema)
-  
   socket.on('join', (userId) => {
     socket.join(`user_${userId}`);
   });

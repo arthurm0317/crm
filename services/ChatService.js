@@ -537,9 +537,9 @@ const closeChatContact = async (chat_id, status, schema) => {
   try {
     const number = await pool.query(`SELECT * FROM ${schema}.chats where id=$1`, [chat_id])
     const result = await pool.query(`
-      INSERT INTO ${schema}.chat_contact(id, chat_id, contact_number, status, user_id) VALUES($1,$2,$3,$4,$5) RETURNING *  
+      INSERT INTO ${schema}.chat_contact(id, chat_id, contact_number, status, user_id, created_at) VALUES($1,$2,$3,$4,$5) RETURNING *  
     `, [uuid4(), chat_id, number.rows[0].contact_phone, status, number.rows[0].assigned_user || null])
-    
+
     try {
       const report = await getGptResponse(chat_id, schema, status)
     } catch (gptError) {
@@ -548,7 +548,7 @@ const closeChatContact = async (chat_id, status, schema) => {
     
     return result.rows[0]
   } catch (error) {
-    console.error('❌ Erro ao fechar chat:', error);
+    console.error(' Erro ao fechar chat:', error);
     throw error;
   }
 }
@@ -688,10 +688,40 @@ const getStatus = async(schema)=>{
 
 const getClosedChats = async(schema)=>{
   const result = await pool.query(
-    `SELECT * FROM ${schema}.chat_contact`
+    `SELECT cc.*, c.created_at as chat_created_at FROM ${schema}.chat_contact cc 
+     LEFT JOIN ${schema}.chats c ON cc.chat_id = c.id`
   )
   return result.rows
 }
+
+const getAverageTimeToClose = async(schema)=>{
+  const closed_chats = await pool.query(`
+    SELECT * FROM ${schema}.chat_contact
+    `)
+  if (closed_chats.rowCount === 0) return 0;
+  
+  let totalTime = 0;
+  let validChats = 0;
+  
+  for (const chat of closed_chats.rows) {
+    if (chat.created_at && chat.closed_at) {
+      // created_at está em Unix timestamp, converter para milissegundos
+      const createdTime = chat.created_at * 1000; // Converter de segundos para milissegundos
+      // closed_at está em formato ISO string, converter para milissegundos
+      const closedTime = new Date(chat.closed_at).getTime();
+      const timeDiff = closedTime - createdTime;
+      if (timeDiff > 0) {
+        totalTime += timeDiff;
+        validChats++;
+      }
+    }
+  }
+  
+  return validChats > 0 ? Math.floor(totalTime / validChats / (1000 * 60)) : 0; // Retorna em minutos
+}
+
+
+
 
 
 module.exports = {
@@ -722,5 +752,6 @@ module.exports = {
   closeChatContact,
   createStatus,
   getStatus,
-  getClosedChats
+  getClosedChats,
+  getAverageTimeToClose
 };

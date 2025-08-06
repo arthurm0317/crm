@@ -115,26 +115,33 @@
       const handleOnline = () => {
         setIsOnline(true);
         setNetworkWarningShown(false);
+        setLatencyWarningShown(false);
       };
 
-             const handleOffline = () => {
-         setIsOnline(false);
-         if (!networkWarningShown) {
-           showError('Sem conexão com a internet. Verifique sua rede.');
-           setNetworkWarningShown(true);
-         }
-       };
+      const handleOffline = () => {
+        setIsOnline(false);
+        if (!networkWarningShown) {
+          showError('Sem conexão com a internet. Verifique sua rede.');
+          setNetworkWarningShown(true);
+        }
+      };
 
-      // Verificar latência periodicamente
+      // Verificar latência periodicamente com retry e timeout mais generoso
       const checkLatency = async () => {
         try {
           const startTime = performance.now();
-          // Usar fetch diretamente para evitar que o interceptor do Axios capture este erro
+          
+          // Usar fetch com timeout mais generoso
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 segundos
+          
           const response = await fetch(`${url}/api/test`, {
             method: 'GET',
             credentials: 'include',
-            signal: AbortSignal.timeout(5000)
+            signal: controller.signal
           });
+          
+          clearTimeout(timeoutId);
           
           if (!response.ok) {
             throw new Error('Network response was not ok');
@@ -143,23 +150,30 @@
           const endTime = performance.now();
           const latency = endTime - startTime;
 
-                     // Se a latência for maior que 3 segundos, mostrar aviso
-           if (latency > 3000 && !latencyWarningShown) {
-             showError('Conexão lenta detectada. O problema pode estar na sua internet.');
-             setLatencyWarningShown(true);
-           } else if (latency <= 3000 && latencyWarningShown) {
-             setLatencyWarningShown(false);
-           }
-         } catch (error) {
-           if (!networkWarningShown) {
-             showError('Problema de conectividade detectado. Verifique sua internet.');
-             setNetworkWarningShown(true);
-           }
-         }
+          // Se a latência for maior que 8 segundos, mostrar aviso (muito tolerante)
+          if (latency > 8000 && !latencyWarningShown) {
+            showError('Conexão lenta detectada. Verifique sua internet.');
+            setLatencyWarningShown(true);
+          } else if (latency <= 8000 && latencyWarningShown) {
+            setLatencyWarningShown(false);
+          }
+          
+          // Resetar avisos se a conexão estiver funcionando
+          if (networkWarningShown) {
+            setNetworkWarningShown(false);
+          }
+          
+        } catch (error) {
+          // Só mostrar erro se realmente não conseguir conectar E estiver offline
+          if (!networkWarningShown && !navigator.onLine) {
+            showError('Problema de conectividade detectado. Verifique sua internet.');
+            setNetworkWarningShown(true);
+          }
+        }
       };
 
-      // Verificar latência a cada 30 segundos
-      const latencyInterval = setInterval(checkLatency, 30000);
+      // Verificar latência a cada 2 minutos (muito menos frequente)
+      const latencyInterval = setInterval(checkLatency, 120000);
 
       window.addEventListener('online', handleOnline);
       window.addEventListener('offline', handleOffline);
@@ -174,7 +188,7 @@
         window.removeEventListener('offline', handleOffline);
         clearInterval(latencyInterval);
       };
-         }, [showError, url, networkWarningShown, latencyWarningShown]);
+    }, [showError, url, networkWarningShown, latencyWarningShown]);
 
 
     // Atualizar página quando as preferências mudarem

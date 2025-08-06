@@ -79,17 +79,11 @@ axios.interceptors.response.use(
       }
     }
 
-    // Exibir toast de erro para erros de rede ou servidor
+    // Exibir toast de erro apenas para erros do servidor
     if (error.response) {
       // Erro do servidor com resposta
       const errorMessage = error.response.data?.message || error.response.data?.error || 'Erro no servidor';
       showErrorToast(errorMessage);
-    } else if (error.request) {
-      // Erro de rede (sem resposta)
-      showErrorToast('Erro de conexão. Verifique sua internet.');
-    } else {
-      // Outro tipo de erro
-      showErrorToast('Ocorreu um erro inesperado.');
     }
 
     return Promise.reject(error);
