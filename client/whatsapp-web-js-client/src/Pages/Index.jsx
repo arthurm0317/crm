@@ -24,6 +24,7 @@
   import axios from 'axios';
   import useUserPreferences from '../hooks/useUserPreferences';
   import CustomValuesModal from './modalPages/CustomValuesModal';
+  import { useToast } from '../contexts/ToastContext';
 
   window.addEventListener('error', function (event) {
     if (
@@ -104,6 +105,76 @@
     const [socketInstance] = useState(() => socket());
     const [showCustomValuesModal, setShowCustomValuesModal] = useState(false);
     const customValuesBtnRef = useRef(null);
+    const { showError } = useToast();
+    const [isOnline, setIsOnline] = useState(navigator.onLine);
+    const [networkWarningShown, setNetworkWarningShown] = useState(false);
+    const [latencyWarningShown, setLatencyWarningShown] = useState(false);
+
+    // Monitoramento de conectividade de rede
+    useEffect(() => {
+      const handleOnline = () => {
+        setIsOnline(true);
+        setNetworkWarningShown(false);
+      };
+
+             const handleOffline = () => {
+         setIsOnline(false);
+         if (!networkWarningShown) {
+           showError('Sem conexão com a internet. Verifique sua rede.');
+           setNetworkWarningShown(true);
+         }
+       };
+
+      // Verificar latência periodicamente
+      const checkLatency = async () => {
+        try {
+          const startTime = performance.now();
+          // Usar fetch diretamente para evitar que o interceptor do Axios capture este erro
+          const response = await fetch(`${url}/api/test`, {
+            method: 'GET',
+            credentials: 'include',
+            signal: AbortSignal.timeout(5000)
+          });
+          
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          
+          const endTime = performance.now();
+          const latency = endTime - startTime;
+
+                     // Se a latência for maior que 3 segundos, mostrar aviso
+           if (latency > 3000 && !latencyWarningShown) {
+             showError('Conexão lenta detectada. O problema pode estar na sua internet.');
+             setLatencyWarningShown(true);
+           } else if (latency <= 3000 && latencyWarningShown) {
+             setLatencyWarningShown(false);
+           }
+         } catch (error) {
+           if (!networkWarningShown) {
+             showError('Problema de conectividade detectado. Verifique sua internet.');
+             setNetworkWarningShown(true);
+           }
+         }
+      };
+
+      // Verificar latência a cada 30 segundos
+      const latencyInterval = setInterval(checkLatency, 30000);
+
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+
+      // Verificação inicial
+      if (!navigator.onLine) {
+        handleOffline();
+      }
+
+      return () => {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+        clearInterval(latencyInterval);
+      };
+         }, [showError, url, networkWarningShown, latencyWarningShown]);
 
 
     // Atualizar página quando as preferências mudarem
