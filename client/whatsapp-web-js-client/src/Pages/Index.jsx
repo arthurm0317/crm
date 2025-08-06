@@ -7,7 +7,7 @@
   import './assets/style.css';
   import { useTheme } from './assets/js/useTheme';
   import { useNavigate } from 'react-router-dom';
-  import Dashboard from './Dashboard';
+  import Dashboard from './NewDashboard';
   import {socket} from '../socket'
   import ChatPage from './Chats';
   import AgendaPage from './Lembretes';
