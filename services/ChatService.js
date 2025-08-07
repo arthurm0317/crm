@@ -537,7 +537,7 @@ const closeChatContact = async (chat_id, status, schema) => {
   try {
     const number = await pool.query(`SELECT * FROM ${schema}.chats where id=$1`, [chat_id])
     const result = await pool.query(`
-      INSERT INTO ${schema}.chat_contact(id, chat_id, contact_number, status, user_id, created_at) VALUES($1,$2,$3,$4,$5) RETURNING *  
+      INSERT INTO ${schema}.chat_contact(id, chat_id, contact_number, status, user_id) VALUES($1,$2,$3,$4,$5) RETURNING *  
     `, [uuid4(), chat_id, number.rows[0].contact_phone, status, number.rows[0].assigned_user || null])
 
     try {
@@ -688,7 +688,7 @@ const getStatus = async(schema)=>{
 
 const getClosedChats = async(schema)=>{
   const result = await pool.query(
-    `SELECT cc.*, c.created_at as chat_created_at FROM ${schema}.chat_contact cc 
+    `SELECT cc.*, c.created_at as created_at, c.connection_id as connection_id FROM ${schema}.chat_contact cc 
      LEFT JOIN ${schema}.chats c ON cc.chat_id = c.id`
   )
   return result.rows

@@ -30,9 +30,9 @@ ChartJS.register(
 );
 
 function NewDashboard({ theme }) {
-  const url = process.env.REACT_APP_URL;
+  const url = process.env.REACT_APP_URL
   const userData = JSON.parse(localStorage.getItem('user'));
-  const schema = userData.schema;
+  const schema = userData?.schema;
 
   // Estados principais
   const [users, setUsers] = useState([]);
@@ -46,6 +46,8 @@ function NewDashboard({ theme }) {
   const [showChatModal, setShowChatModal] = useState(false);
   const [modalChatId, setModalChatId] = useState(null);
   const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [connections, setConnections] = useState([])
+  const [openChatsData, setOpenChatsData] = useState([])
 
   // Estados de filtros
   const [selectedPeriod, setSelectedPeriod] = useState('diario');
@@ -73,6 +75,64 @@ function NewDashboard({ theme }) {
     channelDistribution: [],
     conversionByChannel: []
   });
+
+  useEffect(()=>{
+
+    const fetchConns = async () => {
+      if (!schema) {
+        console.error('Schema não encontrado');
+        setConnections([]);
+        return;
+      }
+      
+      try {
+        console.log('Tentando buscar conexões com URL:', `${url}/connection/get-all-connections/${schema}`);
+        const response = await axios.get(`${url}/connection/get-all-connections/${schema}`, {withCredentials: true})
+        setConnections(Array.isArray(response.data)?response.data : [response.data])
+      } catch (error) {
+        console.error('Erro ao buscar conexões:', error);
+        console.error('URL tentada:', `${url}/connection/get-all-connections/${schema}`);
+        setConnections([]);
+      }
+    }
+    fetchConns()
+
+    const statusSuccessMap = {};
+    statusList.forEach(s => {
+      statusSuccessMap[s.value] = s.success;
+    });
+
+
+    const channelTotal = {};
+    const channelStats = {};
+
+    const filteredChatsChart = closedChats.forEach(chat=>{
+      const channelId = chat.connection_id || chat.channel_id || chat.canal || 'desconhecido';
+      channelTotal[channelId] = (channelTotal[channelId] || 0) + 1;
+      if (statusSuccessMap[chat.status] === true) {
+        channelStats[channelId] = (channelStats[channelId] || 0) + 1;
+      }
+    });
+    const conversionByChannel = connections.map(conn => {
+      const total = channelTotal[conn.id] || 0;
+      const converted = channelStats[conn.id] || 0;
+      return total > 0 ? Math.round((converted / total) * 100) : 0;
+    });
+
+    setPerformance(prev => ({
+      ...prev,
+      conversionByChannel
+    }));
+    const channelOpenTotals = {};
+    activeChats.forEach(chat => {
+      const channelId = chat.connection_id || chat.channel_id || chat.canal || 'desconhecido';
+      channelOpenTotals[channelId] = (channelOpenTotals[channelId] || 0) + 1;
+    });
+    setOpenChatsData(channelOpenTotals)
+    
+  }, [schema, closedChats])
+
+  
 
   const [quality] = useState({
     accuracyIndex: 0,
@@ -371,19 +431,18 @@ function NewDashboard({ theme }) {
       // Para outros KPIs, usar created_at para filtro de período
       const otherFilteredChats = applyGlobalFilters(closedChats);
 
-
       const resolutionTimes = conversionFilteredChats
-        .filter(c => c.chat_created_at && c.closed_at)
+        .filter(c => c.created_at && c.closed_at)
         .map(c => {
           try {
             // Verificar se chat_created_at está em segundos ou milissegundos
             let createdTimeUnix;
-            if (c.chat_created_at > 1000000000000) {
+            if (c.created_at > 1000000000000) {
               // Se o valor é maior que 1000000000000, está em milissegundos
-              createdTimeUnix = Math.floor(c.chat_created_at / 1000);
+              createdTimeUnix = Math.floor(c.created_at / 1000);
             } else {
               // Se o valor é menor, está em segundos
-              createdTimeUnix = c.chat_created_at;
+              createdTimeUnix = c.created_at;
             }
             
             // closed_at está em formato ISO string, converter para Unix timestamp (segundos)
@@ -442,6 +501,7 @@ function NewDashboard({ theme }) {
       let finalFilteredChats = filterDataByPeriod(closedChats, true);
       finalFilteredChats = filterDataBySector(finalFilteredChats);
       finalFilteredChats = filterDataByChannel(finalFilteredChats);
+
       // Ranking de atendentes
       const userStats = {};
       finalFilteredChats.forEach(chat => {
@@ -482,16 +542,11 @@ function NewDashboard({ theme }) {
         }
       });
 
-      const conversionByChannel = ['WhatsApp', 'Webchat', 'Instagram'].map(channel => {
-        const total = channelTotal[channel] || 0;
-        const converted = channelStats[channel] || 0;
-        return total > 0 ? Math.round((converted / total) * 100) : 0;
-      });
+      
 
       setPerformance(prev => ({
         ...prev,
-        userRanking,
-        conversionByChannel
+        userRanking
       }));
     }
   }, [closedChats, userNames, selectedSector, selectedChannel, statusList]);
@@ -539,11 +594,11 @@ function NewDashboard({ theme }) {
       let chatDate = null;
       
       // Tentar diferentes campos de data que podem existir
-      if (chat.chat_created_at) {
-        if (chat.chat_created_at > 1000000000000) {
+      if (chat.created_at) {
+        if (chat.created_at > 1000000000000) {
           chatDate = new Date(Number(chat.created_at));
         } else {
-          chatDate = new Date(chat.chat_created_at * 1000);
+          chatDate = new Date(chat.created_at * 1000);
         }
       } else if (chat.created_at) {
         if (chat.created_at > 1000000000000) {
@@ -601,9 +656,9 @@ function NewDashboard({ theme }) {
   };
 
   const channelDistributionData = {
-    labels: ['WhatsApp', 'Webchat', 'Instagram'],
+   labels: connections.map(conn=>conn.name),
     datasets: [{
-      data: [65, 25, 10],
+      data: connections.map(conn => openChatsData[conn.id] || 0),
       backgroundColor: ['#25D366', '#007bff', '#E4405F'],
       borderColor: theme === 'dark' ? ['#1a1a1a', '#1a1a1a', '#1a1a1a'] : ['#ffffff', '#ffffff', '#ffffff'],
       borderWidth: 2
@@ -1054,7 +1109,7 @@ function NewDashboard({ theme }) {
                 </div>
                 <div className="chart-container" style={{ height: '180px', overflow: 'hidden' }}>
                   <Bar data={{
-                    labels: ['WhatsApp', 'Webchat', 'Instagram'],
+                    labels: connections.map(conn=>conn.name),
                     datasets: [{
                       label: 'Taxa de Conversão',
                       data: performance.conversionByChannel || [75, 60, 45],
@@ -1132,7 +1187,7 @@ function NewDashboard({ theme }) {
           </div>
         </div>
 
-        {/* Seção 4 - Qualidade */}
+        {/* Seção 4 - Qualidade
         <div className="mb-4">
           <div className="d-flex align-items-center mb-3">
             <h5 className={`header-text-${theme} mb-0`}>Qualidade de Atendimento</h5>
@@ -1235,7 +1290,7 @@ function NewDashboard({ theme }) {
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Seção 4.5 - Motivos de Ganho e Perda */}
         <div className="mb-4">
