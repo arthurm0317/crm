@@ -145,10 +145,11 @@ function NewDashboard({ theme }) {
         if (useClosedAt) {
           return item.closed_at && new Date(item.closed_at) >= cutoffDate;
         } else {
-          if (!item.chat_created_at) return false;
+          if (!item.created_at) return false;
           let itemDate;
-          if (item.chat_created_at > 1000000000000) {
-            itemDate = new Date(item.chat_created_at);
+          if (item.created_at > 1000000000000) {
+            
+            itemDate = new Date(Number(item.created_at));
           } else {
             itemDate = new Date(item.chat_created_at * 1000);
           }
@@ -157,30 +158,7 @@ function NewDashboard({ theme }) {
       });
       
       if (!hasRecentData) {
-        // Se não há dados recentes, usar uma data de corte mais antiga (últimos 30 dias)
         adjustedCutoffDate = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
-      }
-    }
-    
-    
-    // Contar quantos itens têm chat_created_at válido
-    if (!useClosedAt) {
-      const validItems = data.filter(item => item.chat_created_at);
-      const invalidItems = data.filter(item => !item.chat_created_at);
-    }
-    
-    // Log dos primeiros 3 itens para debug
-    if (data.length > 0) {
-      for (let i = 0; i < Math.min(3, data.length); i++) {
-        const item = data[i];
-        if (useClosedAt) {
-        } else {
-        }
-      }
-      
-      // Log adicional para verificar todos os campos dos primeiros itens
-      for (let i = 0; i < Math.min(3, data.length); i++) {
-        const item = data[i];
       }
     }
     
@@ -190,8 +168,6 @@ function NewDashboard({ theme }) {
         if (!item.closed_at) return false;
         const itemDate = new Date(item.closed_at);
         const isIncluded = itemDate >= adjustedCutoffDate;
-        if (data.length <= 5) { // Log apenas para os primeiros itens
-        }
         return isIncluded;
       } else {
         // Para outros KPIs, usar chat_created_at (Unix timestamp)
@@ -214,8 +190,54 @@ function NewDashboard({ theme }) {
       }
     });
     
-    
     return filtered;
+  };
+
+  // Função para filtrar dados dos últimos 7 dias (específica para performance)
+  const filterDataByLast7Days = (data, useClosedAt = false) => {
+    const now = new Date();
+    const cutoffDate = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+    
+    return data.filter(item => {
+      if (useClosedAt) {
+        if (!item.closed_at) return false;
+        const itemDate = new Date(item.closed_at);
+        return itemDate >= cutoffDate;
+      } else {
+        let itemDate = null;
+        
+        // Tentar diferentes campos de data que podem existir
+        if (item.chat_created_at) {
+          if (item.chat_created_at > 1000000000000) {
+            itemDate = new Date(item.chat_created_at);
+          } else {
+            itemDate = new Date(item.chat_created_at * 1000);
+          }
+        } else if (item.created_at) {
+          if (item.created_at > 1000000000000) {
+            itemDate = new Date(Number(item.created_at));
+          } else {
+            itemDate = new Date(item.created_at * 1000);
+          }
+        } else if (item.timestamp) {
+          if (item.timestamp > 1000000000000) {
+            itemDate = new Date(item.timestamp);
+          } else {
+            itemDate = new Date(item.timestamp * 1000);
+          }
+        } else if (item.updated_time) {
+          if (item.updated_time > 1000000000000) {
+            itemDate = new Date(item.updated_time);
+          } else {
+            itemDate = new Date(item.updated_time * 1000);
+          }
+        }
+        
+        if (!itemDate) return false;
+        
+        return itemDate >= cutoffDate;
+      }
+    });
   };
 
   useEffect(() => {
@@ -281,7 +303,7 @@ function NewDashboard({ theme }) {
         const closedChatsResponse = await axios.get(`${url}/chat/get-closed-chats/${schema}`, {
           withCredentials: true
         });
-        setClosedChats(closedChatsResponse.data.result || []);
+        setClosedChats(closedChatsResponse.data.result || [closedChatsResponse.data.result]);
 
         // Status
         const statusResponse = await axios.get(`${url}/chat/get-status/${schema}`, {
@@ -413,11 +435,16 @@ function NewDashboard({ theme }) {
   // Calcular Performance com filtros aplicados
   useEffect(() => {
     if (closedChats.length > 0) {
-      const filteredChats = applyGlobalFilters(closedChats);
+      // Para performance, sempre usar os últimos 7 dias
+      const filteredChats = filterDataByLast7Days(closedChats);
       
+      // Aplicar filtros adicionais (setor e canal)
+      let finalFilteredChats = filterDataByPeriod(closedChats, true);
+      finalFilteredChats = filterDataBySector(finalFilteredChats);
+      finalFilteredChats = filterDataByChannel(finalFilteredChats);
       // Ranking de atendentes
       const userStats = {};
-      filteredChats.forEach(chat => {
+      finalFilteredChats.forEach(chat => {
         if (chat.user_id) {
           userStats[chat.user_id] = (userStats[chat.user_id] || 0) + 1;
         }
@@ -440,7 +467,7 @@ function NewDashboard({ theme }) {
         statusSuccessMap[s.value] = s.success;
       });
       
-      filteredChats.forEach(chat => {
+      finalFilteredChats.forEach(chat => {
         // Por enquanto, todos os chats são considerados WhatsApp
         const channel = 'WhatsApp';
         if (!channelStats[channel]) {
@@ -467,7 +494,7 @@ function NewDashboard({ theme }) {
         conversionByChannel
       }));
     }
-  }, [closedChats, userNames, selectedPeriod, selectedSector, selectedChannel, applyGlobalFilters]);
+  }, [closedChats, userNames, selectedSector, selectedChannel, statusList]);
 
   // Função para abrir modal do chat
   const handleOpenChatModal = (chatId) => {
@@ -480,12 +507,93 @@ function NewDashboard({ theme }) {
     setModalChatId(null);
   };
 
+    // Gerar labels das datas dos últimos 7 dias
+  const generateLast7DaysLabels = () => {
+    const labels = [];
+    const today = new Date();
+    
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      labels.push(`${day}/${month}`);
+    }
+    
+    return labels;
+  };
+
+  // Calcular dados reais do volume por dia dos últimos 7 dias
+  const calculateDailyVolume = () => {
+    const allChats = [...(activeChats || []), ...(closedChats || [])];
+    if (allChats.length === 0) return [12, 8, 15, 25, 18, 10, 5]; // Dados padrão
+
+    const last7DaysChats = filterDataByLast7Days(allChats, false);
+    const dailyData = [0, 0, 0, 0, 0, 0, 0]; // 7 dias
+
+    // Obter a data de hoje à meia-noite para cálculos precisos
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    last7DaysChats.forEach(chat => {
+      let chatDate = null;
+      
+      // Tentar diferentes campos de data que podem existir
+      if (chat.chat_created_at) {
+        if (chat.chat_created_at > 1000000000000) {
+          chatDate = new Date(Number(chat.created_at));
+        } else {
+          chatDate = new Date(chat.chat_created_at * 1000);
+        }
+      } else if (chat.created_at) {
+        if (chat.created_at > 1000000000000) {
+          chatDate = new Date(Number(chat.created_at));
+        } else {
+          chatDate = new Date(chat.created_at * 1000);
+        }
+      } else if (chat.timestamp) {
+        if (chat.timestamp > 1000000000000) {
+          chatDate = new Date(chat.timestamp);
+        } else {
+          chatDate = new Date(chat.timestamp * 1000);
+        }
+      } else if (chat.updated_time) {
+        if (chat.updated_time > 1000000000000) {
+          chatDate = new Date(chat.updated_time);
+        } else {
+          chatDate = new Date(chat.updated_time * 1000);
+        }
+      }
+
+      if (chatDate) {
+        // Definir a data do chat para meia-noite para comparação precisa
+        chatDate.setHours(0, 0, 0, 0);
+        
+        // Calcular a diferença em dias
+        const diffTime = today.getTime() - chatDate.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        
+        // Se está dentro dos últimos 7 dias (0 a 6 dias atrás)
+        if (diffDays >= 0 && diffDays < 7) {
+          const index = 6 - diffDays; // Inverter para mostrar do mais antigo para o mais recente
+          if (index >= 0 && index < 7) {
+            dailyData[index]++;
+          }
+        }
+      }
+    });
+
+    // Debug: log dos dados calculados
+
+    return dailyData;
+  };
+
   // Dados para gráficos com filtros aplicados
   const performanceChartData = {
-    labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'],
+    labels: generateLast7DaysLabels(),
     datasets: [{
-      label: 'Volume por Hora',
-      data: [12, 8, 15, 25, 18, 10],
+      label: 'Volume por Dia',
+      data: calculateDailyVolume(),
       borderColor: theme === 'dark' ? 'rgb(75, 192, 192)' : 'rgb(75, 192, 192)',
       backgroundColor: theme === 'dark' ? 'rgba(75, 192, 192, 0.1)' : 'rgba(75, 192, 192, 0.2)',
       tension: 0.1
@@ -849,6 +957,10 @@ function NewDashboard({ theme }) {
             <div className="flex-grow-1 ms-3">
               <hr className={`border-${theme}`} />
             </div>
+            <small className={`text-muted text-muted-${theme}`}>
+              <i className="bi bi-calendar-week me-1"></i>
+              Últimos 7 dias
+            </small>
           </div>
           <div className="row mb-4">
             <div className="col-8">
@@ -856,9 +968,9 @@ function NewDashboard({ theme }) {
                 <div className="d-flex align-items-center justify-content-between mb-3">
                   <span className="d-flex align-items-center">
                     <i className="bi bi-graph-up me-2 text-primary"></i>
-                    <h6 className={`card-subtitle-${theme} mb-0`}>Volume por Hora</h6>
+                    <h6 className={`card-subtitle-${theme} mb-0`}>Volume por dia</h6>
                   </span>
-                  <OverlayTrigger placement="top" overlay={renderTooltip('Distribuição do volume de conversas ao longo das horas do dia, mostrando os horários de maior e menor movimento.')}>
+                  <OverlayTrigger placement="top" overlay={renderTooltip('Distribuição do volume de conversas ao longo da última semana, mostrando os dias de maior e menor movimento, servindo principalmente para mensurar campanhas de publicidade.')}>
                     <i className={`bi bi-question-circle ms-1 kpi-tooltip kpi-tooltip-${theme}`}></i>
                   </OverlayTrigger>
                 </div>
