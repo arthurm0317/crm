@@ -1,9 +1,11 @@
 import axios from 'axios';
 import React, { useState, useEffect, useRef } from 'react';
 import * as bootstrap from 'bootstrap';
+import { useToast } from '../../contexts/ToastContext';
 
 
 function DisparoModal({ theme, disparo = null, onSave }) {
+  const { showError, showSuccess } = useToast();
   const [titulo, setTitulo] = useState('');
   const [numMensagens, setNumMensagens] = useState(1);
   const [mensagens, setMensagens] = useState([
@@ -30,12 +32,28 @@ function DisparoModal({ theme, disparo = null, onSave }) {
   const [customFields ,setCustomFields] = useState([])
   const textAreasRef = useRef([]);
   const [mensagensImagens, setMensagensImagens] = useState([]);
+  // Estados para transferência de contatos
+  const [transferirContato, setTransferirContato] = useState(false);
+  const [etapaDestino, setEtapaDestino] = useState('');
   // Remover todos os estados e lógicas de loading, success, errorMsg
   // Remover feedback visual do botão
   // Remover exibição de erro
   // Voltar handleSave para o formato original, sem loading/success/errorMsg
   // Botão volta ao texto padrão e habilitação padrão
   const [loading, setLoading] = useState(false);
+
+  // Estados para validação de campos obrigatórios
+  const [errors, setErrors] = useState({
+    titulo: false,
+    canais: false,
+    dataInicio: false,
+    horaInicio: false,
+    mensagens: Array(numMensagens).fill(false),
+    funilSelecionado: false,
+    etapa: false,
+    tagsSelecionadas: false,
+    etapaDestino: false
+  });
 
 
   const userData = JSON.parse(localStorage.getItem('user'));
@@ -179,6 +197,28 @@ const limparBase64 = (base64ComPrefixo) => {
       setMensagensImagens([null]);
       setNumMensagens(1);
     }
+
+    // Carregar dados de transferência se existir
+    if (disparo && disparo.transferir_contato) {
+      setTransferirContato(true);
+      setEtapaDestino(disparo.new_stage || '');
+    } else {
+      setTransferirContato(false);
+      setEtapaDestino('');
+    }
+    
+    // Limpar erros quando carregar disparo
+    setErrors({
+      titulo: false,
+      canais: false,
+      dataInicio: false,
+      horaInicio: false,
+      mensagens: Array(numMensagens).fill(false),
+      funilSelecionado: false,
+      etapa: false,
+      tagsSelecionadas: false,
+      etapaDestino: false
+    });
   } else {
     setTitulo('');
     setNumMensagens(1);
@@ -199,6 +239,21 @@ const limparBase64 = (base64ComPrefixo) => {
     setIntervaloMaximo(60);
     setIntervaloUnidadeMin('segundos');
     setIntervaloUnidadeMax('segundos');
+    setTransferirContato(false);
+    setEtapaDestino('');
+    
+    // Limpar erros quando carregar disparo
+    setErrors({
+      titulo: false,
+      canais: false,
+      dataInicio: false,
+      horaInicio: false,
+      mensagens: Array(numMensagens).fill(false),
+      funilSelecionado: false,
+      etapa: false,
+      tagsSelecionadas: false,
+      etapaDestino: false
+    });
   }
 };
 
@@ -278,27 +333,52 @@ const limparBase64 = (base64ComPrefixo) => {
 }, [etapas, disparo]);
 
 
-  // Atualiza array de mensagens quando o número de mensagens muda
+    // Atualiza array de mensagens quando o número de mensagens muda
   useEffect(() => {
-    const novasMensagens = [...mensagens];
-    if (numMensagens > mensagens.length) {
-      while (novasMensagens.length < numMensagens) {
-       novasMensagens.push({ text: '', image: null }); 
-      }
-    } else {
-      novasMensagens.splice(numMensagens);
-    }
-    setMensagens(novasMensagens);
-  }, [numMensagens]);
+    const novasMensagens = [...mensagens];
+    if (numMensagens > mensagens.length) {
+      while (novasMensagens.length < numMensagens) {
+       novasMensagens.push({ text: '', image: null }); 
+      }
+    } else {
+      novasMensagens.splice(numMensagens);
+    }
+    setMensagens(novasMensagens);
+    
+    // Atualizar array de erros de mensagens
+    setErrors(prev => ({
+      ...prev,
+      mensagens: Array(numMensagens).fill(false)
+    }));
+  }, [numMensagens]);
 
   useEffect(() => {
     if (tipoAlvo === 'Funil') {
       setTagsSelecionadas([]);
+      // Limpar erro de tags quando mudar para Funil
+      setErrors(prev => ({ ...prev, tagsSelecionadas: false }));
     } else {
       setFunilSelecionado('');
       setEtapas([]);
+      setTransferirContato(false);
+      setEtapaDestino('');
+      // Limpar erros de funil e etapa quando mudar para Tag
+      setErrors(prev => ({ 
+        ...prev, 
+        funilSelecionado: false, 
+        etapa: false,
+        etapaDestino: false 
+      }));
     }
   }, [tipoAlvo]);
+
+  // Limpar etapa de destino quando a etapa atual mudar
+  useEffect(() => {
+    if (etapaDestino === etapa) {
+      setEtapaDestino('');
+      setErrors(prev => ({ ...prev, etapaDestino: false }));
+    }
+  }, [etapa, etapaDestino]);
 
   const handleIntervaloChange = (valor, unidade) => {
     let valorEmSegundos;
@@ -406,14 +486,30 @@ const limparBase64 = (base64ComPrefixo) => {
 };
 
 
+  // Função para validar campos obrigatórios
+  const validateFields = () => {
+    const newErrors = {
+      titulo: !titulo.trim(),
+      canais: canais.length === 0,
+      dataInicio: !dataInicio,
+      horaInicio: !horaInicio,
+      mensagens: mensagens.map(msg => !msg.text.trim()),
+      funilSelecionado: tipoAlvo === 'Funil' && !funilSelecionado,
+      etapa: tipoAlvo === 'Funil' && !etapa,
+      tagsSelecionadas: tipoAlvo === 'Tag' && tagsSelecionadas.length === 0,
+      etapaDestino: transferirContato && !etapaDestino
+    };
+    
+    setErrors(newErrors);
+    return !Object.values(newErrors).some(error => 
+      Array.isArray(error) ? error.some(e => e) : error
+    );
+  };
+
   const handleSave = async () => {
     if (loading) return;
-    if (!titulo || !canais.length || !dataInicio || !horaInicio || mensagens.some(msg => !msg.text)) {
-      alert('Preencha todos os campos obrigatórios.');
-      return;
-    }
-    if (tipoAlvo === 'Tag' && tagsSelecionadas.length === 0) {
-      alert('Selecione pelo menos uma tag.');
+    
+    if (!validateFields()) {
       return;
     }
     setLoading(true);
@@ -453,7 +549,9 @@ const limparBase64 = (base64ComPrefixo) => {
       unidade_min: intervaloDinamico ? intervaloUnidadeMin : null,
       max: intervaloDinamico ? intervaloMaximo : null,
       unidade_max: intervaloDinamico ? intervaloUnidadeMax : null
-    }
+    },
+    transferir_contato: transferirContato,
+    ...(transferirContato && etapaDestino ? { new_stage: etapaDestino } : {})
 };
 
     try {
@@ -468,7 +566,7 @@ const limparBase64 = (base64ComPrefixo) => {
       
       if (response.status === 201) {
         if (!disparo) {
-          alert('Disparo criado com sucesso!');
+          showSuccess('Disparo criado com sucesso!');
         }
         // Fechar modal
         const modal = bootstrap.Modal.getInstance(document.getElementById('DisparoModal'));
@@ -490,13 +588,13 @@ const limparBase64 = (base64ComPrefixo) => {
         return;
       }
       setLoading(false);
-      alert('Erro inesperado ao criar disparo.');
+      showError('Erro inesperado ao criar disparo.');
     } catch (error) {
       setLoading(false);
       if (error.response && error.response.data && error.response.data.erro) {
-        alert(error.response.data.erro);
+        showError(error.response.data.erro);
       } else {
-        alert('Erro ao salvar disparo. Verifique os campos e tente novamente.');
+        showError('Erro ao salvar disparo. Verifique os campos e tente novamente.');
       }
       console.error('Erro ao salvar disparo:', error);
     }
@@ -522,17 +620,28 @@ const limparBase64 = (base64ComPrefixo) => {
             {/* Título */}
             <div className="mb-3">
               <label htmlFor="titulo" className={`form-label card-subtitle-${theme}`}>
-                Título
+                Título *
               </label>
               <input
                 type="text"
-                className={`form-control input-${theme}`}
+                className={`form-control input-${theme} ${errors.titulo ? 'border-danger' : ''}`}
                 id="titulo"
                 value={titulo}
-                onChange={(e) => setTitulo(e.target.value)}
+                onChange={(e) => {
+                  setTitulo(e.target.value);
+                  if (errors.titulo) {
+                    setErrors(prev => ({ ...prev, titulo: false }));
+                  }
+                }}
                 placeholder="Digite o título do disparo"
                 disabled={!isAdmin}
+                title={errors.titulo ? "Campo obrigatório" : ""}
               />
+              {errors.titulo && (
+                <div className="text-danger small mt-1">
+                  Este campo é obrigatório
+                </div>
+              )}
             </div>
             {/* Número de Mensagens */}
             <div className="mb-3">
@@ -555,7 +664,7 @@ const limparBase64 = (base64ComPrefixo) => {
               <div>
 
             <label htmlFor={`mensagem${index}`} className={`form-label card-subtitle-${theme}`}>
-            Modelo de mensagem {index + 1}
+            Modelo de mensagem {index + 1} *
           </label>
               </div>
 
@@ -577,7 +686,7 @@ const limparBase64 = (base64ComPrefixo) => {
             <div className="flex-grow-1">
               <textarea
                 ref={(el) => textAreasRef.current[index] = el}
-                className={`form-control input-${theme}`}
+                className={`form-control input-${theme} ${errors.mensagens[index] ? 'border-danger' : ''}`}
                 id={`mensagem${index}`}
                 value={mensagem.text}
                 onChange={(e) => {
@@ -590,9 +699,18 @@ const limparBase64 = (base64ComPrefixo) => {
                   };
 
                   setMensagens(novasMensagens);
+                  
+                  // Limpar erro quando o usuário começar a digitar
+                  if (errors.mensagens[index]) {
+                    setErrors(prev => ({
+                      ...prev,
+                      mensagens: prev.mensagens.map((error, i) => i === index ? false : error)
+                    }));
+                  }
                 }}
                 rows="3"
                 placeholder={`Digite a mensagem ${index + 1}`}
+                title={errors.mensagens[index] ? "Campo obrigatório" : ""}
               />
             </div>
           </div>
@@ -643,6 +761,11 @@ const limparBase64 = (base64ComPrefixo) => {
       </div>
     </div>
     
+    {errors.mensagens[index] && (
+      <div className="text-danger small mt-1">
+        Este campo é obrigatório
+      </div>
+    )}
   </div>
 ))}
 
@@ -652,8 +775,8 @@ const limparBase64 = (base64ComPrefixo) => {
               <div className="col-6 d-flex flex-column justify-content-center">
                 {/* Canais */}
                 <div className="mb-3">
-                  <label className={`form-label card-subtitle-${theme}`}>Canais</label>
-                  <div className="d-flex flex-column gap-2">
+                  <label className={`form-label card-subtitle-${theme}`}>Canais *</label>
+                  <div className={`d-flex flex-column gap-2 ${errors.canais ? 'border border-danger rounded p-2' : ''}`}>
                     {canais.map((canalId, idx) => (
                       <div key={idx} className="d-flex align-items-center gap-2">
                         <select
@@ -663,6 +786,9 @@ const limparBase64 = (base64ComPrefixo) => {
                             const novoId = e.target.value;
                             if (!canais.includes(novoId)) {
                               setCanais(prev => prev.map((id, i) => i === idx ? novoId : id));
+                              if (errors.canais) {
+                                setErrors(prev => ({ ...prev, canais: false }));
+                              }
                             }
                           }}
                           disabled={!isAdmin}
@@ -691,6 +817,9 @@ const limparBase64 = (base64ComPrefixo) => {
                         const disponiveis = conexao.filter(conn => !canais.includes(conn.id));
                         if (disponiveis.length > 0) {
                           setCanais(prev => [...prev, disponiveis[0].id]); // SEM parseInt!
+                          if (errors.canais) {
+                            setErrors(prev => ({ ...prev, canais: false }));
+                          }
                         }
                       }}
                       disabled={canais.length >= conexao.length || !isAdmin}
@@ -698,6 +827,11 @@ const limparBase64 = (base64ComPrefixo) => {
                       + Adicionar canal
                     </button>
                   </div>
+                  {errors.canais && (
+                    <div className="text-danger small mt-1">
+                      Selecione pelo menos um canal
+                    </div>
+                  )}
                 </div>
                 {/* Tipo de Alvo com Seleção de Funil */}
                 <div className="mb-3">
@@ -734,10 +868,16 @@ const limparBase64 = (base64ComPrefixo) => {
                     {/* Lista suspensa de Funis */}
                     {tipoAlvo === 'Funil' && (
                       <select
-                        className={`form-select input-${theme} ms-3`}
+                        className={`form-select input-${theme} ms-3 ${errors.funilSelecionado ? 'border-danger' : ''}`}
                         value={funilSelecionado}
-                        onChange={(e) => setFunilSelecionado(e.target.value)}
+                        onChange={(e) => {
+                          setFunilSelecionado(e.target.value);
+                          if (errors.funilSelecionado) {
+                            setErrors(prev => ({ ...prev, funilSelecionado: false }));
+                          }
+                        }}
                         style={{ width: 'auto', minWidth: '200px' }}
+                        title={errors.funilSelecionado ? "Campo obrigatório" : ""}
                       >
                         <option value="" disabled>Selecione um funil</option>
                         {funis.map((funil) => (
@@ -753,13 +893,19 @@ const limparBase64 = (base64ComPrefixo) => {
                 {tipoAlvo === 'Funil' ? (
                   <div className="mb-3">
                     <label htmlFor="etapa" className={`form-label card-subtitle-${theme}`}>
-                      Etapa
+                      Etapa *
                     </label>
                     <select
-                      className={`form-select input-${theme}`}
+                      className={`form-select input-${theme} ${errors.etapa ? 'border-danger' : ''}`}
                       id="etapa"
                       value={etapa}
-                      onChange={(e) => setEtapa(e.target.value)}
+                      onChange={(e) => {
+                        setEtapa(e.target.value);
+                        if (errors.etapa) {
+                          setErrors(prev => ({ ...prev, etapa: false }));
+                        }
+                      }}
+                      title={errors.etapa ? "Campo obrigatório" : ""}
                     >
                       <option value="" disabled>Selecione uma etapa</option>
                       {Array.isArray(etapas) && etapas.map((etapaObj) => (
@@ -768,14 +914,19 @@ const limparBase64 = (base64ComPrefixo) => {
                         </option>
                       ))}
                     </select>
+                    {errors.etapa && (
+                      <div className="text-danger small mt-1">
+                        Este campo é obrigatório
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="mb-3">
                     <label className={`form-label card-subtitle-${theme}`}>
-                      Tags (Selecione uma ou mais)
+                      Tags (Selecione uma ou mais) *
                     </label>
                     <div
-                      className={`border rounded p-3 input-${theme}`}
+                      className={`border rounded p-3 input-${theme} ${errors.tagsSelecionadas ? 'border-danger' : ''}`}
                       style={{
                         height: '140px',
                         overflowY: 'auto',
@@ -783,8 +934,72 @@ const limparBase64 = (base64ComPrefixo) => {
                         gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
                         gap: '10px'
                       }}
+                      title={errors.tagsSelecionadas ? "Campo obrigatório" : ""}
                     >
                     </div>
+                    {errors.tagsSelecionadas && (
+                      <div className="text-danger small mt-1">
+                        Selecione pelo menos uma tag
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Transferência de Contatos */}
+                {tipoAlvo === 'Funil' && (
+                  <div className="mb-3">
+                    <div className="form-check">
+                      <input
+                        type="checkbox"
+                        className="form-check-input"
+                        id="transferirContato"
+                        checked={transferirContato}
+                        onChange={(e) => {
+                          setTransferirContato(e.target.checked);
+                          if (!e.target.checked) {
+                            setEtapaDestino('');
+                            setErrors(prev => ({ ...prev, etapaDestino: false }));
+                          }
+                        }}
+                      />
+                      <label className={`form-check-label card-subtitle-${theme}`} htmlFor="transferirContato">
+                        Transferir contato após disparo
+                      </label>
+                    </div>
+                    
+                    {transferirContato && (
+                      <div className="mt-2">
+                        <label htmlFor="etapaDestino" className={`form-label card-subtitle-${theme}`}>
+                          Etapa de Destino *
+                        </label>
+                        <select
+                          className={`form-select input-${theme} ${errors.etapaDestino ? 'border-danger' : ''}`}
+                          id="etapaDestino"
+                          value={etapaDestino}
+                          onChange={(e) => {
+                            setEtapaDestino(e.target.value);
+                            if (errors.etapaDestino) {
+                              setErrors(prev => ({ ...prev, etapaDestino: false }));
+                            }
+                          }}
+                          title={errors.etapaDestino ? "Campo obrigatório" : ""}
+                        >
+                          <option value="" disabled>Selecione uma etapa de destino</option>
+                          {Array.isArray(etapas) && etapas
+                            .filter(etapaObj => etapaObj.id !== etapa) // Excluir a etapa atual
+                            .map((etapaObj) => (
+                              <option key={etapaObj.id} value={etapaObj.id}>
+                                {etapaObj.etapa}
+                              </option>
+                            ))}
+                        </select>
+                        {errors.etapaDestino && (
+                          <div className="text-danger small mt-1">
+                            Este campo é obrigatório
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -793,28 +1008,50 @@ const limparBase64 = (base64ComPrefixo) => {
                 {/* Data de Início */}
                 <div className="mb-3">
                   <label htmlFor="dataInicio" className={`form-label card-subtitle-${theme}`}>
-                    Data de Início
+                    Data de Início *
                   </label>
                   <input
                     type="date"
-                    className={`form-control input-${theme}`}
+                    className={`form-control input-${theme} ${errors.dataInicio ? 'border-danger' : ''}`}
                     id="dataInicio"
                     value={dataInicio}
-                    onChange={(e) => setDataInicio(e.target.value)}
+                    onChange={(e) => {
+                      setDataInicio(e.target.value);
+                      if (errors.dataInicio) {
+                        setErrors(prev => ({ ...prev, dataInicio: false }));
+                      }
+                    }}
+                    title={errors.dataInicio ? "Campo obrigatório" : ""}
                   />
+                  {errors.dataInicio && (
+                    <div className="text-danger small mt-1">
+                      Este campo é obrigatório
+                    </div>
+                  )}
                 </div>
                 {/* Hora de Início */}
                 <div className="mb-3">
                   <label htmlFor="horaInicio" className={`form-label card-subtitle-${theme}`}>
-                    Hora de Início
+                    Hora de Início *
                   </label>
                   <input
                     type="time"
-                    className={`form-control input-${theme}`}
+                    className={`form-control input-${theme} ${errors.horaInicio ? 'border-danger' : ''}`}
                     id="horaInicio"
                     value={horaInicio}
-                    onChange={(e) => setHoraInicio(e.target.value)}
+                    onChange={(e) => {
+                      setHoraInicio(e.target.value);
+                      if (errors.horaInicio) {
+                        setErrors(prev => ({ ...prev, horaInicio: false }));
+                      }
+                    }}
+                    title={errors.horaInicio ? "Campo obrigatório" : ""}
                   />
+                  {errors.horaInicio && (
+                    <div className="text-danger small mt-1">
+                      Este campo é obrigatório
+                    </div>
+                  )}
                 </div>
                 {/* Intervalo */}
                 <div className="mb-3">

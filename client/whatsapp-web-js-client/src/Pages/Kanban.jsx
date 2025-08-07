@@ -461,7 +461,10 @@ function KanbanPage({ theme }) {
     });
   };
 
-  const handleManageTags = (lead) => alert(`Gerenciar tags de ${lead.nome}`);
+  const handleManageTags = (lead) => {
+    // TODO: Implementar gerenciamento de tags
+    console.log(`Gerenciar tags de ${lead.nome}`);
+  };
 
   // Drag and drop handlers
   const onDragStart = (lead) => setDraggedLead(lead);

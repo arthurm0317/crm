@@ -1,5 +1,5 @@
 
-const { setUserChat, getChats, getMessages, getChatData, getChatByUser, updateQueue, getChatById, saveMediaMessage, setMessageAsRead, closeChat, setSpecificUser, scheduleMessage, getScheduledMessages, deleteScheduledMessage, disableBot, closeChatContact, createStatus, getStatus, getClosedChats } = require('../services/ChatService');
+const { setUserChat, getChats, getMessages, getChatData, getChatByUser, updateQueue, getChatById, saveMediaMessage, setMessageAsRead, closeChat, setSpecificUser, scheduleMessage, getScheduledMessages, deleteScheduledMessage, disableBot, closeChatContact, createStatus, getStatus, getClosedChats, getAverageTimeToClose } = require('../services/ChatService');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
@@ -497,7 +497,16 @@ const redistributeWaitingChatsController = async (req, res) => {
     });
   }
 };
-  
+const getAverageTimeToCloseController = async (req, res) => {
+  const { schema } = req.params;
+  try {
+    const averageTime = await getAverageTimeToClose(schema);
+    res.status(200).json({ success: true, averageTime });
+  } catch (error) {
+    console.error('Erro ao calcular o tempo médio de fechamento:', error);
+    res.status(500).json({ success:false, error: 'Erro ao calcular o tempo médio de fechamento.' });
+  }
+}
   module.exports = {
     setUserChatController,
     getChatsController,
@@ -520,5 +529,6 @@ const redistributeWaitingChatsController = async (req, res) => {
     createStatusController,
     getStatusController,
     getClosedChatsController,
-    redistributeWaitingChatsController
+    redistributeWaitingChatsController,
+    getAverageTimeToCloseController
 };

@@ -20,6 +20,7 @@ import { Modal, Button, Form } from 'react-bootstrap';
 import QuickMsgManageModal from './modalPages/Chats_mensagensRapidas';
 import CustomValuesModal from './modalPages/CustomValuesModal';
 import FinalizarAtendimentoModal from './modalPages/Chats_finalizarAtendimento';
+import { useToast } from '../contexts/ToastContext';
 
 function formatHour(timestamp) {
   const date = new Date(Number(timestamp));
@@ -90,6 +91,7 @@ function groupMessagesByDate(messages) {
 }
 
 function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, setSelectedChat, setSelectedMessages, onEditName }) {
+  const { showError, showSuccess } = useToast();
   const url = process.env.REACT_APP_URL;
   const userData = JSON.parse(localStorage.getItem('user'));
   const schema = userData.schema;
@@ -172,9 +174,10 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
       
       setSelectedChat(null);
       setSelectedMessages([]);
+      showSuccess('Chat transferido para nova fila com sucesso!');
       
     } catch (err) {
-      alert('Erro ao transferir fila');
+      showError('Erro ao transferir fila. Tente novamente.');
     }
     setTransferLoading(false);
   };
@@ -335,6 +338,7 @@ function ChatPage({ theme, chat_id} ) {
   const [showCustomValuesModal, setShowCustomValuesModal] = useState(false);
   const [users, setUsers] = useState([]);
   const [redistributing, setRedistributing] = useState(false);
+  const { showError, showSuccess } = useToast();
 
   useEffect(() => {
     if (!showQuickMsgPopover) setQuickMsgIndex(-1);
@@ -618,8 +622,10 @@ const handleEditContactName = async (contactId, newName) => {
         chat.id === contactId ? { ...chat, contact_name: newName } : chat
       ))
     );
+    showSuccess('Nome do contato atualizado com sucesso!');
   } catch (error) {
     console.error(error);
+    showError('Erro ao atualizar nome do contato. Tente novamente.');
   }
 };
 
@@ -640,9 +646,11 @@ const handleAcceptChat = async () => {
         : c
     ))
   );
+      showSuccess('Chat aceito com sucesso!');
 
     }catch(error){
       console.error(error)
+      showError('Erro ao aceitar chat. Tente novamente.');
     }
   }
 
@@ -662,8 +670,10 @@ const disableBot = async () => {
       withCredentials: true
     });
     setIsBotActive(false);
+    showSuccess('Bot desativado com sucesso!');
   } catch (error) {
     console.error('Erro ao desativar bot:', error);
+    showError('Erro ao desativar bot. Tente novamente.');
   }
 };
 
@@ -676,7 +686,7 @@ const handleRedistributeWaitingChats = async () => {
     const waitingChats = getFilteredChats().filter(chat => chat.status === 'waiting');
     
     if (waitingChats.length === 0) {
-      alert('Não há chats aguardando para redistribuir.');
+      showError('Não há chats aguardando para redistribuir.');
       return;
     }
 
@@ -692,11 +702,11 @@ const handleRedistributeWaitingChats = async () => {
     // Recarregar a lista de chats após redistribuição
     await loadChats();
     
-    alert(`Redistribuição concluída! ${waitingChats.length} chats foram redistribuídos.`);
+    showSuccess(`Redistribuição concluída! ${waitingChats.length} chats foram redistribuídos.`);
     
   } catch (error) {
     console.error('Erro ao redistribuir chats:', error);
-    alert('Erro ao redistribuir chats. Tente novamente.');
+    showError('Erro ao redistribuir chats. Tente novamente.');
   } finally {
     setRedistributing(false);
   }
@@ -1129,6 +1139,11 @@ useEffect(() => {
   };
   
   const handleSendMessage = async () => {
+    if (!newMessage.trim()) {
+      showError('Digite uma mensagem para enviar.');
+      return;
+    }
+
     try {
       await axios.post(`${url}/evo/sendText`, {
         instanceId: selectedChat.connection_id,
@@ -1143,8 +1158,10 @@ useEffect(() => {
     });
   
       setNewMessage('');
+      showSuccess('Mensagem enviada com sucesso!');
     } catch (error) {
       console.error('Erro ao enviar a mensagem:', error);
+      showError('Erro ao enviar mensagem. Tente novamente.');
     }
   };
   const handleReply = (message) => {
@@ -1202,6 +1219,7 @@ const handleImageUpload = async (event) => {
 
     } catch (error) {
       console.error('Erro ao enviar a imagem:', error);
+      showError('Erro ao enviar imagem. Tente novamente.');
     }
   };
 

@@ -7,7 +7,7 @@
   import './assets/style.css';
   import { useTheme } from './assets/js/useTheme';
   import { useNavigate } from 'react-router-dom';
-  import Dashboard from './Dashboard';
+  import Dashboard from './NewDashboard';
   import {socket} from '../socket'
   import ChatPage from './Chats';
   import AgendaPage from './Lembretes';
@@ -20,9 +20,11 @@
   import Manutencao from './Manutencao';
   import AjudaPage from './Ajuda';
   import LembretesPage from './Lembretes';
+  import FinanceiroPage from './Financeiro';
   import axios from 'axios';
   import useUserPreferences from '../hooks/useUserPreferences';
   import CustomValuesModal from './modalPages/CustomValuesModal';
+  import { useToast } from '../contexts/ToastContext';
 
   window.addEventListener('error', function (event) {
     if (
@@ -103,6 +105,90 @@
     const [socketInstance] = useState(() => socket());
     const [showCustomValuesModal, setShowCustomValuesModal] = useState(false);
     const customValuesBtnRef = useRef(null);
+    const { showError } = useToast();
+    const [isOnline, setIsOnline] = useState(navigator.onLine);
+    const [networkWarningShown, setNetworkWarningShown] = useState(false);
+    const [latencyWarningShown, setLatencyWarningShown] = useState(false);
+
+    // Monitoramento de conectividade de rede
+    useEffect(() => {
+      const handleOnline = () => {
+        setIsOnline(true);
+        setNetworkWarningShown(false);
+        setLatencyWarningShown(false);
+      };
+
+      const handleOffline = () => {
+        setIsOnline(false);
+        if (!networkWarningShown) {
+          showError('Sem conexão com a internet. Verifique sua rede.');
+          setNetworkWarningShown(true);
+        }
+      };
+
+      // Verificar latência periodicamente com retry e timeout mais generoso
+      const checkLatency = async () => {
+        try {
+          const startTime = performance.now();
+          
+          // Usar fetch com timeout mais generoso
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 segundos
+          
+          const response = await fetch(`${url}/api/test`, {
+            method: 'GET',
+            credentials: 'include',
+            signal: controller.signal
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          
+          const endTime = performance.now();
+          const latency = endTime - startTime;
+
+          // Se a latência for maior que 8 segundos, mostrar aviso (muito tolerante)
+          if (latency > 8000 && !latencyWarningShown) {
+            showError('Conexão lenta detectada. Verifique sua internet.');
+            setLatencyWarningShown(true);
+          } else if (latency <= 8000 && latencyWarningShown) {
+            setLatencyWarningShown(false);
+          }
+          
+          // Resetar avisos se a conexão estiver funcionando
+          if (networkWarningShown) {
+            setNetworkWarningShown(false);
+          }
+          
+        } catch (error) {
+          // Só mostrar erro se realmente não conseguir conectar E estiver offline
+          if (!networkWarningShown && !navigator.onLine) {
+            showError('Problema de conectividade detectado. Verifique sua internet.');
+            setNetworkWarningShown(true);
+          }
+        }
+      };
+
+      // Verificar latência a cada 2 minutos (muito menos frequente)
+      const latencyInterval = setInterval(checkLatency, 120000);
+
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+
+      // Verificação inicial
+      if (!navigator.onLine) {
+        handleOffline();
+      }
+
+      return () => {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+        clearInterval(latencyInterval);
+      };
+    }, [showError, url, networkWarningShown, latencyWarningShown]);
 
 
     // Atualizar página quando as preferências mudarem
@@ -377,6 +463,7 @@
     const renderPage = () => {
       switch (page) {
         case 'dashboard': return <Dashboard theme={theme} />;
+        case 'financeiro': return <FinanceiroPage theme={theme} />;
         case 'chats': return <ChatPage theme={theme} />;
         case 'kanban': return <KanbanPage theme={theme} />;
         case 'filas': return <FilaPage theme={theme} />;
@@ -431,6 +518,17 @@
               >
                 <i className="bi bi-speedometer2"></i>
                 <span className="sidebar-label d-none">Dashboard</span>
+              </button>
+              <button
+                id="financeiro"
+                onClick={() => handlePageChange('financeiro')}
+                data-bs-toggle="tooltip"
+                data-bs-placement="right"
+                data-bs-title="Financeiro"
+                className={`btn ${page === 'financeiro' ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex flex-row align-items-center justify-content-center gap-2 ${isSidebarExpanded ? 'w-75' : ''}`}
+              >
+                <i className="bi bi-cash-stack"></i>
+                <span className="sidebar-label d-none">Financeiro</span>
               </button>
               <hr className={`hr-${theme} mx-auto my-0 d-none`} style={{ width: '50%' }} />
               <button

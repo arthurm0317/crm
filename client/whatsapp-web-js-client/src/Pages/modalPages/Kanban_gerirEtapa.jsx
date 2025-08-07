@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import { Modal } from 'react-bootstrap';
+import { useToast } from '../../contexts/ToastContext';
 
 function SortableEtapa({ etapa, idx, theme, handleEtapaChange, handleMoveEtapa, handleRemoveEtapa, etapas, onDragStart, isDragging, dragOverIndex }) {
   const handleDragStart = (e) => {
@@ -151,6 +152,7 @@ function SortableEtapa({ etapa, idx, theme, handleEtapaChange, handleMoveEtapa, 
 }
 
 function GerirEtapaModal({ theme, show, onHide, onSave, funil, etapas: etapasProp }) {
+  const { showError } = useToast();
   const [etapas, setEtapas] = useState(etapasProp || []);
   const [draggedEtapa, setDraggedEtapa] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
@@ -270,7 +272,7 @@ function GerirEtapaModal({ theme, show, onHide, onSave, funil, etapas: etapasPro
 
   const handleSave = async () => {
     if (etapas.some(e => !(e.nome ?? e.etapa) || !e.cor)) {
-      alert('Preencha todos os campos obrigatórios das etapas.');
+      showError('Preencha todos os campos obrigatórios das etapas.');
       return;
     }
     try {
@@ -323,7 +325,7 @@ function GerirEtapaModal({ theme, show, onHide, onSave, funil, etapas: etapasPro
       }
     } catch (error) {
       console.error(error);
-      alert('Erro ao salvar etapas!');
+      showError('Erro ao salvar etapas!');
       return;
     }
     

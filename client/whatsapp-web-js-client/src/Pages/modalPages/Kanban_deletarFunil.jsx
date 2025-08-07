@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useToast } from '../../contexts/ToastContext';
 
 function KanbanDeletarFunilModal({ show, onHide, funil, theme }) {
+  const { showError: showToastError } = useToast();
   const [password, setPassword] = useState('');
   const [showError, setShowError] = useState(false);
   const [countdown, setCountdown] = useState(5);
@@ -67,14 +69,14 @@ function KanbanDeletarFunilModal({ show, onHide, funil, theme }) {
       if (response.data.success) {
         window.location.reload();
       } else {
-        alert(response.data.message || 'Erro ao deletar funil');
+        showToastError(response.data.message || 'Erro ao deletar funil');
       }
     } catch (error) {
       console.error('Erro ao deletar funil:', error);
       if (error.response?.data?.message) {
-        alert(error.response.data.message);
+        showToastError(error.response.data.message);
       } else {
-        alert('Erro ao deletar funil. Tente novamente.');
+        showToastError('Erro ao deletar funil. Tente novamente.');
       }
     } finally {
       setLoading(false);

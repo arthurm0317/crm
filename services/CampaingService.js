@@ -1,6 +1,6 @@
 const pool = require('../db/queries');
 const { v4: uuidv4 } = require('uuid');
-const { getContactsInKanbanStage } = require('./KanbanService');
+const { getContactsInKanbanStage, updateContactInKanban } = require('./KanbanService');
 const { sendTextMessage, fetchInstanceEvo } = require('../requests/evolution');
 const { sendBlastMessage, sendMediaBlastMessage } = require('./MessageBlast');
 const createRedisConnection = require('../config/Redis');
@@ -18,7 +18,7 @@ const worker = new Worker(
   'Campanha',
   async (job) => {
     try {
-      console.log(`Processando job ${job.id} para número ${job.data.number}`);
+      console.log(`Processando job ${job.id} para número ${job.data}`);
 
       const status = await fetchInstanceEvo()
       
@@ -40,7 +40,7 @@ const worker = new Worker(
           job.data.schema
         );
       }
-      
+      await updateContactInKanban(job.data.number, job.data.stage, job.data.schema);
       console.log(`Job ${job.id} processado com sucesso`);
     } catch (err) {
       console.error(`Erro ao enviar mensagem dentro do job ${job.id}:`, err.message);
@@ -180,7 +180,7 @@ const createCampaing = async (campaing_id, campName, sector, kanbanStage, connec
   }
 };
 
-const scheduleCampaingBlast = async (campaing, sector, schema, intervalo) => {
+const scheduleCampaingBlast = async (campaing, sector, schema, intervalo, new_stage) => {
   try { 
     const startDate = Number(campaing.start_date);
     const now = Date.now();
@@ -314,7 +314,8 @@ const scheduleCampaingBlast = async (campaing, sector, schema, intervalo) => {
         chat_id: chatToUse.id,
         message: message.value,
         image: message.image,
-        schema: schema
+        schema: schema,
+        stage: new_stage || null,
       }, { 
         delay: messageDelay, 
         attempts: 3,

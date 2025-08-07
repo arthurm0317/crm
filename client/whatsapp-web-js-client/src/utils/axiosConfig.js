@@ -3,6 +3,16 @@ import axios from 'axios';
 // Configurar axios para sempre enviar cookies
 axios.defaults.withCredentials = true;
 
+// Função para exibir toast de erro (será definida globalmente)
+let showErrorToast = (message) => {
+  console.error('Toast não disponível:', message);
+};
+
+// Função para definir o callback do toast
+export const setToastCallback = (callback) => {
+  showErrorToast = callback;
+};
+
 // Variável para controlar se já está fazendo refresh
 let isRefreshing = false;
 let failedQueue = [];
@@ -67,6 +77,13 @@ axios.interceptors.response.use(
       } finally {
         isRefreshing = false;
       }
+    }
+
+    // Exibir toast de erro apenas para erros do servidor
+    if (error.response) {
+      // Erro do servidor com resposta
+      const errorMessage = error.response.data?.message || error.response.data?.error || 'Erro no servidor';
+      showErrorToast(errorMessage);
     }
 
     return Promise.reject(error);

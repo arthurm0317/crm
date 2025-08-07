@@ -8,6 +8,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import ReCAPTCHA from 'react-google-recaptcha';
+import { useToast } from '../contexts/ToastContext';
 
 
 function Redirecionar(){
@@ -22,6 +23,7 @@ function Redirecionar(){
 // Será movido para dentro do componente Login
 
 function Login() {
+  const { showError } = useToast();
   const [errorCount, setErrorCount] = useState(0);
   const [recaptchaValue, setRecaptchaValue] = useState(null);
   const [theme, setTheme] = useTheme();
@@ -52,7 +54,7 @@ const handleLogin = async (e) => {
 
  if (errorCount >= 5 && !recaptchaValue) {
       setLoading(false);
-      alert('Por favor, resolva o reCAPTCHA.');
+      showError('Por favor, resolva o reCAPTCHA.');
       return;
     }
 

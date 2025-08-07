@@ -258,6 +258,85 @@ const createCompany = async (company, schema) => {
             );
         `)
 
+        // Tabelas para o módulo financeiro
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.expenses (
+                id UUID PRIMARY KEY,
+                user_id UUID REFERENCES ${schema}.users(id) ON DELETE SET NULL,
+                vendor_id UUID,
+                description TEXT NOT NULL,
+                category_id UUID,
+                total_amount DECIMAL(10,2) NOT NULL,
+                currency TEXT DEFAULT 'BRL',
+                date_incurred DATE NOT NULL,
+                due_date DATE,
+                payment_date DATE,
+                payment_method TEXT DEFAULT 'dinheiro',
+                status TEXT DEFAULT 'pendente',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.category (
+                id UUID PRIMARY KEY,
+                category_name TEXT NOT NULL UNIQUE
+            );
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.vendors (
+                id UUID PRIMARY KEY,
+                vendor_name TEXT NOT NULL UNIQUE
+            );
+        `);
+        
+        await pool.query(
+            `CREATE TABLE ${schema}.expense_items (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            expense_id UUID NOT NULL REFERENCES ${schema}.expenses(id) ON DELETE CASCADE,
+            quantity integer NOT NULL DEFAULT 1,
+            unit_price bigint NOT NULL,
+            subtotal bigint NOT NULL,
+            tax_included BOOLEAN NOT NULL DEFAULT FALSE, 
+            created_at TIMESTAMPTZ DEFAULT now()
+            );`
+        )
+
+        await pool.query(
+            `CREATE TABLE ${schema}.tax_rates (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            name TEXT NOT NULL, -- ex: "ICMS 18%", "ISS 5%"
+            rate NUMERIC(6,4) NOT NULL, -- ex: 0.18 para 18%
+            type TEXT NOT NULL, -- ex: ICMS, ISS, PIS, COFINS, IRRF
+            jurisdiction TEXT NULL, -- ex: estado, município, federal
+            is_compound BOOLEAN NOT NULL DEFAULT FALSE, -- se compõe sobre outro imposto
+            created_at TIMESTAMPTZ DEFAULT now()
+            );`
+        )
+
+        await pool.query(
+            `CREATE TABLE ${schema}.expense_item_taxes (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            expense_item_id UUID NOT NULL REFERENCES ${schema}.expense_items(id) ON DELETE CASCADE,
+            tax_rate_id UUID NOT NULL REFERENCES ${schema}.tax_rates(id),
+            base_amount NUMERIC(14,2) NOT NULL, -- sobre o que o imposto é calculado
+            tax_amount NUMERIC(14,2) NOT NULL, -- valor do imposto
+            created_at TIMESTAMPTZ DEFAULT now()
+            );`
+        )
+
+        await pool.query(`
+            CREATE TABLE ${schema}.expense_taxes (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            expense_id UUID NOT NULL REFERENCES ${schema}.expenses(id) ON DELETE CASCADE,
+            name TEXT NOT NULL, -- ex: "Retenção de INSS"
+            rate NUMERIC(6,4) NOT NULL,
+            base_amount NUMERIC(14,2) NOT NULL,
+            tax_amount NUMERIC(14,2) NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT now()
+            );
+            `)
 
 
     const superAdmin = new Users(
