@@ -41,6 +41,7 @@ const createChatCompletion = async (message) => {
     if (resposta && resposta.content && resposta.content[0] && resposta.content[0].text) {
         const jsonString = resposta.content[0].text.value;
         const dados = JSON.parse(jsonString);
+        console.log(dados)
         return dados.individual_analysis;
     } else {
         console.log('Nenhuma resposta encontrada.');

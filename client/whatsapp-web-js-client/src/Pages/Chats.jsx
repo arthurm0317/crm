@@ -180,13 +180,13 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
   };
   return (
     <>
-      <Dropdown drop="end" onToggle={setIsDropdownOpen}>
+      <Dropdown drop="start" onToggle={setIsDropdownOpen}>
         <Dropdown.Toggle
           variant={theme === 'light' ? 'light' : 'dark'}
           id="dropdown-basic"
-          className={`btn-2-${theme}`}
+          className={`btn-2-${theme} no-caret dropdown-toggle`}
         >
-          Opções
+          <i className="bi bi-gear"></i>
         </Dropdown.Toggle>
 
         <Dropdown.Menu
@@ -194,10 +194,11 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
           className={`chat-dropdown-menu ${theme === 'dark' ? 'dark' : ''}`}
           style={{
             zIndex: 9999,
-            position: 'absolute'
+            position: 'absolute',
+            right: '0',
+            left: 'auto'
           }}
         >
-          <Dropdown.Divider />
           <Dropdown.Item href="#" onClick={() => {
             setShowChangeQueueModal(true);
             setIsDropdownOpen(false);
@@ -332,6 +333,8 @@ function ChatPage({ theme, chat_id} ) {
   const inputRef = useRef(null);
   const [quickMsgIndex, setQuickMsgIndex] = useState(-1);
   const [showCustomValuesModal, setShowCustomValuesModal] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [redistributing, setRedistributing] = useState(false);
 
   useEffect(() => {
     if (!showQuickMsgPopover) setQuickMsgIndex(-1);
@@ -569,9 +572,21 @@ useEffect(() => {
       setQueues([]);
     }
   };
+
+  const fetchUsers = async () => {
+    try {
+      const res = await axios.get(`${url}/api/users/${schema}`, {
+        withCredentials: true
+      });
+      setUsers(res.data.users || []);
+    } catch (err) {
+      setUsers([]);
+    }
+  };
   
   fetchConnections();
   fetchQueues();
+  fetchUsers();
 }, [url, schema]);
 
 const getConnectionName = (connectionId) => {
@@ -649,6 +664,41 @@ const disableBot = async () => {
     setIsBotActive(false);
   } catch (error) {
     console.error('Erro ao desativar bot:', error);
+  }
+};
+
+const handleRedistributeWaitingChats = async () => {
+  if (selectedTab !== 'aguardando') return;
+  
+  setRedistributing(true);
+  try {
+    // Obter todos os chats em espera ordenados por timestamp
+    const waitingChats = getFilteredChats().filter(chat => chat.status === 'waiting');
+    
+    if (waitingChats.length === 0) {
+      alert('Não há chats aguardando para redistribuir.');
+      return;
+    }
+
+    // Enviar para o backend para redistribuição
+    await axios.post(`${url}/chat/redistribute-waiting`, {
+      chats: waitingChats,
+      schema: schema,
+      user_id: userData.id
+    }, {
+      withCredentials: true
+    });
+
+    // Recarregar a lista de chats após redistribuição
+    await loadChats();
+    
+    alert(`Redistribuição concluída! ${waitingChats.length} chats foram redistribuídos.`);
+    
+  } catch (error) {
+    console.error('Erro ao redistribuir chats:', error);
+    alert('Erro ao redistribuir chats. Tente novamente.');
+  } finally {
+    setRedistributing(false);
   }
 };
 
@@ -833,8 +883,8 @@ const formatMessage = (msg) => ({
   from_me: msg.from_me|| msg.fromMe,
   timestamp: msg.timestamp || msg.created_at,
   message_type: msg.message_type,
-  base64: msg.midiaBase64 || msg.base64
-
+  base64: msg.midiaBase64 || msg.base64,
+  user_id: msg.user_id
 }
 );
 
@@ -877,156 +927,183 @@ useEffect(() => {
     };
   }, []);
 
-const AudioPlayer = ({ audioSrc, audioId, theme, isActive, onPlayClick }) => {
-  const containerRef = useRef(null);
-  const wavesurferRef = useRef(null);
-  const isSeekingRef = useRef(false);
+  // Componente Avatar
+  const Avatar = ({ avatar, size = 32, style = {} }) => {
+    const avatarStyle = {
+      width: size,
+      height: size,
+      borderRadius: '50%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: size * 0.4,
+      fontWeight: 'bold',
+      color: 'white',
+      backgroundColor: avatar.backgroundColor,
+      cursor: 'pointer',
+      ...style
+    };
 
-  const [isReady, setIsReady] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [duration, setDuration] = useState(0);
-  const [currentTime, setCurrentTime] = useState(0);
-
-  const formatTime = (time) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60).toString().padStart(2, '0');
-    return `${minutes}:${seconds}`;
+    return (
+      <div 
+        style={avatarStyle}
+        title={avatar.tooltip}
+      >
+        {avatar.type === 'default' ? avatar.content : avatar.content}
+      </div>
+    );
   };
 
-  const handleSeek = useCallback((e) => {
-    if (!wavesurferRef.current || !containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const progress = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    wavesurferRef.current.seekTo(progress);
-  }, []);
+  const AudioPlayer = ({ audioSrc, audioId, theme, isActive, onPlayClick }) => {
+    const containerRef = useRef(null);
+    const wavesurferRef = useRef(null);
+    const isSeekingRef = useRef(false);
 
-  const handleMouseDown = useCallback((e) => {
-    if (!isReady) return;
-    isSeekingRef.current = true;
-    handleSeek(e);
-  }, [isReady, handleSeek]);
+    const [isReady, setIsReady] = useState(false);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [duration, setDuration] = useState(0);
+    const [currentTime, setCurrentTime] = useState(0);
 
-  const handleMouseMove = useCallback((e) => {
-    if (isSeekingRef.current) {
-      handleSeek(e);
-    }
-  }, [handleSeek]);
-
-  const handleMouseUp = useCallback(() => {
-    isSeekingRef.current = false;
-  }, []);
-  
-  useEffect(() => {
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+    const formatTime = (time) => {
+      const minutes = Math.floor(time / 60);
+      const seconds = Math.floor(time % 60).toString().padStart(2, '0');
+      return `${minutes}:${seconds}`;
     };
-  }, [handleMouseMove, handleMouseUp]);
 
-  useLayoutEffect(() => {
-    if (!containerRef.current) return;
+    const handleSeek = useCallback((e) => {
+      if (!wavesurferRef.current || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const progress = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      wavesurferRef.current.seekTo(progress);
+    }, []);
 
-    const source = audioSrc.startsWith('blob:') ? audioSrc : `data:audio/ogg;base64,${audioSrc}`;
+    const handleMouseDown = useCallback((e) => {
+      if (!isReady) return;
+      isSeekingRef.current = true;
+      handleSeek(e);
+    }, [isReady, handleSeek]);
 
-    const ws = WaveSurfer.create({
-      container: containerRef.current,
-      waveColor: theme === 'light' ? '#E0E0E0' : '#555555',
-      progressColor: '#34B7F1',
-      barWidth: 2,
-      barGap: 1.5,
-      barRadius: 2,
-      height: 'auto',
-      cursorWidth: 0,
-      url: source,
-      dragToSeek: true,
-      fillParent: true,
-    });
-    wavesurferRef.current = ws;
+    const handleMouseMove = useCallback((e) => {
+      if (isSeekingRef.current) {
+        handleSeek(e);
+      }
+    }, [handleSeek]);
 
-    ws.on('ready', () => {
-      setDuration(ws.getDuration());
-      setIsReady(true);
-      window.dispatchEvent(new Event('resize'));
-    });
-
-    ws.on('audioprocess', (time) => setCurrentTime(time));
-    ws.on('seek', (progress) => setCurrentTime(progress * ws.getDuration()));
+    const handleMouseUp = useCallback(() => {
+      isSeekingRef.current = false;
+    }, []);
     
-    ws.on('play', () => setIsPlaying(true));
-    ws.on('pause', () => setIsPlaying(false));
-    
-    ws.on('finish', () => {
-      onPlayClick(null);
-    });
+    useEffect(() => {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
+    }, [handleMouseMove, handleMouseUp]);
 
-    return () => {
-      if (wavesurferRef.current) {
-        wavesurferRef.current.destroy();
-        wavesurferRef.current = null;
+    useLayoutEffect(() => {
+      if (!containerRef.current) return;
+
+      const source = audioSrc.startsWith('blob:') ? audioSrc : `data:audio/ogg;base64,${audioSrc}`;
+
+      const ws = WaveSurfer.create({
+        container: containerRef.current,
+        waveColor: theme === 'light' ? '#E0E0E0' : '#555555',
+        progressColor: '#34B7F1',
+        barWidth: 2,
+        barGap: 1.5,
+        barRadius: 2,
+        height: 'auto',
+        cursorWidth: 0,
+        url: source,
+        dragToSeek: true,
+        fillParent: true,
+      });
+      wavesurferRef.current = ws;
+
+      ws.on('ready', () => {
+        setDuration(ws.getDuration());
+        setIsReady(true);
+        window.dispatchEvent(new Event('resize'));
+      });
+
+      ws.on('audioprocess', (time) => setCurrentTime(time));
+      ws.on('seek', (progress) => setCurrentTime(progress * ws.getDuration()));
+      
+      ws.on('play', () => setIsPlaying(true));
+      ws.on('pause', () => setIsPlaying(false));
+      
+      ws.on('finish', () => {
+        onPlayClick(null);
+      });
+
+      return () => {
+        if (wavesurferRef.current) {
+          wavesurferRef.current.destroy();
+          wavesurferRef.current = null;
+        }
+      };
+    }, [audioSrc, theme, onPlayClick]);
+
+    useEffect(() => {
+      if (!isReady) return;
+      if (isActive) {
+        wavesurferRef.current?.play();
+      } else {
+        wavesurferRef.current?.pause();
+      }
+    }, [isActive, isReady]);
+
+    const handlePlayButtonClick = () => {
+      if (isReady) {
+        onPlayClick(isActive ? null : audioId);
       }
     };
-  }, [audioSrc, theme, onPlayClick]);
+    
+    const cursorPosition = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-  useEffect(() => {
-    if (!isReady) return;
-    if (isActive) {
-      wavesurferRef.current?.play();
-    } else {
-      wavesurferRef.current?.pause();
-    }
-  }, [isActive, isReady]);
+    return (
+      <div className="audio-player-container" style={{ width: '100%' }}>
+        <div className="audio-player d-flex align-items-center gap-3 flex-grow-1" style={{width: '100%'}}>
+          <button
+            className={`btn btn-sm`}
+            onClick={handlePlayButtonClick}
+            disabled={!isReady}
+            style={{
+              width: '35px', height: '35px', borderRadius: '50%',
+              backgroundColor: 'var(--primary-color)', color: 'white',
+              flexShrink: 0, opacity: isReady ? 1 : 0.5,
+              cursor: isReady ? 'pointer' : 'not-allowed',
+            }}
+          >
+            <i className={`bi ${isPlaying ? 'bi-pause-fill' : 'bi-play-fill'}`} style={{ fontSize: '1.1rem' }}></i>
+          </button>
 
-  const handlePlayButtonClick = () => {
-    if (isReady) {
-      onPlayClick(isActive ? null : audioId);
-    }
-  };
-  
-  const cursorPosition = duration > 0 ? (currentTime / duration) * 100 : 0;
+          <div
+            id={`waveform-container-${audioId}`}
+            ref={containerRef}
+            style={{ 
+              flexGrow: 1, 
+              height: '35px',
+              maxHeight: '35px', 
+              position: 'relative', 
+              cursor: isReady ? 'pointer' : 'default', 
+              width: '100%',
+              display: 'block',
+            }}
+            onMouseDown={handleMouseDown}
+            className="waveform"
+          >
+          </div>
 
-  return (
-    <div className="audio-player-container" style={{ width: '100%' }}>
-      <div className="audio-player d-flex align-items-center gap-3 flex-grow-1" style={{width: '100%'}}>
-        <button
-          className={`btn btn-sm`}
-          onClick={handlePlayButtonClick}
-          disabled={!isReady}
-          style={{
-            width: '35px', height: '35px', borderRadius: '50%',
-            backgroundColor: 'var(--primary-color)', color: 'white',
-            flexShrink: 0, opacity: isReady ? 1 : 0.5,
-            cursor: isReady ? 'pointer' : 'not-allowed',
-          }}
-        >
-          <i className={`bi ${isPlaying ? 'bi-pause-fill' : 'bi-play-fill'}`} style={{ fontSize: '1.1rem' }}></i>
-        </button>
-
-        <div
-          id={`waveform-container-${audioId}`}
-          ref={containerRef}
-          style={{ 
-            flexGrow: 1, 
-            height: '35px',
-            maxHeight: '35px', 
-            position: 'relative', 
-            cursor: isReady ? 'pointer' : 'default', 
-            width: '100%',
-            display: 'block',
-          }}
-          onMouseDown={handleMouseDown}
-          className="waveform"
-        >
+          <small className="text-muted" style={{ minWidth: '80px', textAlign: 'center' }}>
+            {isReady ? `${formatTime(currentTime)} / ${formatTime(duration)}` : '0:00 / 0:00'}
+          </small>
         </div>
-
-        <small className="text-muted" style={{ minWidth: '80px', textAlign: 'center' }}>
-          {isReady ? `${formatTime(currentTime)} / ${formatTime(duration)}` : '0:00 / 0:00'}
-        </small>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
   const handleEmojiClick = (emojiObject) => {
     setNewMessage((prevMessage) => prevMessage + emojiObject.emoji);
@@ -1059,6 +1136,7 @@ const AudioPlayer = ({ audioSrc, audioId, theme, isActive, onPlayClick }) => {
         text: newMessage,
         chatId: selectedChat.id,
         schema: schema,
+        user_id: userData.id
       },
     {
       withCredentials: true
@@ -1480,6 +1558,59 @@ const handleImageUpload = async (event) => {
     setOriginalStyles({});
   };
 
+  // Função para obter as iniciais do nome
+  const getInitials = (name) => {
+    if (!name) return '?';
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  // Função para obter o nome do usuário pelo ID
+  const getUserName = (userId) => {
+    if (!userId) return null;
+    // Try to find user by id with both string and number comparison
+    const user = users.find(u => u.id === userId || u.id === String(userId) || u.id === Number(userId));
+    return user ? (user.nome || user.username || user.name) : null;
+  };
+
+  // Função para obter o avatar da mensagem
+  const getMessageAvatar = (message) => {
+    if (!message.from_me) {
+      // Mensagem do cliente - usar iniciais do nome do contato
+      const contactName = selectedChat?.contact_name || 'Cliente';
+      return {
+        type: 'initials',
+        content: getInitials(contactName),
+        backgroundColor: '#2E7599',
+        tooltip: contactName
+      };
+    } else {
+      // Mensagem do atendente
+      if (message.user_id) {
+        // Tem user_id - usar iniciais do atendente
+        const userName = getUserName(message.user_id);
+        return {
+          type: 'initials',
+          content: getInitials(userName || 'Atendente'),
+          backgroundColor: '#DB8200',
+          tooltip: userName || 'Atendente'
+        };
+      } else {
+        // user_id é null - usar avatar padrão
+        return {
+          type: 'default',
+          content: <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user-icon lucide-user"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+          backgroundColor: '#314859',
+          tooltip: 'Atendente'
+        };
+      }
+    }
+  };
+
   return (
     <div className={`d-flex flex-column w-100 h-100 ms-2`} style={{ overflow: 'hidden' }}>
       <audio ref={audioRef} src="/notification.mp3" preload="auto" />
@@ -1544,11 +1675,25 @@ const handleImageUpload = async (event) => {
 
             {/* Lista filtrada */}
             <div className='p-3'>
-              <h6 
-                className={`header-text-${theme} m-0`}
-              >
-                {selectedTab === 'conversas' ? 'Conversas' : 'Sala de Espera'}
-              </h6>
+              <div className='d-flex justify-content-between align-items-center'>
+                <h6 
+                  className={`header-text-${theme} m-0`}
+                >
+                  {selectedTab === 'conversas' ? 'Conversas' : 'Sala de Espera'}
+                </h6>
+                {selectedTab === 'aguardando' && (
+                  <button
+                    className={`btn btn-sm btn-1-${theme} d-flex align-items-center gap-1`}
+                    onClick={handleRedistributeWaitingChats}
+                    disabled={redistributing}
+                    title="Redistribuir leads aguardando"
+                    style={{ fontSize: '0.8rem', padding: '4px 8px' }}
+                  >
+                    <i className="bi bi-arrow-left-right"></i>
+                    {redistributing ? 'Redistribuindo...' : 'Redistribuir'}
+                  </button>
+                )}
+              </div>
             </div>
 
           </div>
@@ -1644,7 +1789,7 @@ const handleImageUpload = async (event) => {
   className={`w-100 chat-messages-${theme} d-flex flex-column`}
   style={{ borderTopRightRadius: '10px', position: 'relative' }}
 >
-{selectedChat && (
+  {/* Cabeçalho da conversa - sempre visível */}
   <div
     className="d-flex justify-content-between align-items-center flex-row px-3 py-2"
     style={{
@@ -1657,7 +1802,6 @@ const handleImageUpload = async (event) => {
       maxWidth:'1700px',
     }}
   >
-
     <div>
      {isEditingName ? (
   <input
@@ -1687,11 +1831,11 @@ const handleImageUpload = async (event) => {
     style={{ fontSize: '1.1rem', fontWeight: 700, cursor: 'pointer' }}
     onClick={handleEditNameStart}
   >
-    {selectedChat.contact_name || 'Sem Nome'}
+    {selectedChat?.contact_name || 'Sem Nome'}
   </strong>
 )}
       <div style={{ fontSize: '0.95rem', opacity: 0.8 }}>
-        {selectedChat.contact_phone || selectedChat.id}
+        {selectedChat?.contact_phone || selectedChat?.id || ''}
       </div>
     </div>
 
@@ -1701,6 +1845,7 @@ const handleImageUpload = async (event) => {
         className={`btn btn-2-${theme} d-flex gap-2`}
         onClick={() => setShowSearch(!showSearch)}
         title="Pesquisar na conversa"
+        disabled={!selectedChat}
       >
         <i className="bi bi-search"></i>
       </button>
@@ -1708,7 +1853,7 @@ const handleImageUpload = async (event) => {
       <button
         className={`btn btn-2-${theme} d-flex gap-2`}
         onClick={isBotActive ? disableBot : undefined}
-        disabled={!isBotActive}
+        disabled={!isBotActive || !selectedChat}
         title={isBotActive ? "Desativar Bot" : "Bot Desativado"}
       >
         <i className={`bi ${isBotActive ? 'bi-pause':'bi-play-fill'}`}></i>
@@ -1769,6 +1914,7 @@ const handleImageUpload = async (event) => {
           setShowSideMenu(true);
           setTimeout(() => setSideMenuActive(true), 10);
         }}
+        disabled={!selectedChat}
       >
         <i className="bi bi-person-gear"></i>
       </button>
@@ -1792,7 +1938,8 @@ const handleImageUpload = async (event) => {
     </div>
 
   </div>
-)}
+
+  {/* Área de conteúdo da conversa */}
   <div
     style={{
       height: '100%',
@@ -1937,75 +2084,90 @@ const handleImageUpload = async (event) => {
       </div>
 
       {/* Mensagens do grupo */}
-      {group.messages.map((msg, index) => (
-        <div
-          key={msg.id || index}
-          style={{
-            display: 'flex',
-            justifyContent: msg.from_me ? 'flex-end' : 'flex-start',
-            margin: '5px 0',
-          }}
-        >
+      {group.messages.map((msg, index) => {
+        const avatar = getMessageAvatar(msg);
+        return (
           <div
-            data-message-id={msg.id}
+            key={msg.id || index}
             style={{
-              backgroundColor: msg.from_me ? 'var(--hover)' : '#f1f0f0',
-              textAlign: msg.from_me ? 'right' : 'left',
-              padding: '10px 10px 5px 10px',
-              borderRadius: '10px',
-              maxWidth: '100%',
-              width: (msg.message_type === 'audio' || msg.message_type === 'audioMessage') ? '50%' : 'fit-content',
+              display: 'flex',
+              justifyContent: msg.from_me ? 'flex-end' : 'flex-start',
+              margin: '5px 0',
+              alignItems: 'flex-end',
+              gap: '8px',
             }}
           >
-            {(msg.message_type === 'audio' || msg.message_type === 'audioMessage') ? (
-              <AudioPlayer 
-                audioSrc={msg.base64} 
-                audioId={msg.id} 
-                theme={theme} 
-                isActive={activeAudioId === msg.id}
-                onPlayClick={setActiveAudioId}
-              />
-            ) : (msg.message_type === 'imageMessage' || msg.message_type === 'image') ? (
-              <>
-                {msg.text && (
-                  <div style={{ marginBottom: '5px' }}>
+            {/* Avatar para mensagens do cliente */}
+            {!msg.from_me && (
+              <Avatar avatar={avatar} size={32} />
+            )}
+            
+            <div
+              data-message-id={msg.id}
+              style={{
+                backgroundColor: msg.from_me ? 'var(--hover)' : '#f1f0f0',
+                textAlign: 'left',
+                padding: '10px 10px 5px 10px',
+                borderRadius: '10px',
+                maxWidth: '50%',
+                width: (msg.message_type === 'audio' || msg.message_type === 'audioMessage') ? '50%' : 'fit-content',
+              }}
+            >
+              {(msg.message_type === 'audio' || msg.message_type === 'audioMessage') ? (
+                <AudioPlayer 
+                  audioSrc={msg.base64} 
+                  audioId={msg.id} 
+                  theme={theme} 
+                  isActive={activeAudioId === msg.id}
+                  onPlayClick={setActiveAudioId}
+                />
+              ) : (msg.message_type === 'imageMessage' || msg.message_type === 'image') ? (
+                <>
+                  {msg.text && (
+                    <div style={{ marginBottom: '5px' }}>
+                      {msg.text}
+                    </div>
+                  )}
+                  <img
+                    src={
+                      typeof msg.base64 === 'string'
+                        ? msg.base64.startsWith('blob:')
+                          ? msg.base64
+                          : `data:image/jpeg;base64,${msg.base64}`
+                        : msg.base64
+                    }
+                    alt="imagem"
+                    style={{
+                      maxWidth: '300px',
+                      width: '100%',
+                      height: 'auto',
+                      borderRadius: '8px',
+                      display: 'block',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => handleImageClick(msg.base64)}
+                  />
+                </>
+              ) : (
+                msg.text && (
+                  <div>
                     {msg.text}
                   </div>
-                )}
-                <img
-                  src={
-                    typeof msg.base64 === 'string'
-                      ? msg.base64.startsWith('blob:')
-                        ? msg.base64
-                        : `data:image/jpeg;base64,${msg.base64}`
-                      : msg.base64
-                  }
-                  alt="imagem"
-                  style={{
-                    maxWidth: '300px',
-                    width: '100%',
-                    height: 'auto',
-                    borderRadius: '8px',
-                    display: 'block',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => handleImageClick(msg.base64)}
-                />
-              </>
-            ) : (
-              msg.text && (
-                <div>
-                  {msg.text}
-                </div>
-              )
-            )}
-            {/* Horário formatado */}
-            <div style={{ fontSize: '0.75rem', color: '#888'}}>
-              {formatHour(msg.timestamp)}
+                )
+              )}
+              {/* Horário formatado */}
+              <div style={{ fontSize: '0.75rem', color: '#888'}}>
+                {formatHour(msg.timestamp)}
+              </div>
             </div>
+
+            {/* Avatar para mensagens do atendente */}
+            {msg.from_me && (
+              <Avatar avatar={avatar} size={32} />
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   ))}
 
@@ -2056,6 +2218,7 @@ const handleImageUpload = async (event) => {
     id="imagem"
     className={`btn btn-2-${theme}`}
     onClick={() => document.getElementById('imageInput').click()} 
+    disabled={!selectedChat}
   >
     <i className="bi bi-image"></i>
   </button>
@@ -2072,6 +2235,7 @@ const handleImageUpload = async (event) => {
     style={{}}
     title="Mensagens rápidas"
     onClick={() => setShowQuickMsgPopover(v => !v)}
+    disabled={!selectedChat}
   >
     <i className="bi bi-lightning-charge"></i>
   </button>
@@ -2274,6 +2438,7 @@ const handleImageUpload = async (event) => {
             border: 'none',
           }}
           onClick={() => setShowEmojiPicker((prev) => !prev)}
+          disabled={!selectedChat}
         >
           <i className="bi bi-emoji-smile"></i>
         </button>
@@ -2323,6 +2488,7 @@ const handleImageUpload = async (event) => {
           backgroundColor: 'transparent',
           border: 'none',
         }}
+        disabled={!selectedChat}
       />
       {isRecording && (
         <div
@@ -2369,6 +2535,7 @@ const handleImageUpload = async (event) => {
         color: isRecording ? 'var(--error-color)' : '',
         borderColor: isRecording ? 'var(--error-color)' : '',
       }}
+      disabled={!selectedChat}
     >
       <i className={`bi ${isRecording ? 'bi-x' : 'bi-mic'}`}></i>
     </button>
@@ -2388,11 +2555,70 @@ const handleImageUpload = async (event) => {
           handleSendMessage();
         }
       }}
+      disabled={!selectedChat}
     >
       <i className="bi bi-send"></i>
     </button>
 
   </div>
+
+  {/* Overlay para quando nenhuma conversa está selecionada */}
+  {!selectedChat && (
+    <div
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: `var(--bg-color-${theme})`,
+        color: `var(--color-${theme})`,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10,
+        borderTopRightRadius: '5px',
+        borderBottomRightRadius: '5px',
+      }}
+    >
+      <div
+        style={{
+          textAlign: 'center',
+          padding: '20px',
+        }}
+      >
+        <i 
+          className="bi bi-chat-left-text" 
+          style={{
+            fontSize: '4rem',
+            color: `var(--placeholder-color)`,
+            marginBottom: '1rem',
+            opacity: 0.5,
+          }}
+        ></i>
+        <h5 
+          style={{
+            color: `var(--color-${theme})`,
+            marginBottom: '0.5rem',
+            fontWeight: '600',
+          }}
+        >
+          Selecione uma conversa
+        </h5>
+        <p 
+          style={{
+            color: `var(--placeholder-color)`,
+            fontSize: '0.9rem',
+            margin: '0',
+            opacity: 0.7,
+          }}
+        >
+          Escolha uma conversa da lista para começar a enviar mensagens
+        </p>
+      </div>
+    </div>
+  )}
 </div>
     </div>
       <NewContactModal 

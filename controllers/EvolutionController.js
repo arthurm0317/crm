@@ -52,6 +52,7 @@ const fetchInstanceController = async (req, res) => {
 const sendTextMessageController = async (req, res) => {
     try {
         const body = req.body;
+        const user_id = req.body.user_id || req.user_id;
         const chatId = body.chatId || body.chat_id;
         const schema = body.schema || 'effective_gain';
 
@@ -94,7 +95,7 @@ const sendTextMessageController = async (req, res) => {
             message.quote = body.replyTo;
         }
 
-        await saveMessage(chatId, message, schema);
+        await saveMessage(chatId, message, schema, user_id);
 
         res.status(200).json({ result });
     } catch (error) {

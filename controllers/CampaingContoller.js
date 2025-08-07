@@ -48,8 +48,10 @@ const createCampaingController = async (req, res) => {
 
     if(campaing_id){
       campaing = await createCampaing(campaing_id, name, sector, kanban_stage, connection_id, start_date, schema, intervalo);
+      console.log('Campanha atualizada:', campaing);
     } else {
       campaing = await createCampaing(null, name, sector, kanban_stage, connection_id, start_date, schema, intervalo);
+      console.log('Campanha criada:', campaing);
     }
 
     // Deletar todas as mensagens existentes da campanha antes de salvar as novas
@@ -67,6 +69,8 @@ const createCampaingController = async (req, res) => {
       const imagem = typeof mensagem === 'object' ? mensagem.image : null;
       await createMessageForBlast(null, texto, sector, campaing.id, schema, imagem);
     }
+
+    await scheduleCampaingBlast(campaing, campaing.sector, schema, intervalo);
 
     return res.status(201).json(campaing);
     

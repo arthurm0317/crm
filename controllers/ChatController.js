@@ -5,11 +5,29 @@ const fs = require('fs');
 const path = require('path');
 const pool = require('../db/queries');
 const axios = require('axios'); 
+const { Queue, Worker } = require('bullmq');
+const createRedisConnection = require('../config/Redis');
 const { getBase64FromMediaMessage, sendImageToWhatsApp } = require('../requests/evolution');
 const { sendAudioToWhatsApp } = require('../requests/evolution');
 const { searchConnById } = require('../services/ConnectionService');
 const { getCurrentTimestamp } = require('../services/getCurrentTimestamp');
 const { getAllUsers } = require('../services/UserService');
+
+const bullConn = createRedisConnection();
+const closeChatQueue = new Queue('closeQueue', { connection: bullConn });
+
+new Worker('closeQueue', async (job) => {
+  const { chat_id, status, schema } = job.data;
+  try { 
+    await closeChatContact(chat_id, status, schema);
+    } catch (error) {
+    console.error('Erro ao processar o fechamento do chat:', error);
+  }
+}, { 
+  connection: bullConn
+});
+
+
 
 
 const audioStorage = multer.diskStorage({
@@ -311,7 +329,7 @@ const closeChatContoller = async(req, res)=>{
     const schema = req.body.schema
     
     const result = await closeChat(chat_id, schema)
-    const closeContactChat = await closeChatContact(chat_id, status, schema)
+    const job = await closeChatQueue.add('closeChat', { chat_id, status, schema },{attempts: 3});
     global.socketIoServer.to(`schema_${schema}`).emit('removeChat', result)
 
    res.status(200).json({
@@ -407,6 +425,78 @@ const disableBotController = async (req, res) => {
     console.error(error)
   }
 }
+
+const redistributeWaitingChatsController = async (req, res) => {
+  try {
+    const { chats, schema, user_id } = req.body;
+    
+    if (!chats || !Array.isArray(chats) || chats.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Nenhum chat para redistribuir'
+      });
+    }
+
+    // Ordenar chats por timestamp (mais antigos primeiro)
+    const sortedChats = chats.sort((a, b) => {
+      const timestampA = a.updated_time || a.timestamp || a.updated_at || a.created_at || 0;
+      const timestampB = b.updated_time || b.timestamp || b.updated_at || b.created_at || 0;
+      const timeA = typeof timestampA === 'string' ? parseInt(timestampA) : timestampA;
+      const timeB = typeof timestampB === 'string' ? parseInt(timestampB) : timestampB;
+      return timeA - timeB;
+    });
+
+    const redistributedChats = [];
+    
+    for (const chat of sortedChats) {
+      try {
+        // Usar a função setUserChat existente para redistribuir
+        const result = await setUserChat(chat.id, schema);
+        
+        if (result && result.assigned_user) {
+          // Garantir que o status seja 'open' quando redistribuído
+          const updateStatusQuery = `
+            UPDATE ${schema}.chats 
+            SET status = 'open'
+            WHERE id = $1
+          `;
+          await pool.query(updateStatusQuery, [chat.id]);
+          
+          // Emitir evento de atualização via socket
+          const updatedChat = {
+            ...chat,
+            assigned_user: result.assigned_user,
+            status: 'open'
+          };
+          
+          global.socketIoServer.to(`user_${result.assigned_user}`).emit('chats_updated', updatedChat);
+          
+          redistributedChats.push({
+            chatId: chat.id,
+            assignedUser: result.assigned_user,
+            status: 'open'
+          });
+        }
+
+      } catch (error) {
+        console.error(`Erro ao redistribuir chat ${chat.id}:`, error);
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `${redistributedChats.length} chats redistribuídos com sucesso`,
+      redistributedChats
+    });
+
+  } catch (error) {
+    console.error('Erro na redistribuição de chats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro interno do servidor'
+    });
+  }
+};
   
   module.exports = {
     setUserChatController,
@@ -429,5 +519,6 @@ const disableBotController = async (req, res) => {
     disableBotController,
     createStatusController,
     getStatusController,
-    getClosedChatsController
+    getClosedChatsController,
+    redistributeWaitingChatsController
 };

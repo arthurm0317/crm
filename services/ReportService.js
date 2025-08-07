@@ -6,12 +6,22 @@ const { getMessages, getChatData } = require("../utils/getMessages");
 
 const getGptResponse = async (chat_id, schema, status) => {
     const messages = await getMessages(chat_id, schema);
+    
+    if (messages.length === 0) {
+        return null;
+    }
+    
     const formattedMessages = messages.map(m => {
         const sender = m.from_me ? 'Atendente' : 'Cliente';
         return `${sender}: ${m.body}`;
     }).join('\n');
-    console.log(formattedMessages)
+    
     const gpt_response = await createChatCompletion(formattedMessages);
+    
+    if (!gpt_response) {
+        return null;
+    }
+    
     const report = await createReport(chat_id, gpt_response, status, schema)
     return report;
 }
