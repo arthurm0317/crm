@@ -89,7 +89,7 @@ function Financeiro({ theme }) {
   const handleSalvarDespesa = async (despesa) => {
     try {
       setLoading(true);
-      
+      console.log(despesa)
       // Preparar dados para a API
       const expenseData = {
         user_id: user.id,
@@ -104,6 +104,7 @@ function Financeiro({ theme }) {
         payment_method: despesa.metodoPagamento || 'dinheiro',
         status: despesa.status || 'pendente',
         created_at: new Date().toISOString(),
+        itens: despesa.itens,
         schema: schema
       };
 

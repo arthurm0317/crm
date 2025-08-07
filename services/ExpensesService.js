@@ -12,17 +12,18 @@ const createExpense = async(user_id, vendor_id, description, category_id, total_
 
 const deleteAllExpensesItens = async (expense_id, schema) => {
     const result = await pool.query(
-        `DELETE FROM ${schema}.expenses WHERE id = $1 RETURNING *`,
+        `DELETE FROM ${schema}.expense_items WHERE expense_id = $1 RETURNING *`,
         [expense_id]
     );
-    return result.rows[0];
+    return result.rows;
 }
 
 const insertExpenseItens = async(expense_id, quantity, unit_price, tax_included, schema)=>{
+    
     const result = await pool.query(`
-        INSERT INTO ${schema}.expense_items (id, expense_id, quantity, unit_price, tax_included)
-        VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-        [uuidv4(), expense_id, quantity, unit_price, tax_included]
+        INSERT INTO ${schema}.expense_items (id, expense_id, quantity, unit_price, subtotal, tax_included)
+        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+        [uuidv4(), expense_id, quantity, unit_price, unit_price*quantity, tax_included]
     );
     return result.rows[0];
 }

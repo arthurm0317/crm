@@ -412,6 +412,20 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
     // Se não há itens categorizados, usar o valor base
     const valorFinal = formData.itens && formData.itens.length > 0 ? valorTotalReal : (parseFloat(formData.valor) || 0);
     
+    const itensDetalhados = formData.itens.map(item => {
+      const impostosDoItem = formData.impostos.filter(
+        imp => imp.aplicacao === 'item' && String(imp.itemId) === String(item.id)
+      );
+      return {
+        descricao: item.descricao,
+        unit_price: parseFloat(item.valor),
+        quantidade: parseInt(item.quantidade),
+        hasTax: impostosDoItem.length > 0,
+        tax: impostosDoItem.map(imp => imp.tipo), // pode ser array ou imp.tipo[0] se quiser só o primeiro
+        observacoes: item.observacoes || ''
+      };
+    });
+
     const despesaCompleta = {
       ...formData,
       id: isEditing ? formData.id : Date.now(),
@@ -420,7 +434,8 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
       totalImpostos: totalImpostos,
       totalItens: totalItens,
       totalDocumentos: calcularTotalDocumentos(),
-      valorTotal: valorFinal
+      valorTotal: valorFinal,
+      itens: itensDetalhados
     };
 
     onSave(despesaCompleta);
