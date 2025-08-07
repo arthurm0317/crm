@@ -38,6 +38,8 @@ function NewDashboard({ theme }) {
   const [users, setUsers] = useState([]);
   const [closedChats, setClosedChats] = useState([]);
   const [statusList, setStatusList] = useState([]);
+  const [successStatusList, setSuccessStatusList] = useState([])
+  const [loseStatusList, setloseStatusList] = useState([])
   const [reportData, setReportData] = useState([]);
   const [activeChats, setActiveChats] = useState([]);
   const [queues, setQueues] = useState([]);
@@ -48,6 +50,9 @@ function NewDashboard({ theme }) {
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [connections, setConnections] = useState([])
   const [openChatsData, setOpenChatsData] = useState([])
+  const [ganhoDatas, setGanhoDatas] = useState([])
+  const [perdaDatas, setPerdaDatas] = useState([])
+
 
   // Estados de filtros
   const [selectedPeriod, setSelectedPeriod] = useState('diario');
@@ -101,7 +106,19 @@ function NewDashboard({ theme }) {
     statusList.forEach(s => {
       statusSuccessMap[s.value] = s.success;
     });
+    setSuccessStatusList(statusList.filter(s=>s.success))
+    setloseStatusList(statusList.filter(s=>s.success===false))
 
+    const successLabel = successStatusList.map(s=>s.value) 
+    const successData = successLabel.map(motivo=>closedChats.filter(chat=>chat.status===motivo).length)
+    
+    setGanhoDatas(successData)
+
+    const perdaLabels = loseStatusList.map(s => s.value);
+    const perdaData = perdaLabels.map(motivo =>
+      closedChats.filter(chat => chat.status === motivo).length
+    );
+    setPerdaDatas(perdaData)
 
     const channelTotal = {};
     const channelStats = {};
@@ -1314,10 +1331,10 @@ function NewDashboard({ theme }) {
                 </div>
                 <div className="chart-container" style={{ height: '220px', overflow: 'hidden' }}>
                   <Bar data={{
-                    labels: ['Preço competitivo', 'Produto adequado', 'Atendimento excelente', 'Urgência do cliente', 'Outros'],
+                    labels: successStatusList.map(s=>s.value),
                     datasets: [{
                       label: 'Ganhos',
-                      data: [35, 25, 20, 15, 5],
+                      data: ganhoDatas,
                       backgroundColor: '#28a745'
                     }]
                   }} options={{
@@ -1369,10 +1386,10 @@ function NewDashboard({ theme }) {
                 </div>
                 <div className="chart-container" style={{ height: '220px', overflow: 'hidden' }}>
                   <Bar data={{
-                    labels: ['Sem interesse', 'Sem método pagamento', 'Valor alto', 'Concorrência', 'Outros'],
+                    labels: loseStatusList.map(s=>s.value),
                     datasets: [{
                       label: 'Perdas',
-                      data: [40, 25, 20, 10, 5],
+                      data: perdaDatas,
                       backgroundColor: '#dc3545'
                     }]
                   }} options={{
