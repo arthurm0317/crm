@@ -1486,7 +1486,7 @@ function NewDashboard({ theme }) {
                           </td>
                           <td className={`table-light-${theme}`}>
                             <span className="text-truncate d-inline-block">
-                              {row.proxima_etapa_recomendada || 'Não definida'}
+                              {row.proxima_etapa || 'Não definida'}
                             </span>
                           </td>
                           <td className="d-flex justify-content-center border-0">
