@@ -10,46 +10,49 @@ const useDashboardFilters = (data, selectedPeriod, selectedSector, selectedChann
       'mensal': 30
     };
     const days = periodMap[selectedPeriod] || 1;
-    const cutoffDate = new Date(now.getTime() - (days * 24 * 60 * 60 * 1000));
     
-    let adjustedCutoffDate = cutoffDate;
-    if (data.length > 0) {
-      const hasRecentData = data.some(item => {
-        if (useClosedAt) {
-          return item.closed_at && new Date(item.closed_at) >= cutoffDate;
-        } else {
-          if (!item.created_at) return false;
-          let itemDate;
-          if (item.created_at > 1000000000000) {
-            itemDate = new Date(Number(item.created_at));
-          } else {
-            itemDate = new Date(item.chat_created_at * 1000);
-          }
-          return itemDate >= cutoffDate;
-        }
-      });
-      
-      if (!hasRecentData) {
-        adjustedCutoffDate = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
-      }
+    let cutoffDate;
+    let endOfDay;
+    
+    if (selectedPeriod === 'diario') {
+      // Para diário, pegar apenas dados de hoje (início do dia até fim do dia)
+      cutoffDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    } else {
+      // Para outros períodos, pegar dados dos últimos X dias
+      cutoffDate = new Date(now.getTime() - (days * 24 * 60 * 60 * 1000));
     }
     
     return data.filter(item => {
       if (useClosedAt) {
         if (!item.closed_at) return false;
         const itemDate = new Date(item.closed_at);
-        return itemDate >= adjustedCutoffDate;
+        if (selectedPeriod === 'diario') {
+          return itemDate >= cutoffDate && itemDate <= endOfDay;
+        }
+        return itemDate >= cutoffDate;
       } else {
-        if (!item.chat_created_at) return false;
+        if (!item.created_at && !item.chat_created_at) return false;
         
         let itemDate;
-        if (item.chat_created_at > 1000000000000) {
-          itemDate = new Date(item.chat_created_at);
-        } else {
-          itemDate = new Date(item.chat_created_at * 1000);
+        if (item.created_at) {
+          if (item.created_at > 1000000000000) {
+            itemDate = new Date(Number(item.created_at));
+          } else {
+            itemDate = new Date(item.created_at * 1000);
+          }
+        } else if (item.chat_created_at) {
+          if (item.chat_created_at > 1000000000000) {
+            itemDate = new Date(item.chat_created_at);
+          } else {
+            itemDate = new Date(item.chat_created_at * 1000);
+          }
         }
         
-        return itemDate >= adjustedCutoffDate;
+        if (selectedPeriod === 'diario') {
+          return itemDate && itemDate >= cutoffDate && itemDate <= endOfDay;
+        }
+        return itemDate && itemDate >= cutoffDate;
       }
     });
   }, [selectedPeriod]);
@@ -135,7 +138,9 @@ const useDashboardFilters = (data, selectedPeriod, selectedSector, selectedChann
     }
 
     const conversionFilteredChats = filterDataByPeriod(data.closedChats, true);
+    
     const conversionFilteredBySector = filterDataBySector(conversionFilteredChats, data.users);
+    
     const conversionFilteredByChannel = filterDataByChannel(conversionFilteredBySector);
     
     const statusSuccessMap = {};
@@ -183,7 +188,7 @@ const useDashboardFilters = (data, selectedPeriod, selectedSector, selectedChann
     return {
       conversionRate: Math.round(conversionRate * 100) / 100,
       avgResolutionTime: Math.round(avgResolutionTime * 10) / 10,
-      totalVolume: conversionFilteredChats.length,
+      totalVolume: conversionFilteredByChannel.length,
       slaCompliance: 94
     };
   }, [data.closedChats, data.statusList, filterDataByPeriod, filterDataBySector, filterDataByChannel]);
