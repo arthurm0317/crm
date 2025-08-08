@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import * as bootstrap from 'bootstrap';
 import DespesaModal from './modalPages/DespesaModal';
-import { ExpensesService, CategoriesService, VendorsService } from '../services/FinanceiroService';
+import TaxRateModal from './modalPages/TaxRateModal';
+import { ExpensesService, CategoriesService, VendorsService, TaxRatesService } from '../services/FinanceiroService';
 import { useToast } from '../contexts/ToastContext';
 
 function Financeiro({ theme }) {
@@ -13,6 +14,7 @@ function Financeiro({ theme }) {
   const [loading, setLoading] = useState(false);
   const [showDespesaModal, setShowDespesaModal] = useState(false);
   const [despesaEditando, setDespesaEditando] = useState(null);
+  const [showTaxRateModal, setShowTaxRateModal] = useState(false);
   const [filtros, setFiltros] = useState({
     busca: '',
     categoria: '',
@@ -139,6 +141,11 @@ function Financeiro({ theme }) {
 
   const handleVendorCreated = (newVendor) => {
     setFornecedores(prev => [...prev, newVendor]);
+  };
+
+  const handleTaxRateCreated = (newTaxRate) => {
+    // Atualizar a lista de impostos se necessário
+    console.log('Novo imposto criado:', newTaxRate);
   };
 
   const handleFiltroChange = (campo, valor) => {
@@ -384,20 +391,24 @@ function Financeiro({ theme }) {
           <div className="p-4">
             <div className="d-flex justify-content-between align-items-center mb-4">
               <h4 className={`header-text-${theme} mb-0`}>Gestão de Despesas</h4>
-                             <div className="d-flex gap-2">
-                 <button className={`btn btn-2-${theme}`} onClick={simularDespesaWhatsApp}>
-                   <i className="bi bi-whatsapp me-2"></i>
-                   Simular WhatsApp
-                 </button>
-                 <button className={`btn btn-2-${theme}`} onClick={simularDespesaComImpostos}>
-                   <i className="bi bi-calculator me-2"></i>
-                   Simular com Impostos
-                 </button>
-                 <button className={`btn btn-1-${theme}`} onClick={handleNovaDespesa}>
-                   <i className="bi bi-plus-circle me-2"></i>
-                   Nova Despesa
-                 </button>
-               </div>
+              <div className="d-flex gap-2">
+                <button className={`btn btn-2-${theme}`} onClick={simularDespesaWhatsApp}>
+                  <i className="bi bi-whatsapp me-2"></i>
+                  Simular WhatsApp
+                </button>
+                <button className={`btn btn-2-${theme}`} onClick={simularDespesaComImpostos}>
+                  <i className="bi bi-calculator me-2"></i>
+                  Simular com Impostos
+                </button>
+                <button className={`btn btn-2-${theme}`} onClick={() => setShowTaxRateModal(true)}>
+                  <i className="bi bi-plus-circle me-2"></i>
+                  Novo Imposto
+                </button>
+                <button className={`btn btn-1-${theme}`} onClick={handleNovaDespesa}>
+                  <i className="bi bi-plus-circle me-2"></i>
+                  Nova Despesa
+                </button>
+              </div>
             </div>
             
                          {/* Cards de métricas */}
@@ -719,10 +730,16 @@ function Financeiro({ theme }) {
           <div className="p-4">
             <div className="d-flex justify-content-between align-items-center mb-4">
               <h4 className={`header-text-${theme} mb-0`}>Gestão de Receitas</h4>
-              <button className={`btn btn-1-${theme}`}>
-                <i className="bi bi-plus-circle me-2"></i>
-                Nova Receita
-              </button>
+              <div className="d-flex gap-2">
+                <button className={`btn btn-2-${theme}`} onClick={() => setShowTaxRateModal(true)}>
+                  <i className="bi bi-plus-circle me-2"></i>
+                  Novo Imposto
+                </button>
+                <button className={`btn btn-1-${theme}`}>
+                  <i className="bi bi-plus-circle me-2"></i>
+                  Nova Receita
+                </button>
+              </div>
             </div>
             
             <div className="row mb-3">
@@ -947,6 +964,14 @@ function Financeiro({ theme }) {
         fornecedores={fornecedores}
         onCategoryCreated={handleCategoryCreated}
         onVendorCreated={handleVendorCreated}
+      />
+
+      {/* Modal de Imposto */}
+      <TaxRateModal
+        show={showTaxRateModal}
+        onHide={() => setShowTaxRateModal(false)}
+        theme={theme}
+        onTaxRateCreated={handleTaxRateCreated}
       />
     </div>
   );

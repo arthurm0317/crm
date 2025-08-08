@@ -28,6 +28,38 @@ const insertExpenseItens = async(expense_id, quantity, unit_price, tax_included,
     return result.rows[0];
 }
 
+const createTaxRate = async (name, rate, type, is_compound, schema) => {
+    const result = await pool.query(`
+        INSERT INTO ${schema}.tax_rates (id, name, rate, type, is_compound)
+        VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+        [uuidv4(), name, rate, type, is_compound]
+    );
+    return result.rows[0];
+}
+
+const getTaxRates = async (schema) => {
+    const result = await pool.query(`
+        SELECT * FROM ${schema}.tax_rates ORDER BY name
+    `);
+    return result.rows;
+}
+
+const getTaxById = async (tax_id, schema) => {
+     const result = await pool.query(`
+        SELECT * FROM ${schema}.tax_rates WHERE id=$1
+    `, [tax_id]);
+    return result.rows[0]
+}
+
+const insertExpenseItensTax = async (expense_item_id, tax_id, base_amount, schema) => {
+    const tax = await getTaxById(tax_id, schema)
+    const result = await pool.query(`INSERT INTO ${schema}.expense_item_taxes(id, expense_item_id, tax_rate_id, base_amount, tax_amount) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+        [uuidv4(), expense_item_id, tax_id, base_amount, Number(base_amount)+(Number(base_amount)*Number(tax.rate)/100)]
+    )
+    return result.rows[0]
+    
+}
+
 const getExpenses = async(schema)=>{
     const result = await pool.query(
         `SELECT e.*, c.category_name, v.vendor_name
@@ -51,5 +83,8 @@ module.exports ={
     getExpenses,
     getExpensesByCategory,
     deleteAllExpensesItens,
-    insertExpenseItens
+    insertExpenseItens,
+    createTaxRate,
+    getTaxRates,
+    insertExpenseItensTax
 }

@@ -1,4 +1,4 @@
-const { createExpense, getExpenses, deleteAllExpensesItens, insertExpenseItens } = require("../services/ExpensesService");
+const { createExpense, getExpenses, deleteAllExpensesItens, insertExpenseItens, createTaxRate, getTaxRates, insertExpenseItensTax } = require("../services/ExpensesService");
 
 const createExpenseController = async (req, res) => {
     const {user_id, vendor_id, description, category_id, total_amount, currency, date_incurred, due_date, payment_date, payment_method, status, created_at, itens=[], schema } = req.body;
@@ -6,10 +6,13 @@ const createExpenseController = async (req, res) => {
     try {
         const result = await createExpense(user_id, vendor_id, description, category_id, total_amount, currency, date_incurred, due_date, payment_date, payment_method, status, created_at, schema);
          await deleteAllExpensesItens(result.id, schema)
+         let i = 0
          for(const item of itens){
-            const todosImpostos = item.tax
-            console.log(todosImpostos)
-            await insertExpenseItens(result.id, item.quantidade, item.unit_price, item.hasTax, schema)
+            const expense_item = await insertExpenseItens(result.id, item.quantidade, item.unit_price, item.hasTax, schema)
+            const itemTax = item.tax
+            if(itemTax.length>0){
+                await insertExpenseItensTax(expense_item.id, itemTax[0] || null, expense_item.subtotal, schema)
+            }
          }
         res.status(201).json({ success: true, data: result });
     } catch (error) {
@@ -19,8 +22,7 @@ const createExpenseController = async (req, res) => {
 }
 
 const getExpensesController = async (req, res) => {
-    const schema = req.params.schema;
-
+    const { schema } = req.params;
     try {
         const expenses = await getExpenses(schema);
         res.status(200).json({ success: true, data: expenses });
@@ -30,7 +32,31 @@ const getExpensesController = async (req, res) => {
     }
 }
 
+const createTaxRateController = async (req, res) => {
+    const { name, rate, type, is_compound, schema } = req.body;
+    try {
+        const result = await createTaxRate(name, rate, type, is_compound, schema);
+        res.status(201).json({ success: true, data: result });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+}
+
+const getTaxRatesController = async (req, res) => {
+    const { schema } = req.params;
+    try {
+        const taxRates = await getTaxRates(schema);
+        res.status(200).json({ success: true, data: taxRates });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+}
+
 module.exports = {
     createExpenseController,
-    getExpensesController
-};
+    getExpensesController,
+    createTaxRateController,
+    getTaxRatesController
+}

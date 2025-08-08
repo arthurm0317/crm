@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.REACT_APP_URL;
 
 // Configurar axios para sempre enviar cookies
 axios.defaults.withCredentials = true;
@@ -35,7 +35,7 @@ export const CategoriesService = {
   // Buscar todas as categorias
   getCategories: async (schema) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/categories/get-categories/${schema}`);
+      const response = await axios.get(`${API_BASE_URL}/category/get-categories/${schema}`);
       return response.data;
     } catch (error) {
       console.error('Erro ao buscar categorias:', error);
@@ -46,7 +46,7 @@ export const CategoriesService = {
   // Criar nova categoria
   createCategory: async (categoryData) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/categories/create-category`, categoryData);
+      const response = await axios.post(`${API_BASE_URL}/category/create-category`, categoryData);
       return response.data;
     } catch (error) {
       console.error('Erro ao criar categoria:', error);
@@ -60,7 +60,7 @@ export const VendorsService = {
   // Buscar todos os fornecedores
   getVendors: async (schema) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/vendors/get-vendors/${schema}`);
+      const response = await axios.get(`${API_BASE_URL}/vendor/get-vendors/${schema}`);
       return response.data;
     } catch (error) {
       console.error('Erro ao buscar fornecedores:', error);
@@ -71,7 +71,7 @@ export const VendorsService = {
   // Criar novo fornecedor
   createVendor: async (vendorData) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/vendors/create-vendor`, vendorData);
+      const response = await axios.post(`${API_BASE_URL}/vendor/create-vendor`, vendorData);
       return response.data;
     } catch (error) {
       console.error('Erro ao criar fornecedor:', error);
@@ -80,8 +80,34 @@ export const VendorsService = {
   }
 };
 
+// Serviço para Tax Rates (Impostos)
+export const TaxRatesService = {
+  // Buscar todos os impostos
+  getTaxRates: async (schema) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/expenses/get-tax-rates/${schema}`);
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar impostos:', error);
+      throw error;
+    }
+  },
+
+  // Criar novo imposto
+  createTaxRate: async (taxRateData) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/expenses/create-tax-rate`, taxRateData, {withCredentials:true});
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao criar imposto:', error);
+      throw error;
+    }
+  }
+};
+
 export default {
   ExpensesService,
   CategoriesService,
-  VendorsService
+  VendorsService,
+  TaxRatesService
 }; 

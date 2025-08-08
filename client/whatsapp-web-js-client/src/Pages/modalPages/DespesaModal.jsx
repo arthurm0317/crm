@@ -42,6 +42,7 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
   const [creatingVendor, setCreatingVendor] = useState(false);
   const [categoriasDisponiveis, setCategoriasDisponiveis] = useState(categorias);
   const [fornecedores, setFornecedores] = useState([]);
+  const [imposto, setImpostos] = useState([])
   const userData = JSON.parse(localStorage.getItem('user'));
   const schema = userData?.schema;
 
@@ -58,6 +59,7 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
         console.error('Erro ao buscar categorias:', response.data.message);
       }
     }
+
     fetchCategories();
   }, []);
 
@@ -71,8 +73,11 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
         console.error('Erro ao buscar fornecedores:', response.data.message);
       }
     }
+    
+
     fetchVendors();
   }, []);
+;
 
   const tiposImposto = [
     'ICMS',
@@ -307,7 +312,7 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
         ...prev,
         impostos: [...prev.impostos, { 
           ...imposto, 
-          id: Date.now(),
+          id: imposto.id,
           valorCalculado: parseFloat(imposto.valorCalculado) || parseFloat(imposto.valor) || 0
         }]
       }));
@@ -421,7 +426,7 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
         unit_price: parseFloat(item.valor),
         quantidade: parseInt(item.quantidade),
         hasTax: impostosDoItem.length > 0,
-        tax: impostosDoItem.map(imp => imp.tipo), // pode ser array ou imp.tipo[0] se quiser só o primeiro
+        tax: impostosDoItem.map(imp => imp.id), 
         observacoes: item.observacoes || ''
       };
     });
@@ -1335,6 +1340,10 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
 
 // Modal para adicionar imposto
 function ImpostoModal({ show, onHide, onSave, theme, tiposImposto, itens = [], calcularTotalItens, impostos = [], editingImposto = null, setEditingImposto }) {
+  const [impostosDisponiveis, setImpostosDisponiveis] = useState([])
+  const userData = JSON.parse(localStorage.getItem('user'));
+  const schema = userData?.schema;
+
   const [formData, setFormData] = useState({
     tipo: '',
     aliquota: '',
@@ -1343,13 +1352,41 @@ function ImpostoModal({ show, onHide, onSave, theme, tiposImposto, itens = [], c
     observacoes: ''
   });
 
+  const aliquotaSelecionada = React.useMemo(() => {
+    if (!formData.tipo) return '';
+    const imp = impostosDisponiveis.find(i => String(i.id) === String(formData.tipo));
+    if (!imp || imp.rate === undefined || imp.rate === null) return '';
+    const valor = Number(imp.rate);
+    if (isNaN(valor)) return '';
+    return valor.toFixed(2);
+  }, [formData.tipo, impostosDisponiveis]);
+
+  useEffect(()=>{
+    const fetchImpostos = async () => {
+      try {
+        const response = await axios.get(`${process.env.REACT_APP_URL}/expenses/get-tax-rates/${schema}`, {withCredentials: true})
+        if(response.data.success === true){
+          const result = response.data
+          setImpostosDisponiveis(Array.isArray(result.data)?result.data:[result.data])
+        }
+      } catch (error) {
+        console.error('Erro ao buscar impostos:', error);
+        setImpostosDisponiveis([]);
+      }
+    }
+
+    if (show) {
+      fetchImpostos();
+    }
+  }, [show, schema])
+
   // Carregar dados para edição
   useEffect(() => {
     if (editingImposto) {
       setFormData({
-        tipo: editingImposto.tipo,
-        aliquota: editingImposto.aliquota,
-        aplicacao: editingImposto.aplicacao,
+        tipo: editingImposto.tipo || '',
+        aliquota: editingImposto.aliquota || '',
+        aplicacao: editingImposto.aplicacao || 'total',
         itemId: editingImposto.itemId ? editingImposto.itemId.toString() : '',
         observacoes: editingImposto.observacoes || ''
       });
@@ -1365,6 +1402,12 @@ function ImpostoModal({ show, onHide, onSave, theme, tiposImposto, itens = [], c
   }, [editingImposto, show]);
 
   const handleSave = () => {
+    // Validar se um tipo de imposto foi selecionado
+    if (!formData.tipo) {
+      alert('Por favor, selecione um tipo de imposto.');
+      return;
+    }
+
     // Calcular o valor do imposto baseado na aplicação
     let valorCalculado = 0;
     const aliquotaDecimal = parseFloat(formData.aliquota) / 100;
@@ -1390,6 +1433,7 @@ function ImpostoModal({ show, onHide, onSave, theme, tiposImposto, itens = [], c
     
     const impostoCompleto = {
       ...formData,
+      id: formData.tipo, // Usar o ID do imposto selecionado
       valor: valorCalculado.toFixed(2),
       valorCalculado: valorCalculado.toFixed(2),
       itemNome: formData.aplicacao === 'item' && formData.itemId ? 
@@ -1472,10 +1516,13 @@ function ImpostoModal({ show, onHide, onSave, theme, tiposImposto, itens = [], c
                 value={formData.tipo}
                 onChange={(e) => setFormData(prev => ({ ...prev, tipo: e.target.value }))}
               >
-                <option value="">Selecione o tipo</option>
-                {tiposImposto.map(tipo => (
-                  <option key={tipo} value={tipo}>{tipo}</option>
+                <option value="">Selecione o imposto</option>
+                {impostosDisponiveis.map(imp => (
+                  <option key={imp.id} value={imp.id}>
+                    {imp.name || imp.tipo || imp.descricao}
+                  </option>
                 ))}
+                
               </select>
             </div>
             <div className="row">
@@ -1485,9 +1532,10 @@ function ImpostoModal({ show, onHide, onSave, theme, tiposImposto, itens = [], c
                   type="number"
                   step="0.01"
                   className={`form-control input-${theme}`}
-                  value={formData.aliquota}
-                  onChange={(e) => setFormData(prev => ({ ...prev, aliquota: e.target.value }))}
-                  placeholder="0,00"
+                  value={aliquotaSelecionada}
+                  placeholder={aliquotaSelecionada || '0,00'}
+                  readOnly
+                  disabled
                 />
               </div>
               <div className="col-md-6 mb-3">
