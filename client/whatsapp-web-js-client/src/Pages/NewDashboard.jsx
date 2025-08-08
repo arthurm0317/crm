@@ -376,7 +376,7 @@ function NewDashboard({ theme }) {
             </div>
           </div>
           <div className="row">
-            <div className="col-3">
+            <div className="col-4">
               <div className={`card card-${theme} p-3 text-center`} style={{ height: '120px', overflow: 'hidden' }}>
                 <div className="d-flex align-items-center mb-2">
                   <span className="d-flex align-items-center">
@@ -397,7 +397,7 @@ function NewDashboard({ theme }) {
               </div>
             </div>
           
-            <div className="col-3">
+            <div className="col-4">
               <div className={`card card-${theme} p-3 text-center`} style={{ height: '120px', overflow: 'hidden' }}>
                 <div className="d-flex align-items-center justify-content-between mb-2">
                   <span className="d-flex align-items-center">
@@ -417,7 +417,7 @@ function NewDashboard({ theme }) {
                 </small>
               </div>
             </div>
-            <div className="col-3">
+            <div className="col-4">
               <div className={`card card-${theme} p-3 text-center`} style={{ height: '120px', overflow: 'hidden' }}>
                 <div className="d-flex align-items-center justify-content-between mb-2">
                   <span className="d-flex align-items-center">
@@ -868,9 +868,14 @@ function NewDashboard({ theme }) {
                             </OverlayTrigger>
                           </td>
                           <td className={`table-light-${theme}`}>
-                            <span className="text-truncate d-inline-block">
-                              {row.proxima_etapa || 'Não definida'}
-                            </span>
+                            <OverlayTrigger
+                              placement="top"
+                              overlay={<Tooltip id={`tooltip-proxima-etapa-${idx}`}>{row.proxima_etapa || 'Não definida'}</Tooltip>}
+                            >
+                              <span className="text-truncate d-inline-block" style={{ maxWidth: '150px' }}>
+                                {row.proxima_etapa ? (row.proxima_etapa.length > 30 ? row.proxima_etapa.substring(0, 30) + '...' : row.proxima_etapa) : 'Não definida'}
+                              </span>
+                            </OverlayTrigger>
                           </td>
                           <td className="d-flex justify-content-center border-0">
                             <button
