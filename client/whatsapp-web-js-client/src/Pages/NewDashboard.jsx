@@ -376,7 +376,7 @@ function NewDashboard({ theme }) {
             </div>
           </div>
           <div className="row">
-            <div className="col-3">
+            <div className="col-4">
               <div className={`card card-${theme} p-3 text-center`} style={{ height: '120px', overflow: 'hidden' }}>
                 <div className="d-flex align-items-center mb-2">
                   <span className="d-flex align-items-center">
@@ -397,7 +397,7 @@ function NewDashboard({ theme }) {
               </div>
             </div>
           
-            <div className="col-3">
+            <div className="col-4">
               <div className={`card card-${theme} p-3 text-center`} style={{ height: '120px', overflow: 'hidden' }}>
                 <div className="d-flex align-items-center justify-content-between mb-2">
                   <span className="d-flex align-items-center">
@@ -417,7 +417,7 @@ function NewDashboard({ theme }) {
                 </small>
               </div>
             </div>
-            <div className="col-3">
+            <div className="col-4">
               <div className={`card card-${theme} p-3 text-center`} style={{ height: '120px', overflow: 'hidden' }}>
                 <div className="d-flex align-items-center justify-content-between mb-2">
                   <span className="d-flex align-items-center">
