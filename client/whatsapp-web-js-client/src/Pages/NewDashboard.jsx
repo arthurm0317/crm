@@ -868,9 +868,14 @@ function NewDashboard({ theme }) {
                             </OverlayTrigger>
                           </td>
                           <td className={`table-light-${theme}`}>
-                            <span className="text-truncate d-inline-block">
-                              {row.proxima_etapa || 'Não definida'}
-                            </span>
+                            <OverlayTrigger
+                              placement="top"
+                              overlay={<Tooltip id={`tooltip-proxima-etapa-${idx}`}>{row.proxima_etapa || 'Não definida'}</Tooltip>}
+                            >
+                              <span className="text-truncate d-inline-block" style={{ maxWidth: '150px' }}>
+                                {row.proxima_etapa ? (row.proxima_etapa.length > 30 ? row.proxima_etapa.substring(0, 30) + '...' : row.proxima_etapa) : 'Não definida'}
+                              </span>
+                            </OverlayTrigger>
                           </td>
                           <td className="d-flex justify-content-center border-0">
                             <button
