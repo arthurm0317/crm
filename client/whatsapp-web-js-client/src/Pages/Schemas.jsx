@@ -87,6 +87,20 @@ const handleCreateSchema = async (e) => {
   }
 };
 
+  const handleUpdateSchema = async (schemaName) => {
+    try {
+      const response = await axios.post(`${url}/company/update-schema`, 
+        { schema: schemaName },
+        { withCredentials: true }
+      );
+      
+      alert(response.data.message);
+    } catch (error) {
+      console.error('Erro ao atualizar schema:', error);
+      alert('Erro ao atualizar schema: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
   const toggleNewSchemaPanel = (show) => {
     const panel = document.querySelector('.new-schema-panel');
     if (show) {
@@ -151,12 +165,21 @@ const handleCreateSchema = async (e) => {
                     className={`card-${theme} d-flex flex-row align-items-center justify-content-between rounded shadow-sm px-4 py-3`}
                   >
                     <span className={`header-text-${theme} fw-semibold`} style={{ fontSize: '1.1rem' }}>{schema.company_name || schema}</span>
-                    <button
-                      className={`btn btn-2-${theme}`}
-                      onClick={() => handleEnterSchema(schema)}
-                    >
-                      Entrar
-                    </button>
+                    <div className="d-flex gap-2">
+                      <button
+                        className={`btn btn-2-${theme}`}
+                        onClick={() => handleUpdateSchema(schema.schema_name || schema)}
+                        title="Atualizar Schema"
+                      >
+                        <i className="bi bi-arrow-clockwise"></i>
+                      </button>
+                      <button
+                        className={`btn btn-2-${theme}`}
+                        onClick={() => handleEnterSchema(schema)}
+                      >
+                        Entrar
+                      </button>
+                    </div>
                   </div>
                 ))
               )}

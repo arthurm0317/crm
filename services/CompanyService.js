@@ -361,6 +361,253 @@ const createCompany = async (company, schema) => {
     }
 };
 
+const updateSchema = async (schema) => {
+    try {
+        // Verifica se o schema existe
+        const schemaExists = await pool.query(`
+            SELECT schema_name 
+            FROM information_schema.schemata 
+            WHERE schema_name = $1
+        `, [schema]);
+
+        if (schemaExists.rows.length === 0) {
+            throw new Error('Schema não encontrado');
+        }
+
+        // Cria todas as tabelas se não existirem
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.users (
+                id UUID PRIMARY KEY,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                password TEXT NOT NULL,
+                permission TEXT,
+                online BOOLEAN DEFAULT false,
+                sector text
+            );`);
+        
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.chats (
+              id UUID PRIMARY KEY,
+              chat_id TEXT,
+              connection_id TEXT,
+              queue_id UUID,
+              isGroup BOOLEAN,
+              contact_name TEXT,
+              assigned_user TEXT,
+              status TEXT,
+              created_at BIGINT,
+              messages JSONB,
+              contact_phone text,
+              etapa_id uuid,
+              updated_time bigint,
+              unreadmessages boolean
+            );
+          `);
+        
+        await pool.query(`CREATE TABLE IF NOT EXISTS ${schema}.queues(
+            id UUID PRIMARY KEY,
+            name TEXT UNIQUE NOT NULL,
+            color TEXT,
+            users JSONB,
+            distribution boolean,
+            superuser uuid REFERENCES ${schema}.users(id) ON DELETE SET NULL
+        );`);
+        
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.connections (
+              id UUID PRIMARY KEY,
+              name TEXT NOT NULL,
+              number TEXT NOT NULL,
+              queue_id uuid
+            );
+          `);
+        
+        await pool.query(`
+        CREATE TABLE IF NOT EXISTS ${schema}.messages (
+            id text PRIMARY KEY,
+            body TEXT,
+            from_me BOOLEAN,
+            chat_id UUID,
+            created_at BIGINT,
+            message_type text,
+            base64 text,
+            isquoted boolean,
+            quote_id text
+        );
+        `);
+        
+        await pool.query(`
+             CREATE TABLE IF NOT EXISTS ${schema}.contacts (
+             number text not null primary key,
+             contact_name text
+             )
+            `)
+        
+        await pool.query(`
+        CREATE TABLE IF NOT EXISTS ${schema}.last_assigned_user (
+            queue_id UUID REFERENCES ${schema}.queues(id) ON DELETE CASCADE,
+            user_id UUID REFERENCES ${schema}.users(id) ON DELETE CASCADE,
+            assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (queue_id, user_id)
+        );
+        `);
+    
+        await pool.query(`
+        CREATE TABLE IF NOT EXISTS ${schema}.queue_users (
+            user_id UUID REFERENCES ${schema}.queues(id) ON DELETE CASCADE,
+            queue_id UUID REFERENCES ${schema}.queues(id) ON DELETE CASCADE,
+            PRIMARY KEY (user_id, queue_id)
+        );
+        `);
+        
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.custom_fields (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                field_name TEXT NOT NULL,
+                field_type TEXT NOT NULL,
+                field_value TEXT,
+                chat_id UUID REFERENCES ${schema}.chats(id) ON DELETE CASCADE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.quick_messages (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                value TEXT NOT NULL,
+                shortcut TEXT,
+                tag TEXT,
+                queue_id UUID REFERENCES ${schema}.queues(id) ON DELETE SET NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.tags (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                name TEXT NOT NULL UNIQUE,
+                color TEXT DEFAULT '#007bff',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.chat_tags (
+                chat_id UUID REFERENCES ${schema}.chats(id) ON DELETE CASCADE,
+                tag_id UUID REFERENCES ${schema}.tags(id) ON DELETE CASCADE,
+                PRIMARY KEY (chat_id, tag_id)
+            );
+        `);
+        
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.user_preferences (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                user_id UUID REFERENCES ${schema}.users(id) ON DELETE CASCADE,
+                key TEXT NOT NULL,
+                value TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, key)
+            );
+        `);
+        
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.login_data (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            ip TEXT NOT NULL,
+            attempts INTEGER DEFAULT 1,
+            last_attempt BIGINT DEFAULT EXTRACT(EPOCH FROM NOW()) * 1000
+            );
+        `)
+
+        // Tabelas para o módulo financeiro
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.expenses (
+                id UUID PRIMARY KEY,
+                user_id UUID REFERENCES ${schema}.users(id) ON DELETE SET NULL,
+                vendor_id UUID,
+                description TEXT NOT NULL,
+                category_id UUID,
+                total_amount DECIMAL(10,2) NOT NULL,
+                currency TEXT DEFAULT 'BRL',
+                date_incurred DATE NOT NULL,
+                due_date DATE,
+                payment_date DATE,
+                payment_method TEXT DEFAULT 'dinheiro',
+                status TEXT DEFAULT 'pendente',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.category (
+                id UUID PRIMARY KEY,
+                category_name TEXT NOT NULL UNIQUE
+            );
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.vendors (
+                id UUID PRIMARY KEY,
+                vendor_name TEXT NOT NULL UNIQUE
+            );
+        `);
+        
+        await pool.query(
+            `CREATE TABLE IF NOT EXISTS ${schema}.expense_items (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            expense_id UUID NOT NULL REFERENCES ${schema}.expenses(id) ON DELETE CASCADE,
+            quantity integer NOT NULL DEFAULT 1,
+            unit_price bigint NOT NULL,
+            subtotal bigint NOT NULL,
+            tax_included BOOLEAN NOT NULL DEFAULT FALSE, 
+            created_at TIMESTAMPTZ DEFAULT now()
+            );`
+        )
+
+        await pool.query(
+            `CREATE TABLE IF NOT EXISTS ${schema}.tax_rates (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            name TEXT NOT NULL, -- ex: "ICMS 18%", "ISS 5%"
+            rate NUMERIC(6,4) NOT NULL, -- ex: 0.18 para 18%
+            type TEXT NOT NULL, -- ex: ICMS, ISS, PIS, COFINS, IRRF
+            jurisdiction TEXT NULL, -- ex: estado, município, federal
+            is_compound BOOLEAN NOT NULL DEFAULT FALSE, -- se compõe sobre outro imposto
+            created_at TIMESTAMPTZ DEFAULT now()
+            );`
+        )
+
+        await pool.query(
+            `CREATE TABLE IF NOT EXISTS ${schema}.expense_item_taxes (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            expense_item_id UUID NOT NULL REFERENCES ${schema}.expense_items(id) ON DELETE CASCADE,
+            tax_rate_id UUID NOT NULL REFERENCES ${schema}.tax_rates(id),
+            base_amount NUMERIC(14,2) NOT NULL, -- sobre o que o imposto é calculado
+            tax_amount NUMERIC(14,2) NOT NULL, -- valor do imposto
+            created_at TIMESTAMPTZ DEFAULT now()
+            );`
+        )
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.expense_taxes (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            expense_id UUID NOT NULL REFERENCES ${schema}.expenses(id) ON DELETE CASCADE,
+            name TEXT NOT NULL, -- ex: "Retenção de INSS"
+            rate NUMERIC(6,4) NOT NULL,
+            base_amount NUMERIC(14,2) NOT NULL,
+            tax_amount NUMERIC(14,2) NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT now()
+            );
+            `)
+
+        return { message: "Schema atualizado com sucesso! Todas as tabelas foram criadas/verificadas." };
+    } catch (error) {
+        console.error('Erro ao atualizar schema:', error);
+        throw error;
+    }
+};
+
 const getAllCompanies = async () => {
     const result = await pool.query(`
         SELECT schema_name 
@@ -380,4 +627,4 @@ const getAllCompaniesTecUser = async () => {
         throw new Error("Erro ao buscar empresas")
     }
 }
-module.exports = { createCompany, getAllCompanies, getAllCompaniesTecUser };
+module.exports = { createCompany, getAllCompanies, getAllCompaniesTecUser, updateSchema };
