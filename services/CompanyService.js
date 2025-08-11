@@ -218,7 +218,7 @@ const createCompany = async (company, schema) => {
             );
         `)
         await pool.query(`
-            CREATE TABLE ${schema}.chat_contact (
+            CREATE TABLE IF NOT EXISTS ${schema}.chat_contact (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             chat_id UUID NOT NULL REFERENCES ${schema}.chats(id) ON DELETE CASCADE,
             user_id uuid references effective_gain.users(id) on delete set null,
@@ -230,14 +230,14 @@ const createCompany = async (company, schema) => {
             );
         `)
         await pool.query(`
-            CREATE TABLE ${schema}.status(
+            CREATE TABLE IF NOT EXISTS ${schema}.status(
             id uuid primary key,
             value text not null,
             success boolean
             )    
         `)
         await pool.query(`
-            CREATE TABLE ${schema}.reports (
+            CREATE TABLE IF NOT EXISTS ${schema}.reports (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             chat_id UUID REFERENCES ${schema}.chats(id),
             user_id UUID,
@@ -600,6 +600,39 @@ const updateSchema = async (schema) => {
             created_at TIMESTAMPTZ DEFAULT now()
             );
             `)
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.chat_contact (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            chat_id UUID NOT NULL REFERENCES ${schema}.chats(id) ON DELETE CASCADE,
+            user_id uuid references effective_gain.users(id) on delete set null,
+            contact_number TEXT NOT NULL,
+            status TEXT,
+            custom_field UUID REFERENCES ${schema}.custom_fields(id), 
+            custom_value TEXT, 
+            closed_at TIMESTAMP DEFAULT now()
+            );
+        `)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.status(
+            id uuid primary key,
+            value text not null,
+            success boolean
+            )    
+        `)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS ${schema}.reports (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            chat_id UUID REFERENCES ${schema}.chats(id),
+            user_id UUID,
+            queue_id UUID,
+            categoria TEXT NOT NULL,
+            resumo TEXT NOT NULL,
+            assertividade TEXT NOT NULL,
+            status TEXT NOT NULL,
+            proxima_etapa TEXT NOT NULL
+            );
+        `)
 
         return { message: "Schema atualizado com sucesso! Todas as tabelas foram criadas/verificadas." };
     } catch (error) {
