@@ -156,7 +156,103 @@ function NewDashboard({ theme }) {
   // Verificar se há erros
   const hasErrors = Object.values(error).some(err => err !== null);
   const isLoading = Object.values(loading).some(load => load);
+  if(userData.role==='user'){
+    return(
+      <div className="container-fluid ps-2 pe-0" style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      <div className="mb-4">
+          <div className="d-flex align-items-center mb-3">
+            <h5 className={`header-text-${theme} mb-0`}>Histórico de Conversas</h5>
+            <div className="flex-grow-1 ms-3">
+              <hr className={`border-${theme}`} />
+            </div>
+          </div>
+          <div className="row">
+            <div className="col-12">
+              <div className={`card card-${theme} p-3`}>
+                <div className={`table-responsive custom-table-${theme}`}>
+                  <table className={`table table-bordered table-hover m-0 table-${theme}`}>
+                    <thead className={`table-${theme}`}>
+                      <tr>
+                        <th><i className="bi bi-calendar me-1"></i>Data</th>
+                        <th><i className="bi bi-phone me-1"></i>Canal</th>
+                        <th><i className="bi bi-list-ul me-1"></i>Fila</th>
+                        <th><i className="bi bi-person me-1"></i>Atendente</th>
+                        <th><i className="bi bi-tag me-1"></i>Categoria</th>
+                        <th><i className="bi bi-info-circle me-1"></i>Status</th>
+                        <th><i className="bi bi-chat-text me-1"></i>Resumo</th>
+                        <th><i className="bi bi-arrow-right me-1"></i>Próxima Etapa</th>
+                        <th><i className="bi bi-gear me-1 d-flex justify-content-center"></i></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(!data.reportData || data.reportData.length === 0) && (
+                        <tr><td colSpan={9} className="text-center">Nenhum dado encontrado</td></tr>
+                      )}
+                      {data.reportData?.slice(0, 10).filter(userData.role==='tecnico'||userData.role==='admin'?r=>r.id!==null:r=>r.user_id===userData.id).map((row, idx) => (
+                        <tr key={idx} className={idx % 2 === 0 ? `table-light-${theme}` : ''}>
+                          <td>{new Date().toLocaleDateString('pt-BR')}</td>
+                          <td>WhatsApp</td>
+                          <td>{row.queue_id ? (data.queueMap[row.queue_id] || `Fila ${row.queue_id}`) : '-'}</td>
+                          <td>{row.user_id ? (data.userNames[row.user_id] || `Usuário ${row.user_id}`) : '-'}</td>
+                          <td>{row.categoria || '-'}</td>
+                          <td>
+                            <span className={`badge bg-${getStatusColor(row.status)}`}>
+                              <i className={`${getStatusIcon(row.status)} me-1`}></i>
+                              {getStatusLabel(row.status)}
+                            </span>
+                          </td>
+                          <td>
+                            <OverlayTrigger
+                              placement="top"
+                              overlay={<Tooltip id={`tooltip-resumo-${idx}`}>{row.resumo || 'Sem resumo disponível'}</Tooltip>}
+                            >
+                              <span className="text-truncate d-inline-block" style={{ maxWidth: '150px' }}>
+                                {row.resumo ? (row.resumo.length > 30 ? row.resumo.substring(0, 30) + '...' : row.resumo) : '-'}
+                              </span>
+                            </OverlayTrigger>
+                          </td>
+                          <td className={`table-light-${theme}`}>
+                            <OverlayTrigger
+                              placement="top"
+                              overlay={<Tooltip id={`tooltip-proxima-etapa-${idx}`}>{row.proxima_etapa || 'Não definida'}</Tooltip>}
+                            >
+                              <span className="text-truncate d-inline-block" style={{ maxWidth: '150px' }}>
+                                {row.proxima_etapa ? (row.proxima_etapa.length > 30 ? row.proxima_etapa.substring(0, 30) + '...' : row.proxima_etapa) : 'Não definida'}
+                              </span>
+                            </OverlayTrigger>
+                          </td>
+                          <td className="d-flex justify-content-center border-0">
+                            <button
+                              className="btn btn-sm btn-outline-primary"
+                              onClick={() => handleOpenChatModal(row.chat_id)}
+                              data-bs-toggle="tooltip"
+                              data-bs-placement="top"
+                              title="Visualizar conversa"
+                            >
+                              <i className="bi bi-eye"></i>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
+        <ChatViewModal
+        show={showChatModal}
+        onClose={handleCloseChatModal}
+        theme={theme}
+        chatId={modalChatId}
+        schema={schema}
+        url={url}
+      />
+    </div>
+    )
+  }
   return (
     <div className="pt-3" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* CSS personalizado para filtros */}
