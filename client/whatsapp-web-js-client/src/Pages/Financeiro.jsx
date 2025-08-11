@@ -6,7 +6,7 @@ import { ExpensesService, CategoriesService, VendorsService, TaxRatesService } f
 import { useToast } from '../contexts/ToastContext';
 
 function Financeiro({ theme }) {
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
   const [activeTab, setActiveTab] = useState('resumo');
   const [despesas, setDespesas] = useState([]);
   const [categorias, setCategorias] = useState([]);
@@ -15,6 +15,8 @@ function Financeiro({ theme }) {
   const [showDespesaModal, setShowDespesaModal] = useState(false);
   const [despesaEditando, setDespesaEditando] = useState(null);
   const [showTaxRateModal, setShowTaxRateModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [despesaParaExcluir, setDespesaParaExcluir] = useState(null);
   const [filtros, setFiltros] = useState({
     busca: '',
     categoria: '',
@@ -51,7 +53,37 @@ function Financeiro({ theme }) {
         // Carregar despesas
         const expensesResponse = await ExpensesService.getExpenses(schema);
         if (expensesResponse.success) {
-          setDespesas(expensesResponse.data || []);
+          console.log('Despesas básicas carregadas:', expensesResponse.data);
+          // Para cada despesa, buscar dados completos incluindo impostos
+          const despesasCompletas = await Promise.all(
+            (expensesResponse.data || []).map(async (despesa) => {
+              try {
+                const response = await ExpensesService.getExpenseById(despesa.id, schema);
+                if (response.success) {
+                  const totalImpostos = response.data.taxes ? response.data.taxes.reduce((total, tax) => total + (parseFloat(tax.tax_amount) || 0), 0) : 0;
+                  const totalItens = response.data.items ? response.data.items.reduce((total, item) => total + (parseFloat(item.subtotal) || 0), 0) : 0;
+                  
+                  console.log(`Despesa ${despesa.id}:`, {
+                    taxes: response.data.taxes,
+                    totalImpostos,
+                    items: response.data.items,
+                    totalItens
+                  });
+                  
+                  return {
+                    ...despesa,
+                    totalImpostos,
+                    totalItens
+                  };
+                }
+                return despesa;
+              } catch (error) {
+                console.error(`Erro ao buscar detalhes da despesa ${despesa.id}:`, error);
+                return despesa;
+              }
+            })
+          );
+          setDespesas(despesasCompletas);
         }
 
         // Carregar categorias
@@ -83,9 +115,52 @@ function Financeiro({ theme }) {
     setShowDespesaModal(true);
   };
 
-  const handleEditarDespesa = (despesa) => {
-    setDespesaEditando(despesa);
-    setShowDespesaModal(true);
+  const handleEditarDespesa = async (despesa) => {
+    try {
+      setLoading(true);
+      // Buscar despesa completa por ID incluindo itens e impostos
+      const response = await ExpensesService.getExpenseById(despesa.id, schema);
+      if (response.success) {
+        console.log('Dados retornados do backend:', response.data);
+        // Mapear os dados retornados para o formato esperado pelo modal
+                           const despesaCompleta = {
+                     id: response.data.expense.id,
+                     ...response.data.expense,
+                     categoria_id: response.data.expense.category_id || null,
+                     fornecedor_id: response.data.expense.vendor_id || null,
+                     descricao: response.data.expense.description || '',
+                     observacoes: response.data.expense.observacoes || '',
+                     valor: response.data.expense.total_amount || 0,
+                     data: response.data.expense.date_incurred ? response.data.expense.date_incurred.split('T')[0] : new Date().toISOString().split('T')[0],
+                     dataVencimento: response.data.expense.due_date ? response.data.expense.due_date.split('T')[0] : null,
+                     dataPagamento: response.data.expense.payment_date ? response.data.expense.payment_date.split('T')[0] : null,
+                     metodoPagamento: response.data.expense.payment_method || 'dinheiro',
+                     status: response.data.expense.status || 'pendente',
+                     itens: response.data.items || [],
+                     itensDetalhados: response.data.items || [],
+                     impostos: response.data.taxes || [],
+                     impostosDetalhados: response.data.taxes || [],
+                     documentos: response.data.expense.documentos || [],
+                     documentosDetalhados: response.data.expense.documentos || [],
+                     dataCriacao: response.data.expense.created_at || new Date().toISOString(),
+                     dataModificacao: new Date().toISOString(),
+                     totalImpostos: response.data.taxes ? response.data.taxes.reduce((total, tax) => total + (parseFloat(tax.tax_amount) || 0), 0) : 0,
+                     totalItens: response.data.items ? response.data.items.reduce((total, item) => total + (parseFloat(item.subtotal) || 0), 0) : 0,
+                     totalDocumentos: response.data.expense.documentos ? response.data.expense.documentos.reduce((total, doc) => total + (parseFloat(doc.valor) || 0), 0) : 0,
+                     valorTotal: response.data.expense.total_amount || 0
+                   };
+        console.log('Despesa mapeada:', despesaCompleta);
+        setDespesaEditando(despesaCompleta);
+        setShowDespesaModal(true);
+      } else {
+        showError('Erro ao carregar dados da despesa');
+      }
+    } catch (error) {
+      console.error('Erro ao buscar despesa:', error);
+      showError('Erro ao carregar dados da despesa');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSalvarDespesa = async (despesa) => {
@@ -112,12 +187,42 @@ function Financeiro({ theme }) {
 
       if (despesaEditando) {
         // Atualizar despesa existente (implementar quando tiver endpoint de update)
-        setDespesas(prev => prev.map(d => d.id === despesa.id ? despesa : d));
+        // Recarregar dados completos da despesa atualizada
+        try {
+          const response = await ExpensesService.getExpenseById(despesa.id, schema);
+          if (response.success) {
+            const despesaAtualizada = {
+              ...despesa,
+              totalImpostos: response.data.taxes ? response.data.taxes.reduce((total, tax) => total + (parseFloat(tax.tax_amount) || 0), 0) : 0,
+              totalItens: response.data.items ? response.data.items.reduce((total, item) => total + (parseFloat(item.subtotal) || 0), 0) : 0
+            };
+            setDespesas(prev => prev.map(d => d.id === despesa.id ? despesaAtualizada : d));
+          }
+        } catch (error) {
+          console.error('Erro ao recarregar dados da despesa:', error);
+          setDespesas(prev => prev.map(d => d.id === despesa.id ? despesa : d));
+        }
       } else {
         // Criar nova despesa
         const response = await ExpensesService.createExpense(expenseData);
         if (response.success) {
-          setDespesas(prev => [...prev, response.data]);
+          // Recarregar dados completos da nova despesa
+          try {
+            const responseDetalhada = await ExpensesService.getExpenseById(response.data.id, schema);
+            if (responseDetalhada.success) {
+              const novaDespesa = {
+                ...response.data,
+                totalImpostos: responseDetalhada.data.taxes ? responseDetalhada.data.taxes.reduce((total, tax) => total + (parseFloat(tax.tax_amount) || 0), 0) : 0,
+                totalItens: responseDetalhada.data.items ? responseDetalhada.data.items.reduce((total, item) => total + (parseFloat(item.subtotal) || 0), 0) : 0
+              };
+              setDespesas(prev => [...prev, novaDespesa]);
+            } else {
+              setDespesas(prev => [...prev, response.data]);
+            }
+          } catch (error) {
+            console.error('Erro ao recarregar dados da nova despesa:', error);
+            setDespesas(prev => [...prev, response.data]);
+          }
         }
       }
     } catch (error) {
@@ -129,9 +234,37 @@ function Financeiro({ theme }) {
   };
 
   const handleExcluirDespesa = (despesaId) => {
-    if (window.confirm('Tem certeza que deseja excluir esta despesa?')) {
-      setDespesas(prev => prev.filter(d => d.id !== despesaId));
+    const despesa = despesas.find(d => d.id === despesaId);
+    setDespesaParaExcluir(despesa);
+    setShowDeleteModal(true);
+  };
+
+  const confirmarExclusao = async () => {
+    if (despesaParaExcluir) {
+      try {
+        setLoading(true);
+        const response = await ExpensesService.deleteExpense(despesaParaExcluir.id, schema);
+        
+        if (response.success) {
+          setDespesas(prev => prev.filter(d => d.id !== despesaParaExcluir.id));
+          showSuccess('Despesa excluída com sucesso!');
+        } else {
+          showError('Erro ao excluir despesa. Tente novamente.');
+        }
+      } catch (error) {
+        console.error('Erro ao excluir despesa:', error);
+        showError('Erro ao excluir despesa. Tente novamente.');
+      } finally {
+        setLoading(false);
+        setShowDeleteModal(false);
+        setDespesaParaExcluir(null);
+      }
     }
+  };
+
+  const cancelarExclusao = () => {
+    setShowDeleteModal(false);
+    setDespesaParaExcluir(null);
   };
 
   // Funções de callback para atualizar listas quando novos itens são criados
@@ -217,11 +350,12 @@ function Financeiro({ theme }) {
   const calcularTotais = () => {
     const totais = despesasFiltradas.reduce((acc, despesa) => {
       const valorDespesa = parseFloat(despesa.total_amount) || 0;
+      const valorImpostos = parseFloat(despesa.totalImpostos) || 0;
       
       return {
         total: acc.total + valorDespesa,
         base: acc.base + valorDespesa,
-        impostos: acc.impostos + 0, // Impostos não implementados na API ainda
+        impostos: acc.impostos + valorImpostos,
         categorizadas: acc.categorizadas + (despesa.category_name ? valorDespesa : 0),
         naoCategorizadas: acc.naoCategorizadas + (!despesa.category_name ? valorDespesa : 0)
       };
@@ -607,13 +741,14 @@ function Financeiro({ theme }) {
                                          <table className={`table custom-table-${theme} mb-0`}>
                                                                                                                           <thead>
                             <tr>
-                              <th className={`header-text-${theme}`} style={{ width: '12%' }}>Data</th>
-                              <th className={`header-text-${theme}`} style={{ width: '25%' }}>Descrição</th>
-                              <th className={`header-text-${theme}`} style={{ width: '10%', textAlign: 'center' }}>Status</th>
-                              <th className={`header-text-${theme}`} style={{ width: '12%', textAlign: 'center' }}>Categoria</th>
-                              <th className={`header-text-${theme}`} style={{ width: '15%', textAlign: 'center' }}>Documentos</th>
-                              <th className={`header-text-${theme}`} style={{ width: '15%' }}>Valor</th>
-                              <th className={`header-text-${theme}`} style={{ width: '11%', textAlign: 'center' }}>Ações</th>
+                              <th className={`header-text-${theme}`} style={{ width: '10%' }}>Data</th>
+                              <th className={`header-text-${theme}`} style={{ width: '22%' }}>Descrição</th>
+                              <th className={`header-text-${theme}`} style={{ width: '8%', textAlign: 'center' }}>Status</th>
+                              <th className={`header-text-${theme}`} style={{ width: '10%', textAlign: 'center' }}>Categoria</th>
+                              <th className={`header-text-${theme}`} style={{ width: '12%', textAlign: 'center' }}>Documentos</th>
+                              <th className={`header-text-${theme}`} style={{ width: '12%' }}>Valor</th>
+                              <th className={`header-text-${theme}`} style={{ width: '10%', textAlign: 'center' }}>Impostos</th>
+                              <th className={`header-text-${theme}`} style={{ width: '16%', textAlign: 'center' }}>Ações</th>
                             </tr>
                           </thead>
                          <tbody>
@@ -683,7 +818,19 @@ function Financeiro({ theme }) {
                                     </strong>
                                   </div>
                                 </td>
-                                                               <td style={{ textAlign: 'center' }}>
+                                <td style={{ textAlign: 'center' }}>
+                                  {despesa.totalImpostos && parseFloat(despesa.totalImpostos) > 0 ? (
+                                    <div>
+                                      <span className="badge bg-warning" title="Total de impostos">
+                                        <i className="bi bi-calculator me-1"></i>
+                                        R$ {parseFloat(despesa.totalImpostos).toFixed(2)}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <span className={`text-${theme === 'light' ? 'muted' : 'light'}`}>-</span>
+                                  )}
+                                </td>
+                                <td style={{ textAlign: 'center' }}>
                                    <button
                                      className={`icon-btn btn-2-${theme} btn-user`}
                                      data-bs-toggle="tooltip"
@@ -827,7 +974,22 @@ function Financeiro({ theme }) {
   };
 
   return (
-    <div className="pt-3" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <>
+      <style>
+        {`
+          @keyframes modalSlideIn {
+            from {
+              opacity: 0;
+              transform: translateY(-50px) scale(0.9);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0) scale(1);
+            }
+          }
+        `}
+      </style>
+      <div className="pt-3" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div className="container-fluid ps-2 pe-0" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <h2 className={`mb-3 ms-3 header-text-${theme}`} style={{ fontWeight: 400 }}>Financeiro</h2>
         <ul 
@@ -973,7 +1135,112 @@ function Financeiro({ theme }) {
         theme={theme}
         onTaxRateCreated={handleTaxRateCreated}
       />
+
+      {/* Modal de Confirmação de Exclusão */}
+      {showDeleteModal && (
+        <div className="modal-backdrop" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 1050,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div className={`modal-content card card-${theme}`} style={{
+            width: '90%',
+            maxWidth: '500px',
+            border: `1px solid var(--border-color-${theme})`,
+            borderRadius: '12px',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+            animation: 'modalSlideIn 0.3s ease-out'
+          }}>
+            <div className="card-header text-center" style={{
+              borderBottom: `1px solid var(--border-color-${theme})`,
+              padding: '20px',
+              backgroundColor: `var(--bg-color-${theme})`
+            }}>
+              <div className="d-flex align-items-center justify-content-center mb-2">
+                <i className="bi bi-exclamation-triangle text-danger" style={{ fontSize: '2rem' }}></i>
+              </div>
+              <h5 className={`header-text-${theme} mb-0`}>Confirmar Exclusão</h5>
+            </div>
+            
+            <div className="card-body text-center p-4" style={{
+              backgroundColor: `var(--bg-color-${theme})`
+            }}>
+              <p className={`text-${theme === 'light' ? 'dark' : 'light'} mb-3`}>
+                Tem certeza que deseja excluir a despesa:
+              </p>
+              <div className={`alert alert-warning`} style={{
+                backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                border: '1px solid #ffc107',
+                borderRadius: '8px',
+                padding: '15px',
+                margin: '20px 0'
+              }}>
+                <strong className="text-warning">
+                  {despesaParaExcluir?.description || 'Despesa'}
+                </strong>
+                <br />
+                <small className="text-muted">
+                  Valor: R$ {parseFloat(despesaParaExcluir?.total_amount || 0).toFixed(2)}
+                </small>
+              </div>
+              <p className={`text-${theme === 'light' ? 'muted' : 'light'} small`}>
+                Esta ação não pode ser desfeita.
+              </p>
+            </div>
+            
+            <div className="card-footer text-center" style={{
+              borderTop: `1px solid var(--border-color-${theme})`,
+              padding: '20px',
+              backgroundColor: `var(--bg-color-${theme})`
+            }}>
+              <div className="d-flex gap-2 justify-content-center">
+                <button
+                  className="btn btn-secondary"
+                  onClick={cancelarExclusao}
+                  disabled={loading}
+                  style={{
+                    minWidth: '120px',
+                    padding: '10px 20px'
+                  }}
+                >
+                  <i className="bi bi-x-circle me-2"></i>
+                  Cancelar
+                </button>
+                <button
+                  className="btn btn-danger"
+                  onClick={confirmarExclusao}
+                  disabled={loading}
+                  style={{
+                    minWidth: '120px',
+                    padding: '10px 20px'
+                  }}
+                >
+                  {loading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      Excluindo...
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-trash me-2"></i>
+                      Excluir
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+    </>
   );
 }
 

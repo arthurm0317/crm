@@ -374,15 +374,15 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
 
   const calcularTotalImpostos = () => {
     return formData.impostos.reduce((total, imposto) => {
-      // Usar valorCalculado se disponível, senão usar valor
-      const valorImposto = parseFloat(imposto.valorCalculado) || parseFloat(imposto.valor) || 0;
+      // Prioridade: tax_amount (backend) > valorCalculado (frontend) > valor (fallback)
+      const valorImposto = parseFloat(imposto.tax_amount) || parseFloat(imposto.valorCalculado) || parseFloat(imposto.valor) || 0;
       return total + valorImposto;
     }, 0);
   };
 
   const calcularTotalItens = () => {
     return formData.itens.reduce((total, item) => {
-      return total + (parseFloat(item.valor) * (parseInt(item.quantidade) || 1));
+      return total + (parseFloat(item.unit_price) * (parseInt(item.quantity) || 1));
     }, 0);
   };
 
@@ -761,46 +761,68 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
                                          <table className={`table custom-table-${theme} mb-0`}>
                                                <thead>
                           <tr>
-                            <th className={`header-text-${theme}`} style={{ width: '30%' }}>Item</th>
-                            <th className={`header-text-${theme}`} style={{ width: '25%' }}>Observações</th>
+                            <th className={`header-text-${theme}`} style={{ width: '25%' }}>Item</th>
+                            <th className={`header-text-${theme}`} style={{ width: '20%' }}>Observações</th>
                             <th className={`header-text-${theme}`} style={{ width: '8%' }}>Qtd.</th>
-                                                         <th className={`header-text-${theme}`} style={{ width: '12%' }}>Unit.</th>
-                            <th className={`header-text-${theme}`} style={{ width: '12%' }}>Total</th>
-                            <th className={`header-text-${theme}`} style={{ width: '8%' }}>Ações</th>
+                            <th className={`header-text-${theme}`} style={{ width: '12%' }}>Unit.</th>
+                            <th className={`header-text-${theme}`} style={{ width: '12%' }}>Subtotal</th>
+                            <th className={`header-text-${theme}`} style={{ width: '12%' }}>Impostos</th>
+                            <th className={`header-text-${theme}`} style={{ width: '11%' }}>Ações</th>
                           </tr>
                         </thead>
                         <tbody>
                           {formData.itens.map(item => (
                             <tr key={item.id}>
-                              <td className={`header-text-${theme}`}>{item.descricao}</td>
-                              <td className={`text-${theme === 'light' ? 'muted' : 'light'}`}>
-                                {item.observacoes || '-'}
+                              <td className={`header-text-${theme}`}>
+                                {item.descricao || item.item_name || 'Item'}
                               </td>
-                              <td className={`text-${theme === 'light' ? 'muted' : 'light'} text-center`}>{item.quantidade}</td>
-                              <td className={`text-${theme === 'light' ? 'muted' : 'light'} text-end`}>R$ {parseFloat(item.valor).toFixed(2)}</td>
-                              <td className={`header-text-${theme} text-end`}>R$ {(parseFloat(item.valor) * parseInt(item.quantidade)).toFixed(2)}</td>
-                             <td>
-                               <div className="d-flex gap-2">
-                                 <button
-                                   type="button"
-                                   className={`icon-btn btn-2-${theme}`}
-                                   onClick={() => editItem(item)}
-                                   title="Editar item"
-                                 >
-                                   <i className="bi bi-pencil-fill"></i>
-                                 </button>
-                                 <button
-                                   type="button"
-                                   className="icon-btn text-danger"
-                                   onClick={() => removeItem(item.id)}
-                                   title="Remover item"
-                                 >
-                                   <i className="bi bi-trash-fill"></i>
-                                 </button>
-                               </div>
-                             </td>
-                           </tr>
-                         ))}
+                              <td className={`text-${theme === 'light' ? 'muted' : 'light'}`}>
+                                {item.observacoes || item.item_desc || '-'}
+                              </td>
+                              <td className={`text-${theme === 'light' ? 'muted' : 'light'} text-center`}>
+                                {item.quantidade || item.quantity || 1}
+                              </td>
+                              <td className={`text-${theme === 'light' ? 'muted' : 'light'} text-end`}>
+                                R$ {parseFloat(item.valor || item.unit_price || 0).toFixed(2)}
+                              </td>
+                              <td className={`header-text-${theme} text-end`}>
+                                R$ {(parseFloat(item.valor || item.unit_price || 0) * (parseInt(item.quantidade || item.quantity) || 1)).toFixed(2)}
+                              </td>
+                              <td className={`text-${theme === 'light' ? 'muted' : 'light'} text-end`}>
+                                {item.taxes && item.taxes.length > 0 ? (
+                                  <div>
+                                    {item.taxes.map((tax, index) => (
+                                      <div key={index} className="small">
+                                        {tax.tax_name || tax.name}: R$ {parseFloat((tax.tax_rate.rate*item.quantity*item.unit_price)/100).toFixed(2)}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-muted">-</span>
+                                )}
+                              </td>
+                              <td>
+                                <div className="d-flex gap-2">
+                                  <button
+                                    type="button"
+                                    className={`icon-btn btn-2-${theme}`}
+                                    onClick={() => editItem(item)}
+                                    title="Editar item"
+                                  >
+                                    <i className="bi bi-pencil-fill"></i>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="icon-btn text-danger"
+                                    onClick={() => removeItem(item.id)}
+                                    title="Remover item"
+                                  >
+                                    <i className="bi bi-trash-fill"></i>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
                        </tbody>
                      </table>
                   </div>
@@ -844,13 +866,22 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
                        <tbody>
                          {formData.impostos.map(imposto => (
                            <tr key={imposto.id}>
-                             <td className={`header-text-${theme}`}>{imposto.tipo}</td>
-                             <td className={`text-${theme === 'light' ? 'muted' : 'light'} text-center`}>{imposto.aliquota}%</td>
+                             <td className={`header-text-${theme}`}>
+                               {imposto.tax_name || imposto.name || imposto.type || 'Imposto'}
+                             </td>
+                             <td className={`text-${theme === 'light' ? 'muted' : 'light'} text-center`}>
+                               {imposto.tax_rate_percentage || imposto.rate ? 
+                                 parseFloat(imposto.tax_rate_percentage || imposto.rate).toFixed(2) + '%' : 
+                                 'N/A'}
+                             </td>
                              <td className={`text-${theme === 'light' ? 'muted' : 'light'}`}>
                                {imposto.aplicacao === 'total' ? 'Total da Compra' : 
-                                imposto.itemNome ? `Item: ${imposto.itemNome}` : 'Item Específico'}
+                                imposto.itemNome ? `Item: ${imposto.itemNome}` : 
+                                imposto.expense_item_id ? 'Item Específico' : 'Item Específico'}
                              </td>
-                             <td className={`text-${theme === 'light' ? 'muted' : 'light'} text-end`}>R$ {parseFloat(imposto.valor).toFixed(2)}</td>
+                             <td className={`text-${theme === 'light' ? 'muted' : 'light'} text-end`}>
+                               R$ {parseFloat(imposto.tax_amount || imposto.valor || 0).toFixed(2)}
+                             </td>
                              <td className={`text-${theme === 'light' ? 'muted' : 'light'}`}>
                                {imposto.observacoes || '-'}
                              </td>
@@ -902,7 +933,7 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
                       borderRadius: '12px',
                       transition: 'all 0.3s ease'
                     }}>
-                                             <div className={`text-${theme === 'light' ? 'muted' : 'light'} small mb-1`} style={{ fontWeight: '500', fontSize: '0.75rem' }}>Pré-Categorização</div>
+                      <div className={`text-${theme === 'light' ? 'muted' : 'light'} small mb-1`} style={{ fontWeight: '500', fontSize: '0.75rem' }}>Pré-Categorização</div>
                       <div className={`header-text-${theme} h5 mb-0`} style={{ fontWeight: '600' }}>R$ {parseFloat(formData.valor || 0).toFixed(2)}</div>
                     </div>
                   </div>
@@ -928,20 +959,49 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
                       <div className={`header-text-${theme} h5 mb-0`} style={{ fontWeight: '600' }}>R$ {calcularTotalImpostos().toFixed(2)}</div>
                     </div>
                   </div>
-                                     <div className="col-md-3">
-                     <div className={`text-center p-3 rounded`} style={{ 
-                       background: `linear-gradient(135deg, var(--primary-color) 0%, #0056b3 100%)`,
-                       color: 'white',
-                       borderRadius: '12px',
-                       transition: 'all 0.3s ease'
-                     }}>
-                       <div className="small mb-1 opacity-90" style={{ fontWeight: '500' }}>Valor Total Real</div>
-                       <div className="h5 mb-0 fw-bold">
-                         R$ {(calcularTotalItens() + calcularTotalImpostos()).toFixed(2)}
-                       </div>
-                     </div>
-                   </div>
+                  <div className="col-md-3">
+                    <div className={`text-center p-3 rounded`} style={{ 
+                      background: `linear-gradient(135deg, var(--primary-color) 0%, #0056b3 100%)`,
+                      color: 'white',
+                      borderRadius: '12px',
+                      transition: 'all 0.3s ease'
+                    }}>
+                      <div className="small mb-1 opacity-90" style={{ fontWeight: '500' }}>Valor Total Real</div>
+                      <div className="h5 mb-0 fw-bold">
+                        R$ {(calcularTotalItens() + calcularTotalImpostos()).toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
                 </div>
+                
+                {/* Detalhamento dos Impostos */}
+                {formData.impostos && formData.impostos.length > 0 && (
+                  <div className="mt-3 p-3" style={{
+                    backgroundColor: `var(--input-bg-color-${theme})`,
+                    border: `1px solid var(--border-color-${theme})`,
+                    borderRadius: '8px'
+                  }}>
+                    <h6 className={`header-text-${theme} mb-2`} style={{ fontSize: '0.9rem' }}>
+                      <i className="bi bi-info-circle me-2"></i>
+                      Detalhamento dos Impostos
+                    </h6>
+                    <div className="row g-2">
+                      {formData.impostos.map((imposto, index) => (
+                        <div key={index} className="col-md-6">
+                          <div className="d-flex justify-content-between align-items-center small">
+                            <span className={`text-${theme === 'light' ? 'muted' : 'light'}`}>
+                              {imposto.tax_name || imposto.name || imposto.type || 'Imposto'} 
+                              ({imposto.tax_rate_percentage || imposto.rate ? parseFloat(imposto.tax_rate_percentage || imposto.rate).toFixed(2) + '%' : 'N/A'})
+                            </span>
+                            <span className={`header-text-${theme} fw-bold`}>
+                              R$ {parseFloat(imposto.tax_amount || imposto.valor || 0).toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             

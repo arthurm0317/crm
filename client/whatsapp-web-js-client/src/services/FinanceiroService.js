@@ -27,6 +27,30 @@ export const ExpensesService = {
       console.error('Erro ao criar despesa:', error);
       throw error;
     }
+  },
+
+  // Buscar despesa por ID
+  getExpenseById: async (expenseId, schema) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/expenses/get-expense/${expenseId}/${schema}`);
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar despesa por ID:', error);
+      throw error;
+    }
+  },
+
+  // Excluir despesa
+  deleteExpense: async (expenseId, schema) => {
+    try {
+      const response = await axios.delete(`${API_BASE_URL}/expenses/delete-expense`, {
+        data: { expense_id: expenseId, schema }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao excluir despesa:', error);
+      throw error;
+    }
   }
 };
 

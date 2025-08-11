@@ -634,6 +634,8 @@ const updateSchema = async (schema) => {
             );
         `)
 
+        await pool.query(`alter table ${schema}.messages add column user_id uuid`)
+
         return { message: "Schema atualizado com sucesso! Todas as tabelas foram criadas/verificadas." };
     } catch (error) {
         console.error('Erro ao atualizar schema:', error);
