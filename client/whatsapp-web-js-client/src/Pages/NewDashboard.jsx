@@ -390,10 +390,10 @@ function NewDashboard({ theme }) {
                   </OverlayTrigger>
                 </div>
                 <h3 className={`header-text-${theme} mb-1`}>{kpis.conversionRate}%</h3>
-                <small className="text-success">
+                {/* <small className="text-success">
                   <i className="bi bi-arrow-up me-1"></i>
                   +5.2%
-                </small>
+                </small> */}
               </div>
             </div>
           
@@ -411,10 +411,10 @@ function NewDashboard({ theme }) {
                   </OverlayTrigger>
                 </div>
                 <h3 className={`header-text-${theme} mb-1`}>{kpis.avgResolutionTime}min</h3>
-                <small className="text-success">
+                {/* <small className="text-success">
                   <i className="bi bi-arrow-down me-1"></i>
                   -2.1min
-                </small>
+                </small> */}
               </div>
             </div>
             <div className="col-4">
@@ -431,10 +431,10 @@ function NewDashboard({ theme }) {
                   </OverlayTrigger>
                 </div>
                 <h3 className={`header-text-${theme} mb-1`}>{kpis.totalVolume}</h3>
-                <small className="text-success">
+                {/* <small className="text-success">
                   <i className="bi bi-arrow-up me-1"></i>
                   +12%
-                </small>
+                </small> */}
               </div>
             </div>
           </div>
@@ -844,7 +844,7 @@ function NewDashboard({ theme }) {
                       {(!data.reportData || data.reportData.length === 0) && (
                         <tr><td colSpan={9} className="text-center">Nenhum dado encontrado</td></tr>
                       )}
-                      {data.reportData?.slice(0, 10).map((row, idx) => (
+                      {data.reportData?.slice(0, 10).filter(userData.role==='tecnico'||userData.role==='admin'?r=>r.id!==null:r=>r.user_id===userData.id).map((row, idx) => (
                         <tr key={idx} className={idx % 2 === 0 ? `table-light-${theme}` : ''}>
                           <td>{new Date().toLocaleDateString('pt-BR')}</td>
                           <td>WhatsApp</td>
