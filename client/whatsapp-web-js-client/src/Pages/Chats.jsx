@@ -2420,10 +2420,7 @@ const handleImageUpload = async (event) => {
                         }}
                         onClick={e => {
                           setIsRecording(false);
-                          setNewMessage(item.mensagem);
-                          setTimeout(() => {
-                            if (inputRef.current) inputRef.current.focus();
-                          }, 0);
+                          handleQuickMsgClick(item.mensagem, item.comando);
                         }}
                       >
                         {item.mensagem.length > 30 ? item.mensagem.slice(0, 30) + '...' : item.mensagem}

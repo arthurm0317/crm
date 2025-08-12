@@ -48,10 +48,13 @@ if (!userData || !userData.id) {
       return;
     }
   
+    // Limpa o número removendo todos os caracteres não numéricos
+    const numeroLimpo = contactNumber.replace(/\D/g, '');
+  
     try {
       const newContact = await axios.post(`${url}/contact/create-contact`, {
         name: contactName,
-        number: contactNumber,
+        number: numeroLimpo,
         connection: attendant, 
         user_id: userData.id,
         schema: userData.schema,
@@ -118,12 +121,12 @@ if (!userData || !userData.id) {
             Contato
           </label>
           <InputMask
-            mask="+55 (99) 99999-9999"
+            mask="+55 (99) 9999-9999"
             className={`form-control input-${theme}`}
             id="contactNumber"
             value={contactNumber}
             onChange={(e) => setContactNumber(e.target.value)}
-            placeholder="+55 (__) _____-____"
+            placeholder="+55 (__) ____-____"
           />
         </div>
 
