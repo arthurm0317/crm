@@ -60,8 +60,8 @@ const createUserController = async (req, res) => {
   
         const schema = req.body.schema;
         const result = await createUser(user, schema);
-
-      res.status(201).json(result);
+        global.socketIoServer.to(`schema_${schema}`).emit('new_user', result)
+      res.status(201).json({success:true,result});
   
     } catch (err) {
       console.error("Erro ao criar usuário:", err.message);
@@ -218,6 +218,7 @@ const deleteUserController = async(req, res)=>{
   try{
     const result = await deleteUser(user_id, schema)
     res.status(204).json({
+      success:true,
       users: result,
     });
   } catch (error) {

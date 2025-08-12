@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react';
 import * as bootstrap from 'bootstrap';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import {socket} from '../socket'
+
 
 // Função para refresh token
 // const refreshToken = async () => {
@@ -48,9 +50,29 @@ function UsuariosPage({ theme }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [modalType, setModalType] = useState('new');
   const navigate = useNavigate();
+    const [socketInstance] = useState(socket)  
+
 
   // Verificar se o usuário tem permissão para gerenciar usuários
   const canManageUsers = userData?.role === 'admin' || userData?.role === 'tecnico';
+  useEffect(() => {
+  if(socketInstance){
+    socketInstance.emit('join', `schema_${schema}`);
+    
+    const handleNewUser = (user) => {
+      setUsuarios(prevUsers => [...prevUsers, user]);
+    };
+    
+    socketInstance.on('new_user', handleNewUser);
+    
+    return () => {
+      socketInstance.off('new_user', handleNewUser);
+    };
+  }
+}, [socketInstance, schema]);
+  const handleUserDeleted = (userId) => {
+    setUsuarios(prevUsers => prevUsers.filter(user => user.id !== userId));
+  };
 
   const handleSaveUserFilas = async (selectedFilas, userId) => {
     try {
@@ -329,7 +351,7 @@ function UsuariosPage({ theme }) {
         <>
           <NewUserModal theme={theme} type={modalType}/>
           <EditUserModal theme={theme} user={usuarioSelecionado}/>
-          <DeleteUserModal theme={theme} usuario={usuarioSelecionado}/>
+                     <DeleteUserModal theme={theme} usuario={usuarioSelecionado} onUserDeleted={handleUserDeleted}/>
           <UserFilasModal 
             theme={theme}
             userId={usuarioSelecionado?.id}
