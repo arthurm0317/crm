@@ -83,6 +83,7 @@ const deleteQueueController = async(req, res)=>{
     try{
         const {queueId, schema} = req.params;
         const result = await deleteQueue(queueId, schema)
+        res.status(201).json({success:true})
     }catch(error){
         console.error(error)
         res.status(500).json({ error: 'Erro ao deletar fila' });

@@ -3,32 +3,59 @@ import axios from 'axios';
 import { useToast } from '../../contexts/ToastContext';
 
 function NovoFunilModal({ theme, show, onHide, onSave }) {
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
   const [titulo, setTitulo] = useState('');
+  const [error, setError] = useState('');
   const userData = JSON.parse(localStorage.getItem('user'));
   const schema = userData?.schema;
   const url = process.env.REACT_APP_URL;
 
+  const handleTituloChange = (e) => {
+    const value = e.target.value;
+    setTitulo(value);
+    
+    // Verificar se há espaços
+    if (value.includes(' ')) {
+      setError('O título não pode conter espaços');
+    } else {
+      setError('');
+    }
+  };
+
   const handleSave = async () => {
-  if (!titulo) {
-    showError('Preencha o título do funil.');
-    return;
-  }
-  try {
-    const response = await axios.post(`${url}/kanban/create-funil`, {
-      sector: titulo,
-      schema: schema
-    },
+    if (!titulo) {
+      showError('Preencha o título do funil.');
+      return;
+    }
+
+    if (titulo.includes(' ')) {
+      showError('O título não pode conter espaços.');
+      return;
+    }
+
+    try {
+      const response = await axios.post(`${url}/kanban/create-funil`, {
+        sector: titulo,
+        schema: schema
+      },
         {
       withCredentials: true
     });
-    if (onSave) onSave(response.data); // ou { titulo } se o backend não retorna o funil criado
-  } catch (error) {
-    console.error(error);
-  }
-  if (onHide) onHide();
-  setTitulo('');
-};
+      
+      if (response.data) {
+        showSuccess('Funil criado com sucesso!');
+        if (onSave) onSave(response.data);
+      }
+    } catch (error) {
+      console.error(error);
+      showError('Erro ao criar funil. Tente novamente.');
+      return;
+    }
+    
+    if (onHide) onHide();
+    setTitulo('');
+    setError('');
+  };
 
   if (!show) return null;
 
@@ -47,17 +74,29 @@ function NovoFunilModal({ theme, show, onHide, onSave }) {
               <label htmlFor="tituloFunil" className={`form-label card-subtitle-${theme}`}>Título do Funil</label>
               <input
                 type="text"
-                className={`form-control input-${theme}`}
+                className={`form-control input-${theme} ${error ? 'is-invalid' : ''}`}
                 id="tituloFunil"
                 value={titulo}
-                onChange={e => setTitulo(e.target.value)}
-                placeholder="Digite o título do funil"
+                onChange={handleTituloChange}
+                placeholder="Digite o título do funil (sem espaços)"
               />
+              {error && (
+                <div className="invalid-feedback d-block">
+                  {error}
+                </div>
+              )}
             </div>
           </div>
           <div className="modal-footer">
             <button type="button" className={`btn btn-2-${theme}`} onClick={onHide}>Cancelar</button>
-            <button type="button" className={`btn btn-1-${theme}`} onClick={handleSave}>Salvar Funil</button>
+            <button 
+              type="button" 
+              className={`btn btn-1-${theme}`} 
+              onClick={handleSave}
+              disabled={!titulo || titulo.includes(' ')}
+            >
+              Salvar Funil
+            </button>
           </div>
         </div>
       </div>
