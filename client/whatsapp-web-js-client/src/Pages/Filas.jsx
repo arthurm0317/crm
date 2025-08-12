@@ -4,6 +4,7 @@ import axios from 'axios';
 import NewQueueModal from './modalPages/Filas_novaFila';
 import DeleteQueueModal from './modalPages/Filas_delete';
 import FilasWebhookModal from './modalPages/Filas_webhook';
+import {socket} from '../socket'
 
 function FilaPage({ theme }) {
   const [filas, setFilas] = useState([]);
@@ -12,6 +13,7 @@ function FilaPage({ theme }) {
   const [showWebhookModal, setShowWebhookModal] = useState(false);
   const [selectedFila, setSelectedFila] = useState(null);
   const userData = JSON.parse(localStorage.getItem('user'));
+  const [socketInstance] = useState(socket)  
   const schema = userData?.schema;
   const url = process.env.REACT_APP_URL;
 
@@ -48,6 +50,22 @@ function FilaPage({ theme }) {
   };
   fetchFilas();
 }, [url, schema]);
+
+useEffect(() => {
+  if (socketInstance) {
+    socketInstance.emit('join', `schema_${userData.schema}`);
+    
+    const handleNewQueue = (queue) => {
+      setFilas(prevFilas => [...prevFilas, queue]);
+    };
+    
+    socketInstance.on('new_queue', handleNewQueue);
+    
+    return () => {
+      socketInstance.off('new_queue', handleNewQueue);
+    };
+  }
+}, [socketInstance, userData.schema]);
 
 const filasFiltradas = filas.filter(fila => {
   const nome = fila?.nome || '';

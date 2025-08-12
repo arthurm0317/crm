@@ -12,8 +12,8 @@ const createQueueController = async(req, res)=>{
         const queue = new Queue(uuidv4(), name, color)
         
         const schema = req.body.schema
-        const result = createQueue(queue, super_user, distribution, schema)
-        
+        const result = await createQueue(queue, super_user, distribution, schema)
+        global.socketIoServer.to(`schema_${schema}`).emit('new_queue', result)
         res.status(201).json({
             result
         })
