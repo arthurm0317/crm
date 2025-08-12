@@ -1158,7 +1158,6 @@ useEffect(() => {
     });
   
       setNewMessage('');
-      showSuccess('Mensagem enviada com sucesso!');
     } catch (error) {
       console.error('Erro ao enviar a mensagem:', error);
       showError('Erro ao enviar mensagem. Tente novamente.');

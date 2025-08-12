@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
+import Tooltip from 'react-bootstrap/Tooltip';
 import { Modal, Button, Form } from 'react-bootstrap';
 import * as XLSX from 'xlsx';
 import axios from 'axios';
@@ -9,31 +11,31 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
   const [preview, setPreview] = useState([]);
   const [availableColumns, setAvailableColumns] = useState([]);
   const [errorMsg, setErrorMsg] = useState('');
-  // Remover o estado e busca de conexões
-  // const [canal, setCanal] = useState('');
-  // const [conexao, setConexao] = useState([]);
+  const [etapasFunil, setEtapasFunil] = useState([]);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef(null);
   const userData = JSON.parse(localStorage.getItem('user'));
   const schema = userData?.schema;
   const url = process.env.REACT_APP_URL
 
-  // Remover o useEffect que busca conexões
-  // useEffect(() => {
-  //   const fetchConn = async () => {
-  //     try {
-  //       const response = await axios.get(`${url}/connection/get-all-connections/${schema}`,
-  //       {
-  //     withCredentials: true
-  //   });
-  //       setConexao(Array.isArray(response.data) ? response.data : []);
-  //     } catch (error) {
-  //       console.error('Erro ao buscar conexões:', error);
-  //       setConexao([]);
-  //     }
-  //   };
-  //   fetchConn();
-  // }, [url, schema]);
+  // Buscar etapas do funil quando o modal abrir
+  useEffect(() => {
+    if (show && funil) {
+      const fetchEtapas = async () => {
+        try {
+          const response = await axios.get(`${url}/kanban/get-stages/${funil}/${schema}`, {
+            withCredentials: true
+          });
+          const etapas = Array.isArray(response.data) ? response.data : [];
+          setEtapasFunil(etapas.map(etapa => etapa.etapa || etapa.nome));
+        } catch (error) {
+          console.error('Erro ao buscar etapas do funil:', error);
+          setEtapasFunil([]);
+        }
+      };
+      fetchEtapas();
+    }
+  }, [show, funil, schema, url]);
 
   const handleFileChange = (event) => {
     setErrorMsg('');
@@ -64,16 +66,31 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
     reader.readAsArrayBuffer(file);
   };
 
-  // Remover validação do canal na importação
+  // Função para verificar se uma etapa é válida
+  const isEtapaValida = (etapa) => {
+    if (!etapa || !etapasFunil.length) return true;
+    return etapasFunil.some(etapaFunil => 
+      etapaFunil.toString().toLowerCase() === etapa.toString().toLowerCase()
+    );
+  };
+
+  // Função para obter o estilo da célula baseado na validação
+  const getCellStyle = (rowIndex, colIndex, cellValue) => {
+    const header = availableColumns[colIndex];
+    if (header && header.toString().toLowerCase().includes('etapa')) {
+      if (!isEtapaValida(cellValue)) {
+        return { border: '2px solid #dc3545', backgroundColor: '#fff5f5' };
+      }
+    }
+    return {};
+  };
+
   const handleImport = async () => {
     if (!file) {
       setErrorMsg('Selecione um arquivo para importar.');
       return;
     }
-    // if (!canal) {
-    //   setErrorMsg('Selecione um canal para importar.');
-    //   return;
-    // }
+    
     setErrorMsg('');
     setIsImporting(true);
     try {
@@ -81,7 +98,6 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
       formData.append('file', file);
       formData.append('sector', funil);
       formData.append('schema', schema);
-      // formData.append('connection_id', canal); // Remover
 
       const res = await axios.post(`${url}/excel/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -93,7 +109,6 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
         setFile(null);
         setPreview([]);
         setAvailableColumns([]);
-        // setCanal(''); // Remover
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
@@ -115,7 +130,6 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
     setFile(null);
     setPreview([]);
     setAvailableColumns([]);
-    // setCanal(''); // Remover
     setErrorMsg('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -155,28 +169,6 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
               </Form.Text>
             </Form.Group>
           </div>
-
-          {/* Remover campo de seleção de canal do JSX */}
-          {/* <div style={{ width: '40%' }}>
-            <Form.Group>
-              <Form.Label className={`header-text-${theme}`}>Canal</Form.Label>
-              <Form.Select
-                value={canal}
-                onChange={(e) => setCanal(e.target.value)}
-                className={`input-${theme}`}
-              >
-                <option value="" disabled>Selecione um canal</option>
-                {Array.isArray(conexao) && conexao.map((conn) => (
-                  <option key={conn.number} value={conn.id}>
-                    {conn.name}
-                  </option>
-                ))}
-              </Form.Select>
-              <Form.Text className={`card-subtitle-${theme}`}>
-                Contato nosso para interação
-              </Form.Text>
-            </Form.Group>
-          </div> */}
         </div>
 
         {errorMsg && (
@@ -188,6 +180,13 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
         {availableColumns.length > 0 && !errorMsg && (
           <div className="mt-4">
             <h6 className={`header-text-${theme} mb-3`}>Pré-visualização dos Dados</h6>
+            {etapasFunil.length > 0 && (
+              <div className="alert alert-warning mb-3" role="alert">
+                <i className="bi bi-exclamation-triangle me-2"></i>
+                <strong>Atenção:</strong> Células com etapas inválidas estão destacadas em vermelho. 
+                A importação será feita, mas essas etapas podem não ser processadas corretamente.
+              </div>
+            )}
             <div className={`table-responsive custom-table-${theme}`} style={{ maxHeight: 320, overflowY: 'auto', border: '1px solid #eee', borderRadius: 6 }}>
               <table className="table table-bordered table-hover m-0">
                 <thead>
@@ -206,9 +205,34 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
                 <tbody>
                   {preview.map((row, rowIdx) => (
                     <tr key={rowIdx}>
-                      {row.map((cell, cellIdx) => (
-                        <td key={cellIdx} className={`card-subtitle-${theme}`}>{cell}</td>
-                      ))}
+                      {row.map((cell, cellIdx) => {
+                        const header = availableColumns[cellIdx];
+                        const isEtapa = header && header.toString().toLowerCase().includes('etapa');
+                        const etapaInvalida = isEtapa && !isEtapaValida(cell);
+                        return (
+                          <td 
+                            key={cellIdx} 
+                            className={`card-subtitle-${theme}`}
+                            style={getCellStyle(rowIdx, cellIdx, cell)}
+                          >
+                            {cell}
+                            {etapaInvalida && (
+                              <OverlayTrigger
+                                placement="top"
+                                overlay={
+                                  <Tooltip id={`tooltip-etapa-invalida-${rowIdx}-${cellIdx}`}>
+                                    Etapa não encontrada no funil
+                                  </Tooltip>
+                                }
+                              >
+                                <span style={{ marginLeft: 6, cursor: 'pointer' }}>
+                                  <i className={`bi bi-exclamation-circle text-danger`} />
+                                </span>
+                              </OverlayTrigger>
+                            )}
+                          </td>
+                        );
+                      })}
                     </tr>
                   ))}
                 </tbody>
