@@ -1,4 +1,4 @@
-const { createExpense, getExpenses, deleteAllExpensesItens, insertExpenseItens, createTaxRate, getTaxRates, insertExpenseItensTax, getExpensesById, deleteExpense } = require("../services/ExpensesService");
+const { createExpense, getExpenses, deleteAllExpensesItens, insertExpenseItens, createTaxRate, getTaxRates, insertExpenseItensTax, getExpensesById, deleteExpense, getExpenseItemById } = require("../services/ExpensesService");
 
 const createExpenseController = async (req, res) => {
     const {user_id, vendor_id, description, category_id, total_amount, currency, date_incurred, due_date, payment_date, payment_method, status, created_at, itens=[], schema } = req.body;
@@ -77,11 +77,24 @@ const deleteExpenseController = async (req, res) => {
     }
 }
 
+const getExpenseItemByIdController = async (req, res) => {
+    const {expense_item_id, schema} = req.params
+    try {
+        const result = await getExpenseItemById(expense_item_id, schema)
+        res.status(200).json({ success: true, data: result});
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+}
+
 module.exports = {
     createExpenseController,
     getExpensesController,
     createTaxRateController,
     getTaxRatesController,
     getExpensesByIdController,
-    deleteExpenseController
+    deleteExpenseController,
+    getExpenseItemByIdController
 }

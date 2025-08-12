@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import * as bootstrap from 'bootstrap';
 import axios from 'axios';
 import { useToast } from '../../contexts/ToastContext';
+import { ExpensesService } from '../../services/FinanceiroService';
 
 function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias = [], onCategoryCreated, onVendorCreated }) {
   const { showError } = useToast();
@@ -341,7 +342,9 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
             ...item, 
             id: it.id,
             valor: parseFloat(item.valor) || 0,
-            quantidade: parseInt(item.quantidade) || 1
+            quantidade: parseInt(item.quantidade) || 1,
+            // Preservar dados de impostos se existirem
+            taxes: item.taxes || it.taxes || []
           } : it
         )
       }));
@@ -354,7 +357,8 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
           ...item, 
           id: Date.now(),
           valor: parseFloat(item.valor) || 0,
-          quantidade: parseInt(item.quantidade) || 1
+          quantidade: parseInt(item.quantidade) || 1,
+          taxes: item.taxes || []
         }]
       }));
     }
@@ -367,9 +371,26 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
     }));
   };
 
-  const editItem = (item) => {
-    setEditingItem(item);
-    setShowItemModal(true);
+  const editItem = async (item) => {
+    try {
+      // Se o item tem ID (já foi salvo no backend), buscar dados atualizados
+      if (item.id && typeof item.id === 'string') {
+        const response = await ExpensesService.getExpenseItemById(item.id, schema);
+        if (response.success && response.data) {
+          setEditingItem(response.data);
+        } else {
+          setEditingItem(item);
+        }
+      } else {
+        setEditingItem(item);
+      }
+      setShowItemModal(true);
+    } catch (error) {
+      console.error('Erro ao buscar dados do item:', error);
+      // Em caso de erro, usar o item local
+      setEditingItem(item);
+      setShowItemModal(true);
+    }
   };
 
   const calcularTotalImpostos = () => {
@@ -382,7 +403,10 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
 
   const calcularTotalItens = () => {
     return formData.itens.reduce((total, item) => {
-      return total + (parseFloat(item.unit_price) * (parseInt(item.quantity) || 1));
+      // Usar valor ou unit_price (backend)
+      const valor = parseFloat(item.valor) || parseFloat(item.unit_price) || 0;
+      const quantidade = parseInt(item.quantidade) || parseInt(item.quantity) || 1;
+      return total + (valor * quantidade);
     }, 0);
   };
 
@@ -1686,10 +1710,10 @@ function ItemModal({ show, onHide, onSave, theme, editingItem = null, setEditing
   useEffect(() => {
     if (editingItem) {
       setFormData({
-        descricao: editingItem.descricao,
-        quantidade: editingItem.quantidade,
-        valor: editingItem.valor,
-        observacoes: editingItem.observacoes || ''
+        descricao: editingItem.item_name || editingItem.item_description || '',
+        quantidade: editingItem.quantity || editingItem.quantidade || '1',
+        valor: editingItem.unit_price || editingItem.valor || '',
+        observacoes: editingItem.item_desc || editingItem.notes || ''
       });
     } else {
       setFormData({
@@ -1702,7 +1726,18 @@ function ItemModal({ show, onHide, onSave, theme, editingItem = null, setEditing
   }, [editingItem, show]);
 
   const handleSave = () => {
-    onSave(formData);
+    // Mapear dados para o formato esperado pelo componente pai
+    const itemData = {
+      id: editingItem?.id, // Preservar ID se estiver editando
+      descricao: formData.descricao,
+      quantidade: formData.quantidade,
+      valor: formData.valor,
+      observacoes: formData.observacoes,
+      // Preservar dados de impostos se existirem
+      taxes: editingItem?.taxes || []
+    };
+    
+    onSave(itemData);
     onHide();
     setEditingItem(null);
   };

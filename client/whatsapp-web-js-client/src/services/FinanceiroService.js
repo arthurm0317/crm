@@ -51,6 +51,17 @@ export const ExpensesService = {
       console.error('Erro ao excluir despesa:', error);
       throw error;
     }
+  },
+
+  // Buscar item de despesa por ID
+  getExpenseItemById: async (itemId, schema) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/expenses/get-expense-item/${itemId}/${schema}`);
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar item de despesa por ID:', error);
+      throw error;
+    }
   }
 };
 

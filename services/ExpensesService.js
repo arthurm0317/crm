@@ -125,6 +125,40 @@ const deleteExpense = async (expense_id, schema) => {
     await deleteAllExpensesItens(expense_id, schema) 
 }
 
+const getExpenseItemById = async (expense_item_id, schema) => {
+    const expense_item = await pool.query(`SELECT * FROM ${schema}.expense_items WHERE id=$1`, [expense_item_id]);
+    
+    if (expense_item.rows.length === 0) {
+        return null;
+    }
+    
+    const item = expense_item.rows[0];
+    
+    // Buscar impostos associados ao item
+    const expense_items_taxes = await pool.query(`SELECT * FROM ${schema}.expense_item_taxes WHERE expense_item_id=$1`, [expense_item_id]);
+    
+    const itemTaxes = [];
+    for (const itemTax of expense_items_taxes.rows) {
+        const taxRate = await pool.query(`SELECT * FROM ${schema}.tax_rates WHERE id=$1`, [itemTax.tax_rate_id]);
+        if (taxRate.rows[0]) {
+            itemTaxes.push({
+                ...itemTax,
+                tax_rate: taxRate.rows[0],
+                tax_name: taxRate.rows[0].name,
+                tax_rate_percentage: taxRate.rows[0].rate,
+                base_amount: itemTax.base_amount,
+                tax_amount: itemTax.tax_amount
+            });
+        }
+    }
+    
+    return {
+        ...item,
+        taxes: itemTaxes,
+        total_with_taxes: item.subtotal + itemTaxes.reduce((sum, tax) => sum + parseFloat(tax.tax_amount || 0), 0)
+    };
+}
+
 module.exports ={
     createExpense,
     getExpenses,
@@ -135,5 +169,6 @@ module.exports ={
     getTaxRates,
     insertExpenseItensTax,
     getExpensesById,
-    deleteExpense
+    deleteExpense,
+    getExpenseItemById
 }
