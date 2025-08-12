@@ -143,6 +143,14 @@ const getUsersInQueue = async (queue_id, schema) => {
     return result.rows
 }
 
+const updateQueue = async (queueId, name, color, super_user, distribution, schema) => {
+    const result = await pool.query(
+        `UPDATE ${schema}.queues SET name=$1, color=$2, superuser=$3, distribution=$4 WHERE id=$5 RETURNING *`,
+        [name, color, super_user, distribution, queueId]
+    );
+    return result.rows[0];
+};
+
 module.exports = {
     createQueue,
     addUserinQueue,
@@ -155,5 +163,6 @@ module.exports = {
     updateUserQueues,
     updateWebhookUrl,
     toggleWebhookStatus,
-    getUsersInQueue
+    getUsersInQueue,
+    updateQueue
 };

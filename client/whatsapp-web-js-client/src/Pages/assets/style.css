@@ -130,6 +130,7 @@
     background-color: transparent;
     border-color: var(--primary-color);
     color: var(--primary-color);
+    cursor: pointer;
 }
 .btn-2-light:hover {
     background-color: transparent;
@@ -141,6 +142,7 @@
     background-color: transparent;
     border-color: var(--primary-color);
     color: var(--primary-color);
+    cursor: pointer;
 }
 .btn-2-dark:hover {
     background-color: transparent;
@@ -385,6 +387,16 @@ a {
 .header-text-dark {
     color: var(--color-dark);
 }
+
+.text-muted-light {
+    color: var(--color-light);
+    opacity: 0.75;
+}
+.text-muted-dark {
+    color: var(--color-dark);
+    opacity: 0.75;
+}
+
 .border-light {
     border: 1px solid var(--border-color-light) !important;
 }

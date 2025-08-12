@@ -219,7 +219,7 @@
 
     const handleLembrete = (lembrete) => {
       console.log('Lembrete recebido via socket:', lembrete);
-      showToast(lembrete);
+      // showToast(lembrete); // Comentado para evitar toasts automáticos
     };
 
     const handleLembreteCriado = (data) => {
@@ -414,50 +414,50 @@
     }, [schema, url]);
     
 
-    const showToast = async (lembrete) => {
-            const toastId = `toast-${lembrete.id}-${Date.now()}`;
-            const isLight = theme === 'light';
-            const bgClass = isLight ? 'bg-light' : 'bg-dark';
-            const textClass = isLight ? 'text-dark' : 'text-light';
-            const iconColor = isLight ? '#212529' : '#E0E0E0';
+    // const showToast = async (lembrete) => {
+    //         const toastId = `toast-${lembrete.id}-${Date.now()}`;
+    //         const isLight = theme === 'light';
+    //         const bgClass = isLight ? 'bg-light' : 'bg-dark';
+    //         const textClass = isLight ? 'text-dark' : 'text-light';
+    //         const iconColor = isLight ? '#212529' : '#E0E0E0';
             
-            // Formatar filas se for setorial
-            let filasFormatadas = '';
-            if ((lembrete.tag === 'setorial' || lembrete.tipo === 'setorial') && lembrete.filas && lembrete.filas.length > 0) {
-              filasFormatadas = await formatarFilas(lembrete.filas);
-            }
+    //         // Formatar filas se for setorial
+    //         let filasFormatadas = '';
+    //         if ((lembrete.tag === 'setorial' || lembrete.tag === 'setorial') && lembrete.filas && lembrete.filas.length > 0) {
+    //           filasFormatadas = await formatarFilas(lembrete.filas);
+    //         }
             
-            const toastElement = document.createElement('div');
-            toastElement.className = `toast align-items-center border-0 ${bgClass}`;
-            toastElement.setAttribute('role', 'alert');
-            toastElement.setAttribute('aria-live', 'assertive');
-            toastElement.setAttribute('aria-atomic', 'true');
-            toastElement.id = toastId;
+    //         const toastElement = document.createElement('div');
+    //         const toastElement.className = `toast align-items-center border-0 ${bgClass}`;
+    //         toastElement.setAttribute('role', 'alert');
+    //         toastElement.setAttribute('aria-live', 'assertive');
+    //         toastElement.setAttribute('aria-atomic', 'true');
+    //         toastElement.id = toastId;
     
-            toastElement.innerHTML = `
-                <div class="toast-header ${bgClass} ${textClass}" style="background-color: var(--input-bg-color-${theme}); border-bottom: 1px solid var(--border-color-${theme});">
-                    <i class="bi ${getReminderIconClass(lembrete)} me-2" style="color: ${iconColor}"></i>
-                    <strong class="me-auto">${getReminderTitle(lembrete)}</strong>
-                    <button type="button" class="btn-close ms-2 mb-1" data-bs-dismiss="toast" aria-label="Close"></button>
-                </div>
-                <div class="toast-body ${textClass}">
-                    ${getReminderMessage(lembrete)}
-                    ${filasFormatadas ? `<div style="font-size: 0.85rem; color: var(--placeholder-color); margin-top: 4px;">${filasFormatadas}</div>` : ''}
-                </div>
-            `;
-            const toastContainer = document.getElementById('toast-container');
-            if (toastContainer) {
-                toastContainer.appendChild(toastElement);
-                const toast = new bootstrap.Toast(toastElement, {
-                    autohide: true,
-                    delay: 10000
-                });
-                toast.show();
-                toastElement.addEventListener('hidden.bs.toast', () => {
-                    toastElement.remove();
-                });
-            }
-        };
+    //         toastElement.innerHTML = `
+    //             <div class="toast-header ${bgClass} ${textClass}" style="background-color: var(--input-bg-color-${theme}); border-bottom: 1px solid var(--border-color-${theme});">
+    //                 <i class="bi ${getReminderIconClass(lembrete)} me-2" style="color: ${iconColor}"></i>
+    //                 <strong class="me-auto">${getReminderTitle(lembrete)}</strong>
+    //                 <button type="button" class="btn-close ms-2 mb-1" data-bs-dismiss="toast" aria-label="Close"></button>
+    //             </div>
+    //             <div class="toast-body ${textClass}">
+    //                 ${getReminderMessage(lembrete)}
+    //                 ${filasFormatadas ? `<div style="font-size: 0.85rem; color: var(--placeholder-color); margin-top: 4px;">${filasFormatadas}</div>` : ''}
+    //             </div>
+    //         `;
+    //         const toastContainer = document.getElementById('toast-container');
+    //         if (toastContainer) {
+    //             toastContainer.appendChild(toastElement);
+    //             const toast = new bootstrap.Toast(toastElement, {
+    //                 autohide: true,
+    //                 delay: 10000
+    //             });
+    //             toast.show();
+    //             toastElement.addEventListener('hidden.bs.toast', () => {
+    //                 toastElement.remove();
+    //             });
+    //         }
+    //     };
 
 
     const renderPage = () => {
@@ -501,7 +501,7 @@
 
     return (
       <div className={`bg-screen-${theme}`} style={{ height: '100vh', overflow: 'hidden' }}>
-        <div id="toast-container" className="toast-container position-fixed bottom-0 end-0 p-3" style={{ zIndex: 1060 }}></div>
+        {/* <div id="toast-container" className="toast-container position-fixed bottom-0 end-0 p-3" style={{ zIndex: 1060 }}></div> */}
         <div className="d-flex h-100">
           <div id="sidebar" className={`bg-form-${theme} h-100 sidebar ${isSidebarExpanded ? 'sidebar-expanded' : 'sidebar-collapsed'} border-end border-${theme} card-${theme}`}>
             <div id="sidebar-top" style={{ height: '10%', width: '100%', transition: '0.01s' }} className="p-2 d-flex flex-row align-items-center justify-content-evenly">
