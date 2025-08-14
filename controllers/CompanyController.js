@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const { Company } = require('../entities/company');
-const { createCompany, getAllCompanies, getAllCompaniesTecUser } = require('../services/CompanyService');
+const { createCompany, getAllCompanies, getAllCompaniesTecUser, updateSchema } = require('../services/CompanyService');
 
 const createCompanyController = async (req, res) => {
     try {
@@ -48,4 +48,28 @@ const getAllCompaniesTecUserController = async(req, res)=>{
     }
 }
 
-module.exports = { createCompanyController, getAllCompaniesController, getAllCompaniesTecUserController};
+const updateSchemaController = async (req, res) => {
+    try {
+        const { schema } = req.body;
+        
+        if (!schema) {
+            return res.status(400).json({
+                message: 'Schema é obrigatório'
+            });
+        }
+
+        const result = await updateSchema(schema);
+        
+        res.status(200).json({
+            message: result.message
+        });
+    } catch (error) {
+        console.error("Erro ao atualizar schema:", error);
+        res.status(500).json({
+            message: 'Erro ao atualizar schema',
+            error: error.message
+        });
+    }
+};
+
+module.exports = { createCompanyController, getAllCompaniesController, getAllCompaniesTecUserController, updateSchemaController };

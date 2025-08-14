@@ -149,9 +149,13 @@ module.exports = (broadcastMessage) => {
     if (!result?.data?.key?.remoteJid) {
       return res.status(400).json({ error: 'Dados incompletos' });
     }
+    const num = result.data.key.remoteJid.split('@')[0]; 
+    const numberLimpo = num.length === 12 
+      ? num 
+      : num.slice(0, 4) + num.slice(5);
     const contact = result.data.key.fromMe
-      ? result.data.key.remoteJid.split('@')[0]
-      : result.data.pushName || result.data.key.remoteJid.split('@')[0];
+      ? numberLimpo
+      : result.data.pushName || numberLimpo;
 
     try {
       const timestamp = getCurrentTimestamp()

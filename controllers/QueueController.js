@@ -12,8 +12,8 @@ const createQueueController = async(req, res)=>{
         const queue = new Queue(uuidv4(), name, color)
         
         const schema = req.body.schema
-        const result = createQueue(queue, super_user, distribution, schema)
-        
+        const result = await createQueue(queue, super_user, distribution, schema)
+        global.socketIoServer.to(`schema_${schema}`).emit('new_queue', result)
         res.status(201).json({
             result
         })
@@ -83,6 +83,7 @@ const deleteQueueController = async(req, res)=>{
     try{
         const {queueId, schema} = req.params;
         const result = await deleteQueue(queueId, schema)
+        res.status(201).json({success:true})
     }catch(error){
         console.error(error)
         res.status(500).json({ error: 'Erro ao deletar fila' });

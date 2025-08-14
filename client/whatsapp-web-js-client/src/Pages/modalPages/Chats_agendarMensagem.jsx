@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useToast } from '../../contexts/ToastContext';
 
 function AgendarMensagemModal({ show, onHide, theme, selectedChat }) {
   const [clienteNome, setClienteNome] = useState('');
@@ -7,6 +8,8 @@ function AgendarMensagemModal({ show, onHide, theme, selectedChat }) {
   const [mensagem, setMensagem] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { showError, showSuccess } = useToast();
+  
   
   const userData = JSON.parse(localStorage.getItem('user'));
   const schema = userData?.schema;
@@ -35,7 +38,7 @@ function AgendarMensagemModal({ show, onHide, theme, selectedChat }) {
     const agora = new Date();
     
     if (dataSelecionada <= agora) {
-      setError('A data de agendamento deve ser futura');
+      showError('A data de agendamento deve ser futura');
       return;
     }
 
@@ -62,8 +65,9 @@ function AgendarMensagemModal({ show, onHide, theme, selectedChat }) {
         setDataAgendamento('');
         setMensagem('');
         setError('');
+        showSuccess('Mensagem agendada com sucesso')
       } else {
-        setError(response.data.message || 'Erro ao agendar mensagem');
+        showError(response.data.message || 'Erro ao agendar mensagem');
       }
     } catch (error) {
       console.error('Erro ao agendar mensagem:', error);

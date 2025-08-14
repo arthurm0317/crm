@@ -6,7 +6,7 @@ const createUser = async (user, schema) => {
   const passwordHash = await hash(user.getPassword(), 10);
 
     const result = await pool.query(
-        `INSERT INTO ${schema}.users (id, name, email, password, permission) VALUES ($1, $2, $3, $4, $5)`,
+        `INSERT INTO ${schema}.users (id, name, email, password, permission) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
         [
             user.getId(),
             user.getName(),

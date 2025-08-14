@@ -40,7 +40,9 @@ const worker = new Worker(
           job.data.schema
         );
       }
-      await updateContactInKanban(job.data.number, job.data.stage, job.data.schema);
+      if(job.data.stage!==null){
+        await updateContactInKanban(job.data.number, job.data.stage, job.data.schema);
+      }
       console.log(`Job ${job.id} processado com sucesso`);
     } catch (err) {
       console.error(`Erro ao enviar mensagem dentro do job ${job.id}:`, err.message);

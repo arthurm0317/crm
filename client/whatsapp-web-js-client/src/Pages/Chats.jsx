@@ -215,12 +215,6 @@ function DropdownComponent({ theme, selectedChat, handleChatClick, setChats, set
             Transferir para Usuário
           </Dropdown.Item>
           <Dropdown.Item href="#" onClick={() => {
-            setShowFinalizarModal(true);
-            setIsDropdownOpen(false);
-          }}>
-            Finalizar Atendimento
-          </Dropdown.Item>
-          <Dropdown.Item href="#" onClick={() => {
             onEditName();
             setIsDropdownOpen(false);
           }}>
@@ -339,6 +333,7 @@ function ChatPage({ theme, chat_id} ) {
   const [users, setUsers] = useState([]);
   const [redistributing, setRedistributing] = useState(false);
   const { showError, showSuccess } = useToast();
+  const [showFinalizarModal, setShowFinalizarModal] = useState(false);
 
   useEffect(() => {
     if (!showQuickMsgPopover) setQuickMsgIndex(-1);
@@ -1158,7 +1153,6 @@ useEffect(() => {
     });
   
       setNewMessage('');
-      showSuccess('Mensagem enviada com sucesso!');
     } catch (error) {
       console.error('Erro ao enviar a mensagem:', error);
       showError('Erro ao enviar mensagem. Tente novamente.');
@@ -1889,6 +1883,17 @@ const handleImageUpload = async (event) => {
   </div>
 )}
 
+      {/* Botão Finalizar Atendimento */}
+      {selectedChat && (
+        <button
+          className={`btn btn-2-${theme} d-flex align-items-center`}
+          onClick={() => setShowFinalizarModal(true)}
+          title="Finalizar Atendimento"
+        >
+          <i className="bi bi-check-circle"></i>
+        </button>
+      )}
+
       <div>
        <DropdownComponent
         theme={theme}
@@ -1902,10 +1907,12 @@ const handleImageUpload = async (event) => {
       />
       </div>
 
+                                                            {/* Divider */}
+                 <div style={{ borderLeft: `1px solid var(--border-color-${theme})`, paddingLeft: '8px', marginLeft: '8px', opacity: 0.8 }}></div>
+
       {/* Botão person-gear */}
       <button
         className={`btn btn-2-${theme} d-flex align-items-center`}
-        style={{ marginLeft: '4px' }}
         onClick={async () => {
           // Carregar dados atualizados do banco quando abrir o menu
           if (selectedChat) {
@@ -2421,10 +2428,7 @@ const handleImageUpload = async (event) => {
                         }}
                         onClick={e => {
                           setIsRecording(false);
-                          setNewMessage(item.mensagem);
-                          setTimeout(() => {
-                            if (inputRef.current) inputRef.current.focus();
-                          }, 0);
+                          handleQuickMsgClick(item.mensagem, item.comando);
                         }}
                       >
                         {item.mensagem.length > 30 ? item.mensagem.slice(0, 30) + '...' : item.mensagem}
@@ -2658,6 +2662,18 @@ const handleImageUpload = async (event) => {
         onHide={() => setShowCustomValuesModal(false)}
         theme={theme}
         schema={schema}
+      />
+
+      <FinalizarAtendimentoModal
+        show={showFinalizarModal}
+        onHide={() => setShowFinalizarModal(false)}
+        theme={theme}
+        selectedChat={selectedChat}
+        onFinish={() => {
+          setChats(prevChats => prevChats.filter(c => c.id !== selectedChat.id));
+          setSelectedChat(null);
+          setSelectedMessages([]);
+        }}
       />
     </div>
   );

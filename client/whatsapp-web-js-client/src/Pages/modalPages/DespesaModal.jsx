@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import * as bootstrap from 'bootstrap';
 import axios from 'axios';
 import { useToast } from '../../contexts/ToastContext';
+import { ExpensesService } from '../../services/FinanceiroService';
 
 function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias = [], onCategoryCreated, onVendorCreated }) {
   const { showError } = useToast();
@@ -42,6 +43,7 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
   const [creatingVendor, setCreatingVendor] = useState(false);
   const [categoriasDisponiveis, setCategoriasDisponiveis] = useState(categorias);
   const [fornecedores, setFornecedores] = useState([]);
+  const [imposto, setImpostos] = useState([])
   const userData = JSON.parse(localStorage.getItem('user'));
   const schema = userData?.schema;
 
@@ -58,6 +60,7 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
         console.error('Erro ao buscar categorias:', response.data.message);
       }
     }
+
     fetchCategories();
   }, []);
 
@@ -71,8 +74,11 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
         console.error('Erro ao buscar fornecedores:', response.data.message);
       }
     }
+    
+
     fetchVendors();
   }, []);
+;
 
   const tiposImposto = [
     'ICMS',
@@ -307,7 +313,7 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
         ...prev,
         impostos: [...prev.impostos, { 
           ...imposto, 
-          id: Date.now(),
+          id: imposto.id,
           valorCalculado: parseFloat(imposto.valorCalculado) || parseFloat(imposto.valor) || 0
         }]
       }));
@@ -336,7 +342,9 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
             ...item, 
             id: it.id,
             valor: parseFloat(item.valor) || 0,
-            quantidade: parseInt(item.quantidade) || 1
+            quantidade: parseInt(item.quantidade) || 1,
+            // Preservar dados de impostos se existirem
+            taxes: item.taxes || it.taxes || []
           } : it
         )
       }));
@@ -349,7 +357,8 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
           ...item, 
           id: Date.now(),
           valor: parseFloat(item.valor) || 0,
-          quantidade: parseInt(item.quantidade) || 1
+          quantidade: parseInt(item.quantidade) || 1,
+          taxes: item.taxes || []
         }]
       }));
     }
@@ -362,22 +371,42 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
     }));
   };
 
-  const editItem = (item) => {
-    setEditingItem(item);
-    setShowItemModal(true);
+  const editItem = async (item) => {
+    try {
+      // Se o item tem ID (já foi salvo no backend), buscar dados atualizados
+      if (item.id && typeof item.id === 'string') {
+        const response = await ExpensesService.getExpenseItemById(item.id, schema);
+        if (response.success && response.data) {
+          setEditingItem(response.data);
+        } else {
+          setEditingItem(item);
+        }
+      } else {
+        setEditingItem(item);
+      }
+      setShowItemModal(true);
+    } catch (error) {
+      console.error('Erro ao buscar dados do item:', error);
+      // Em caso de erro, usar o item local
+      setEditingItem(item);
+      setShowItemModal(true);
+    }
   };
 
   const calcularTotalImpostos = () => {
     return formData.impostos.reduce((total, imposto) => {
-      // Usar valorCalculado se disponível, senão usar valor
-      const valorImposto = parseFloat(imposto.valorCalculado) || parseFloat(imposto.valor) || 0;
+      // Prioridade: tax_amount (backend) > valorCalculado (frontend) > valor (fallback)
+      const valorImposto = parseFloat(imposto.tax_amount) || parseFloat(imposto.valorCalculado) || parseFloat(imposto.valor) || 0;
       return total + valorImposto;
     }, 0);
   };
 
   const calcularTotalItens = () => {
     return formData.itens.reduce((total, item) => {
-      return total + (parseFloat(item.valor) * (parseInt(item.quantidade) || 1));
+      // Usar valor ou unit_price (backend)
+      const valor = parseFloat(item.valor) || parseFloat(item.unit_price) || 0;
+      const quantidade = parseInt(item.quantidade) || parseInt(item.quantity) || 1;
+      return total + (valor * quantidade);
     }, 0);
   };
 
@@ -421,7 +450,7 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
         unit_price: parseFloat(item.valor),
         quantidade: parseInt(item.quantidade),
         hasTax: impostosDoItem.length > 0,
-        tax: impostosDoItem.map(imp => imp.tipo), // pode ser array ou imp.tipo[0] se quiser só o primeiro
+        tax: impostosDoItem.map(imp => imp.id), 
         observacoes: item.observacoes || ''
       };
     });
@@ -756,46 +785,68 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
                                          <table className={`table custom-table-${theme} mb-0`}>
                                                <thead>
                           <tr>
-                            <th className={`header-text-${theme}`} style={{ width: '30%' }}>Item</th>
-                            <th className={`header-text-${theme}`} style={{ width: '25%' }}>Observações</th>
+                            <th className={`header-text-${theme}`} style={{ width: '25%' }}>Item</th>
+                            <th className={`header-text-${theme}`} style={{ width: '20%' }}>Observações</th>
                             <th className={`header-text-${theme}`} style={{ width: '8%' }}>Qtd.</th>
-                                                         <th className={`header-text-${theme}`} style={{ width: '12%' }}>Unit.</th>
-                            <th className={`header-text-${theme}`} style={{ width: '12%' }}>Total</th>
-                            <th className={`header-text-${theme}`} style={{ width: '8%' }}>Ações</th>
+                            <th className={`header-text-${theme}`} style={{ width: '12%' }}>Unit.</th>
+                            <th className={`header-text-${theme}`} style={{ width: '12%' }}>Subtotal</th>
+                            <th className={`header-text-${theme}`} style={{ width: '12%' }}>Impostos</th>
+                            <th className={`header-text-${theme}`} style={{ width: '11%' }}>Ações</th>
                           </tr>
                         </thead>
                         <tbody>
                           {formData.itens.map(item => (
                             <tr key={item.id}>
-                              <td className={`header-text-${theme}`}>{item.descricao}</td>
-                              <td className={`text-${theme === 'light' ? 'muted' : 'light'}`}>
-                                {item.observacoes || '-'}
+                              <td className={`header-text-${theme}`}>
+                                {item.descricao || item.item_name || 'Item'}
                               </td>
-                              <td className={`text-${theme === 'light' ? 'muted' : 'light'} text-center`}>{item.quantidade}</td>
-                              <td className={`text-${theme === 'light' ? 'muted' : 'light'} text-end`}>R$ {parseFloat(item.valor).toFixed(2)}</td>
-                              <td className={`header-text-${theme} text-end`}>R$ {(parseFloat(item.valor) * parseInt(item.quantidade)).toFixed(2)}</td>
-                             <td>
-                               <div className="d-flex gap-2">
-                                 <button
-                                   type="button"
-                                   className={`icon-btn btn-2-${theme}`}
-                                   onClick={() => editItem(item)}
-                                   title="Editar item"
-                                 >
-                                   <i className="bi bi-pencil-fill"></i>
-                                 </button>
-                                 <button
-                                   type="button"
-                                   className="icon-btn text-danger"
-                                   onClick={() => removeItem(item.id)}
-                                   title="Remover item"
-                                 >
-                                   <i className="bi bi-trash-fill"></i>
-                                 </button>
-                               </div>
-                             </td>
-                           </tr>
-                         ))}
+                              <td className={`text-${theme === 'light' ? 'muted' : 'light'}`}>
+                                {item.observacoes || item.item_desc || '-'}
+                              </td>
+                              <td className={`text-${theme === 'light' ? 'muted' : 'light'} text-center`}>
+                                {item.quantidade || item.quantity || 1}
+                              </td>
+                              <td className={`text-${theme === 'light' ? 'muted' : 'light'} text-end`}>
+                                R$ {parseFloat(item.valor || item.unit_price || 0).toFixed(2)}
+                              </td>
+                              <td className={`header-text-${theme} text-end`}>
+                                R$ {(parseFloat(item.valor || item.unit_price || 0) * (parseInt(item.quantidade || item.quantity) || 1)).toFixed(2)}
+                              </td>
+                              <td className={`text-${theme === 'light' ? 'muted' : 'light'} text-end`}>
+                                {item.taxes && item.taxes.length > 0 ? (
+                                  <div>
+                                    {item.taxes.map((tax, index) => (
+                                      <div key={index} className="small">
+                                        {tax.tax_name || tax.name}: R$ {parseFloat((tax.tax_rate.rate*item.quantity*item.unit_price)/100).toFixed(2)}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-muted">-</span>
+                                )}
+                              </td>
+                              <td>
+                                <div className="d-flex gap-2">
+                                  <button
+                                    type="button"
+                                    className={`icon-btn btn-2-${theme}`}
+                                    onClick={() => editItem(item)}
+                                    title="Editar item"
+                                  >
+                                    <i className="bi bi-pencil-fill"></i>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="icon-btn text-danger"
+                                    onClick={() => removeItem(item.id)}
+                                    title="Remover item"
+                                  >
+                                    <i className="bi bi-trash-fill"></i>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
                        </tbody>
                      </table>
                   </div>
@@ -839,13 +890,22 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
                        <tbody>
                          {formData.impostos.map(imposto => (
                            <tr key={imposto.id}>
-                             <td className={`header-text-${theme}`}>{imposto.tipo}</td>
-                             <td className={`text-${theme === 'light' ? 'muted' : 'light'} text-center`}>{imposto.aliquota}%</td>
+                             <td className={`header-text-${theme}`}>
+                               {imposto.tax_name || imposto.name || imposto.type || 'Imposto'}
+                             </td>
+                             <td className={`text-${theme === 'light' ? 'muted' : 'light'} text-center`}>
+                               {imposto.tax_rate_percentage || imposto.rate ? 
+                                 parseFloat(imposto.tax_rate_percentage || imposto.rate).toFixed(2) + '%' : 
+                                 'N/A'}
+                             </td>
                              <td className={`text-${theme === 'light' ? 'muted' : 'light'}`}>
                                {imposto.aplicacao === 'total' ? 'Total da Compra' : 
-                                imposto.itemNome ? `Item: ${imposto.itemNome}` : 'Item Específico'}
+                                imposto.itemNome ? `Item: ${imposto.itemNome}` : 
+                                imposto.expense_item_id ? 'Item Específico' : 'Item Específico'}
                              </td>
-                             <td className={`text-${theme === 'light' ? 'muted' : 'light'} text-end`}>R$ {parseFloat(imposto.valor).toFixed(2)}</td>
+                             <td className={`text-${theme === 'light' ? 'muted' : 'light'} text-end`}>
+                               R$ {parseFloat(imposto.tax_amount || imposto.valor || 0).toFixed(2)}
+                             </td>
                              <td className={`text-${theme === 'light' ? 'muted' : 'light'}`}>
                                {imposto.observacoes || '-'}
                              </td>
@@ -897,7 +957,7 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
                       borderRadius: '12px',
                       transition: 'all 0.3s ease'
                     }}>
-                                             <div className={`text-${theme === 'light' ? 'muted' : 'light'} small mb-1`} style={{ fontWeight: '500', fontSize: '0.75rem' }}>Pré-Categorização</div>
+                      <div className={`text-${theme === 'light' ? 'muted' : 'light'} small mb-1`} style={{ fontWeight: '500', fontSize: '0.75rem' }}>Pré-Categorização</div>
                       <div className={`header-text-${theme} h5 mb-0`} style={{ fontWeight: '600' }}>R$ {parseFloat(formData.valor || 0).toFixed(2)}</div>
                     </div>
                   </div>
@@ -923,20 +983,49 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
                       <div className={`header-text-${theme} h5 mb-0`} style={{ fontWeight: '600' }}>R$ {calcularTotalImpostos().toFixed(2)}</div>
                     </div>
                   </div>
-                                     <div className="col-md-3">
-                     <div className={`text-center p-3 rounded`} style={{ 
-                       background: `linear-gradient(135deg, var(--primary-color) 0%, #0056b3 100%)`,
-                       color: 'white',
-                       borderRadius: '12px',
-                       transition: 'all 0.3s ease'
-                     }}>
-                       <div className="small mb-1 opacity-90" style={{ fontWeight: '500' }}>Valor Total Real</div>
-                       <div className="h5 mb-0 fw-bold">
-                         R$ {(calcularTotalItens() + calcularTotalImpostos()).toFixed(2)}
-                       </div>
-                     </div>
-                   </div>
+                  <div className="col-md-3">
+                    <div className={`text-center p-3 rounded`} style={{ 
+                      background: `linear-gradient(135deg, var(--primary-color) 0%, #0056b3 100%)`,
+                      color: 'white',
+                      borderRadius: '12px',
+                      transition: 'all 0.3s ease'
+                    }}>
+                      <div className="small mb-1 opacity-90" style={{ fontWeight: '500' }}>Valor Total Real</div>
+                      <div className="h5 mb-0 fw-bold">
+                        R$ {(calcularTotalItens() + calcularTotalImpostos()).toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
                 </div>
+                
+                {/* Detalhamento dos Impostos */}
+                {formData.impostos && formData.impostos.length > 0 && (
+                  <div className="mt-3 p-3" style={{
+                    backgroundColor: `var(--input-bg-color-${theme})`,
+                    border: `1px solid var(--border-color-${theme})`,
+                    borderRadius: '8px'
+                  }}>
+                    <h6 className={`header-text-${theme} mb-2`} style={{ fontSize: '0.9rem' }}>
+                      <i className="bi bi-info-circle me-2"></i>
+                      Detalhamento dos Impostos
+                    </h6>
+                    <div className="row g-2">
+                      {formData.impostos.map((imposto, index) => (
+                        <div key={index} className="col-md-6">
+                          <div className="d-flex justify-content-between align-items-center small">
+                            <span className={`text-${theme === 'light' ? 'muted' : 'light'}`}>
+                              {imposto.tax_name || imposto.name || imposto.type || 'Imposto'} 
+                              ({imposto.tax_rate_percentage || imposto.rate ? parseFloat(imposto.tax_rate_percentage || imposto.rate).toFixed(2) + '%' : 'N/A'})
+                            </span>
+                            <span className={`header-text-${theme} fw-bold`}>
+                              R$ {parseFloat(imposto.tax_amount || imposto.valor || 0).toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             
@@ -1335,6 +1424,10 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
 
 // Modal para adicionar imposto
 function ImpostoModal({ show, onHide, onSave, theme, tiposImposto, itens = [], calcularTotalItens, impostos = [], editingImposto = null, setEditingImposto }) {
+  const [impostosDisponiveis, setImpostosDisponiveis] = useState([])
+  const userData = JSON.parse(localStorage.getItem('user'));
+  const schema = userData?.schema;
+
   const [formData, setFormData] = useState({
     tipo: '',
     aliquota: '',
@@ -1343,13 +1436,41 @@ function ImpostoModal({ show, onHide, onSave, theme, tiposImposto, itens = [], c
     observacoes: ''
   });
 
+  const aliquotaSelecionada = React.useMemo(() => {
+    if (!formData.tipo) return '';
+    const imp = impostosDisponiveis.find(i => String(i.id) === String(formData.tipo));
+    if (!imp || imp.rate === undefined || imp.rate === null) return '';
+    const valor = Number(imp.rate);
+    if (isNaN(valor)) return '';
+    return valor.toFixed(2);
+  }, [formData.tipo, impostosDisponiveis]);
+
+  useEffect(()=>{
+    const fetchImpostos = async () => {
+      try {
+        const response = await axios.get(`${process.env.REACT_APP_URL}/expenses/get-tax-rates/${schema}`, {withCredentials: true})
+        if(response.data.success === true){
+          const result = response.data
+          setImpostosDisponiveis(Array.isArray(result.data)?result.data:[result.data])
+        }
+      } catch (error) {
+        console.error('Erro ao buscar impostos:', error);
+        setImpostosDisponiveis([]);
+      }
+    }
+
+    if (show) {
+      fetchImpostos();
+    }
+  }, [show, schema])
+
   // Carregar dados para edição
   useEffect(() => {
     if (editingImposto) {
       setFormData({
-        tipo: editingImposto.tipo,
-        aliquota: editingImposto.aliquota,
-        aplicacao: editingImposto.aplicacao,
+        tipo: editingImposto.tipo || '',
+        aliquota: editingImposto.aliquota || '',
+        aplicacao: editingImposto.aplicacao || 'total',
         itemId: editingImposto.itemId ? editingImposto.itemId.toString() : '',
         observacoes: editingImposto.observacoes || ''
       });
@@ -1365,6 +1486,12 @@ function ImpostoModal({ show, onHide, onSave, theme, tiposImposto, itens = [], c
   }, [editingImposto, show]);
 
   const handleSave = () => {
+    // Validar se um tipo de imposto foi selecionado
+    if (!formData.tipo) {
+      alert('Por favor, selecione um tipo de imposto.');
+      return;
+    }
+
     // Calcular o valor do imposto baseado na aplicação
     let valorCalculado = 0;
     const aliquotaDecimal = parseFloat(formData.aliquota) / 100;
@@ -1390,6 +1517,7 @@ function ImpostoModal({ show, onHide, onSave, theme, tiposImposto, itens = [], c
     
     const impostoCompleto = {
       ...formData,
+      id: formData.tipo, // Usar o ID do imposto selecionado
       valor: valorCalculado.toFixed(2),
       valorCalculado: valorCalculado.toFixed(2),
       itemNome: formData.aplicacao === 'item' && formData.itemId ? 
@@ -1472,10 +1600,13 @@ function ImpostoModal({ show, onHide, onSave, theme, tiposImposto, itens = [], c
                 value={formData.tipo}
                 onChange={(e) => setFormData(prev => ({ ...prev, tipo: e.target.value }))}
               >
-                <option value="">Selecione o tipo</option>
-                {tiposImposto.map(tipo => (
-                  <option key={tipo} value={tipo}>{tipo}</option>
+                <option value="">Selecione o imposto</option>
+                {impostosDisponiveis.map(imp => (
+                  <option key={imp.id} value={imp.id}>
+                    {imp.name || imp.tipo || imp.descricao}
+                  </option>
                 ))}
+                
               </select>
             </div>
             <div className="row">
@@ -1485,9 +1616,10 @@ function ImpostoModal({ show, onHide, onSave, theme, tiposImposto, itens = [], c
                   type="number"
                   step="0.01"
                   className={`form-control input-${theme}`}
-                  value={formData.aliquota}
-                  onChange={(e) => setFormData(prev => ({ ...prev, aliquota: e.target.value }))}
-                  placeholder="0,00"
+                  value={aliquotaSelecionada}
+                  placeholder={aliquotaSelecionada || '0,00'}
+                  readOnly
+                  disabled
                 />
               </div>
               <div className="col-md-6 mb-3">
@@ -1578,10 +1710,10 @@ function ItemModal({ show, onHide, onSave, theme, editingItem = null, setEditing
   useEffect(() => {
     if (editingItem) {
       setFormData({
-        descricao: editingItem.descricao,
-        quantidade: editingItem.quantidade,
-        valor: editingItem.valor,
-        observacoes: editingItem.observacoes || ''
+        descricao: editingItem.item_name || editingItem.item_description || '',
+        quantidade: editingItem.quantity || editingItem.quantidade || '1',
+        valor: editingItem.unit_price || editingItem.valor || '',
+        observacoes: editingItem.item_desc || editingItem.notes || ''
       });
     } else {
       setFormData({
@@ -1594,7 +1726,18 @@ function ItemModal({ show, onHide, onSave, theme, editingItem = null, setEditing
   }, [editingItem, show]);
 
   const handleSave = () => {
-    onSave(formData);
+    // Mapear dados para o formato esperado pelo componente pai
+    const itemData = {
+      id: editingItem?.id, // Preservar ID se estiver editando
+      descricao: formData.descricao,
+      quantidade: formData.quantidade,
+      valor: formData.valor,
+      observacoes: formData.observacoes,
+      // Preservar dados de impostos se existirem
+      taxes: editingItem?.taxes || []
+    };
+    
+    onSave(itemData);
     onHide();
     setEditingItem(null);
   };

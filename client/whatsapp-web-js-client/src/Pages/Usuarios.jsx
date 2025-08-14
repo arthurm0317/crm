@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react';
 import * as bootstrap from 'bootstrap';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import {socket} from '../socket'
+
 
 // Função para refresh token
 // const refreshToken = async () => {
@@ -48,6 +50,29 @@ function UsuariosPage({ theme }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [modalType, setModalType] = useState('new');
   const navigate = useNavigate();
+    const [socketInstance] = useState(socket)  
+
+
+  // Verificar se o usuário tem permissão para gerenciar usuários
+  const canManageUsers = userData?.role === 'admin' || userData?.role === 'tecnico';
+  useEffect(() => {
+  if(socketInstance){
+    socketInstance.emit('join', `schema_${schema}`);
+    
+    const handleNewUser = (user) => {
+      setUsuarios(prevUsers => [...prevUsers, user]);
+    };
+    
+    socketInstance.on('new_user', handleNewUser);
+    
+    return () => {
+      socketInstance.off('new_user', handleNewUser);
+    };
+  }
+}, [socketInstance, schema]);
+  const handleUserDeleted = (userId) => {
+    setUsuarios(prevUsers => prevUsers.filter(user => user.id !== userId));
+  };
 
   const handleSaveUserFilas = async (selectedFilas, userId) => {
     try {
@@ -223,21 +248,23 @@ function UsuariosPage({ theme }) {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <button 
-            className={`btn btn-1-${theme}`} 
-            onClick={() => {
-              setModalType('new');
-              setTimeout(() => {
-                const modalElement = document.getElementById('NewUserModal');
-                if (modalElement) {
-                  const modal = new bootstrap.Modal(modalElement);
-                  modal.show();
-                }
-              }, 0);
-            }}
-          >
-            Adicionar Usuário
-          </button>
+          {canManageUsers && (
+            <button 
+              className={`btn btn-1-${theme}`} 
+              onClick={() => {
+                setModalType('new');
+                setTimeout(() => {
+                  const modalElement = document.getElementById('NewUserModal');
+                  if (modalElement) {
+                    const modal = new bootstrap.Modal(modalElement);
+                    modal.show();
+                  }
+                }, 0);
+              }}
+            >
+              Adicionar Usuário
+            </button>
+          )}
         </div>
       </div>
 
@@ -249,7 +276,7 @@ function UsuariosPage({ theme }) {
               <th>Email</th>
               <th>Perfil</th>
               <th>Filas</th>
-              <th>Ações</th>
+              {canManageUsers && <th>Ações</th>}
             </tr>
           </thead>
           <tbody>
@@ -267,64 +294,72 @@ function UsuariosPage({ theme }) {
                   <td>
                     <div className='d-flex justify-content-between'>
                       {usuario.queue}
-                      <button
-                        className={`icon-btn btn-2-${theme} btn-user`}
-                        data-bs-toggle="tooltip"
-                        title="Gerir filas"
-                        onClick={() => {
-                          setUsuarioSelecionado(usuario);
-                          const modal = new bootstrap.Modal(document.getElementById('UserFilasModal'));
-                          modal.show();
-                        }}
-                      >
-                        <i className="bi bi-folder"></i>
-                      </button>
+                      {canManageUsers && (
+                        <button
+                          className={`icon-btn btn-2-${theme} btn-user`}
+                          data-bs-toggle="tooltip"
+                          title="Gerir filas"
+                          onClick={() => {
+                            setUsuarioSelecionado(usuario);
+                            const modal = new bootstrap.Modal(document.getElementById('UserFilasModal'));
+                            modal.show();
+                          }}
+                        >
+                          <i className="bi bi-folder"></i>
+                        </button>
+                      )}
                     </div>
                   </td>
 
-                  <td>
-                    <button
-                      className={`icon-btn btn-2-${theme} btn-user`}
-                      data-bs-toggle="tooltip"
-                      title="Editar"
-                      onClick={() => {
-                        setModalType('edit');
-                        setUsuarioSelecionado(usuario);
-                        const modal = new bootstrap.Modal(document.getElementById('EditUserModal'));
-                        modal.show();
-                      }}
-                    >
-                      <i className="bi bi-pencil-fill"></i>
-                    </button>
+                  {canManageUsers && (
+                    <td>
+                      <button
+                        className={`icon-btn btn-2-${theme} btn-user`}
+                        data-bs-toggle="tooltip"
+                        title="Editar"
+                        onClick={() => {
+                          setModalType('edit');
+                          setUsuarioSelecionado(usuario);
+                          const modal = new bootstrap.Modal(document.getElementById('EditUserModal'));
+                          modal.show();
+                        }}
+                      >
+                        <i className="bi bi-pencil-fill"></i>
+                      </button>
 
-                    <button
-                      className="icon-btn text-danger"
-                      data-bs-toggle="tooltip"
-                      title="Excluir"
-                      onClick={() => {
-                        setUsuarioSelecionado(usuario);
-                        const modal = new bootstrap.Modal(document.getElementById('DeleteUserModal'));
-                        modal.show();
-                      }}
-                    >
-                      <i className="bi bi-trash-fill"></i>
-                    </button>
-                  </td>
+                      <button
+                        className="icon-btn text-danger"
+                        data-bs-toggle="tooltip"
+                        title="Excluir"
+                        onClick={() => {
+                          setUsuarioSelecionado(usuario);
+                          const modal = new bootstrap.Modal(document.getElementById('DeleteUserModal'));
+                          modal.show();
+                        }}
+                      >
+                        <i className="bi bi-trash-fill"></i>
+                      </button>
+                    </td>
+                  )}
 
                 </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <NewUserModal theme={theme} type={modalType}/>
-      <EditUserModal theme={theme} user={usuarioSelecionado}/>
-      <DeleteUserModal theme={theme} usuario={usuarioSelecionado}/>
-      <UserFilasModal 
-        theme={theme}
-        userId={usuarioSelecionado?.id}
-        userName={usuarioSelecionado?.name}
-        onChange={handleSaveUserFilas}
-      />
+      {canManageUsers && (
+        <>
+          <NewUserModal theme={theme} type={modalType}/>
+          <EditUserModal theme={theme} user={usuarioSelecionado}/>
+                     <DeleteUserModal theme={theme} usuario={usuarioSelecionado} onUserDeleted={handleUserDeleted}/>
+          <UserFilasModal 
+            theme={theme}
+            userId={usuarioSelecionado?.id}
+            userName={usuarioSelecionado?.name}
+            onChange={handleSaveUserFilas}
+          />
+        </>
+      )}
     </div>
   );
 }

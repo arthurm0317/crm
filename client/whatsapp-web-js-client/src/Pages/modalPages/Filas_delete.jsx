@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
-function DeleteQueueModal({ theme, fila, onDelete }) {
+function DeleteQueueModal({ theme, fila, onDelete, onQueueDeleted }) {
   const userData = JSON.parse(localStorage.getItem('user'));
   const schema = userData.schema;
   const [superUser, setSuperUser] = useState(null);
@@ -12,7 +12,12 @@ function DeleteQueueModal({ theme, fila, onDelete }) {
         {
       withCredentials: true
     });
-      onDelete(); 
+      if (onDelete) {
+        onDelete(); 
+      }
+      if (onQueueDeleted) {
+        onQueueDeleted(fila.id);
+      }
     } catch (error) {
       console.error('Error deleting queue:', error);
     }

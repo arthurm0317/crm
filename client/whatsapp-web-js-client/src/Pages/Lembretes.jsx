@@ -359,66 +359,66 @@ const handleSalvarLembrete = (lembreteCriadoOuEditado) => {
     };
 
     // Função para mostrar um toast de notificação
-    const showToast = (lembrete) => {
-        const toastId = `toast-${lembrete.id}-${Date.now()}`;
-        const isLight = theme === 'light';
-        const bgClass = isLight ? 'bg-light' : 'bg-dark';
-        const textClass = isLight ? 'text-dark' : 'text-light';
-        const iconColor = isLight ? '#212529' : '#E0E0E0';
-        const toastElement = document.createElement('div');
-        toastElement.className = `toast align-items-center border-0 ${bgClass}`;
-        toastElement.setAttribute('role', 'alert');
-        toastElement.setAttribute('aria-live', 'assertive');
-        toastElement.setAttribute('aria-atomic', 'true');
-        toastElement.id = toastId;
+    // const showToast = (lembrete) => {
+    //     const toastId = `toast-${lembrete.id}-${Date.now()}`;
+    //     const isLight = theme === 'light';
+    //     const bgClass = isLight ? 'bg-light' : 'bg-dark';
+    //     const textClass = isLight ? 'text-dark' : 'text-light';
+    //     const iconColor = isLight ? '#212529' : '#E0E0E0';
+    //     const toastElement = document.createElement('div');
+    //     toastElement.className = `toast align-items-center border-0 ${bgClass}`;
+    //     toastElement.setAttribute('role', 'alert');
+    //     toastElement.setAttribute('aria-live', 'assertive');
+    //     toastElement.setAttribute('aria-atomic', 'true');
+    //     toastElement.id = toastId;
 
-        toastElement.innerHTML = `
-            <div class="toast-header ${bgClass} ${textClass}" style="background-color: var(--input-bg-color-${theme}); border-bottom: 1px solid var(--border-color-${theme});">
-                <i class="bi ${getReminderIconClass(lembrete)} me-2" style="color: ${iconColor}"></i>
-                <strong class="me-auto">${getReminderTitle(lembrete)}</strong>
-                <button type="button" class="btn-close ms-2 mb-1" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-            <div class="toast-body ${textClass}">
-                ${getReminderMessage(lembrete)}
-                ${(lembrete.tag === 'setorial' || lembrete.tipo === 'setorial') && lembrete.filas && lembrete.filas.length > 0 ?
-                `<div style="font-size: 0.85rem; color: var(--placeholder-color); margin-top: 4px;">${formatarFilas(lembrete.filas)}</div>`
-                : ''}
-            </div>
-        `;
-        const toastContainer = document.getElementById('toast-container');
-        if (toastContainer) {
-            toastContainer.appendChild(toastElement);
-            const toast = new bootstrap.Toast(toastElement, {
-                autohide: true,
-                delay: 10000
-            });
-            toast.show();
-            toastElement.addEventListener('hidden.bs.toast', () => {
-                toastElement.remove();
-            });
-        }
-    };
+    //     toastElement.innerHTML = `
+    //         <div class="toast-header ${bgClass} ${textClass}" style="background-color: var(--input-bg-color-${theme}); border-bottom: 1px solid var(--border-color-${theme});">
+    //             <i class="bi ${getReminderIconClass(lembrete)} me-2" style="color: ${iconColor}"></i>
+    //             <strong class="me-auto">${getReminderTitle(lembrete)}</strong>
+    //             <button type="button" class="btn-close ms-2 mb-1" data-bs-dismiss="toast" aria-label="Close"></button>
+    //         </div>
+    //         <div class="toast-body ${textClass}">
+    //             ${getReminderMessage(lembrete)}
+    //             ${(lembrete.tag === 'setorial' || lembrete.tipo === 'setorial') && lembrete.filas && lembrete.filas.length > 0 ?
+    //             `<div style="font-size: 0.85rem; color: var(--placeholder-color); margin-top: 4px;">${formatarFilas(lembrete.filas)}</div>`
+    //             : ''}
+    //         </div>
+    //     `;
+    //     const toastContainer = document.getElementById('toast-container');
+    //     if (toastContainer) {
+    //         toastContainer.appendChild(toastElement);
+    //         const toast = new bootstrap.Toast(toastElement, {
+    //             autohide: true,
+    //             delay: 10000
+    //         });
+    //         toast.show();
+    //         toastElement.addEventListener('hidden.bs.toast', () => {
+    //             toastElement.remove();
+    //         });
+    //     }
+    // };
 
     // Função para verificar lembretes com data de vencimento
-    const checkDueReminders = () => {
-        const now = new Date();
-        lembretes.forEach(lembrete => {
-            const reminderDate = new Date(Number(lembrete.date || lembrete.data) * 1000);
-            const reminderKey = `${lembrete.id}-${reminderDate.toISOString().split('T')[0]}`;
+    // const checkDueReminders = () => {
+    //     const now = new Date();
+    //     lembretes.forEach(lembrete => {
+    //         const reminderDate = new Date(Number(lembrete.date || lembrete.data) * 1000);
+    //         const reminderKey = `${lembrete.id}-${reminderDate.toISOString().split('T')[0]}`;
 
-            // Verifica se o lembrete está vencido no último minuto e não foi mostrado ainda
-            // Inclui verificação de ano/mês/dia para evitar toasts de lembretes antigos ao carregar
-            if (reminderDate.getFullYear() === now.getFullYear() &&
-                reminderDate.getMonth() === now.getMonth() &&
-                reminderDate.getDate() === now.getDate() &&
-                reminderDate <= now &&
-                reminderDate > new Date(now.getTime() - 60000) &&
-                !shownToasts.includes(reminderKey)) {
-                showToast(lembrete);
-                setShownToasts(prev => [...prev, reminderKey]);
-            }
-        });
-    };
+    //         // Verifica se o lembrete está vencido no último minuto e não foi mostrado ainda
+    //         // Inclui verificação de ano/mês/dia para evitar toasts de lembretes antigos ao carregar
+    //         if (reminderDate.getFullYear() === now.getFullYear() &&
+    //             reminderDate.getMonth() === now.getMonth() &&
+    //             reminderDate.getDate() === now.getDate() &&
+    //             reminderDate <= now &&
+    //             reminderDate > new Date(now.getTime() - 60000) &&
+    //             !shownToasts.includes(reminderKey)) {
+    //             // showToast(lembrete); // Comentado para evitar toasts automáticos
+    //             setShownToasts(prev => [...prev, reminderKey]);
+    //         }
+    //     });
+    // };
 
 
     return (
@@ -446,7 +446,7 @@ const handleSalvarLembrete = (lembreteCriadoOuEditado) => {
                 )}
             </div>
             {/* Container para as notificações Toast */}
-            <div id="toast-container" className="toast-container position-fixed bottom-0 end-0 p-3" style={{ zIndex: 1060 }}></div>
+            {/* <div id="toast-container" className="toast-container position-fixed bottom-0 end-0 p-3" style={{ zIndex: 1060 }}></div> */}
 
             <div className="d-flex flex-row gap-3 h-100" style={{ minHeight: 400 }}>
                 {/* Lista de lembretes à esquerda */}
@@ -748,7 +748,7 @@ const handleSalvarLembrete = (lembreteCriadoOuEditado) => {
                     tipoDefault: lembreteEditando.tag || lembreteEditando.tipo, // Prioriza 'tag' para edição
                     lembreteEdit: lembreteEditando
                 } : {})}
-                onTestToast={showToast}
+                // onTestToast={showToast} // Comentado pois showToast não existe mais
                 fetchGoogleEvents={fetchGoogleEvents}
                 isGoogleConnected={isGoogleConnected}
             />

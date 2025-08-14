@@ -81,8 +81,8 @@ const createContact = async(contactNumber, contactName, connection, user_id, sch
         if (existingChat.rowCount > 0) {
             chatResult = existingChat.rows[0];
         } else {
-            // 6. Se não existe chat ativo, criar um novo
             chatResult = await createNewChat(contactName, contactNumber, connectionId.rows[0].id, connectionId.rows[0].queue_id, user_id, schema);
+            global.socketIoServer.to(`user_${user_id}`).emit('chats_updated', chatResult)
         }
         
         return {
