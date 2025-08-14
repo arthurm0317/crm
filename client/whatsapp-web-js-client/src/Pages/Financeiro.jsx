@@ -5,7 +5,7 @@ import { ExpensesService, CategoriesService, VendorsService } from '../services/
 import { useToast } from '../contexts/ToastContext';
 
 function Financeiro({ theme }) {
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
   const [activeTab, setActiveTab] = useState('resumo');
   const [despesas, setDespesas] = useState([]);
   const [categorias, setCategorias] = useState([]);
@@ -13,6 +13,14 @@ function Financeiro({ theme }) {
   const [loading, setLoading] = useState(false);
   const [showDespesaModal, setShowDespesaModal] = useState(false);
   const [despesaEditando, setDespesaEditando] = useState(null);
+  const [showReceitaModal, setShowReceitaModal] = useState(false);
+  const [novaReceita, setNovaReceita] = useState({ 
+    descricao: '', 
+    itens: [{ id: 1, nome: '', valor: '' }],
+    valorTotal: 0
+  });
+  const [receitas, setReceitas] = useState([]);
+  const [excluindoReceita, setExcluindoReceita] = useState(null);
   const [filtros, setFiltros] = useState({
     busca: '',
     categoria: '',
@@ -21,10 +29,19 @@ function Financeiro({ theme }) {
     dataFim: '',
     categorizada: ''
   });
+  
 
   // Obter schema do usuário logado
   const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const schema = user.schema 
+  const schema = user.schema;
+
+  // Verificar se o schema está disponível
+  useEffect(() => {
+    if (!schema) {
+      console.error('Schema não encontrado para o usuário:', user);
+      showError('Erro: Schema do usuário não encontrado. Faça login novamente.');
+    }
+  }, [schema, user]);
 
   useEffect(() => {
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
@@ -126,9 +143,32 @@ function Financeiro({ theme }) {
     }
   };
 
-  const handleExcluirDespesa = (despesaId) => {
+  const handleExcluirDespesa = async (despesaId) => {
     if (window.confirm('Tem certeza que deseja excluir esta despesa?')) {
-      setDespesas(prev => prev.filter(d => d.id !== despesaId));
+      try {
+        // Como não há endpoint de exclusão para despesas ainda, vamos apenas remover do estado local
+        // TODO: Implementar endpoint de exclusão no backend
+        setDespesas(prev => prev.filter(d => d.id !== despesaId));
+        
+        // Quando o endpoint estiver disponível, usar:
+        /*
+        const response = await fetch(`${process.env.REACT_APP_URL}/expenses/${despesaId}?schema=${schema}`, {
+          method: 'DELETE',
+          headers: { 
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          setDespesas(prev => prev.filter(d => d.id !== despesaId));
+        } else {
+          showError('Erro ao excluir despesa. Tente novamente.');
+        }
+        */
+      } catch (error) {
+        console.error('Erro ao excluir despesa:', error);
+        showError('Erro ao excluir despesa. Tente novamente.');
+      }
     }
   };
 
@@ -325,6 +365,250 @@ function Financeiro({ theme }) {
     setDespesas(prev => [...prev, despesaComImpostos]);
   };
 
+  // Função para abrir modal de nova receita
+  const handleNovaReceita = () => {
+    setNovaReceita({ descricao: '', itens: [{ id: 1, nome: '', valor: '' }], valorTotal: 0 });
+    setShowReceitaModal(true);
+  };
+
+  // Funções para gerenciar itens da receita
+  const adicionarItemReceita = () => {
+    const novoId = Math.max(...novaReceita.itens.map(item => item.id), 0) + 1;
+    setNovaReceita(prev => ({
+      ...prev,
+      itens: [...prev.itens, { id: novoId, nome: '', valor: '' }]
+    }));
+  };
+
+  const removerItemReceita = (id) => {
+    if (novaReceita.itens.length > 1) {
+      setNovaReceita(prev => ({
+        ...prev,
+        itens: prev.itens.filter(item => item.id !== id)
+      }));
+    }
+  };
+
+  const atualizarItemReceita = (id, campo, valor) => {
+    setNovaReceita(prev => ({
+      ...prev,
+      itens: prev.itens.map(item => 
+        item.id === id ? { ...item, [campo]: valor } : item
+      )
+    }));
+  };
+
+  const calcularValorTotalReceita = () => {
+    const total = novaReceita.itens.reduce((soma, item) => {
+      const valor = parseFloat(item.valor) || 0;
+      return soma + valor;
+    }, 0);
+    
+    setNovaReceita(prev => ({ ...prev, valorTotal: total }));
+    return total;
+  };
+
+  // Calcular total sempre que os itens mudarem
+  useEffect(() => {
+    calcularValorTotalReceita();
+  }, [novaReceita.itens]);
+
+  // Carregar receitas quando o componente for montado
+  useEffect(() => {
+    carregarReceitas();
+  }, [schema]);
+
+  // Função para carregar receitas
+  const carregarReceitas = async () => {
+    try {
+      console.log('Carregando receitas para schema:', schema);
+      console.log('REACT_APP_URL:', process.env.REACT_APP_URL);
+      
+      const url = `${process.env.REACT_APP_URL}/receita?schema=${schema}`;
+      console.log('URL de carregamento:', url);
+      
+      const response = await fetch(url);
+      
+      console.log('Resposta do carregamento:', response.status, response.statusText);
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Resultado do carregamento:', result);
+        if (result.success && result.data) {
+          // Mapear campos do banco para o frontend
+          const receitasMapeadas = result.data.map(receita => ({
+            id: receita.id,
+            descricao: receita.nome, // Campo do banco: nome
+            valor: receita.valor_receita, // Campo do banco: valor_receita
+            schema: receita.schema_name,
+            status: receita.status,
+            created_at: receita.created_at,
+            updated_at: receita.updated_at,
+            itens: receita.itens || [] // Incluir itens se disponíveis
+          }));
+          console.log('Receitas mapeadas:', receitasMapeadas);
+          setReceitas(receitasMapeadas);
+        } else {
+          console.error('Resposta da API não tem sucesso:', result);
+        }
+      } else {
+        console.error('Erro ao carregar receitas:', response.status, response.statusText);
+        const errorText = await response.text();
+        console.error('Texto do erro:', errorText);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar receitas:', error);
+    }
+  };
+
+  // Função para salvar receita
+  const handleSalvarReceita = async () => {
+    try {
+      if (!novaReceita.descricao || novaReceita.itens.length === 0) {
+        showError('Preencha nome e adicione pelo menos um item à receita.');
+        return;
+      }
+
+      // Validar se todos os itens têm nome e valor
+      const itensValidos = novaReceita.itens.filter(item => item.nome.trim() && item.valor);
+      if (itensValidos.length === 0) {
+        showError('Todos os itens devem ter nome e valor preenchidos.');
+        return;
+      }
+
+      if (itensValidos.length !== novaReceita.itens.length) {
+        showError('Remova os itens vazios ou preencha todos os campos.');
+        return;
+      }
+      
+      console.log('Tentando salvar receita:', novaReceita);
+      
+      const response = await fetch(`${process.env.REACT_APP_URL}/receita`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          descricao: novaReceita.descricao, // Será mapeado para 'nome' no banco
+          valor: novaReceita.valorTotal, // Será mapeado para 'valor_receita' no banco
+          itens: itensValidos, // Incluir itens na requisição
+          schema: schema
+        })
+      });
+      
+      console.log('Status da resposta:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Erro da API:', errorText);
+        throw new Error(`Erro na API: ${response.status} - ${errorText}`);
+      }
+      
+      const result = await response.json();
+      console.log('Resposta da API:', result);
+      
+      if (result.success && result.data) {
+        // Mapear campos do banco para o frontend
+        const receitaSalva = {
+          id: result.data.id,
+          descricao: result.data.nome, // Campo do banco: nome
+          valor: result.data.valor_receita, // Campo do banco: valor_receita
+          schema: result.data.schema_name,
+          status: result.data.status,
+          created_at: result.data.created_at,
+          updated_at: result.data.updated_at,
+          itens: itensValidos // Incluir itens salvos
+        };
+        
+        setReceitas(prev => [...prev, receitaSalva]);
+        setNovaReceita({ descricao: '', itens: [{ id: 1, nome: '', valor: '' }], valorTotal: 0 });
+        setShowReceitaModal(false);
+        showSuccess('Receita salva com sucesso!');
+        console.log('Receita salva com sucesso:', receitaSalva);
+      } else {
+        throw new Error('Resposta inválida da API');
+      }
+      
+    } catch (err) {
+      console.error('Erro completo ao salvar receita:', err);
+      
+      // Se for erro de rede
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        showError('Erro de conexão. Verifique sua internet.');
+        return;
+      }
+      
+      // Se for erro da API
+      if (err.message.includes('Erro na API')) {
+        showError(`Erro do servidor: ${err.message}`);
+        return;
+      }
+      
+      showError('Erro ao salvar receita. Tente novamente.');
+    }
+  };
+
+  // Funções para gestão de receitas
+  const handleEditarReceita = (receita) => {
+    // Para editar, precisamos carregar os itens existentes
+    // Se não houver itens, criar um item padrão com os dados da receita
+    const itensParaEditar = receita.itens && receita.itens.length > 0 
+      ? receita.itens.map(item => ({ ...item, id: item.id }))
+      : [{ id: 1, nome: receita.descricao, valor: receita.valor.toString() }];
+    
+    setNovaReceita({ 
+      descricao: receita.descricao, 
+      itens: itensParaEditar,
+      valorTotal: parseFloat(receita.valor) || 0
+    });
+    setShowReceitaModal(true);
+  };
+
+  const handleExcluirReceita = async (receitaId) => {
+    if (window.confirm('Tem certeza que deseja excluir esta receita?')) {
+      try {
+        setExcluindoReceita(receitaId);
+        
+        console.log('Tentando excluir receita:', { receitaId, schema });
+        console.log('REACT_APP_URL:', process.env.REACT_APP_URL);
+        
+        // Chamar API para excluir receita
+        const url = `${process.env.REACT_APP_URL}/receita/${receitaId}?schema=${schema}`;
+        console.log('URL final:', url);
+        
+        const response = await fetch(url, {
+          method: 'DELETE',
+          headers: { 
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        console.log('Resposta da exclusão:', response.status, response.statusText);
+        console.log('Headers da resposta:', response.headers);
+        
+        if (response.ok) {
+          // Remover do estado local apenas se a exclusão foi bem-sucedida
+          setReceitas(prev => prev.filter(r => r.id !== receitaId));
+          // Mostrar mensagem de sucesso
+          showSuccess('Receita excluída com sucesso!');
+          // Recarregar receitas para garantir sincronização
+          setTimeout(() => {
+            carregarReceitas();
+          }, 1000);
+        } else {
+          const errorData = await response.json();
+          console.error('Erro da API:', errorData);
+          showError(`Erro ao excluir receita: ${errorData.error || 'Tente novamente.'}`);
+        }
+      } catch (error) {
+        console.error('Erro ao excluir receita:', error);
+        showError('Erro ao excluir receita. Verifique sua conexão.');
+      } finally {
+        setExcluindoReceita(null);
+      }
+    }
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'resumo':
@@ -338,7 +622,7 @@ function Financeiro({ theme }) {
                     <i className="bi bi-cash-coin text-success" style={{ fontSize: '2rem' }}></i>
                     <div className="ms-3">
                       <h6 className={`card-subtitle-${theme} mb-1`}>Receitas do Mês</h6>
-                      <h4 className={`header-text-${theme} mb-0`}>R$ 0,00</h4>
+                      <h4 className={`header-text-${theme} mb-0`}>R$ {receitas.reduce((total, receita) => total + (parseFloat(receita.valor) || 0), 0).toFixed(2)}</h4>
                     </div>
                   </div>
                 </div>
@@ -349,7 +633,7 @@ function Financeiro({ theme }) {
                     <i className="bi bi-cart-x text-danger" style={{ fontSize: '2rem' }}></i>
                     <div className="ms-3">
                       <h6 className={`card-subtitle-${theme} mb-1`}>Despesas do Mês</h6>
-                      <h4 className={`header-text-${theme} mb-0`}>R$ 0,00</h4>
+                      <h4 className={`header-text-${theme} mb-0`}>R$ {calcularTotais().total.toFixed(2)}</h4>
                     </div>
                   </div>
                 </div>
@@ -360,7 +644,7 @@ function Financeiro({ theme }) {
                     <i className="bi bi-graph-up text-primary" style={{ fontSize: '2rem' }}></i>
                     <div className="ms-3">
                       <h6 className={`card-subtitle-${theme} mb-1`}>Saldo</h6>
-                      <h4 className={`header-text-${theme} mb-0`}>R$ 0,00</h4>
+                      <h4 className={`header-text-${theme} mb-0`}>R$ {(receitas.reduce((total, receita) => total + (parseFloat(receita.valor) || 0), 0) - calcularTotais().total).toFixed(2)}</h4>
                     </div>
                   </div>
                 </div>
@@ -719,7 +1003,7 @@ function Financeiro({ theme }) {
           <div className="p-4">
             <div className="d-flex justify-content-between align-items-center mb-4">
               <h4 className={`header-text-${theme} mb-0`}>Gestão de Receitas</h4>
-              <button className={`btn btn-1-${theme}`}>
+              <button className={`btn btn-1-${theme}`} onClick={handleNovaReceita}>
                 <i className="bi bi-plus-circle me-2"></i>
                 Nova Receita
               </button>
@@ -732,7 +1016,7 @@ function Financeiro({ theme }) {
                     <i className="bi bi-cash-coin text-success" style={{ fontSize: '1.5rem' }}></i>
                     <div className="ms-2">
                       <h6 className={`card-subtitle-${theme} mb-0`}>Total Receitas</h6>
-                      <h5 className={`header-text-${theme} mb-0`}>R$ 0,00</h5>
+                      <h5 className={`header-text-${theme} mb-0`}>R$ {receitas.reduce((total, receita) => total + (parseFloat(receita.valor) || 0), 0).toFixed(2)}</h5>
                     </div>
                   </div>
                 </div>
@@ -743,7 +1027,7 @@ function Financeiro({ theme }) {
                     <i className="bi bi-calendar-event text-info" style={{ fontSize: '1.5rem' }}></i>
                     <div className="ms-2">
                       <h6 className={`card-subtitle-${theme} mb-0`}>Este Mês</h6>
-                      <h5 className={`header-text-${theme} mb-0`}>R$ 0,00</h5>
+                      <h5 className={`header-text-${theme} mb-0`}>R$ {receitas.reduce((total, receita) => total + (parseFloat(receita.valor) || 0), 0).toFixed(2)}</h5>
                     </div>
                   </div>
                 </div>
@@ -754,7 +1038,7 @@ function Financeiro({ theme }) {
                     <i className="bi bi-calendar-week text-warning" style={{ fontSize: '1.5rem' }}></i>
                     <div className="ms-2">
                       <h6 className={`card-subtitle-${theme} mb-0`}>Esta Semana</h6>
-                      <h5 className={`header-text-${theme} mb-0`}>R$ 0,00</h5>
+                      <h5 className={`header-text-${theme} mb-0`}>R$ {receitas.reduce((total, receita) => total + (parseFloat(receita.valor) || 0), 0).toFixed(2)}</h5>
                     </div>
                   </div>
                 </div>
@@ -765,7 +1049,7 @@ function Financeiro({ theme }) {
                     <i className="bi bi-calendar-day text-success" style={{ fontSize: '1.5rem' }}></i>
                     <div className="ms-2">
                       <h6 className={`card-subtitle-${theme} mb-0`}>Hoje</h6>
-                      <h5 className={`header-text-${theme} mb-0`}>R$ 0,00</h5>
+                      <h5 className={`header-text-${theme} mb-0`}>R$ {receitas.reduce((total, receita) => total + (parseFloat(receita.valor) || 0), 0).toFixed(2)}</h5>
                     </div>
                   </div>
                 </div>
@@ -792,14 +1076,84 @@ function Financeiro({ theme }) {
                 </div>
               </div>
               <div className="card-body">
-                <div className="text-center p-4">
-                  <i className="bi bi-cash-stack" style={{ fontSize: '3rem', opacity: 0.3 }}></i>
-                  <p className={`text-${theme === 'light' ? 'muted' : 'light'} mt-2`}>Nenhuma receita registrada</p>
-                  <button className={`btn btn-1-${theme}`}>
-                    <i className="bi bi-plus-circle me-2"></i>
-                    Adicionar Primeira Receita
-                  </button>
-                </div>
+                {receitas.length > 0 ? (
+                  <div className="table-responsive">
+                    <table className={`table custom-table-${theme} mb-0`}>
+                      <thead>
+                        <tr>
+                          <th className={`header-text-${theme}`}>Descrição</th>
+                          <th className={`header-text-${theme}`}>Itens</th>
+                          <th className={`header-text-${theme}`}>Valor</th>
+                          <th className={`header-text-${theme}`}>Data</th>
+                          <th className={`header-text-${theme}`}>Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {receitas.map((receita, index) => (
+                          <tr key={receita.id || index}>
+                            <td className={`text-${theme === 'light' ? 'dark' : 'light'}`}>
+                              <strong>{receita.descricao}</strong>
+                            </td>
+                            <td className={`text-${theme === 'light' ? 'dark' : 'light'}`}>
+                              {receita.itens && receita.itens.length > 0 ? (
+                                <div>
+                                  {receita.itens.map((item, idx) => (
+                                    <div key={idx} className="small">
+                                      {item.nome}: R$ {parseFloat(item.valor || 0).toFixed(2)}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-muted">-</span>
+                              )}
+                            </td>
+                            <td className={`text-${theme === 'light' ? 'dark' : 'light'}`}>
+                              <strong>R$ {parseFloat(receita.valor || 0).toFixed(2)}</strong>
+                            </td>
+                            <td className={`text-${theme === 'light' ? 'dark' : 'light'}`}>
+                              {receita.created_at ? new Date(receita.created_at).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR')}
+                            </td>
+                            <td>
+                              <button
+                                className={`icon-btn btn-2-${theme} btn-user`}
+                                data-bs-toggle="tooltip"
+                                title="Editar"
+                                onClick={() => handleEditarReceita(receita)}
+                                disabled={excluindoReceita === receita.id}
+                              >
+                                <i className="bi bi-pencil-fill"></i>
+                              </button>
+                              <button
+                                className="icon-btn text-danger"
+                                data-bs-toggle="tooltip"
+                                title={excluindoReceita === receita.id ? "Excluindo..." : "Excluir"}
+                                onClick={() => handleExcluirReceita(receita.id || index)}
+                                disabled={excluindoReceita === receita.id}
+                              >
+                                {excluindoReceita === receita.id ? (
+                                  <div className="spinner-border spinner-border-sm" role="status">
+                                    <span className="visually-hidden">Excluindo...</span>
+                                  </div>
+                                ) : (
+                                  <i className="bi bi-trash"></i>
+                                )}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center p-4">
+                    <i className="bi bi-cash-stack" style={{ fontSize: '3rem', opacity: 0.3 }}></i>
+                    <p className={`text-${theme === 'light' ? 'muted' : 'light'} mt-2`}>Nenhuma receita registrada</p>
+                    <button className={`btn btn-1-${theme}`} onClick={handleNovaReceita}>
+                      <i className="bi bi-plus-circle me-2"></i>
+                      Adicionar Primeira Receita
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -809,6 +1163,37 @@ function Financeiro({ theme }) {
     }
   };
 
+  {showReceitaModal && (
+  <div className="modal show d-block" tabIndex="-1">
+    <div className="modal-dialog">
+      <div className={`modal-content bg-form-${theme}`}>
+        <div className="modal-header">
+          <h5 className="modal-title">Nova Receita</h5>
+          <button type="button" className="btn-close" onClick={() => setShowReceitaModal(false)}></button>
+        </div>
+        <div className="modal-body">
+          <input
+            type="text"
+            className={`form-control mb-2 input-${theme}`}
+            placeholder="Nome da receita"
+            value={novaReceita.descricao}
+            onChange={e => setNovaReceita({ ...novaReceita, descricao: e.target.value })}
+          />
+          <input
+            type="number"
+            className={`form-control mb-2 input-${theme}`}
+            placeholder="Valor"
+            value={novaReceita.valor}
+            onChange={e => setNovaReceita({ ...novaReceita, valor: e.target.value })}
+          />
+        </div>
+        <div className="modal-footer">
+          <button className={`btn btn-primary`} onClick={handleSalvarReceita}>Salvar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
   return (
     <div className="pt-3" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div className="container-fluid ps-2 pe-0" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -948,6 +1333,119 @@ function Financeiro({ theme }) {
         onCategoryCreated={handleCategoryCreated}
         onVendorCreated={handleVendorCreated}
       />
+
+      {/* Modal de Receita */}
+      {showReceitaModal && (
+        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-lg">
+            <div className={`modal-content bg-form-${theme}`}>
+              <div className="modal-header">
+                <h5 className="modal-title">Nova Receita</h5>
+                <button type="button" className="btn-close" onClick={() => setShowReceitaModal(false)}></button>
+              </div>
+              <div className="modal-body">
+                <div className="mb-3">
+                  <label className={`form-label text-${theme === 'light' ? 'dark' : 'light'}`}>Descrição da Receita</label>
+                  <input
+                    type="text"
+                    className={`form-control input-${theme}`}
+                    placeholder="Nome da receita"
+                    value={novaReceita.descricao}
+                    onChange={e => setNovaReceita({ ...novaReceita, descricao: e.target.value })}
+                  />
+                </div>
+                
+                <div className="mb-3">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <label className={`form-label text-${theme === 'light' ? 'dark' : 'light'} mb-0`}>Itens da Receita</label>
+                    <button 
+                      type="button" 
+                      className={`btn btn-sm btn-1-${theme}`}
+                      onClick={adicionarItemReceita}
+                    >
+                      <i className="bi bi-plus-circle me-1"></i>
+                      Adicionar Item
+                    </button>
+                  </div>
+                  
+                  <div className="table-responsive">
+                    <table className={`table table-sm custom-table-${theme}`}>
+                      <thead>
+                        <tr>
+                          <th className={`text-${theme === 'light' ? 'dark' : 'light'}`} style={{ width: '60%' }}>Nome do Item</th>
+                          <th className={`text-${theme === 'light' ? 'dark' : 'light'}`} style={{ width: '30%' }}>Valor</th>
+                          <th className={`text-${theme === 'light' ? 'dark' : 'light'}`} style={{ width: '10%' }}>Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {novaReceita.itens.map((item, index) => (
+                          <tr key={item.id}>
+                            <td>
+                              <input
+                                type="text"
+                                className={`form-control form-control-sm input-${theme}`}
+                                placeholder="Nome do item"
+                                value={item.nome}
+                                onChange={e => atualizarItemReceita(item.id, 'nome', e.target.value)}
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                className={`form-control form-control-sm input-${theme}`}
+                                placeholder="0,00"
+                                value={item.valor}
+                                onChange={e => atualizarItemReceita(item.id, 'valor', e.target.value)}
+                              />
+                            </td>
+                            <td>
+                              {novaReceita.itens.length > 1 && (
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-danger"
+                                  onClick={() => removerItemReceita(item.id)}
+                                  title="Remover item"
+                                >
+                                  <i className="bi bi-trash"></i>
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="mb-3">
+                  <div className={`card card-${theme} p-3`}>
+                    <div className="d-flex justify-content-between align-items-center">
+                      <span className={`text-${theme === 'light' ? 'dark' : 'light'} fw-bold`}>Valor Total:</span>
+                      <span className={`text-${theme === 'light' ? 'dark' : 'light'} fw-bold fs-5`}>
+                        R$ {novaReceita.valorTotal.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button className={`btn btn-2-${theme}`} onClick={() => setShowReceitaModal(false)}>
+                  Cancelar
+                </button>
+                <button 
+                  className={`btn btn-1-${theme}`} 
+                  onClick={handleSalvarReceita}
+                  disabled={!novaReceita.descricao || novaReceita.itens.length === 0 || novaReceita.valorTotal === 0}
+                >
+                  Salvar Receita
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

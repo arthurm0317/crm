@@ -23,6 +23,7 @@ const reportRoutes = require('./routes/ReportRoutes');
 const categoryRoutes = require('./routes/CategoryRoute');
 const vendorRoutes = require('./routes/VendorRoutes');
 const expensesRoutes = require('./routes/ExpensesRoutes');
+const receitaRoutes = require('./routes/ReceitaRouter');
 
 const { setGlobalSocket } = require('./services/LembreteService');
 const quickMessagesRoutes = require('./routes/QuickMessagesRoutes');
@@ -287,6 +288,7 @@ app.use('/report', reportRoutes);
 app.use('/category', categoryRoutes);
 app.use('/vendor', vendorRoutes);
 app.use('/expenses', expensesRoutes);
+app.use('/receita', receitaRoutes);
 
 const axios = require('axios');
 const fs = require('fs');
