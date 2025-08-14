@@ -23,7 +23,7 @@ const reportRoutes = require('./routes/ReportRoutes');
 const categoryRoutes = require('./routes/CategoryRoute');
 const vendorRoutes = require('./routes/VendorRoutes');
 const expensesRoutes = require('./routes/ExpensesRoutes');
-const receitaRoutes = require('./routes/ReceitaRouter');
+const receitaRoutes = require('./routes/ReceitaRoutes');
 
 const { setGlobalSocket } = require('./services/LembreteService');
 const quickMessagesRoutes = require('./routes/QuickMessagesRoutes');

@@ -1,8 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import * as bootstrap from 'bootstrap';
 import DespesaModal from './modalPages/DespesaModal';
 import { ExpensesService, CategoriesService, VendorsService } from '../services/FinanceiroService';
 import { useToast } from '../contexts/ToastContext';
+import axios from '../utils/axiosConfig';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 function Financeiro({ theme }) {
   const { showError, showSuccess } = useToast();
@@ -30,8 +54,168 @@ function Financeiro({ theme }) {
     categorizada: ''
   });
   
+  // Funções para gerar dados do gráfico
+  const generateLast7DaysLabels = () => {
+    const labels = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      labels.push(date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
+    }
+    return labels;
+  };
+  const generateLast6MonthsLabels = () => {
+    const labels = [];
+    const currentDate = new Date();
+    
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+      const monthName = date.toLocaleDateString('pt-BR', { month: 'short' });
+      labels.push(monthName);
+    }
+    
+    return labels;
+  };
 
-  // Obter schema do usuário logado
+  const generateDailyVolume = () => {
+    const volume = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      // Calcular volume de receitas para o dia
+      const receitasDoDia = receitas.filter(receita => 
+        receita.created_at && receita.created_at.startsWith(dateStr)
+      );
+      const volumeReceitas = receitasDoDia.reduce((total, receita) => 
+        total + (parseFloat(receita.valor) || 0), 0
+      );
+      
+      // Calcular volume de despesas para o dia
+      const despesasDoDia = despesas.filter(despesa => 
+        despesa.date_incurred && despesa.date_incurred.startsWith(dateStr)
+      );
+      const volumeDespesas = despesasDoDia.reduce((total, despesa) => 
+        total + (parseFloat(despesa.total_amount) || 0), 0
+      );
+      
+      // Volume líquido (receitas - despesas)
+      volume.push(volumeReceitas - volumeDespesas);
+    }
+    return volume;
+  };
+
+  const dailyVolume = useMemo(() => generateDailyVolume(), [receitas, despesas]);
+  
+  const performanceChartData = useMemo(() => ({
+    labels: generateLast7DaysLabels(),
+    datasets: [{
+      label: 'Fluxo de Caixa (R$)',
+      data: dailyVolume,
+      borderColor: theme === 'dark' ? 'rgb(75, 192, 192)' : 'rgb(75, 192, 192)',
+      backgroundColor: theme === 'dark' ? 'rgba(75, 192, 192, 0.1)' : 'rgba(75, 192, 192, 0.2)',
+      tension: 0.1,
+      fill: true,
+      pointBackgroundColor: theme === 'dark' ? 'rgb(75, 192, 192)' : 'rgb(75, 192, 192)',
+      pointBorderColor: theme === 'dark' ? '#fff' : '#fff',
+      pointBorderWidth: 2,
+      pointRadius: 4,
+      pointHoverRadius: 6
+    }]
+  }), [dailyVolume, theme]);
+
+  const generateMonthlyPerspectiveData = () => {
+    // Gera dados simulados para os últimos 6 meses
+    // Em uma implementação real, isso viria de uma API ou cálculo baseado em dados históricos
+    const baseValue = 1000; // Valor base em R$
+    const growthRate = 0.15; // Taxa de crescimento de 15% ao mês
+    
+    const data = [];
+    for (let i = 0; i < 6; i++) {
+      const monthValue = baseValue * Math.pow(1 + growthRate, i);
+      data.push(Math.round(monthValue));
+    }
+    
+    return data;
+  };
+
+  const perspecChartData = useMemo(() => ({
+    labels: generateLast6MonthsLabels(),
+    datasets: [{
+      label: 'Perspectiva de ganhos',
+      data: generateMonthlyPerspectiveData(),
+      borderColor: theme === 'dark' ? 'rgb(255, 99, 132)' : 'rgb(255, 99, 132)',
+      backgroundColor: theme === 'dark' ? 'rgba(255, 99, 132, 0.1)' : 'rgba(255, 99, 132, 0.2)',
+      tension: 0.1,
+      pointBackgroundColor: theme === 'dark' ? 'rgb(255, 99, 132)' : 'rgb(255, 99, 132)',
+      pointBorderColor: theme === 'dark' ? '#fff' : '#fff',
+      pointBorderWidth: 2,
+      pointRadius: 4,
+      pointHoverRadius: 6
+    }]
+  }), [theme]);
+
+  const chartOptions = useMemo(() => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: true,
+        position: 'top',
+        labels: {
+          color: theme === 'dark' ? '#fff' : '#333',
+          font: {
+            size: 12
+          }
+        }
+      },
+      tooltip: {
+        backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.8)' : 'rgba(255, 255, 255, 0.9)',
+        titleColor: theme === 'dark' ? '#fff' : '#333',
+        bodyColor: theme === 'dark' ? '#fff' : '#333',
+        borderColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+        borderWidth: 1,
+        callbacks: {
+          label: function(context) {
+            return `R$ ${context.parsed.y.toFixed(2)}`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: {
+          color: theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+        },
+        ticks: {
+          color: theme === 'dark' ? '#fff' : '#333',
+          font: {
+            size: 11
+          }
+        }
+      },
+      y: {
+        grid: {
+          color: theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+        },
+        ticks: {
+          color: theme === 'dark' ? '#fff' : '#333',
+          font: {
+            size: 11
+          },
+          callback: function(value) {
+            return `R$ ${value.toFixed(2)}`;
+          }
+        }
+      }
+    },
+    interaction: {
+      intersect: false,
+      mode: 'index'
+    }
+  }), [theme]);
+  
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const schema = user.schema;
 
@@ -415,8 +599,10 @@ function Financeiro({ theme }) {
 
   // Carregar receitas quando o componente for montado
   useEffect(() => {
-    carregarReceitas();
-  }, [schema]);
+    if (schema) {
+      carregarReceitas();
+    }
+  }, [schema]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Função para carregar receitas
   const carregarReceitas = async () => {
@@ -424,17 +610,17 @@ function Financeiro({ theme }) {
       console.log('Carregando receitas para schema:', schema);
       console.log('REACT_APP_URL:', process.env.REACT_APP_URL);
       
-      const url = `${process.env.REACT_APP_URL}/receita?schema=${schema}`;
+      const url = `${process.env.REACT_APP_URL}/receita/get-receitas/${schema}`;
       console.log('URL de carregamento:', url);
       
-      const response = await fetch(url);
+      const response = await axios.get(url, { withCredentials: true });
       
       console.log('Resposta do carregamento:', response.status, response.statusText);
       
-      if (response.ok) {
-        const result = await response.json();
+      if (response.data && response.data.success) {
+        const result = response.data;
         console.log('Resultado do carregamento:', result);
-        if (result.success && result.data) {
+        if (result.data) {
           // Mapear campos do banco para o frontend
           const receitasMapeadas = result.data.map(receita => ({
             id: receita.id,
@@ -449,15 +635,17 @@ function Financeiro({ theme }) {
           console.log('Receitas mapeadas:', receitasMapeadas);
           setReceitas(receitasMapeadas);
         } else {
-          console.error('Resposta da API não tem sucesso:', result);
+          console.error('Resposta da API não tem dados:', result);
         }
       } else {
-        console.error('Erro ao carregar receitas:', response.status, response.statusText);
-        const errorText = await response.text();
-        console.error('Texto do erro:', errorText);
+        console.error('Resposta da API não tem sucesso:', response.data);
       }
     } catch (error) {
       console.error('Erro ao carregar receitas:', error);
+      if (error.response) {
+        console.error('Status do erro:', error.response.status);
+        console.error('Dados do erro:', error.response.data);
+      }
     }
   };
 
@@ -483,68 +671,54 @@ function Financeiro({ theme }) {
       
       console.log('Tentando salvar receita:', novaReceita);
       
-      const response = await fetch(`${process.env.REACT_APP_URL}/receita`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          descricao: novaReceita.descricao, // Será mapeado para 'nome' no banco
-          valor: novaReceita.valorTotal, // Será mapeado para 'valor_receita' no banco
-          itens: itensValidos, // Incluir itens na requisição
-          schema: schema
-        })
-      });
+      const response = await axios.post(`${process.env.REACT_APP_URL}/receita/create-receita`,
+        {
+          nome: novaReceita.descricao, 
+          valor_receita: novaReceita.valorTotal, 
+          schema_name: schema
+        }, 
+        { withCredentials: true }
+      );
       
       console.log('Status da resposta:', response.status);
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Erro da API:', errorText);
-        throw new Error(`Erro na API: ${response.status} - ${errorText}`);
-      }
-      
-      const result = await response.json();
-      console.log('Resposta da API:', result);
-      
-      if (result.success && result.data) {
-        // Mapear campos do banco para o frontend
-        const receitaSalva = {
-          id: result.data.id,
-          descricao: result.data.nome, // Campo do banco: nome
-          valor: result.data.valor_receita, // Campo do banco: valor_receita
-          schema: result.data.schema_name,
-          status: result.data.status,
-          created_at: result.data.created_at,
-          updated_at: result.data.updated_at,
-          itens: itensValidos // Incluir itens salvos
-        };
+      if (response.data && response.data.success) {
+        const result = response.data;
+        console.log('Resposta da API:', result);
         
-        setReceitas(prev => [...prev, receitaSalva]);
-        setNovaReceita({ descricao: '', itens: [{ id: 1, nome: '', valor: '' }], valorTotal: 0 });
-        setShowReceitaModal(false);
-        showSuccess('Receita salva com sucesso!');
-        console.log('Receita salva com sucesso:', receitaSalva);
+        if (result.data) {
+          // Mapear campos do banco para o frontend
+          const receitaSalva = {
+            id: result.data.id,
+            descricao: result.data.nome, // Campo do banco: nome
+            valor: result.data.valor_receita, // Campo do banco: valor_receita
+            schema: result.data.schema_name,
+            status: result.data.status,
+            created_at: result.data.created_at,
+            updated_at: result.data.updated_at,
+            itens: itensValidos // Incluir itens salvos
+          };
+          
+          setReceitas(prev => [...prev, receitaSalva]);
+          setNovaReceita({ descricao: '', itens: [{ id: 1, nome: '', valor: '' }], valorTotal: 0 });
+          setShowReceitaModal(false);
+          showSuccess('Receita salva com sucesso!');
+          console.log('Receita salva com sucesso:', receitaSalva);
+        } else {
+          throw new Error('Resposta inválida da API');
+        }
       } else {
-        throw new Error('Resposta inválida da API');
+        throw new Error('Resposta da API não tem sucesso');
       }
-      
-    } catch (err) {
-      console.error('Erro completo ao salvar receita:', err);
-      
-      // Se for erro de rede
-      if (err.name === 'TypeError' && err.message.includes('fetch')) {
-        showError('Erro de conexão. Verifique sua internet.');
-        return;
+    } catch (error) {
+      console.error('Erro ao salvar receita:', error);
+      if (error.response) {
+        console.error('Status do erro:', error.response.status);
+        console.error('Dados do erro:', error.response.data);
+        showError(`Erro ao salvar receita: ${error.response.data?.message || error.response.data?.error || 'Erro desconhecido'}`);
+      } else {
+        showError('Erro ao salvar receita. Tente novamente.');
       }
-      
-      // Se for erro da API
-      if (err.message.includes('Erro na API')) {
-        showError(`Erro do servidor: ${err.message}`);
-        return;
-      }
-      
-      showError('Erro ao salvar receita. Tente novamente.');
     }
   };
 
@@ -573,20 +747,17 @@ function Financeiro({ theme }) {
         console.log('REACT_APP_URL:', process.env.REACT_APP_URL);
         
         // Chamar API para excluir receita
-        const url = `${process.env.REACT_APP_URL}/receita/${receitaId}?schema=${schema}`;
-        console.log('URL final:', url);
-        
-        const response = await fetch(url, {
-          method: 'DELETE',
-          headers: { 
-            'Content-Type': 'application/json'
-          }
+        const response = await axios.delete(`${process.env.REACT_APP_URL}/receita/delete-receita`, {
+          data: {
+            receita_id: receitaId,
+            schema: schema
+          },
+          withCredentials: true
         });
         
-        console.log('Resposta da exclusão:', response.status, response.statusText);
-        console.log('Headers da resposta:', response.headers);
+        console.log('Resposta da exclusão:', response.status, response.data);
         
-        if (response.ok) {
+        if (response.data && response.data.success) {
           // Remover do estado local apenas se a exclusão foi bem-sucedida
           setReceitas(prev => prev.filter(r => r.id !== receitaId));
           // Mostrar mensagem de sucesso
@@ -596,13 +767,18 @@ function Financeiro({ theme }) {
             carregarReceitas();
           }, 1000);
         } else {
-          const errorData = await response.json();
-          console.error('Erro da API:', errorData);
-          showError(`Erro ao excluir receita: ${errorData.error || 'Tente novamente.'}`);
+          console.error('Erro da API:', response.data);
+          showError(`Erro ao excluir receita: ${response.data?.message || 'Tente novamente.'}`);
         }
       } catch (error) {
         console.error('Erro ao excluir receita:', error);
-        showError('Erro ao excluir receita. Verifique sua conexão.');
+        if (error.response) {
+          console.error('Status do erro:', error.response.status);
+          console.error('Dados do erro:', error.response.data);
+          showError(`Erro ao excluir receita: ${error.response.data?.message || error.response.data?.error || 'Erro desconhecido'}`);
+        } else {
+          showError('Erro ao excluir receita. Verifique sua conexão.');
+        }
       } finally {
         setExcluindoReceita(null);
       }
@@ -650,14 +826,85 @@ function Financeiro({ theme }) {
                 </div>
               </div>
             </div>
+            <div className="row mb-3">
+              <div className="col-md-3">
+                <div className={`card card-${theme} p-3`}>
+                  <div className="d-flex align-items-center">
+                    <i className="bi bi-graph-up text-success" style={{ fontSize: '1.5rem' }}></i>
+                    <div className="ms-2">
+                      <h6 className={`card-subtitle-${theme} mb-0`}>Maior Entrada</h6>
+                      <h5 className={`header-text-${theme} mb-0`}>
+                        R$ {Math.max(...dailyVolume, 0).toFixed(2)}
+                      </h5>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="col-md-3">
+                <div className={`card card-${theme} p-3`}>
+                  <div className="d-flex align-items-center">
+                    <i className="bi bi-graph-down text-danger" style={{ fontSize: '1.5rem' }}></i>
+                    <div className="ms-2">
+                      <h6 className={`card-subtitle-${theme} mb-0`}>Maior Saída</h6>
+                      <h5 className={`header-text-${theme} mb-0`}>
+                        R$ {Math.abs(Math.min(...dailyVolume, 0)).toFixed(2)}
+                      </h5>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="col-md-3">
+                <div className={`card card-${theme} p-3`}>
+                  <div className="d-flex align-items-center">
+                    <i className="bi bi-calculator text-info" style={{ fontSize: '1.5rem' }}></i>
+                    <div className="ms-2">
+                      <h6 className={`card-subtitle-${theme} mb-0`}>Média Diária</h6>
+                      <h5 className={`header-text-${theme} mb-0`}>
+                        R$ {(dailyVolume.reduce((a, b) => a + b, 0) / dailyVolume.length).toFixed(2)}
+                      </h5>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="col-md-3">
+                <div className={`card card-${theme} p-3`}>
+                  <div className="d-flex align-items-center">
+                    <i className="bi bi-arrow-up-circle text-primary" style={{ fontSize: '1.5rem' }}></i>
+                    <div className="ms-2">
+                      <h6 className={`card-subtitle-${theme} mb-0`}>Dias Positivos</h6>
+                      <h5 className={`header-text-${theme} mb-0`}>
+                        {dailyVolume.filter(v => v > 0).length}/7
+                      </h5>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div className="row">
               <div className="col-12">
                 <div className={`card card-${theme} p-3`}>
-                  <h5 className={`header-text-${theme} mb-3`}>Gráfico de Fluxo de Caixa</h5>
-                  <div className="text-center p-4">
-                    <i className="bi bi-bar-chart" style={{ fontSize: '3rem', opacity: 0.3 }}></i>
-                    <p className={`text-${theme === 'light' ? 'muted' : 'light'} mt-2`}>Gráfico será implementado em breve</p>
+                  <h5 className={`header-text-${theme} mb-3`}>Fluxo de Caixa - Últimos 7 Dias</h5>
+                  <div style={{ height: '300px', position: 'relative' }}>
+                    <Line data={performanceChartData} options={chartOptions} />
                   </div>
+                  <div className="mt-3">
+                    <small className={`text-${theme === 'light' ? 'muted' : 'light'}`}>
+                      <i className="bi bi-info-circle me-1"></i>
+                      O gráfico mostra o fluxo de caixa diário (receitas - despesas) dos últimos 7 dias
+                    </small>
+                  </div>
+                </div>
+                <div className={`card card-${theme} p-3 mt-2`}>
+                  <h5 className={`header-text-${theme} mb-3`}>Perspectiva de crescimento</h5>
+                   <div style={{ height: '300px', position: 'relative' }}>
+                    <Line data={perspecChartData} options={chartOptions} />
+                  </div>
+                  <div className="mt-3">
+                    <small className={`text-${theme === 'light' ? 'muted' : 'light'}`}>
+                      <i className="bi bi-info-circle me-1"></i>
+                      O gráfico mostra o fluxo de caixa diário (receitas - despesas) dos últimos 7 dias
+                    </small>
+                    </div>
                 </div>
               </div>
             </div>

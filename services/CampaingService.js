@@ -40,7 +40,7 @@ const worker = new Worker(
           job.data.schema
         );
       }
-      if(job.data.stage!==null){
+      if(job.data.stage){
         await updateContactInKanban(job.data.number, job.data.stage, job.data.schema);
       }
       console.log(`Job ${job.id} processado com sucesso`);

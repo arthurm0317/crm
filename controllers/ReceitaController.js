@@ -1,215 +1,110 @@
-const ReceitaService = require('../services/ReceitaService');
+const { createReceita, getReceitas, getReceitaById, updateReceita, deleteReceita, getReceitasStats, testConnection } = require("../services/ReceitaService");
 
-const router = require('express').Router();
-const receitaService = new ReceitaService();
-
-// POST /receita - Criar nova receita
-router.post('/', async (req, res) => {
+const createReceitaController = async (req, res) => {
+    const { nome, valor_receita, schema, status } = req.body;
+    console.log(req.body)
     try {
-        const { valor, descricao, schema } = req.body;
-        
-        // Validações
-        if (!valor || isNaN(valor)) {
-            return res.status(400).json({ 
-                success: false,
-                error: 'Valor é obrigatório e deve ser numérico.' 
-            });
-        }
-
-        if (!descricao || descricao.trim() === '') {
-            return res.status(400).json({ 
-                success: false,
-                error: 'Descrição é obrigatória.' 
-            });
-        }
-
-        if (!schema) {
-            return res.status(400).json({ 
-                success: false,
-                error: 'Schema é obrigatório.' 
-            });
-        }
-
-        await receitaService.initTable();
-
-        const receita = await receitaService.criarReceita({
-            descricao: descricao.trim(),
-            valor: Number(valor),
-            schema: schema
-        });
-        
-        console.log('Receita criada:', receita);
-        
-        res.status(201).json({
-            success: true,
-            data: receita
-        });
+        const result = await createReceita(nome, valor_receita, schema, 'ativo');
+        res.status(201).json({ success: true, data: result });
     } catch (error) {
-        console.error('Erro ao criar receita:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Erro interno do servidor ao criar receita.'
-        });
+        console.error(error);
+        res.status(500).json({ success: false, message: error.message });
     }
-});
+};
 
-router.get('/', async (req, res) => {
+const getReceitasController = async (req, res) => {
+    const { schema } = req.params;
+    const { includeInactive } = req.query;
+    
     try {
-        const { schema } = req.query;
-        
-        await receitaService.initTable();
-        
-        const receitas = await receitaService.listarReceitas({ schema });
-        
-        console.log(`Listando receitas para schema: ${schema}, total: ${receitas.length}`);
-        
-        res.json({
-            success: true,
-            data: receitas
-        });
+        const receitas = await getReceitas(schema, includeInactive === 'true');
+        res.status(200).json({ success: true, data: receitas });
     } catch (error) {
-        console.error('Erro ao listar receitas:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Erro interno do servidor ao listar receitas.'
-        });
+        console.error(error);
+        res.status(500).json({ success: false, message: error.message });
     }
-});
+};
 
-router.get('/:id', async (req, res) => {
+const getReceitaByIdController = async (req, res) => {
+    const { receita_id, schema } = req.params;
+    
     try {
-        const { id } = req.params;
-        const receita = await receitaService.buscarReceitaPorId(id);
+        const result = await getReceitaById(receita_id, schema);
         
-        if (!receita) {
-            return res.status(404).json({
-                success: false,
-                error: 'Receita não encontrada.'
-            });
+        if (!result) {
+            return res.status(404).json({ success: false, message: 'Receita não encontrada' });
         }
         
-        res.json({
-            success: true,
-            data: receita
-        });
+        res.status(200).json({ success: true, data: result });
     } catch (error) {
-        console.error('Erro ao buscar receita:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Erro interno do servidor ao buscar receita.'
-        });
+        console.error(error);
+        res.status(500).json({ success: false, message: error.message });
     }
-});
+};
 
-router.put('/:id', async (req, res) => {
+const updateReceitaController = async (req, res) => {
+    const { receita_id, schema } = req.params;
+    const { nome, valor_receita, status } = req.body;
+    
     try {
-        const { id } = req.params;
-        const dadosAtualizados = req.body;
+        const result = await updateReceita(receita_id, nome, valor_receita, status, schema);
         
-        const receita = await receitaService.atualizarReceita(id, dadosAtualizados);
-        
-        if (!receita) {
-            return res.status(404).json({
-                success: false,
-                error: 'Receita não encontrada.'
-            });
+        if (!result) {
+            return res.status(404).json({ success: false, message: 'Receita não encontrada' });
         }
         
-        console.log('Receita atualizada:', receita);
-        
-        res.json({
-            success: true,
-            data: receita
-        });
+        res.status(200).json({ success: true, data: result });
     } catch (error) {
-        console.error('Erro ao atualizar receita:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Erro interno do servidor ao atualizar receita.'
-        });
+        console.error(error);
+        res.status(500).json({ success: false, message: error.message });
     }
-});
+};
 
-router.delete('/:id', async (req, res) => {
+const deleteReceitaController = async (req, res) => {
+    const { receita_id, schema } = req.body;
+    
     try {
-        const { id } = req.params;
-        const { schema } = req.query;
+        const result = await deleteReceita(receita_id, schema);
         
-        console.log('Tentando excluir receita:', { id, schema });
-        
-        if (!schema) {
-            console.error('Schema não fornecido na exclusão');
-            return res.status(400).json({
-                success: false,
-                error: 'Schema é obrigatório para exclusão.'
-            });
+        if (!result) {
+            return res.status(404).json({ success: false, message: 'Receita não encontrada' });
         }
         
-        const resultado = await receitaService.removerReceita(id);
-        
-        if (!resultado) {
-            console.error('Receita não encontrada para exclusão:', id);
-            return res.status(404).json({
-                success: false,
-                error: 'Receita não encontrada.'
-            });
-        }
-        
-        console.log('Receita removida com sucesso:', id);
-        
-        res.json({
-            success: true,
-            message: 'Receita deletada com sucesso.'
-        });
+        res.status(200).json({ success: true, message: 'Receita removida com sucesso' });
     } catch (error) {
-        console.error('Erro ao deletar receita:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Erro interno do servidor ao deletar receita.'
-        });
+        console.error(error);
+        res.status(500).json({ success: false, message: error.message });
     }
-});
+};
 
-router.get('/stats/:schema', async (req, res) => {
+const getReceitasStatsController = async (req, res) => {
+    const { schema } = req.params;
+    
     try {
-        const { schema } = req.params;
-        const estatisticas = await receitaService.obterEstatisticas(schema);
-        
-        res.json({
-            success: true,
-            data: estatisticas
-        });
+        const stats = await getReceitasStats(schema);
+        res.status(200).json({ success: true, data: stats });
     } catch (error) {
-        console.error('Erro ao obter estatísticas:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Erro interno do servidor ao obter estatísticas.'
-        });
+        console.error(error);
+        res.status(500).json({ success: false, message: error.message });
     }
-});
+};
 
-router.get('/test/connection', async (req, res) => {
+const testConnectionController = async (req, res) => {
     try {
-        const conexaoOk = await receitaService.testarConexao();
-        
-        if (conexaoOk) {
-            res.json({
-                success: true,
-                message: 'Conexão com PostgreSQL OK'
-            });
-        } else {
-            res.status(500).json({
-                success: false,
-                error: 'Erro na conexão com PostgreSQL'
-            });
-        }
+        const result = await testConnection();
+        res.status(200).json({ success: true, data: { connected: result } });
     } catch (error) {
-        console.error('Erro ao testar conexão:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Erro ao testar conexão com banco'
-        });
+        console.error(error);
+        res.status(500).json({ success: false, message: error.message });
     }
-});
+};
 
-module.exports = router;
+module.exports = {
+    createReceitaController,
+    getReceitasController,
+    getReceitaByIdController,
+    updateReceitaController,
+    deleteReceitaController,
+    getReceitasStatsController,
+    testConnectionController
+};

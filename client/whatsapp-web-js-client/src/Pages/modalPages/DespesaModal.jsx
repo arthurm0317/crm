@@ -302,7 +302,15 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
           imp.id === editingImposto.id ? { 
             ...imposto, 
             id: imp.id,
-            valorCalculado: parseFloat(imposto.valorCalculado) || parseFloat(imposto.valor) || 0
+            valorCalculado: parseFloat(imposto.valorCalculado) || parseFloat(imposto.valor) || 0,
+            // Preservar propriedades necessárias para exibição
+            tax_name: imposto.tax_name,
+            tax_rate_percentage: imposto.tax_rate_percentage,
+            tax_amount: imposto.tax_amount,
+            aplicacao: imposto.aplicacao,
+            itemNome: imposto.itemNome,
+            expense_item_id: imposto.expense_item_id,
+            itemId: imposto.expense_item_id // Manter compatibilidade
           } : imp
         )
       }));
@@ -314,7 +322,15 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
         impostos: [...prev.impostos, { 
           ...imposto, 
           id: imposto.id,
-          valorCalculado: parseFloat(imposto.valorCalculado) || parseFloat(imposto.valor) || 0
+          valorCalculado: parseFloat(imposto.valorCalculado) || parseFloat(imposto.valor) || 0,
+          // Garantir que todas as propriedades necessárias estejam presentes
+          tax_name: imposto.tax_name,
+          tax_rate_percentage: imposto.tax_rate_percentage,
+          tax_amount: imposto.tax_amount,
+          aplicacao: imposto.aplicacao,
+          itemNome: imposto.itemNome,
+          expense_item_id: imposto.expense_item_id,
+          itemId: imposto.expense_item_id // Manter compatibilidade
         }]
       }));
     }
@@ -443,7 +459,7 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
     
     const itensDetalhados = formData.itens.map(item => {
       const impostosDoItem = formData.impostos.filter(
-        imp => imp.aplicacao === 'item' && String(imp.itemId) === String(item.id)
+        imp => imp.aplicacao === 'item' && String(imp.expense_item_id || imp.itemId) === String(item.id)
       );
       return {
         descricao: item.descricao,
@@ -891,11 +907,11 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
                          {formData.impostos.map(imposto => (
                            <tr key={imposto.id}>
                              <td className={`header-text-${theme}`}>
-                               {imposto.tax_name || imposto.name || imposto.type || 'Imposto'}
+                               {imposto.tax_name || imposto.name || imposto.type || imposto.tipo || 'Imposto'}
                              </td>
                              <td className={`text-${theme === 'light' ? 'muted' : 'light'} text-center`}>
-                               {imposto.tax_rate_percentage || imposto.rate ? 
-                                 parseFloat(imposto.tax_rate_percentage || imposto.rate).toFixed(2) + '%' : 
+                               {imposto.tax_rate_percentage || imposto.rate || imposto.aliquota ? 
+                                 parseFloat(imposto.tax_rate_percentage || imposto.rate || imposto.aliquota).toFixed(2) + '%' : 
                                  'N/A'}
                              </td>
                              <td className={`text-${theme === 'light' ? 'muted' : 'light'}`}>
@@ -904,7 +920,7 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
                                 imposto.expense_item_id ? 'Item Específico' : 'Item Específico'}
                              </td>
                              <td className={`text-${theme === 'light' ? 'muted' : 'light'} text-end`}>
-                               R$ {parseFloat(imposto.tax_amount || imposto.valor || 0).toFixed(2)}
+                               R$ {parseFloat(imposto.tax_amount || imposto.valor || imposto.valorCalculado || 0).toFixed(2)}
                              </td>
                              <td className={`text-${theme === 'light' ? 'muted' : 'light'}`}>
                                {imposto.observacoes || '-'}
@@ -1014,11 +1030,11 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
                         <div key={index} className="col-md-6">
                           <div className="d-flex justify-content-between align-items-center small">
                             <span className={`text-${theme === 'light' ? 'muted' : 'light'}`}>
-                              {imposto.tax_name || imposto.name || imposto.type || 'Imposto'} 
-                              ({imposto.tax_rate_percentage || imposto.rate ? parseFloat(imposto.tax_rate_percentage || imposto.rate).toFixed(2) + '%' : 'N/A'})
+                              {imposto.tax_name || imposto.name || imposto.type || imposto.tipo || 'Imposto'} 
+                              ({imposto.tax_rate_percentage || imposto.rate || imposto.aliquota ? parseFloat(imposto.tax_rate_percentage || imposto.rate || imposto.aliquota).toFixed(2) + '%' : 'N/A'})
                             </span>
                             <span className={`header-text-${theme} fw-bold`}>
-                              R$ {parseFloat(imposto.tax_amount || imposto.valor || 0).toFixed(2)}
+                              R$ {parseFloat(imposto.tax_amount || imposto.valor || imposto.valorCalculado || 0).toFixed(2)}
                             </span>
                           </div>
                         </div>
@@ -1445,6 +1461,19 @@ function ImpostoModal({ show, onHide, onSave, theme, tiposImposto, itens = [], c
     return valor.toFixed(2);
   }, [formData.tipo, impostosDisponiveis]);
 
+  // Atualizar a alíquota automaticamente quando o tipo for selecionado
+  useEffect(() => {
+    if (formData.tipo && impostosDisponiveis.length > 0) {
+      const imp = impostosDisponiveis.find(i => String(i.id) === String(formData.tipo));
+      if (imp && imp.rate !== undefined && imp.rate !== null) {
+        const valor = Number(imp.rate);
+        if (!isNaN(valor)) {
+          setFormData(prev => ({ ...prev, aliquota: valor.toFixed(2) }));
+        }
+      }
+    }
+  }, [formData.tipo, impostosDisponiveis]);
+
   useEffect(()=>{
     const fetchImpostos = async () => {
       try {
@@ -1468,10 +1497,10 @@ function ImpostoModal({ show, onHide, onSave, theme, tiposImposto, itens = [], c
   useEffect(() => {
     if (editingImposto) {
       setFormData({
-        tipo: editingImposto.tipo || '',
-        aliquota: editingImposto.aliquota || '',
+        tipo: editingImposto.id || editingImposto.tipo || '',
+        aliquota: editingImposto.tax_rate_percentage || editingImposto.aliquota || '',
         aplicacao: editingImposto.aplicacao || 'total',
-        itemId: editingImposto.itemId ? editingImposto.itemId.toString() : '',
+        itemId: editingImposto.expense_item_id ? editingImposto.expense_item_id.toString() : '',
         observacoes: editingImposto.observacoes || ''
       });
     } else {
@@ -1489,6 +1518,12 @@ function ImpostoModal({ show, onHide, onSave, theme, tiposImposto, itens = [], c
     // Validar se um tipo de imposto foi selecionado
     if (!formData.tipo) {
       alert('Por favor, selecione um tipo de imposto.');
+      return;
+    }
+
+    // Validar se a alíquota foi preenchida
+    if (!formData.aliquota || parseFloat(formData.aliquota) <= 0) {
+      alert('Por favor, preencha uma alíquota válida.');
       return;
     }
 
@@ -1520,9 +1555,17 @@ function ImpostoModal({ show, onHide, onSave, theme, tiposImposto, itens = [], c
       id: formData.tipo, // Usar o ID do imposto selecionado
       valor: valorCalculado.toFixed(2),
       valorCalculado: valorCalculado.toFixed(2),
+      // Adicionar propriedades necessárias para exibição na tabela
+      tax_name: impostosDisponiveis.find(imp => String(imp.id) === String(formData.tipo))?.name || formData.tipo,
+      tax_rate_percentage: formData.aliquota,
+      tax_amount: valorCalculado.toFixed(2),
+      aplicacao: formData.aplicacao,
       itemNome: formData.aplicacao === 'item' && formData.itemId ? 
-        itens.find(item => item.id === parseInt(formData.itemId))?.descricao || '' : ''
+        itens.find(item => item.id === parseInt(formData.itemId))?.descricao || '' : '',
+      expense_item_id: formData.aplicacao === 'item' ? formData.itemId : null
     };
+
+
     
     onSave(impostoCompleto);
     onHide();
@@ -1616,10 +1659,9 @@ function ImpostoModal({ show, onHide, onSave, theme, tiposImposto, itens = [], c
                   type="number"
                   step="0.01"
                   className={`form-control input-${theme}`}
-                  value={aliquotaSelecionada}
-                  placeholder={aliquotaSelecionada || '0,00'}
-                  readOnly
-                  disabled
+                  value={formData.aliquota}
+                  onChange={(e) => setFormData(prev => ({ ...prev, aliquota: e.target.value }))}
+                  placeholder="0,00"
                 />
               </div>
               <div className="col-md-6 mb-3">
@@ -1687,7 +1729,7 @@ function ImpostoModal({ show, onHide, onSave, theme, tiposImposto, itens = [], c
                 onClick={handleSave}
                 style={{ minWidth: '120px' }}
               >
-                Adicionar Imposto
+                {editingImposto ? 'Atualizar' : 'Adicionar'} Imposto
               </button>
             </div>
           </div>
