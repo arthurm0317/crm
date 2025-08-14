@@ -1,43 +1,60 @@
 import React, { useState } from 'react';
+import axios from 'axios';
+import { useToast } from '../../contexts/ToastContext';
 
 function NovoFunilModal({ theme, show, onHide, onSave }) {
+  const { showError, showSuccess } = useToast();
   const [titulo, setTitulo] = useState('');
-  const [numEtapas, setNumEtapas] = useState(1);
-  const [etapas, setEtapas] = useState([
-    { nome: '', cor: '#2ecc71' }
-  ]);
+  const [error, setError] = useState('');
+  const userData = JSON.parse(localStorage.getItem('user'));
+  const schema = userData?.schema;
+  const url = process.env.REACT_APP_URL;
 
-  // Atualiza o array de etapas quando o número de etapas muda
-  React.useEffect(() => {
-    let novasEtapas = [...etapas];
-    if (numEtapas > etapas.length) {
-      while (novasEtapas.length < numEtapas) {
-        novasEtapas.push({ nome: '', cor: '#2ecc71' });
-      }
+  const handleTituloChange = (e) => {
+    const value = e.target.value;
+    setTitulo(value);
+    
+    // Verificar se há espaços
+    if (value.includes(' ')) {
+      setError('O título não pode conter espaços');
     } else {
-      novasEtapas = novasEtapas.slice(0, numEtapas);
+      setError('');
     }
-    setEtapas(novasEtapas);
-    // eslint-disable-next-line
-  }, [numEtapas]);
-
-  const handleEtapaChange = (index, field, value) => {
-    const novasEtapas = etapas.map((etapa, i) =>
-      i === index ? { ...etapa, [field]: value } : etapa
-    );
-    setEtapas(novasEtapas);
   };
 
-  const handleSave = () => {
-    if (!titulo || etapas.some(e => !e.nome || !e.cor)) {
-      alert('Preencha todos os campos obrigatórios.');
+  const handleSave = async () => {
+    if (!titulo) {
+      showError('Preencha o título do funil.');
       return;
     }
-    if (onSave) onSave({ titulo, etapas });
+
+    if (titulo.includes(' ')) {
+      showError('O título não pode conter espaços.');
+      return;
+    }
+
+    try {
+      const response = await axios.post(`${url}/kanban/create-funil`, {
+        sector: titulo,
+        schema: schema
+      },
+        {
+      withCredentials: true
+    });
+      
+      if (response.data) {
+        showSuccess('Funil criado com sucesso!');
+        if (onSave) onSave(response.data);
+      }
+    } catch (error) {
+      console.error(error);
+      showError('Erro ao criar funil. Tente novamente.');
+      return;
+    }
+    
     if (onHide) onHide();
     setTitulo('');
-    setNumEtapas(1);
-    setEtapas([{ nome: '', cor: '#2ecc71' }]);
+    setError('');
   };
 
   if (!show) return null;
@@ -57,58 +74,29 @@ function NovoFunilModal({ theme, show, onHide, onSave }) {
               <label htmlFor="tituloFunil" className={`form-label card-subtitle-${theme}`}>Título do Funil</label>
               <input
                 type="text"
-                className={`form-control input-${theme}`}
+                className={`form-control input-${theme} ${error ? 'is-invalid' : ''}`}
                 id="tituloFunil"
                 value={titulo}
-                onChange={e => setTitulo(e.target.value)}
-                placeholder="Digite o título do funil"
+                onChange={handleTituloChange}
+                placeholder="Digite o título do funil (sem espaços)"
               />
-            </div>
-            {/* Número de Etapas */}
-            <div className="mb-3">
-              <label htmlFor="numEtapas" className={`form-label card-subtitle-${theme}`}>Quantidade de Etapas</label>
-              <input
-                type="number"
-                className={`form-control input-${theme}`}
-                id="numEtapas"
-                min="1"
-                max="10"
-                value={numEtapas}
-                onChange={e => setNumEtapas(Math.max(1, Math.min(10, parseInt(e.target.value) || 1)))}
-              />
-            </div>
-            {/* Inputs das Etapas */}
-            {etapas.map((etapa, idx) => (
-              <div className="row mb-3" key={idx}>
-                <div className="col-8">
-                  <label className={`form-label card-subtitle-${theme}`}>Nome da Etapa</label>
-                  <input
-                    type="text"
-                    className={`form-control input-${theme}`}
-                    value={etapa.nome}
-                    onChange={e => handleEtapaChange(idx, 'nome', e.target.value)}
-                    placeholder={`Nome da etapa ${idx + 1}`}
-                  />
+              {error && (
+                <div className="invalid-feedback d-block">
+                  {error}
                 </div>
-                <div className="col-4 d-flex align-items-end">
-                  <div className="w-100">
-                    <label className={`form-label card-subtitle-${theme}`}>Cor</label>
-                    <input
-                      type="color"
-                      className={`form-control form-control-color border-${theme}`}
-                      value={etapa.cor}
-                      onChange={e => handleEtapaChange(idx, 'cor', e.target.value)}
-                      title="Escolha a cor da etapa"
-                      style={{ width: '100%' , backgroundColor: 'transparent'}}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
+              )}
+            </div>
           </div>
           <div className="modal-footer">
             <button type="button" className={`btn btn-2-${theme}`} onClick={onHide}>Cancelar</button>
-            <button type="button" className={`btn btn-1-${theme}`} onClick={handleSave}>Salvar Funil</button>
+            <button 
+              type="button" 
+              className={`btn btn-1-${theme}`} 
+              onClick={handleSave}
+              disabled={!titulo || titulo.includes(' ')}
+            >
+              Salvar Funil
+            </button>
           </div>
         </div>
       </div>

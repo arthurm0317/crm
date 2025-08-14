@@ -7,6 +7,7 @@ const { Message } = require('../entities/Message');
 const { getCurrentTimestamp } = require('../services/getCurrentTimestamp');
 
 const createInstanceController = async (req, res) => {
+    console.log(req.body)
     try {
         const { instanceName, number } = req.body;
         const schema = req.body.schema
@@ -15,7 +16,7 @@ const createInstanceController = async (req, res) => {
             instanceName: instanceName,
             number: number,
         });
-        console.log(result)
+        console.log(result, 'RESULT')
         const conn = new Connections(result.instance.instanceId, instanceName, number);
         const ress = await createConnection(conn, schema);
 
@@ -51,6 +52,7 @@ const fetchInstanceController = async (req, res) => {
 const sendTextMessageController = async (req, res) => {
     try {
         const body = req.body;
+        const user_id = req.body.user_id || req.user_id;
         const chatId = body.chatId || body.chat_id;
         const schema = body.schema || 'effective_gain';
 
@@ -93,13 +95,11 @@ const sendTextMessageController = async (req, res) => {
             message.quote = body.replyTo;
         }
 
-        console.log("message", message);
-
-        await saveMessage(chatId, message, schema);
+        await saveMessage(chatId, message, schema, user_id);
 
         res.status(200).json({ result });
     } catch (error) {
-        console.error('Erro ao enviar mensagem:', error.message);
+        console.error('Erro ao enviar mensagem:', error);
         res.status(500).json({ error: 'Erro ao enviar mensagem' });
     }
 };

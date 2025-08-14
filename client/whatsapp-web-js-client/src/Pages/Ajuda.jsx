@@ -1,8 +1,77 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from './assets/js/useTheme';
 
 function AjudaPage({ theme }) {
-  const [activeSection, setActiveSection] = useState('dashboard');
+  const [activeSection, setActiveSection] = useState('chats');
+  const [visibleSections, setVisibleSections] = useState({});
+  const [userRole, setUserRole] = useState('');
+
+  // Verificar role do usuário
+  useEffect(() => {
+    const userData = JSON.parse(localStorage.getItem('user'));
+    if (userData && userData.role) {
+      setUserRole(userData.role);
+    }
+  }, []);
+
+  // Verificar quais botões estão visíveis na sidebar
+  useEffect(() => {
+    const checkVisibleButtons = () => {
+      const sections = {
+        dashboard: 'dashboard',
+        chats: 'chats',
+        kanban: 'kanban',
+        filas: 'filas',
+        disparos: 'disparos',
+        usuarios: 'usuarios',
+        whatsapp: 'whatsapp',
+        lembretes: 'lembretes',
+        relatorios: 'relatorios',
+        insights: 'insights',
+        chatinterno: 'chatinterno'
+      };
+
+      const visible = {};
+      
+      Object.entries(sections).forEach(([key, id]) => {
+        const element = document.getElementById(id);
+        if (element) {
+          // Verificar se o elemento está visível (não tem d-none)
+          const isVisible = !element.classList.contains('d-none') && 
+                           element.style.display !== 'none' &&
+                           element.offsetParent !== null;
+          visible[key] = isVisible;
+        }
+      });
+
+      setVisibleSections(visible);
+      
+      // Se a seção ativa não estiver visível E não for a seção técnica, mudar para a primeira visível
+      if (!visible[activeSection] && activeSection !== 'tecinfo') {
+        const firstVisible = Object.keys(visible).find(key => visible[key]);
+        if (firstVisible) {
+          setActiveSection(firstVisible);
+        }
+      }
+    };
+
+    // Verificar imediatamente
+    checkVisibleButtons();
+
+    // Verificar quando a sidebar mudar
+    const observer = new MutationObserver(checkVisibleButtons);
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+      observer.observe(sidebar, { 
+        childList: true, 
+        subtree: true, 
+        attributes: true,
+        attributeFilter: ['class', 'style']
+      });
+    }
+
+    return () => observer.disconnect();
+  }, [activeSection]);
 
   const sections = {
     dashboard: {
@@ -304,8 +373,68 @@ function AjudaPage({ theme }) {
           </div>
         </div>
       )
+    },
+    chatinterno: {
+      title: 'Chat Interno',
+      icon: 'bi-chat-left-text',
+      content: (
+        <div>
+          <h5 className={`header-text-${theme} mb-3`}>Comunicação Interna</h5>
+          <p className={`header-text-${theme}`}>
+            O Chat Interno permite comunicação entre membros da equipe:
+          </p>
+          <ul className={`header-text-${theme}`}>
+            <li>Mensagens instantâneas entre usuários</li>
+            <li>Criação de grupos de trabalho</li>
+            <li>Compartilhamento de arquivos</li>
+            <li>Notificações em tempo real</li>
+            <li>Histórico de conversas</li>
+          </ul>
+          <div className="mt-4">
+            <h6 className={`header-text-${theme}`}>Como Usar:</h6>
+            <ul className={`header-text-${theme}`}>
+              <li><strong>Iniciar Conversa:</strong> Selecione um usuário da lista para iniciar uma conversa</li>
+              <li><strong>Criar Grupo:</strong> Use o botão "Novo Grupo" para criar salas de discussão</li>
+              <li><strong>Enviar Mensagem:</strong> Digite no campo de texto e pressione Enter</li>
+              <li><strong>Compartilhar Arquivo:</strong> Use o botão de anexo para enviar documentos</li>
+              <li><strong>Gerenciar Notificações:</strong> Configure suas preferências de notificação</li>
+            </ul>
+          </div>
+        </div>
+      )
+    },
+    // Seção especial para técnicos
+    tecinfo: {
+      title: 'Informações Técnicas',
+      icon: 'bi-tools',
+      content: (
+        <div>
+          <h5 className={`header-text-${theme} mb-3`}>Módulos Não Documentados</h5>
+          <p className={`header-text-${theme}`}>
+            Os seguintes módulos estão disponíveis na sidebar mas não possuem documentação completa na seção de ajuda:
+          </p>
+          
+          <div className="mt-4">
+            <h6 className={`header-text-${theme}`}>Módulos Disponíveis na Sidebar:</h6>
+            <ul className={`header-text-${theme}`}>
+              <li><strong>Dashboard:</strong> Visão geral do sistema com métricas em tempo real</li>
+              <li><strong>Relatórios:</strong> Geração de relatórios detalhados e análises</li>
+              <li><strong>Insights:</strong> Análise avançada com inteligência artificial</li>
+              <li><strong>Chat Interno:</strong> Sistema de comunicação interna entre usuários</li>
+            </ul>
+          </div>
+        </div>
+      )
     }
   };
+
+  // Filtrar apenas as seções visíveis
+  let visibleSectionsList = Object.entries(sections).filter(([key]) => visibleSections[key]);
+
+  // Adicionar seção técnica se o usuário for técnico
+  if (userRole === 'tecnico') {
+    visibleSectionsList.push(['tecinfo', sections.tecinfo]);
+  }
 
   return (
     <div className="h-100 w-100">
@@ -315,7 +444,7 @@ function AjudaPage({ theme }) {
           <h2 className={`mb-3 ms-3 header-text-${theme}`} style={{ fontWeight: 400 }}>Ajuda</h2>
 
           <div className="d-flex flex-column gap-2 align-items-start">
-            {Object.entries(sections).map(([key, section]) => (
+            {visibleSectionsList.map(([key, section]) => (
               <button
                 key={key}
                 className={`btn ${activeSection === key ? `btn-1-${theme}` : `btn-2-${theme}`} d-flex align-items-center justify-content-center gap-2`}

@@ -1,7 +1,8 @@
 import axios from 'axios';
 import React, { useState } from 'react';
+import * as bootstrap from 'bootstrap';
 
-function DeleteUserModal({ theme, usuario }) {
+function DeleteUserModal({ theme, usuario, onUserDeleted }) {
   const [password, setPassword] = useState('');
   const [showError, setShowError] = useState(false);
   const userData = JSON.parse(localStorage.getItem('user')); 
@@ -10,11 +11,25 @@ function DeleteUserModal({ theme, usuario }) {
   const handleDelete=async()=>{
     try{
       const deletion = await axios.delete(`${url}/api/delete-user`, {
-    data: { user_id: usuario.id, schema:userData.schema },
-    });
-      console.log(deletion)
+        data: { user_id: usuario.id, schema:userData.schema },
+      }, {
+        withCredentials: true
+      });
+      
+      if (onUserDeleted) {
+        onUserDeleted(usuario.id);
+      }
+      
+      // Fechar o modal
+      const modal = document.getElementById('DeleteUserModal');
+      if (modal) {
+        const bootstrapModal = bootstrap.Modal.getInstance(modal);
+        if (bootstrapModal) {
+          bootstrapModal.hide();
+        }
+      }
     }catch(error){
-      console.log('não foi possivel excluir o usuario')
+      console.error('Erro ao deletar usuário:', error);
     }
   }
     

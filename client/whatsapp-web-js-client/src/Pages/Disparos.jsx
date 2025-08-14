@@ -6,6 +6,10 @@ import axios from 'axios';
 import { Card, Button } from 'react-bootstrap';
 import DisparoModal from './modalPages/Disparos_novoDisparo';
 import DeleteDisparoModal from './modalPages/Disparos_delete';
+import { useToast } from '../contexts/ToastContext';
+
+const userData = JSON.parse(localStorage.getItem('user'));
+const isAdmin = userData?.role === 'admin' || userData?.role === 'tecnico';
 
 function formatDateHour(timestamp) {
   let ts = Number(timestamp);
@@ -23,12 +27,25 @@ function formatDateHour(timestamp) {
     timeZoneName: 'short'
   });
 }
+
+function formatInterval(intervalInSeconds) {
+  const seconds = Number(intervalInSeconds);
+  if (seconds >= 3600) {
+    return `${Math.floor(seconds / 3600)}h`;
+  } else if (seconds >= 60) {
+    return `${Math.floor(seconds / 60)}min`;
+  } else {
+    return `${seconds}s`;
+  }
+}
 function DisparosPage({ theme }) {
+  const { showError, showSuccess } = useToast();
   const [disparoSelecionado, setDisparoSelecionado] = useState(null);
   const userData = JSON.parse(localStorage.getItem('user')); 
   const schema = userData?.schema
   const url = process.env.REACT_APP_URL;
   const [disparos, setDisparos] = useState([]);
+  const [conexoes, setConexoes] = useState([]);
 
   const formatarDataHora = (dataHoraString) => {
     const data = new Date(dataHoraString);
@@ -45,28 +62,49 @@ function DisparosPage({ theme }) {
   const handleStartDisparo = async (id) => {
   try {
     await axios.post(`${url}/campaing/start`, { 
-        campaing_id:id,
-        schema:schema,
-        timer:1000 });
-    // Opcional: atualizar lista ou mostrar feedback
-    alert('Campanha iniciada!');
+        campaing_id: id,
+        schema: schema
+    },
+        {
+      withCredentials: true
+    });
+    showSuccess('Campanha iniciada!');
   } catch (error) {
     console.error('Erro ao iniciar disparo:', error);
-    alert('Erro ao iniciar disparo');
+    showError('Erro ao iniciar disparo');
   }
 };
 
   useEffect(() => {
     const fetchDisparos = async()=>{
       try{
-        const response = await axios.get(`${url}/campaing/get-campaing/${schema}`)
+        const response = await axios.get(`${url}/campaing/get-campaing/${schema}`,
+        {
+      withCredentials: true
+    })
         setDisparos(response.data);
       }catch(error){
         console.error('Erro ao buscar disparos:', error);
       }
     }
     fetchDisparos();
-  })
+  }, [url, schema])
+
+  useEffect(() => {
+    const fetchConexoes = async()=>{
+      try{
+        const response = await axios.get(`${url}/connection/get-all-connections/${schema}`,
+        {
+      withCredentials: true
+    })
+        setConexoes(Array.isArray(response.data) ? response.data : []);
+      }catch(error){
+        console.error('Erro ao buscar conexões:', error);
+        setConexoes([]);
+      }
+    }
+    fetchConexoes();
+  }, [url, schema])
   
   // Inicialização dos tooltips
   useEffect(() => {
@@ -126,12 +164,36 @@ function DisparosPage({ theme }) {
   };
 
   const handleDisparoDeleted = () => {
-    // Aqui você implementará a atualização da lista após a exclusão
-    // Por enquanto, vamos apenas simular removendo do estado local
-    if (disparoSelecionado) {
-      setDisparos(disparos.filter(d => d.id !== disparoSelecionado.id));
-      setDisparoSelecionado(null);
+    // Recarregar lista após exclusão
+    const fetchDisparos = async()=>{
+      try{
+        const response = await axios.get(`${url}/campaing/get-campaing/${schema}`,
+        {
+      withCredentials: true
+    })
+        setDisparos(response.data);
+      }catch(error){
+        console.error('Erro ao buscar disparos:', error);
+      }
     }
+    fetchDisparos();
+    setDisparoSelecionado(null);
+  };
+
+  const handleDisparoSaved = () => {
+    // Recarregar lista de disparos
+    const fetchDisparos = async()=>{
+      try{
+        const response = await axios.get(`${url}/campaing/get-campaing/${schema}`,
+        {
+      withCredentials: true
+    })
+        setDisparos(response.data);
+      }catch(error){
+        console.error('Erro ao buscar disparos:', error);
+      }
+    }
+    fetchDisparos();
   };
 
   return (
@@ -149,6 +211,8 @@ function DisparosPage({ theme }) {
           <button 
             className={`btn btn-1-${theme} d-flex gap-2`}
             onClick={handleNovoDisparo}
+            disabled={!isAdmin}
+
           >
             <i className="bi-plus-lg"></i>
             Novo Disparo
@@ -174,6 +238,28 @@ function DisparosPage({ theme }) {
                 <div className={`header-text-${theme} mb-1`}>
                   Início: {formatDateHour(disparo.start_date)}
                 </div>
+                <div className={`header-text-${theme} mb-1`}>
+                  Intervalo: <span className={`fw-bold`}>
+                    {formatInterval(disparo.timer)}
+                  </span>
+                </div>
+                <div className={`header-text-${theme} mb-1`}>
+                  Canais: <span className={`fw-bold`}>
+                    {disparo.connection_id ? 
+                      (Array.isArray(disparo.connection_id) ? 
+                        disparo.connection_id.map(id => {
+                          const conexao = conexoes.find(conn => conn.id === id);
+                          return conexao ? conexao.name : `Canal ID: ${id}`;
+                        }).join(', ') :
+                        disparo.connection_id.split(',').map(id => {
+                          const conexao = conexoes.find(conn => conn.id === id.trim());
+                          return conexao ? conexao.name : `Canal ID: ${id.trim()}`;
+                        }).join(', ')
+                      ) : 
+                      'Nenhum canal'
+                    }
+                  </span>
+                </div>
                 <div className={`header-text-${theme}`}>
                   Status: <span className={`fw-bold`}>
                     {disparo.status}
@@ -193,6 +279,8 @@ function DisparosPage({ theme }) {
         data-bs-placement="left"
         data-bs-title="Editar"
         onClick={() => handleEdit(disparo.id)}
+        disabled={!isAdmin}
+
       >
         <i className="bi bi-pencil-fill"></i>
       </button>
@@ -203,10 +291,12 @@ function DisparosPage({ theme }) {
         data-bs-placement="left"
         data-bs-title="Excluir"
         onClick={() => handleDelete(disparo.id)}
+        disabled={!isAdmin}
+
       >
         <i className="bi bi-trash-fill"></i>
       </button>
-      <button
+      {/* <button
         className={`btn success-btn`}
         data-bs-toggle="tooltip"
         data-bs-placement="left"
@@ -214,9 +304,11 @@ function DisparosPage({ theme }) {
         onClick={() =>{
           handleStartDisparo(disparo.id)
         }} 
+        disabled={!isAdmin}
+
       >
         <i className="bi bi-play-fill"></i>
-      </button>
+      </button> */}
     </div>
   </div>
 ))}
@@ -224,7 +316,7 @@ function DisparosPage({ theme }) {
       </div>
 
       {/* Modal de Novo/Editar Disparo */}
-      <DisparoModal theme={theme} disparo={disparoSelecionado} />
+      <DisparoModal theme={theme} disparo={disparoSelecionado} onSave={handleDisparoSaved} />
 
       {/* Modal de Exclusão */}
       <DeleteDisparoModal theme={theme} disparo={disparoSelecionado} onDelete={handleDisparoDeleted} />

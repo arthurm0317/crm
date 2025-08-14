@@ -22,9 +22,11 @@ function NewContactModal({ theme, show, onHide }) {
 
   useEffect(() => {
     const fetchConnections = async () => {
-      console.log(userData.id)
       try {
-        const response = await axios.get(`${url}/connection/get-all-connections/${schema}`);
+        const response = await axios.get(`${url}/connection/get-all-connections/${schema}`,
+        {
+      withCredentials: true
+    });
         setConnections(response.data);
       } catch (error) {
         console.error('Erro ao buscar conexões:', error);
@@ -46,16 +48,21 @@ if (!userData || !userData.id) {
       return;
     }
   
+    // Limpa o número removendo todos os caracteres não numéricos
+    const numeroLimpo = contactNumber.replace(/\D/g, '');
+  
     try {
-      const newContact = await axios.post('http://localhost:3000/contact/create-contact', {
+      const newContact = await axios.post(`${url}/contact/create-contact`, {
         name: contactName,
-        number: contactNumber,
+        number: numeroLimpo,
         connection: attendant, 
         user_id: userData.id,
         schema: userData.schema,
-      });
+      },
+        {
+      withCredentials: true
+    });
   
-      console.log('Contato criado com sucesso:', newContact.data);
   
       setContactName('');
       setContactNumber('');
@@ -114,12 +121,12 @@ if (!userData || !userData.id) {
             Contato
           </label>
           <InputMask
-            mask="+55 (99) 99999-9999"
+            mask="+55 (99) 9999-9999"
             className={`form-control input-${theme}`}
             id="contactNumber"
             value={contactNumber}
             onChange={(e) => setContactNumber(e.target.value)}
-            placeholder="+55 (__) _____-____"
+            placeholder="+55 (__) ____-____"
           />
         </div>
 

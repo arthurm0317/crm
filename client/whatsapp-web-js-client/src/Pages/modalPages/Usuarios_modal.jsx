@@ -38,9 +38,11 @@ function NewUserModal({ theme, type }) {
         role: userRole,
         password: password,
         schema: schema
-      });
+      },
+        {
+      withCredentials: true
+    });
 
-      console.log('Usuário criado:', response.data);
 
       setUserName('');
       setUserEmail('');

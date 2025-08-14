@@ -9,6 +9,13 @@ import UsuariosPage from './Pages/Usuarios';
 import Painel from './Pages/Index';
 import SchemasPage from './Pages/Schemas';
 import reportWebVitals from './reportWebVitals';
+import { ToastProvider } from './contexts/ToastContext';
+import Toast from './Componentes/Toast';
+import ToastWrapper from './Componentes/ToastWrapper';
+
+// Importar configuração global do axios
+import './utils/axiosConfig';
+import { setToastCallback } from './utils/axiosConfig';
 
 // Importar estilos
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -47,7 +54,12 @@ const root = ReactDOM.createRoot(rootElement);
 // Renderizar a aplicação com StrictMode
 root.render(
   <React.StrictMode>
-    <RouterProvider router={router} />
+    <ToastProvider>
+      <ToastWrapper>
+        <RouterProvider router={router} />
+        <Toast />
+      </ToastWrapper>
+    </ToastProvider>
   </React.StrictMode>
 );
 

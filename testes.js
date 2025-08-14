@@ -1,6 +1,10 @@
-const { getKanbanStages } = require("./services/KanbanService");
-function teste(){
+const { getExpensesById } = require("./services/ExpensesService");
+const { createChatCompletion } = require("./services/OpenAi");
+const { getGptResponse, createReport } = require("./services/ReportService");
 
-    getKanbanStages('kanban_vendas', 'effective_gain')
+
+const test = async () => {
+    await getExpensesById('b4b5f2ac-e74e-44ab-9f97-ea8ebc238cdd', 'effective_gain')
 }
-teste()
+
+test()

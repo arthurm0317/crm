@@ -12,7 +12,9 @@ function NewQueueModal({ theme, superUsers = [] }) {
   useEffect(() => {
     const fetchUsuarios = async () => {
       try {
-        const response = await axios.get(`${process.env.REACT_APP_URL}/api/users/${schema}`);
+        const response = await axios.get(`${process.env.REACT_APP_URL}/api/users/${schema}`, {
+  withCredentials: true
+});
 
         setUser(response.data.users || []);
       } catch (error) {
@@ -34,17 +36,14 @@ function NewQueueModal({ theme, superUsers = [] }) {
         super_user: superUser,
         schema: schema,
         distribution: autoDistribution,
-      })
-      console.log(response.data)
+      },
+        {
+      withCredentials: true
+    })
     }catch(error){
       console.error('Erro ao salvar a fila:', error);
       return;
     }
-    console.log({
-      title,
-      superUser,
-      autoDistribution,
-    });
     setTitle('');
     setSuperUser('');
     setAutoDistribution(false);

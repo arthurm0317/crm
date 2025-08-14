@@ -6,7 +6,17 @@ const createInstance = async ({ instanceName, number }) => {
     instanceName,
     number,
     integration: "WHATSAPP-BAILEYS",
-    qrcode: true
+    qrcode: true,
+    groupsIgnore: true,
+    webhook:{
+      url:`${process.env.BACKEND_URL}/webhook/chat`,
+      base64:true,
+      byEvents:false,
+      headers: {
+      authorization: process.env.EVOLUTION_API_KEY,
+      },
+    events:['MESSAGES_UPSERT']
+    },
   };
 
   const options = {
@@ -60,7 +70,6 @@ const sendTextMessage = async(instanceId, text, number)=>{
   try {
     const response = await fetch(`${process.env.EVOLUTION_SERVER_URL}/message/sendText/${instanceId}`, options);
     const result = await response.json();
-    console.log(result)
     
     return result;
   } catch (err) {
@@ -68,7 +77,6 @@ const sendTextMessage = async(instanceId, text, number)=>{
   }
 }
 const getBase64FromMediaMessage = async (instanceId, mediaKey) => {
-  console.log(instanceId)
   try {
     if (!process.env.EVOLUTION_SERVER_URL) {
       throw new Error('EVOLUTION_SERVER_URL não está configurado no arquivo .env');
@@ -91,7 +99,6 @@ const getBase64FromMediaMessage = async (instanceId, mediaKey) => {
       }
     );
 
-    console.log('Base64 decodificado com sucesso:', response.data);
     return response.data;
   } catch (error) {
     console.error('Erro ao decodificar mídia:', error.message);
@@ -118,7 +125,6 @@ const searchContact = async (remoteJid, instanceId) => {
   try {
     const response = await fetch(`${process.env.EVOLUTION_SERVER_URL}/chat/findContacts/${instanceId}`, options);
     const result = await response.json();
-    console.log(result);
 
     return result;
   } catch (err) {
@@ -140,7 +146,6 @@ const sendImageToWhatsApp = async (number, imageBase64, instanceId) => {
     }
 
     const url = `${process.env.EVOLUTION_SERVER_URL}/message/sendMedia/${instanceId}`;
-    console.log('URL gerada:', url);
 
     const response = await axios.post(url, {
       number: number,
@@ -209,6 +214,36 @@ const deleteInstance=async (instanceName) => {
   
 }
 
+const sendMediaForBlast = async (instanceId, text, image, number) => {
+
+  const requestBody = { 
+    number: number,
+    mediatype: 'image',
+    caption: text,
+    media: image 
+  };
+
+
+  const options = {
+    method: 'POST',
+    headers: {
+      apikey: process.env.EVOLUTION_API_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody) 
+  };
+
+  try {
+    const response = await fetch(`${process.env.EVOLUTION_SERVER_URL}/message/sendMedia/${instanceId}`, options)
+    const result = await response.json();
+    return result;
+
+  } catch (error) {
+    console.error('Erro ao enviar mensagem:', error);
+  }
+};
+
+
 module.exports = {
   createInstance,
   fetchInstanceEvo,
@@ -217,8 +252,8 @@ module.exports = {
   sendAudioToWhatsApp,
   getBase64FromMediaMessage,
   sendImageToWhatsApp,
-  deleteInstance
-
+  deleteInstance,
+  sendMediaForBlast
 };
 
 

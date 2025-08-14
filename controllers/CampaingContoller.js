@@ -1,14 +1,14 @@
-const { scheduleCampaingBlast, getCampaings, getCampaingById, createCampaing } = require("../services/CampaingService");
-const { createMessageForBlast, getAllBlastMessages } = require("../services/MessageBlast");
+const { scheduleCampaingBlast, getCampaings, getCampaingById, createCampaing, startCampaing, deleteCampaing } = require("../services/CampaingService");
+const { createMessageForBlast, getAllBlastMessages, deleteAllBlastMessages } = require("../services/MessageBlast");
 
 const startCampaingController = async (req, res) => {
-  const { campaing_id, timer } = req.body;
+  const { campaing_id } = req.body;
   const schema = req.body.schema;
   try {
-    const result = await startCampaingRedis(campaing_id, timer, schema);
+    const result = await startCampaing(campaing_id, null, schema);
     res.status(201).json(result);
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).json({
       erro: 'Não foi possível iniciar a campanha',
     });
@@ -31,7 +31,7 @@ const getCampaingsController = async (req, res) => {
 const getCampaingByIdController = async (req, res) => {
   const { campaing_id, schema } = req.params;
   try {
-    const result = await getCampaingById(campaing_id, schema.schema);
+    const result = await getCampaingById(campaing_id, schema);
     res.status(200).json(result);
   } catch (error) {
     console.error(error);
@@ -39,25 +39,42 @@ const getCampaingByIdController = async (req, res) => {
 };
 
 const createCampaingController = async (req, res) => {
-  const {campaing_id, name, sector, kanban_stage, connection_id, start_date, schema, mensagem } = req.body;
+  const {campaing_id, name, sector, kanban_stage, connection_id, start_date, schema, mensagem, intervalo, new_stage } = req.body;
+  console.log(new_stage, 'new_stage');
+  if (!schema) {
+    return res.status(400).json({ erro: 'Schema não informado!' });
+  }
   try {
+    let campaing;
+
     if(campaing_id){
-      const campaing = await createCampaing(campaing_id, name, sector, kanban_stage, connection_id, start_date, schema);
-      return campaing
+      campaing = await createCampaing(campaing_id, name, sector, kanban_stage, connection_id, start_date, schema, intervalo);
+      console.log('Campanha atualizada:', campaing);
+    } else {
+      campaing = await createCampaing(null, name, sector, kanban_stage, connection_id, start_date, schema, intervalo);
+      console.log('Campanha criada:', campaing);
     }
-      const campaing = await createCampaing(name, sector, kanban_stage, connection_id, start_date, schema);
+
+    // Deletar todas as mensagens existentes da campanha antes de salvar as novas
+    await deleteAllBlastMessages(campaing.id, schema);
 
     if (mensagem && Array.isArray(mensagem)) {
-      for (const msg of mensagem) {
-        await createMessageForBlast(msg, sector, campaing.id, schema);
+      for (const [index, item] of mensagem.entries()) {
+        const texto = typeof item === 'object' ? item.text : item;
+        const imagem = typeof item === 'object' ? item.image : null;
+        
+        await createMessageForBlast(null, texto, sector, campaing.id, schema, imagem);
       }
-    } else if (mensagem) {
-      await createMessageForBlast(msg, sector, campaing.id, schema);
+    }else if (mensagem) {
+      const texto = typeof mensagem === 'object' ? mensagem.text : mensagem;
+      const imagem = typeof mensagem === 'object' ? mensagem.image : null;
+      await createMessageForBlast(null, texto, sector, campaing.id, schema, imagem);
     }
 
-    await scheduleCampaingBlast(campaing, schema);
+    await scheduleCampaingBlast(campaing, campaing.sector, schema, intervalo, new_stage);
 
-    res.status(201).json(campaing);
+    return res.status(201).json(campaing);
+    
   } catch (error) {
     console.error('Erro ao criar campanha:', error);
     res.status(500).json({
@@ -65,6 +82,7 @@ const createCampaingController = async (req, res) => {
     });
   }
 };
+
 
 const getAllBlastMessagesController = async(req, res)=>{
   try {
@@ -81,10 +99,28 @@ const getAllBlastMessagesController = async(req, res)=>{
   }
 }
 
+const deleteCampaingController = async(req, res)=>{
+  try {
+    const {campaing_id, schema} = req.params
+    const result = await deleteCampaing(campaing_id, schema)
+    res.status(200).json({
+      success: true,
+      message: 'Campanha deletada com sucesso',
+      result
+    })
+  } catch (error) {
+    console.error('Erro ao deletar campanha:', error)
+    res.status(500).json({
+      error: 'Erro ao deletar campanha'
+    })
+  }
+}
+
 module.exports = {
   startCampaingController,
   getCampaingsController,
   getCampaingByIdController,
   createCampaingController,
-  getAllBlastMessagesController
+  getAllBlastMessagesController,
+  deleteCampaingController
 };

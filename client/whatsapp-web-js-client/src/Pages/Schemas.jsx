@@ -10,6 +10,11 @@ function SchemasPage({ theme: themeProp }) {
   const [selectedSchema, setSelectedSchema] = useState(null);
   const [filter, setFilter] = useState('');
   const [theme, setTheme] = useTheme(themeProp);
+  const [newSchema, setNewSchema] = useState({
+    schema_name: '',
+    name: '',
+    superAdmin: { email: '', password: '', name: '' }
+  });
 
   const url = process.env.REACT_APP_URL;
   const navigate = useNavigate();
@@ -22,7 +27,10 @@ function SchemasPage({ theme: themeProp }) {
   useEffect(() => {
     async function fetchSchemas() {
       try {
-        const response = await axios.get(`${url}/company/tecnico`);
+        const response = await axios.get(`${url}/company/tecnico`,
+        {
+      withCredentials: true
+    });
         setSchemas(Array.isArray(response.data) ? response.data : response.data.empresas || []);
       } catch (error) {
         console.error('Erro ao buscar schemas:', error);
@@ -57,38 +65,85 @@ function SchemasPage({ theme: themeProp }) {
     document.cookie = `theme=${newTheme}`;
     setTheme(newTheme);
   };
+const handleCreateSchema = async (e) => {
+  e.preventDefault();
+  try {
+    await axios.post(`${url}/company/company`, newSchema,
+        {
+      withCredentials: true
+    });
+    const response = await axios.get(`${url}/company/tecnico`,
+        {
+      withCredentials: true
+    });
+    setSchemas(Array.isArray(response.data) ? response.data : response.data.empresas || []);
+   setNewSchema({
+      schema_name: '',
+      name: '',
+      superAdmin: { email: '', password: '', name: '' }
+    });
+  } catch (error) {
+    console.error('Erro ao criar schema:', error);
+  }
+};
+
+  const handleUpdateSchema = async (schemaName) => {
+    try {
+      const response = await axios.post(`${url}/company/update-schema`, 
+        { schema: schemaName },
+        { withCredentials: true }
+      );
+      
+      alert(response.data.message);
+    } catch (error) {
+      console.error('Erro ao atualizar schema:', error);
+      alert('Erro ao atualizar schema: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const toggleNewSchemaPanel = (show) => {
+    const panel = document.querySelector('.new-schema-panel');
+    if (show) {
+      panel.classList.remove('d-none');
+    } else {
+      panel.classList.add('d-none');
+    }
+  };
 
   return (
     <div
       className={`d-flex justify-content-center align-items-center bg-screen-${theme}`}
-      style={{ height: '100vh', backgroundSize: 'cover', backgroundPosition: 'center', transition: 'background-color 0.3s ease' }}
+      style={{ height: '100vh', width: '100vw', backgroundSize: 'cover', backgroundPosition: 'center' }}
     >
-      <div className="w-100 h-100 d-flex flex-column justify-content-center align-items-center">
-        <div className="w-60 w-md-40 mb-4 d-flex justify-content-center align-items-center">
-          <img src={logo} className="w-50" alt="Logo" />
-        </div>
-        <div className={`col-9 col-md-8 col-lg-6 col-xl-4 max-w-450 p-4 bg-form-${theme} rounded shadow position-relative`}>
-          <div className="d-flex flex-row align-items-center justify-content-between mb-4 mt-2 mx-3">
+      <div className="d-flex flex-row align-items-center justify-content-center" style={{ width: '70vw', maxWidth: 1100, gap: '2rem', height: 550 }}>
+        {/* Escolha de Schema */}
+        <div className={`bg-form-${theme} rounded shadow p-4 d-flex flex-column align-items-center justify-content-between`} style={{ width: '60%', minWidth: 320, height: '75%' }}>
+          <div className="w-100 d-flex flex-row align-items-center justify-content-between mb-4 mt-2">
             <div className="d-flex align-items-center">
               <i className={`bi bi-bounding-box header-text-${theme} fs-3 me-2`}></i>
               <h2 className={`ms-3 header-text-${theme} m-0`} style={{ fontWeight: 400, fontSize: '1.5rem' }}>Escolha um Schema</h2>
             </div>
-            
             <div className="d-flex flex-row align-items-center gap-2">
-            <button
-              type="button"
-              className={`btn btn-2-${theme}`}
-              onClick={toggleTheme}
-              style={{ zIndex: 2 }}
-              aria-label="Alternar tema"
-            >
-              <i className={`${theme === 'light' ? `bi-sun` : `bi-moon-stars`}`}></i>
-            </button>
-            <button id="sair" type="button" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Sair" className={`btn btn-2-${theme} toggle-${theme}`} onClick={handleLogout}>
+              <button
+                type="button"
+                className={`btn btn-2-${theme}`}
+                onClick={() => toggleNewSchemaPanel(true)}
+                aria-label="Criar novo schema"
+              >
+                <i className="bi bi-plus-lg"></i>
+              </button>
+              <button
+                type="button"
+                className={`btn btn-2-${theme}`}
+                onClick={toggleTheme}
+                aria-label="Alternar tema"
+              >
+                <i className={`${theme === 'light' ? `bi-sun` : `bi-moon-stars`}`}></i>
+              </button>
+              <button id="sair" type="button" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Sair" className={`btn btn-2-${theme} toggle-${theme}`} onClick={handleLogout}>
                 <i className="bi bi-door-open"></i>
               </button>
             </div>
-
           </div>
           <input
             type="text"
@@ -100,7 +155,7 @@ function SchemasPage({ theme: themeProp }) {
           {loading ? (
             <div className={`text-center header-text-${theme}`}>Carregando schemas...</div>
           ) : (
-            <div className="d-flex flex-column gap-3">
+            <div className="d-flex flex-column gap-3 w-100 overflow-y-auto" style={{ maxHeight: '170px' }}>
               {filteredSchemas.length === 0 ? (
                 <div className="text-center text-muted">Nenhum resultado encontrado</div>
               ) : (
@@ -110,12 +165,21 @@ function SchemasPage({ theme: themeProp }) {
                     className={`card-${theme} d-flex flex-row align-items-center justify-content-between rounded shadow-sm px-4 py-3`}
                   >
                     <span className={`header-text-${theme} fw-semibold`} style={{ fontSize: '1.1rem' }}>{schema.company_name || schema}</span>
-                    <button
-                      className={`btn btn-2-${theme}`}
-                      onClick={() => handleEnterSchema(schema)}
-                    >
-                      Entrar
-                    </button>
+                    <div className="d-flex gap-2">
+                      <button
+                        className={`btn btn-2-${theme}`}
+                        onClick={() => handleUpdateSchema(schema.schema_name || schema)}
+                        title="Atualizar Schema"
+                      >
+                        <i className="bi bi-arrow-clockwise"></i>
+                      </button>
+                      <button
+                        className={`btn btn-2-${theme}`}
+                        onClick={() => handleEnterSchema(schema)}
+                      >
+                        Entrar
+                      </button>
+                    </div>
                   </div>
                 ))
               )}
@@ -126,6 +190,89 @@ function SchemasPage({ theme: themeProp }) {
               Schema selecionado: <strong>{selectedSchema}</strong>
             </div>
           )}
+        </div>
+        {/* Novo Schema */}
+        <div
+          className={`bg-form-${theme} rounded shadow p-4 d-flex flex-column align-items-center justify-content-center d-none new-schema-panel`}
+          style={{
+            width: '30%',
+            minWidth: 320,
+            gap: '1.5rem',
+            alignSelf: 'center',
+            height: '75%'
+          }}
+        >
+          <div className="w-100 d-flex justify-content-between align-items-center mb-2">
+            <h3 className={`header-text-${theme} m-0`} style={{fontWeight: 600, fontSize: '1.3rem'}}>Novo Schema</h3>
+            <button
+              className={`btn btn-2-${theme}`}
+              onClick={() => toggleNewSchemaPanel(false)}
+              aria-label="Fechar painel novo schema"
+              style={{ border: 'none' }}
+            >
+              <i className="bi bi-x-lg"></i>
+            </button>
+          </div>
+          <form onSubmit={handleCreateSchema} className="w-100 d-flex flex-column gap-3">
+  <div className="input-group">
+    <span className={`input-group-text igt-${theme}`}><i className="bi bi-diagram-3"></i></span>
+    <input
+      type="text"
+      className={`form-control input-${theme}`}
+      placeholder="Nome do Schema"
+      value={newSchema.schema_name}
+      onChange={e => setNewSchema({ ...newSchema, schema_name: e.target.value })}
+      required
+    />
+  </div>
+            <div className="input-group">
+              <span className={`input-group-text igt-${theme}`}><i className="bi bi-briefcase"></i></span>
+              <input
+                type="text"
+                className={`form-control input-${theme}`}
+                placeholder="Nome da Empresa"
+                value={newSchema.name}
+                onChange={e => setNewSchema({...newSchema, name: e.target.value})}
+                required
+              />
+            </div>
+  <div className="input-group">
+    <span className={`input-group-text igt-${theme}`}><i className="bi bi-person"></i></span>
+    <input
+      type="text"
+      className={`form-control input-${theme}`}
+      placeholder="Nome do Admin"
+      value={newSchema.superAdmin.name}
+      onChange={e => setNewSchema({ ...newSchema, superAdmin: { ...newSchema.superAdmin, name: e.target.value } })}
+      required
+    />
+  </div>
+  <div className="input-group">
+    <span className={`input-group-text igt-${theme}`}><i className="bi bi-envelope"></i></span>
+    <input
+      type="email"
+      className={`form-control input-${theme}`}
+      placeholder="Email do Admin"
+      value={newSchema.superAdmin.email}
+      onChange={e => setNewSchema({ ...newSchema, superAdmin: { ...newSchema.superAdmin, email: e.target.value } })}
+      required
+    />
+  </div>
+  <div className="input-group">
+    <span className={`input-group-text igt-${theme}`}><i className="bi bi-key"></i></span>
+    <input
+      type="password"
+      className={`form-control input-${theme}`}
+      placeholder="Senha do Admin"
+      value={newSchema.superAdmin.password}
+      onChange={e => setNewSchema({ ...newSchema, superAdmin: { ...newSchema.superAdmin, password: e.target.value } })}
+      required
+    />
+  </div>
+  <button type="submit" className={`btn btn-1-${theme} w-100`}>
+    Criar Schema
+  </button>
+</form>
         </div>
       </div>
     </div>

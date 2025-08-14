@@ -44,12 +44,14 @@ function WhatsappNovoContatoModal({ theme, show, onHide, onSave }) {
     setQrCode(null);
 
     try {
-      console.log(nome, numeroLimpo)
       const response = await axios.post(`${url}/evo/instance`, {
         instanceName: nome,
         number: numeroLimpo,
         schema: schema
-      });
+      },
+        {
+      withCredentials: true
+    });
       // Supondo que o QR Code vem em response.data.result.qrcode.base64
       if (response.data?.result?.qrcode?.base64) {
         setQrCode(response.data.result.qrcode.base64);

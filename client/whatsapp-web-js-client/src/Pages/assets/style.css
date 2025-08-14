@@ -130,6 +130,7 @@
     background-color: transparent;
     border-color: var(--primary-color);
     color: var(--primary-color);
+    cursor: pointer;
 }
 .btn-2-light:hover {
     background-color: transparent;
@@ -141,6 +142,7 @@
     background-color: transparent;
     border-color: var(--primary-color);
     color: var(--primary-color);
+    cursor: pointer;
 }
 .btn-2-dark:hover {
     background-color: transparent;
@@ -365,10 +367,12 @@ a {
     color: var(--bg-color-dark);
 }
 .sidebar-collapsed {
-    width: 75px !important;
+    width: 4.93vw !important; /* 75 / 1521 * 100 */
+    max-width: 75px !important;
 }
 .sidebar-expanded {
-    width: 200px !important;
+    width: 13.15vw !important; /* 200 / 1521 * 100 */
+    max-width: 200px !important;
 }
 .sidebar-expanded .sidebar-label {
     display: inline !important;
@@ -383,6 +387,16 @@ a {
 .header-text-dark {
     color: var(--color-dark);
 }
+
+.text-muted-light {
+    color: var(--color-light);
+    opacity: 0.75;
+}
+.text-muted-dark {
+    color: var(--color-dark);
+    opacity: 0.75;
+}
+
 .border-light {
     border: 1px solid var(--border-color-light) !important;
 }
@@ -730,4 +744,413 @@ input[type="range"]::-moz-range-progress {
 }
 .toast.bg-dark .toast-header {
   border-bottom: 1px solid var(--border-color-dark);
+}
+
+.dp-light {
+    background-color: var(--bg-form-light);
+    color: var(--color-light);
+    cursor: pointer;
+}
+.dp-dark {
+    background-color: var(--bg-form-dark);
+    color: var(--color-dark);
+    cursor: pointer;
+}
+
+.dp-light:hover {
+    background-color: var(--hover);
+    color: var(--color-light);
+    cursor: pointer;
+}
+.dp-dark:hover {
+    background-color: var(--bg-color-light);
+    color: var(--color-light);
+    cursor: pointer;
+}
+
+::part(progress){
+    height: 35px;
+}
+::part(wrapper){
+    display: grid;
+}
+::part(scroll){
+    display: flex;
+}
+
+.waveform * {
+    width: 100%;
+    display: flex;
+    height: 35px;
+}
+
+/* Estilos para o dropdown customizado */
+.dropdown-item {
+    color: var(--text-color-light);
+    transition: background-color 0.2s;
+}
+
+.dropdown-item:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.dropdown-item:active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* Estilos para o dropdown dos chats com cores corretas */
+.chat-dropdown-menu {
+    background-color: var(--bg-color-light) !important;
+    border-color: var(--border-color-light) !important;
+}
+
+.chat-dropdown-menu .dropdown-item {
+    color: var(--text-color-light) !important;
+}
+
+.chat-dropdown-menu .dropdown-item:hover {
+    background-color: var(--primary-color) !important;
+    color: white !important;
+}
+
+/* Versão dark */
+.chat-dropdown-menu.dark {
+    background-color: var(--bg-color-dark) !important;
+    border-color: var(--border-color-dark) !important;
+}
+
+.chat-dropdown-menu.dark .dropdown-item {
+    color: var(--text-color-dark) !important;
+}
+
+.chat-dropdown-menu.dark .dropdown-item:hover {
+    background-color: var(--primary-color) !important;
+    color: white !important;
+}
+
+/* Estilos específicos para o dropdown dos chats */
+.chat-dropdown-menu {
+    z-index: 9999 !important;
+    position: absolute !important;
+    overflow: visible !important;
+    right: 0 !important;
+    left: auto !important;
+    top: 100% !important;
+    transform: none !important;
+}
+
+.chat-dropdown-menu.show {
+    display: block !important;
+    position: absolute !important;
+    transform: none !important;
+    inset: auto !important;
+    right: 0 !important;
+    left: auto !important;
+    top: 100% !important;
+}
+
+/* Garantir que o dropdown não seja cortado */
+.chat .dropdown {
+    position: relative !important;
+    overflow: visible !important;
+}
+
+.chat .dropdown-menu {
+    margin-top: 0.125rem !important;
+    margin-left: 0 !important;
+    min-width: 200px !important;
+    left: auto !important;
+    right: 0 !important;
+    transform-origin: bottom right !important;
+}
+
+/* Ajuste específico para o dropdown de opções dos chats */
+.chat .dropdown[data-bs-popper="static"] .dropdown-menu {
+    position: absolute !important;
+    top: 100% !important;
+    right: 0 !important;
+    left: auto !important;
+    transform: none !important;
+}
+
+/* Forçar posicionamento correto do dropdown de opções */
+.chat .dropdown-menu.show {
+    position: absolute !important;
+    top: 100% !important;
+    right: 0 !important;
+    left: auto !important;
+    transform: none !important;
+    margin-top: 0.125rem !important;
+    margin-right: 0 !important;
+    margin-left: auto !important;
+}
+.custom-values-modal .modal-dialog {
+  max-width: 350px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+.custom-values-modal .modal-content {
+  min-width: 250px;
+  width: 100%;
+  margin: 0 auto;
+  border-radius: 16px;
+  box-shadow: 0 6px 32px 0 rgba(0,0,0,0.18);
+  border: 1.5px solid var(--border-color-light);
+  transition: background-color var(--TT), border-color var(--TT);
+}
+.custom-values-modal .modal-content.bg-form-dark {
+  border: 1.5px solid var(--border-color-dark);
+  background: var(--bg-color-dark);
+}
+.custom-values-modal .modal-content.bg-form-light {
+  border: 1.5px solid var(--border-color-light);
+  background: var(--bg-color-light);
+}
+.custom-values-modal .modal-header, .custom-values-modal .modal-footer {
+  border-radius: 16px 16px 0 0;
+  border: none;
+}
+.custom-values-modal .modal-footer {
+  border-radius: 0 0 16px 16px;
+  border: none;
+}
+.custom-values-modal .list-group-item {
+  border-radius: 8px;
+  margin-bottom: 6px;
+  border-width: 1.2px;
+  font-size: 1rem;
+  background: var(--input-bg-color-light);
+  color: var(--color-light);
+  border-color: var(--border-color-light);
+  transition: background-color var(--TT), color var(--TT), border-color var(--TT);
+}
+.bg-form-dark .custom-values-modal .list-group-item {
+  background: var(--input-bg-color-dark);
+  color: var(--color-dark);
+  border-color: var(--border-color-dark);
+}
+.custom-values-modal .list-group-item:last-child {
+  margin-bottom: 0;
+}
+.custom-values-modal .form-control.input-light {
+  background: var(--input-bg-color-light);
+  color: var(--color-light);
+  border-color: var(--border-color-light);
+}
+.custom-values-modal .form-control.input-dark {
+  background: var(--input-bg-color-dark);
+  color: var(--color-dark);
+  border-color: var(--border-color-dark);
+}
+.custom-values-modal .form-control:focus {
+  box-shadow: 0 0 0 0.15rem var(--primary-color);
+  border-color: var(--primary-color);
+}
+.custom-values-modal .form-check-input:focus {
+  box-shadow: 0 0 0 0.15rem var(--primary-color);
+}
+.custom-values-modal .form-check-input:checked {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+.custom-values-modal .form-check-label {
+  font-size: 1rem;
+}
+.custom-values-modal .bi-info-circle {
+  font-size: 1.2rem;
+  vertical-align: middle;
+}
+.custom-values-modal [data-bs-toggle="tooltip"] {
+  color: var(--primary-color);
+  outline: none;
+}
+.custom-values-modal [data-bs-toggle="tooltip"]:focus {
+  color: var(--primary-hover-color-light);
+}
+.custom-values-modal .modal-footer .btn-primary:disabled {
+  background-color: #adb5bd !important;
+  border-color: #adb5bd !important;
+  color: #fff !important;
+  opacity: 1 !important;
+  cursor: not-allowed !important;
+}
+.custom-values-modal .modal-footer .btn-outline-secondary {
+  border-color: #0d6efd !important;
+  color: #0d6efd !important;
+  background: #fff !important;
+}
+.custom-values-modal .modal-footer .btn-outline-secondary:hover,
+.custom-values-modal .modal-footer .btn-outline-secondary:focus {
+  background: #e7f1ff !important;
+  color: #0a58ca !important;
+  border-color: #0a58ca !important;
+}
+.custom-values-modal .modal-footer .btn-1-light:disabled {
+  background-color: #adb5bd !important;
+  border-color: #adb5bd !important;
+  color: #fff !important;
+  opacity: 1 !important;
+  cursor: not-allowed !important;
+}
+.custom-values-modal .modal-footer .btn-1-dark:disabled {
+  background-color: #444 !important;
+  border-color: #444 !important;
+  color: #bbb !important;
+  opacity: 1 !important;
+  cursor: not-allowed !important;
+}
+
+.modal-50vw .modal-dialog {
+  max-width: 40vw !important;
+  width: 40vw !important;
+  margin: 1.75rem auto !important;
+}
+
+.modal-50vw .modal-content {
+  width: 100%;
+  margin: 0;
+}
+
+.modal-novo-motivo .modal-dialog {
+  max-width: 30vw !important;
+  width: 30vw !important;
+  margin: 1.75rem auto !important;
+}
+
+.modal-novo-motivo .modal-content {
+  width: 100%;
+  margin: 0;
+}
+
+/* Desfoque no modal principal quando o modal de novo motivo estiver aberto */
+.modal-50vw.modal-blur .modal-content {
+  filter: blur(3px);
+  transition: filter 0.3s ease;
+}
+
+.modal-50vw.modal-blur .modal-content * {
+  pointer-events: none;
+}
+
+/* Remover seta do botão de opções */
+.btn-2-light.no-caret::after,
+.btn-2-dark.no-caret::after {
+  display: none !important;
+}
+
+.no-caret::after { 
+  display: none !important; 
+}
+
+/* Regras mais específicas para remover a seta do dropdown */
+.dropdown-toggle.no-caret::after,
+.dropdown-toggle.no-caret::before {
+  display: none !important;
+}
+
+.btn.dropdown-toggle.no-caret::after {
+  display: none !important;
+}
+
+/* Forçar remoção da seta em todos os dropdowns com no-caret */
+[class*="btn"][class*="no-caret"]::after {
+    display: none !important;
+}
+
+/* Animações para o painel de visualização de documentos */
+@keyframes slideInLeft {
+    from {
+        transform: translateX(-100%) translateY(-50%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0) translateY(-50%);
+        opacity: 1;
+    }
+}
+
+/* Estilos para o painel de visualização de documentos */
+.document-viewer-panel {
+    animation: slideInLeft 0.3s ease-out;
+    position: fixed;
+    top: 50%;
+    left: 10px;
+    transform: translateY(-50%);
+    width: 32%;
+    height: 85vh;
+    background-color: var(--bg-color-light);
+    border-radius: 16px;
+    box-shadow: 0 4px 32px rgba(0,0,0,0.18);
+    z-index: 1060;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.document-viewer-panel.dark {
+    background-color: var(--bg-color-dark);
+}
+
+.document-container {
+    transition: transform 0.2s ease;
+}
+
+/* Responsividade para o painel de documentos */
+@media (max-width: 1400px) {
+    .document-viewer-panel {
+        width: 38% !important;
+        left: 8px !important;
+    }
+}
+
+@media (max-width: 1200px) {
+    .document-viewer-panel {
+        width: 42% !important;
+        left: 5px !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .document-viewer-panel {
+        width: 90% !important;
+        left: 5% !important;
+        height: 80vh !important;
+    }
+}
+
+/* Modal positioning when document viewer is open */
+.modal-with-viewer {
+    margin-left: auto !important;
+    margin-right: 5px !important;
+    max-width: 58% !important;
+    width: 58% !important;
+}
+
+@media (max-width: 1400px) {
+    .modal-with-viewer {
+        max-width: 54% !important;
+        width: 54% !important;
+        margin-right: 3px !important;
+    }
+}
+
+@media (max-width: 1200px) {
+    .modal-with-viewer {
+        max-width: 48% !important;
+        width: 48% !important;
+        margin-right: 2px !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .modal-with-viewer {
+        max-width: 90% !important;
+        width: 90% !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
 }

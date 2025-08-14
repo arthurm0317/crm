@@ -3,6 +3,7 @@ import { Modal } from 'react-bootstrap';
 import WhatsappNovoContatoModal from './Whatsapp_novoContato';
 import WhatsappDeleteModal from './Whatsapp_delete';
 import WhatsappFilasModal from './Whatsapp_filas';
+
 import axios from 'axios';
 
 function WhatsappModal({ theme, show, onHide }) {
@@ -12,6 +13,7 @@ function WhatsappModal({ theme, show, onHide }) {
   const [showNovoContatoModal, setShowNovoContatoModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showUsuariosModal, setShowUsuariosModal] = useState(false);
+
   const userData = JSON.parse(localStorage.getItem('user')); 
   const schema = userData?.schema
   const url = process.env.REACT_APP_URL;
@@ -19,7 +21,10 @@ function WhatsappModal({ theme, show, onHide }) {
   useEffect(() => {
     const handleConns = async()=>{
       try{
-        const response = await axios.get(`${url}/connection/get-all-connections/${schema}`)
+        const response = await axios.get(`${url}/connection/get-all-connections/${schema}`,
+        {
+      withCredentials: true
+    })
         setContatos(Array.isArray([response.data])?response.data:[response.data]);
       }catch(error){
         console.error(error)
@@ -46,12 +51,21 @@ function WhatsappModal({ theme, show, onHide }) {
 
   const handleVerFilas = (contato) => {
     setSelectedContato(contato);
-    setFilas([
-      { nome: 'Fila Suporte', setor: 'Suporte', dataVinculacao: '2024-03-15T10:00:00' },
-      { nome: 'Fila Vendas', setor: 'Vendas', dataVinculacao: '2024-03-16T11:30:00' }
-    ]);
     setShowUsuariosModal(true);
   };
+
+  const handleQueueChange = (contatoId, novaFilaId, novaFila) => {
+    // Atualizar o contato na lista com a nova fila
+    setContatos(prevContatos => 
+      prevContatos.map(contato => 
+        contato.id === contatoId 
+          ? { ...contato, queue_id: novaFilaId }
+          : contato
+      )
+    );
+  };
+
+
 
   return (
     <>
@@ -127,6 +141,7 @@ function WhatsappModal({ theme, show, onHide }) {
                           >
                             <i className="bi bi-diagram-3"></i>
                           </button>
+
                           <button
                             type="button"
                             className="btn btn-sm delete-btn"
@@ -196,10 +211,12 @@ function WhatsappModal({ theme, show, onHide }) {
               setSelectedContato(null);
             }}
             contato={selectedContato} 
-            filas={filas} 
+            onQueueChange={handleQueueChange}
           />
         </div>
       )}
+      
+
     </>
   );
 }
