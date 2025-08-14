@@ -320,7 +320,7 @@ const scheduleCampaingBlast = async (campaing, sector, schema, intervalo, new_st
         stage: new_stage || null,
       }, { 
         delay: messageDelay, 
-        attempts: 3,
+        attempts: 1,
         backoff: {
           type: 'exponential',
           delay: 2000
