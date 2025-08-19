@@ -62,6 +62,17 @@ export const ExpensesService = {
       console.error('Erro ao buscar item de despesa por ID:', error);
       throw error;
     }
+  },
+
+  // Atualizar despesa existente
+  updateExpense: async (expenseId, expenseData) => {
+    try {
+      const response = await axios.put(`${API_BASE_URL}/expenses/update-expense/${expenseId}`, expenseData);
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao atualizar despesa:', error);
+      throw error;
+    }
   }
 };
 

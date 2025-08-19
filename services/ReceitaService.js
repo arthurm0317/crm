@@ -1,41 +1,83 @@
 const pool = require('../db/queries');
 const { v4: uuidv4 } = require('uuid');
 
-const createReceita = async (nome, valor_receita, schema_name, status = 'ativo') => {
+const createReceita = async (nome, user_id, category_id, valor_receita, due_date, payment_method, status = 'ativo',schema) => {
     const result = await pool.query(
-        `INSERT INTO ${schema_name}.receitas (id, nome, valor_receita, schema_name, status, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        `INSERT INTO ${schema}.receitas (id, name, user_id, category_id, total_amount, due_date, payment_method, status, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING *`,
-        [uuidv4(), nome, valor_receita, schema_name, status, new Date().toISOString()]
+        [uuidv4(), nome, user_id, category_id, valor_receita, due_date || null, payment_method, status, new Date().toISOString()]
     );
     return result.rows[0];
 };
 
-const getReceitas = async (schema, includeInactive = false) => {
-    let query = `SELECT * FROM ${schema}.receitas`;
-    let values = [];
-    
-    if (!includeInactive) {
-        query += ` WHERE status = 'ativo'`;
-    }
-    
-    query += ` ORDER BY created_at DESC`;
-    
-    const result = await pool.query(query, values);
+const getReceitas = async (schema) => {
+    const result = await pool.query(`SELECT * FROM ${schema}.receitas `);
     return result.rows;
 };
 
 const getReceitaById = async (receita_id, schema) => {
-    const result = await pool.query(
-        `SELECT * FROM ${schema}.receitas WHERE id = $1`,
-        [receita_id]
-    );
+    const receita = await pool.query(`SELECT * FROM ${schema}.receitas WHERE id = $1`, [receita_id]);
     
-    if (result.rows.length === 0) {
+    if (receita.rows.length === 0) {
         return null;
     }
     
-    return result.rows[0];
+    // Buscar itens da receita diretamente
+    console.log('receita', receita_id)
+    const receita_items = await pool.query(`SELECT * FROM ${schema}.financial_items WHERE financial_id = $1`, [receita_id]);
+    console.log('receita item', receita_items.rows)
+    // Buscar categoria
+    let category_name = null;
+    if (receita.rows[0]?.category_id) {
+        const category = await pool.query(`SELECT category_name FROM ${schema}.category WHERE id = $1`, [receita.rows[0].category_id]);
+        category_name = category.rows[0]?.category_name || null;
+    }
+    
+    // Buscar fornecedor
+    let vendor_name = null;
+    if (receita.rows[0]?.vendor_id) {
+        const vendor = await pool.query(`SELECT vendor_name FROM ${schema}.vendors WHERE id = $1`, [receita.rows[0].vendor_id]);
+        vendor_name = vendor.rows[0]?.vendor_name || null;
+    }
+    
+    let items = [];
+    let taxes = [];
+    for (const item of receita_items.rows) {
+        const financial_items_taxes = await pool.query(`SELECT * FROM ${schema}.financial_item_taxes WHERE financial_item_id = $1`, [item.id]);
+        
+        // Buscar informações completas dos impostos do item
+        const itemTaxes = [];
+        for (const itemTax of financial_items_taxes.rows) {
+            const taxRate = await pool.query(`SELECT * FROM ${schema}.tax_rates WHERE id = $1`, [itemTax.tax_rate_id]);
+            if (taxRate.rows[0]) {
+                itemTaxes.push({
+                    ...itemTax,
+                    tax_rate: taxRate.rows[0],
+                    tax_name: taxRate.rows[0].name,
+                    tax_rate_percentage: taxRate.rows[0].rate,
+                    base_amount: itemTax.base_amount,
+                    tax_amount: itemTax.tax_amount
+                });
+            }
+        }
+        
+        items.push({ 
+            ...item, 
+            taxes: itemTaxes,
+            total_with_taxes: (Number(item.subtotal) || 0) + itemTaxes.reduce((sum, tax) => sum + (Number(tax.tax_amount) || 0), 0)
+        });
+        
+        // Adicionar impostos à lista geral
+        taxes.push(...itemTaxes);
+    }
+    return {
+        receita: receita.rows[0],
+        category_name: category_name,
+        vendor_name: vendor_name,
+        items: items,
+        taxes: taxes
+    };
 };
 
 const updateReceita = async (receita_id, nome, valor_receita, status, schema) => {
@@ -98,6 +140,29 @@ const testConnection = async () => {
     }
 };
 
+const getReceitasByMonth = async (year, month, schema) => {
+    const result = await pool.query(
+        `SELECT * FROM ${schema}.receitas 
+         WHERE EXTRACT(YEAR FROM created_at) = $1 
+         AND EXTRACT(MONTH FROM created_at) = $2
+         AND status = 'ativo'
+         ORDER BY created_at DESC`,
+        [year, month]
+    );
+    return result.rows;
+};
+
+const getReceitasByDateRange = async (startDate, endDate, schema) => {
+    const result = await pool.query(
+        `SELECT * FROM ${schema}.receitas 
+         WHERE created_at >= $1 AND created_at <= $2
+         AND status = 'ativo'
+         ORDER BY created_at DESC`,
+        [startDate, endDate]
+    );
+    return result.rows;
+};
+
 module.exports = {
     createReceita,
     getReceitas,
@@ -105,5 +170,7 @@ module.exports = {
     updateReceita,
     deleteReceita,
     getReceitasStats,
-    testConnection
+    testConnection,
+    getReceitasByMonth,
+    getReceitasByDateRange
 };

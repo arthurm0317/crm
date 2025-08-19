@@ -94,21 +94,70 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
 
   useEffect(() => {
     if (despesa) {
-      // Garantir que as propriedades de array existam
+
+      
+      // Determinar o valor total da despesa
+      let valorTotal = '';
+      
+      // Prioridade 1: total_amount da API
+      if (despesa.expense?.total_amount) {
+        valorTotal = despesa.expense.total_amount.toString();
+      } else if (despesa.total_amount) {
+        valorTotal = despesa.total_amount.toString();
+      }
+      // Prioridade 2: valor base da despesa
+      else if (despesa.expense?.valor) {
+        valorTotal = despesa.expense.valor.toString();
+      } else if (despesa.valor) {
+        valorTotal = despesa.valor.toString();
+      }
+      // Prioridade 3: calcular a partir dos itens + impostos
+      else if (despesa.items || despesa.expense_items || despesa.itens) {
+        const itens = despesa.items || despesa.expense_items || despesa.itens || [];
+        const impostos = despesa.taxes || despesa.impostos || [];
+        
+        const totalItens = itens.reduce((total, item) => {
+          const valor = parseFloat(item.valor || item.unit_price || item.price || 0);
+          const quantidade = parseInt(item.quantidade || item.quantity || item.qty || 1);
+          return total + (valor * quantidade);
+        }, 0);
+        
+        const totalImpostos = impostos.reduce((total, imp) => {
+          return total + (parseFloat(imp.tax_amount || imp.valor || imp.valorCalculado || 0));
+        }, 0);
+        
+        valorTotal = (totalItens + totalImpostos).toFixed(2);
+      }
+      
+      // Mapear campos da API para o formulário
       setFormData({
-        ...despesa,
-        documentos: despesa.documentos || [],
-        impostos: despesa.impostos || [],
-        itens: despesa.itens || []
+        id: despesa.expense?.id || despesa.id,
+        descricao: despesa.expense?.description || despesa.expense?.descricao || despesa.description || despesa.descricao || '',
+        valor: valorTotal,
+        categoria_id: despesa.expense?.category_id || despesa.expense?.categoria_id || despesa.category_id || despesa.categoria_id || '',
+        data: despesa.expense?.date_incurred ? new Date(despesa.expense.date_incurred).toISOString().split('T')[0] : 
+              despesa.date_incurred ? new Date(despesa.date_incurred).toISOString().split('T')[0] :
+              despesa.expense?.data || despesa.data || new Date().toISOString().split('T')[0],
+        fornecedor_id: despesa.expense?.vendor_id || despesa.expense?.fornecedor_id || despesa.vendor_id || despesa.fornecedor_id || '',
+        observacoes: despesa.expense?.notes || despesa.expense?.observacoes || despesa.notes || despesa.observacoes || '',
+        status: despesa.expense?.status || despesa.status || 'pendente',
+        documentos: despesa.expense?.documents || despesa.expense?.documentos || despesa.documents || despesa.documentos || [],
+        impostos: despesa.taxes || despesa.expense?.impostos || despesa.impostos || [],
+        itens: despesa.items || despesa.expense_items || despesa.itens || [],
+        dataCriacao: despesa.expense?.created_at || despesa.created_at || despesa.expense?.dataCriacao || despesa.dataCriacao || new Date().toISOString(),
+        dataModificacao: despesa.expense?.updated_at || despesa.updated_at || despesa.expense?.dataModificacao || despesa.dataModificacao || new Date().toISOString()
       });
+      
+
+      
       setIsEditing(true);
     } else {
       setFormData({
         descricao: '',
         valor: '',
-        categoria: '',
+        categoria_id: '',
         data: new Date().toISOString().split('T')[0],
-        fornecedor: '',
+        fornecedor_id: '',
         observacoes: '',
         status: 'pendente',
         documentos: [],
@@ -323,7 +372,6 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
           ...imposto, 
           id: imposto.id,
           valorCalculado: parseFloat(imposto.valorCalculado) || parseFloat(imposto.valor) || 0,
-          // Garantir que todas as propriedades necessárias estejam presentes
           tax_name: imposto.tax_name,
           tax_rate_percentage: imposto.tax_rate_percentage,
           tax_amount: imposto.tax_amount,
@@ -349,6 +397,8 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
   };
 
   const addItem = (item) => {
+
+    
     if (editingItem) {
       // Editar item existente
       setFormData(prev => ({
@@ -378,6 +428,8 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
         }]
       }));
     }
+    
+
   };
 
   const removeItem = (itemId) => {
@@ -392,6 +444,7 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
       // Se o item tem ID (já foi salvo no backend), buscar dados atualizados
       if (item.id && typeof item.id === 'string') {
         const response = await ExpensesService.getExpenseItemById(item.id, schema);
+
         if (response.success && response.data) {
           setEditingItem(response.data);
         } else {
@@ -420,8 +473,8 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
   const calcularTotalItens = () => {
     return formData.itens.reduce((total, item) => {
       // Usar valor ou unit_price (backend)
-      const valor = parseFloat(item.valor) || parseFloat(item.unit_price) || 0;
-      const quantidade = parseInt(item.quantidade) || parseInt(item.quantity) || 1;
+      const valor = parseFloat(item.valor) || parseFloat(item.unit_price) || parseFloat(item.price) || 0;
+      const quantidade = parseInt(item.quantidade) || parseInt(item.quantity) || parseInt(item.qty) || 1;
       return total + (valor * quantidade);
     }, 0);
   };
@@ -461,14 +514,20 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
       const impostosDoItem = formData.impostos.filter(
         imp => imp.aplicacao === 'item' && String(imp.expense_item_id || imp.itemId) === String(item.id)
       );
-      return {
-        descricao: item.descricao,
-        unit_price: parseFloat(item.valor),
-        quantidade: parseInt(item.quantidade),
+      
+
+      
+      const itemMapeado = {
+        descricao: item.descricao || item.item_name || item.name || '',
+        unit_price: parseFloat(item.valor || item.unit_price || item.price || 0),
+        quantidade: parseInt(item.quantidade || item.quantity || item.qty || 1),
         hasTax: impostosDoItem.length > 0,
         tax: impostosDoItem.map(imp => imp.id), 
-        observacoes: item.observacoes || ''
+        observacoes: item.observacoes || item.item_desc || item.notes || ''
       };
+      
+
+      return itemMapeado;
     });
 
     const despesaCompleta = {
@@ -811,29 +870,31 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
                           </tr>
                         </thead>
                         <tbody>
-                          {formData.itens.map(item => (
+                                                  {formData.itens.map(item => {
+
+                          return (
                             <tr key={item.id}>
                               <td className={`header-text-${theme}`}>
-                                {item.descricao || item.item_name || 'Item'}
+                                {item.descricao || item.item_name || item.name || 'Item'}
                               </td>
                               <td className={`text-${theme === 'light' ? 'muted' : 'light'}`}>
-                                {item.observacoes || item.item_desc || '-'}
+                                {item.observacoes || item.item_desc || item.notes || '-'}
                               </td>
                               <td className={`text-${theme === 'light' ? 'muted' : 'light'} text-center`}>
-                                {item.quantidade || item.quantity || 1}
+                                {item.quantidade || item.quantity || item.qty || 1}
                               </td>
                               <td className={`text-${theme === 'light' ? 'muted' : 'light'} text-end`}>
-                                R$ {parseFloat(item.valor || item.unit_price || 0).toFixed(2)}
+                                R$ {parseFloat(item.valor || item.unit_price || item.price || 0).toFixed(2)}
                               </td>
                               <td className={`header-text-${theme} text-end`}>
-                                R$ {(parseFloat(item.valor || item.unit_price || 0) * (parseInt(item.quantidade || item.quantity) || 1)).toFixed(2)}
+                                R$ {(parseFloat(item.valor || item.unit_price || item.price || 0) * (parseInt(item.quantidade || item.quantity || item.qty) || 1)).toFixed(2)}
                               </td>
                               <td className={`text-${theme === 'light' ? 'muted' : 'light'} text-end`}>
                                 {item.taxes && item.taxes.length > 0 ? (
                                   <div>
                                     {item.taxes.map((tax, index) => (
                                       <div key={index} className="small">
-                                        {tax.tax_name || tax.name}: R$ {parseFloat((tax.tax_rate.rate*item.quantity*item.unit_price)/100).toFixed(2)}
+                                        {tax.tax_name || tax.name || tax.tax_rate_name}: R$ {parseFloat((tax.tax_rate?.rate || tax.rate || 0) * (parseInt(item.quantity || item.qty || 1) || 1) * (parseFloat(item.unit_price || item.price || 0) || 0) / 100).toFixed(2)}
                                       </div>
                                     ))}
                                   </div>
@@ -862,7 +923,8 @@ function DespesaModal({ show, onHide, theme, despesa = null, onSave, categorias 
                                 </div>
                               </td>
                             </tr>
-                          ))}
+                          );
+                        })}
                        </tbody>
                      </table>
                   </div>
@@ -1751,11 +1813,12 @@ function ItemModal({ show, onHide, onSave, theme, editingItem = null, setEditing
   // Carregar dados para edição
   useEffect(() => {
     if (editingItem) {
+
       setFormData({
-        descricao: editingItem.item_name || editingItem.item_description || '',
-        quantidade: editingItem.quantity || editingItem.quantidade || '1',
-        valor: editingItem.unit_price || editingItem.valor || '',
-        observacoes: editingItem.item_desc || editingItem.notes || ''
+        descricao: editingItem.descricao || editingItem.item_name || editingItem.item_description || editingItem.name || '',
+        quantidade: editingItem.quantidade || editingItem.quantity || editingItem.qty || '1',
+        valor: editingItem.valor || editingItem.unit_price || editingItem.price || '',
+        observacoes: editingItem.observacoes || editingItem.item_desc || editingItem.notes || ''
       });
     } else {
       setFormData({
@@ -1779,6 +1842,7 @@ function ItemModal({ show, onHide, onSave, theme, editingItem = null, setEditing
       taxes: editingItem?.taxes || []
     };
     
+
     onSave(itemData);
     onHide();
     setEditingItem(null);

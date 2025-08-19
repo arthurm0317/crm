@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import * as bootstrap from 'bootstrap';
 import DespesaModal from './modalPages/DespesaModal';
+import ReceitasModal from './modalPages/ReceitasModal';
 import { ExpensesService, CategoriesService, VendorsService } from '../services/FinanceiroService';
 import { useToast } from '../contexts/ToastContext';
 import axios from '../utils/axiosConfig';
@@ -54,6 +55,10 @@ function Financeiro({ theme }) {
     categorizada: ''
   });
   
+  // Mover a declaração do user e schema para o início
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const schema = user.schema;
+  
   // Funções para gerar dados do gráfico
   const generateLast7DaysLabels = () => {
     const labels = [];
@@ -64,12 +69,21 @@ function Financeiro({ theme }) {
     }
     return labels;
   };
+
   const generateLast6MonthsLabels = () => {
     const labels = [];
     const currentDate = new Date();
     
+    // Adicionar os últimos 6 meses (passado)
     for (let i = 5; i >= 0; i--) {
       const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+      const monthName = date.toLocaleDateString('pt-BR', { month: 'short' });
+      labels.push(monthName);
+    }
+    
+    // Adicionar os próximos 6 meses (futuro)
+    for (let i = 1; i <= 6; i++) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
       const monthName = date.toLocaleDateString('pt-BR', { month: 'short' });
       labels.push(monthName);
     }
@@ -77,8 +91,11 @@ function Financeiro({ theme }) {
     return labels;
   };
 
-  const generateDailyVolume = () => {
-    const volume = [];
+  const generateDailyData = () => {
+    const receitasData = [];
+    const despesasData = [];
+    const fluxoCaixaData = [];
+    
     for (let i = 6; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
@@ -100,51 +117,201 @@ function Financeiro({ theme }) {
         total + (parseFloat(despesa.total_amount) || 0), 0
       );
       
-      // Volume líquido (receitas - despesas)
-      volume.push(volumeReceitas - volumeDespesas);
+      receitasData.push(volumeReceitas);
+      despesasData.push(volumeDespesas);
+      fluxoCaixaData.push(volumeReceitas - volumeDespesas);
     }
-    return volume;
+    
+    return { receitasData, despesasData, fluxoCaixaData };
   };
 
-  const dailyVolume = useMemo(() => generateDailyVolume(), [receitas, despesas]);
+  const dailyData = useMemo(() => generateDailyData(), [receitas, despesas]);
   
   const performanceChartData = useMemo(() => ({
     labels: generateLast7DaysLabels(),
-    datasets: [{
-      label: 'Fluxo de Caixa (R$)',
-      data: dailyVolume,
-      borderColor: theme === 'dark' ? 'rgb(75, 192, 192)' : 'rgb(75, 192, 192)',
-      backgroundColor: theme === 'dark' ? 'rgba(75, 192, 192, 0.1)' : 'rgba(75, 192, 192, 0.2)',
-      tension: 0.1,
-      fill: true,
-      pointBackgroundColor: theme === 'dark' ? 'rgb(75, 192, 192)' : 'rgb(75, 192, 192)',
-      pointBorderColor: theme === 'dark' ? '#fff' : '#fff',
-      pointBorderWidth: 2,
-      pointRadius: 4,
-      pointHoverRadius: 6
-    }]
-  }), [dailyVolume, theme]);
+    datasets: [
+      {
+        label: 'Receitas (R$)',
+        data: dailyData.receitasData,
+        borderColor: theme === 'dark' ? 'rgb(34, 197, 94)' : 'rgb(34, 197, 94)',
+        backgroundColor: theme === 'dark' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(34, 197, 94, 0.2)',
+        tension: 0.1,
+        fill: true,
+        pointBackgroundColor: theme === 'dark' ? 'rgb(34, 197, 94)' : 'rgb(34, 197, 94)',
+        pointBorderColor: theme === 'dark' ? '#fff' : '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6
+      },
+      {
+        label: 'Despesas (R$)',
+        data: dailyData.despesasData,
+        borderColor: theme === 'dark' ? 'rgb(239, 68, 68)' : 'rgb(239, 68, 68)',
+        backgroundColor: theme === 'dark' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.2)',
+        tension: 0.1,
+        fill: true,
+        pointBackgroundColor: theme === 'dark' ? 'rgb(239, 68, 68)' : 'rgb(239, 68, 68)',
+        pointBorderColor: theme === 'dark' ? '#fff' : '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6
+      },
+      {
+        label: 'Fluxo de Caixa (R$)',
+        data: dailyData.fluxoCaixaData,
+        borderColor: theme === 'dark' ? 'rgb(75, 192, 192)' : 'rgb(75, 192, 192)',
+        backgroundColor: theme === 'dark' ? 'rgba(75, 192, 192, 0.1)' : 'rgba(75, 192, 192, 0.2)',
+        tension: 0.1,
+        fill: true,
+        pointBackgroundColor: theme === 'dark' ? 'rgb(75, 192, 192)' : 'rgb(75, 192, 192)',
+        pointBorderColor: theme === 'dark' ? '#fff' : '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6
+      }
+    ]
+  }), [dailyData, theme]);
 
-  const generateMonthlyPerspectiveData = () => {
-    // Gera dados simulados para os últimos 6 meses
-    // Em uma implementação real, isso viria de uma API ou cálculo baseado em dados históricos
-    const baseValue = 1000; // Valor base em R$
-    const growthRate = 0.15; // Taxa de crescimento de 15% ao mês
+  const generateSimulatedData = () => {
+    // Dados simulados como fallback
+    const baseValue = 20000; // R$ 20k como base
+    const growthRates = [0.10, 0.0909, 0.0954, 0.0954, 0.0954, 0.0954]; // Taxas de crescimento simuladas
     
     const data = [];
+    
+    // Dados para os últimos 6 meses (passado) - simulando crescimento realista
+    let currentValue = baseValue;
     for (let i = 0; i < 6; i++) {
-      const monthValue = baseValue * Math.pow(1 + growthRate, i);
-      data.push(Math.round(monthValue));
+      data.push(Math.round(currentValue));
+      if (i < growthRates.length - 1) {
+        currentValue = currentValue * (1 + growthRates[i]);
+      }
+    }
+
+    
+    // Calcular taxa média de crescimento dos meses passados
+    const historicalGrowthRates = [];
+    for (let i = 1; i < data.length; i++) {
+      const previousValue = data[i - 1];
+      const currentValue = data[i];
+      const growthRate = (currentValue - previousValue) / previousValue;
+      historicalGrowthRates.push(growthRate);
     }
     
-    return data;
+    const averageGrowthRate = historicalGrowthRates.reduce((sum, rate) => sum + rate, 0) / historicalGrowthRates.length;
+    
+    // Dados para os próximos 6 meses (futuro) usando a taxa média calculada
+    for (let i = 0; i < 6; i++) {
+      const lastValue = data[data.length - 1];
+      const projectedValue = lastValue * (1 + averageGrowthRate);
+      data.push(Math.round(projectedValue));
+    }
+    
+    // Garantir que temos exatamente 12 valores
+    while (data.length < 12) {
+      const lastValue = data[data.length - 1] || baseValue;
+      data.push(Math.round(lastValue * (1 + averageGrowthRate)));
+    }
+    
+    return data.slice(0, 12); // Retornar exatamente 12 valores
   };
 
-  const perspecChartData = useMemo(() => ({
+  const generateMonthlyPerspectiveData = async () => {
+    try {
+      // Buscar dados reais dos últimos 6 meses
+      const response = await axios.get(`${process.env.REACT_APP_URL}/receita/last-months-gain/6/${schema}`, { 
+        withCredentials: true 
+      });
+      
+      if (response.data && response.data.success && response.data.data && response.data.data.length > 0) {
+        const historicalData = response.data.data;
+        const historicalValues = historicalData.map(month => month.saldo || 0);
+        
+        // Se temos dados históricos, calcular taxa média de crescimento
+        if (historicalValues.length > 1) {
+          // Calcular taxas de crescimento entre meses consecutivos
+          const growthRates = [];
+          for (let i = 1; i < historicalValues.length; i++) {
+            const previousValue = historicalValues[i - 1];
+            const currentValue = historicalValues[i];
+            
+            if (previousValue > 0) {
+              const growthRate = (currentValue - previousValue) / previousValue;
+              growthRates.push(growthRate);
+            }
+          }
+          
+          // Calcular taxa média de crescimento
+          const averageGrowthRate = growthRates.length > 0 
+            ? growthRates.reduce((sum, rate) => sum + rate, 0) / growthRates.length
+            : 0.1; // 10% padrão se não conseguir calcular
+          
+          
+          const data = [...historicalValues];
+          
+          // Adicionar projeção para os próximos 6 meses usando a taxa média
+          for (let i = 1; i <= 6; i++) {
+            const lastValue = data[data.length - 1];
+            const projectedValue = lastValue * (1 + averageGrowthRate);
+            data.push(Math.round(projectedValue));
+          }
+          
+          return data;
+        }
+      }
+      
+      // Se não temos dados suficientes, gerar dados únicos baseados no schema
+      return generateUniqueData();
+    } catch (error) {
+      console.error('Erro ao buscar dados reais:', error);
+      // Em caso de erro, gerar dados únicos
+      return generateUniqueData();
+    }
+  };
+
+  const generateUniqueData = () => {
+    // Gerar dados únicos baseados no schema para garantir diferença
+    const schemaHash = schema ? schema.split('').reduce((a, b) => a + b.charCodeAt(0), 0) : 0;
+    const baseValue = 15000 + (schemaHash % 10000); // Valor base único por schema
+    const growthRates = [0.08, 0.12, 0.15, 0.18, 0.20, 0.22]; // Taxas variáveis
+    
+    const data = [];
+    
+    // Dados para os últimos 6 meses (passado) - com valores únicos
+    let currentValue = baseValue;
+    for (let i = 0; i < 6; i++) {
+      data.push(Math.round(currentValue));
+      if (i < growthRates.length) {
+        currentValue = currentValue * (1 + growthRates[i]);
+      }
+    }
+    
+    // Calcular taxa média de crescimento dos meses passados
+    const historicalGrowthRates = [];
+    for (let i = 1; i < data.length; i++) {
+      const previousValue = data[i - 1];
+      const currentValue = data[i];
+      const growthRate = (currentValue - previousValue) / previousValue;
+      historicalGrowthRates.push(growthRate);
+    }
+    
+    const averageGrowthRate = historicalGrowthRates.reduce((sum, rate) => sum + rate, 0) / historicalGrowthRates.length;
+    
+    // Dados para os próximos 6 meses (futuro) usando a taxa média calculada
+    for (let i = 0; i < 6; i++) {
+      const lastValue = data[data.length - 1];
+      const projectedValue = lastValue * (1 + averageGrowthRate);
+      data.push(Math.round(projectedValue));
+    }
+    
+    return data.slice(0, 12); // Retornar exatamente 12 valores
+  };
+
+  const [perspecChartData, setPerspecChartData] = useState({
     labels: generateLast6MonthsLabels(),
     datasets: [{
       label: 'Perspectiva de ganhos',
-      data: generateMonthlyPerspectiveData(),
+      data: generateUniqueData(), // Inicializar com dados únicos
       borderColor: theme === 'dark' ? 'rgb(255, 99, 132)' : 'rgb(255, 99, 132)',
       backgroundColor: theme === 'dark' ? 'rgba(255, 99, 132, 0.1)' : 'rgba(255, 99, 132, 0.2)',
       tension: 0.1,
@@ -154,7 +321,7 @@ function Financeiro({ theme }) {
       pointRadius: 4,
       pointHoverRadius: 6
     }]
-  }), [theme]);
+  });
 
   const chartOptions = useMemo(() => ({
     responsive: true,
@@ -215,9 +382,6 @@ function Financeiro({ theme }) {
       mode: 'index'
     }
   }), [theme]);
-  
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const schema = user.schema;
 
   // Verificar se o schema está disponível
   useEffect(() => {
@@ -226,6 +390,50 @@ function Financeiro({ theme }) {
       showError('Erro: Schema do usuário não encontrado. Faça login novamente.');
     }
   }, [schema, user]);
+
+  // Carregar dados reais para o gráfico de perspectiva
+  useEffect(() => {
+    const loadPerspectiveData = async () => {
+      if (schema) {
+        try {
+          const data = await generateMonthlyPerspectiveData();
+          
+          if (data && data.length === 12) {
+            setPerspecChartData(prev => ({
+              ...prev,
+              datasets: [{
+                ...prev.datasets[0],
+                data: data
+              }]
+            }));
+          } else {
+            // Se não temos 12 valores, usar dados únicos
+            const uniqueData = generateUniqueData();
+            setPerspecChartData(prev => ({
+              ...prev,
+              datasets: [{
+                ...prev.datasets[0],
+                data: uniqueData
+              }]
+            }));
+          }
+        } catch (error) {
+          console.error('Erro ao carregar dados de perspectiva:', error);
+          // Em caso de erro, usar dados únicos
+          const uniqueData = generateUniqueData();
+          setPerspecChartData(prev => ({
+            ...prev,
+            datasets: [{
+              ...prev.datasets[0],
+              data: uniqueData
+            }]
+          }));
+        }
+      }
+    };
+
+    loadPerspectiveData();
+  }, [schema]);
 
   useEffect(() => {
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
@@ -250,7 +458,25 @@ function Financeiro({ theme }) {
         // Carregar despesas
         const expensesResponse = await ExpensesService.getExpenses(schema);
         if (expensesResponse.success) {
-          setDespesas(expensesResponse.data || []);
+          const despesasBasicas = expensesResponse.data || [];
+          
+          // Carregar dados completos de cada despesa (incluindo itens e taxas)
+          const despesasCompletas = await Promise.all(
+            despesasBasicas.map(async (despesa) => {
+              try {
+                const despesaCompleta = await ExpensesService.getExpenseById(despesa.id, schema);
+                if (despesaCompleta.success) {
+                  return despesaCompleta.data;
+                }
+                return despesa; // Fallback para dados básicos
+              } catch (error) {
+                console.error(`Erro ao carregar despesa ${despesa.id}:`, error);
+                return despesa; // Fallback para dados básicos
+              }
+            })
+          );
+          
+          setDespesas(despesasCompletas);
         }
 
         // Carregar categorias
@@ -282,15 +508,32 @@ function Financeiro({ theme }) {
     setShowDespesaModal(true);
   };
 
-  const handleEditarDespesa = (despesa) => {
-    setDespesaEditando(despesa);
-    setShowDespesaModal(true);
+  const handleEditarDespesa = async (despesa) => {
+    try {
+      setLoading(true);
+      // Buscar dados atualizados da despesa da API
+      const response = await ExpensesService.getExpenseById(despesa.expense?.id || despesa.id, schema);
+      if (response.success) {
+        setDespesaEditando(response.data);
+      } else {
+        // Se falhar, usar os dados locais
+        setDespesaEditando(despesa);
+        showError('Erro ao carregar dados da despesa. Usando dados locais.');
+      }
+    } catch (error) {
+      console.error('Erro ao buscar despesa:', error);
+      // Em caso de erro, usar os dados locais
+      setDespesaEditando(despesa);
+      showError('Erro ao carregar dados da despesa. Usando dados locais.');
+    } finally {
+      setLoading(false);
+      setShowDespesaModal(true);
+    }
   };
 
   const handleSalvarDespesa = async (despesa) => {
     try {
       setLoading(true);
-      console.log(despesa)
       // Preparar dados para a API
       const expenseData = {
         user_id: user.id,
@@ -304,19 +547,55 @@ function Financeiro({ theme }) {
         payment_date: despesa.dataPagamento || null,
         payment_method: despesa.metodoPagamento || 'dinheiro',
         status: despesa.status || 'pendente',
+        notes: despesa.observacoes || '',
         created_at: new Date().toISOString(),
         itens: despesa.itens,
         schema: schema
       };
 
       if (despesaEditando) {
-        // Atualizar despesa existente (implementar quando tiver endpoint de update)
-        setDespesas(prev => prev.map(d => d.id === despesa.id ? despesa : d));
+        // Atualizar despesa existente
+        const response = await ExpensesService.updateExpense(despesa.id, expenseData);
+        if (response.success) {
+          // Recarregar dados completos da despesa atualizada
+          try {
+            const despesaAtualizada = await ExpensesService.getExpenseById(despesa.id, schema);
+            if (despesaAtualizada.success) {
+              setDespesas(prev => prev.map(d => (d.expense?.id || d.id) === despesa.id ? despesaAtualizada.data : d));
+            } else {
+              // Fallback: usar dados da resposta de update
+              setDespesas(prev => prev.map(d => (d.expense?.id || d.id) === despesa.id ? response.data : d));
+            }
+          } catch (error) {
+            console.error('Erro ao recarregar despesa atualizada:', error);
+            // Fallback: usar dados da resposta de update
+            setDespesas(prev => prev.map(d => (d.expense?.id || d.id) === despesa.id ? response.data : d));
+          }
+          showSuccess('Despesa atualizada com sucesso!');
+        } else {
+          showError('Erro ao atualizar despesa. Tente novamente.');
+        }
       } else {
         // Criar nova despesa
         const response = await ExpensesService.createExpense(expenseData);
         if (response.success) {
-          setDespesas(prev => [...prev, response.data]);
+          // Recarregar dados completos da nova despesa
+          try {
+            const novaDespesa = await ExpensesService.getExpenseById(response.data.id, schema);
+            if (novaDespesa.success) {
+              setDespesas(prev => [...prev, novaDespesa.data]);
+            } else {
+              // Fallback: usar dados da resposta de criação
+              setDespesas(prev => [...prev, response.data]);
+            }
+          } catch (error) {
+            console.error('Erro ao recarregar nova despesa:', error);
+            // Fallback: usar dados da resposta de criação
+            setDespesas(prev => [...prev, response.data]);
+          }
+          showSuccess('Despesa criada com sucesso!');
+        } else {
+          showError('Erro ao criar despesa. Tente novamente.');
         }
       }
     } catch (error) {
@@ -332,7 +611,7 @@ function Financeiro({ theme }) {
       try {
         // Como não há endpoint de exclusão para despesas ainda, vamos apenas remover do estado local
         // TODO: Implementar endpoint de exclusão no backend
-        setDespesas(prev => prev.filter(d => d.id !== despesaId));
+        setDespesas(prev => prev.filter(d => (d.expense?.id || d.id) !== despesaId));
         
         // Quando o endpoint estiver disponível, usar:
         /*
@@ -344,7 +623,7 @@ function Financeiro({ theme }) {
         });
         
         if (response.ok) {
-          setDespesas(prev => prev.filter(d => d.id !== despesaId));
+          setDespesas(prev => prev.filter(d => (d.expense?.id || d.id) !== despesaId));
         } else {
           showError('Erro ao excluir despesa. Tente novamente.');
         }
@@ -374,17 +653,17 @@ function Financeiro({ theme }) {
 
   const despesasFiltradas = despesas.filter(despesa => {
     const matchBusca = !filtros.busca || 
-      despesa.description?.toLowerCase().includes(filtros.busca.toLowerCase()) ||
+      despesa.expense?.description?.toLowerCase().includes(filtros.busca.toLowerCase()) ||
       despesa.vendor_name?.toLowerCase().includes(filtros.busca.toLowerCase());
     
     const matchCategoria = !filtros.categoria || despesa.category_name === filtros.categoria;
-    const matchStatus = !filtros.status || despesa.status === filtros.status;
+    const matchStatus = !filtros.status || despesa.expense?.status === filtros.status;
     const matchCategorizada = !filtros.categorizada || 
       (filtros.categorizada === 'categorizada' && despesa.category_name) ||
       (filtros.categorizada === 'nao_categorizada' && !despesa.category_name);
     
-    const matchData = (!filtros.dataInicio || despesa.date_incurred >= filtros.dataInicio) &&
-                     (!filtros.dataFim || despesa.date_incurred <= filtros.dataFim);
+    const matchData = (!filtros.dataInicio || despesa.expense?.date_incurred >= filtros.dataInicio) &&
+                     (!filtros.dataFim || despesa.expense?.date_incurred <= filtros.dataFim);
     
     return matchBusca && matchCategoria && matchStatus && matchCategorizada && matchData;
   });
@@ -395,14 +674,14 @@ function Financeiro({ theme }) {
     const csvContent = [
       headers.join(','),
       ...despesasFiltradas.map(d => [
-        d.id,
-        `"${d.description}"`,
-        d.total_amount,
+        d.expense?.id || d.id,
+        `"${d.expense?.description || d.description || ''}"`,
+        d.expense?.total_amount || d.total_amount || '',
         d.category_name || 'Não categorizada',
-        d.date_incurred,
+        d.expense?.date_incurred || d.date_incurred || '',
         `"${d.vendor_name || ''}"`,
-        d.status,
-        d.total_amount
+        d.expense?.status || d.status || '',
+        d.expense?.total_amount || d.total_amount || ''
       ].join(','))
     ].join('\n');
 
@@ -421,7 +700,7 @@ function Financeiro({ theme }) {
   const exportarPDF = () => {
     // Simulação de exportação PDF
     const conteudo = despesasFiltradas.map(d => 
-      `${d.description} - R$ ${d.total_amount} - ${d.date_incurred}`
+      `${d.expense?.description || d.description || ''} - R$ ${d.expense?.total_amount || d.total_amount || ''} - ${d.expense?.date_incurred || d.date_incurred || ''}`
     ).join('\n');
     
     const blob = new Blob([conteudo], { type: 'text/plain' });
@@ -431,14 +710,76 @@ function Financeiro({ theme }) {
     link.click();
   };
 
+  // Helpers de cálculo de impostos
+  const parseNumber = (value) => {
+    const n = parseFloat(value);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  const calcularImpostosItem = (item) => {
+    const unitPrice = parseNumber(item.unit_price || item.price || item.valor);
+    const quantity = parseInt(item.quantity || item.qty || item.quantidade || 1);
+    const taxes = Array.isArray(item.taxes) ? item.taxes : [];
+    return taxes.reduce((sum, tax) => {
+      const taxAmount = parseNumber(tax.tax_amount);
+      if (taxAmount) return sum + taxAmount;
+      const rate = parseNumber((tax.tax_rate && tax.tax_rate.rate) || tax.rate || tax.tax_rate_percentage);
+      return sum + (unitPrice * quantity * rate) / 100;
+    }, 0);
+  };
+
+  const calcularImpostosDespesa = (despesa) => {
+    // Estruturas possíveis
+    const expense = despesa.expense || despesa;
+    const items = despesa.expense_items || despesa.items || expense?.items || [];
+    const taxesRoot = despesa.tax_rates || despesa.taxes || [];
+
+    const totalAmount = parseNumber(expense?.total_amount);
+
+    // 1) Somar impostos por item (se existirem)
+    const totalItemTaxes = items.reduce((acc, item) => acc + calcularImpostosItem(item), 0);
+    const hasItemTaxes = items.some((it) => Array.isArray(it.taxes) && it.taxes.length > 0);
+
+    // 2) Somar impostos de nível da despesa (aplicação total ou quando não temos item.taxes)
+    const totalRootTaxes = Array.isArray(taxesRoot)
+      ? taxesRoot.reduce((sum, tax) => {
+          const taxAmount = parseNumber(tax.tax_amount);
+          if (taxAmount) return sum + taxAmount;
+
+          const aplicacao = tax.aplicacao || tax.application;
+          const rate = parseNumber(tax.tax_rate_percentage || tax.rate || (tax.tax_rate && tax.tax_rate.rate));
+
+          if (aplicacao === 'total' || (!tax.expense_item_id && !hasItemTaxes)) {
+            // Aplica sobre o total da despesa
+            return sum + (totalAmount * rate) / 100;
+          }
+
+          // Se imposto estiver vinculado a um item específico e não temos item.taxes, calcular por item
+          if (tax.expense_item_id && !hasItemTaxes) {
+            const item = items.find((it) => String(it.id) === String(tax.expense_item_id));
+            if (item) {
+              const unitPrice = parseNumber(item.unit_price || item.price || item.valor);
+              const quantity = parseInt(item.quantity || item.qty || item.quantidade || 1);
+              return sum + (unitPrice * quantity * rate) / 100;
+            }
+          }
+
+          return sum;
+        }, 0)
+      : 0;
+
+    return totalItemTaxes + totalRootTaxes;
+  };
+
   const calcularTotais = () => {
     const totais = despesasFiltradas.reduce((acc, despesa) => {
-      const valorDespesa = parseFloat(despesa.total_amount) || 0;
+      const valorDespesa = parseFloat(despesa.expense?.total_amount) || 0;
+      const valorImpostos = calcularImpostosDespesa(despesa);
       
       return {
         total: acc.total + valorDespesa,
         base: acc.base + valorDespesa,
-        impostos: acc.impostos + 0, // Impostos não implementados na API ainda
+        impostos: acc.impostos + valorImpostos,
         categorizadas: acc.categorizadas + (despesa.category_name ? valorDespesa : 0),
         naoCategorizadas: acc.naoCategorizadas + (!despesa.category_name ? valorDespesa : 0)
       };
@@ -607,33 +948,73 @@ function Financeiro({ theme }) {
   // Função para carregar receitas
   const carregarReceitas = async () => {
     try {
-      console.log('Carregando receitas para schema:', schema);
-      console.log('REACT_APP_URL:', process.env.REACT_APP_URL);
-      
       const url = `${process.env.REACT_APP_URL}/receita/get-receitas/${schema}`;
-      console.log('URL de carregamento:', url);
-      
       const response = await axios.get(url, { withCredentials: true });
-      
-      console.log('Resposta do carregamento:', response.status, response.statusText);
       
       if (response.data && response.data.success) {
         const result = response.data;
-        console.log('Resultado do carregamento:', result);
         if (result.data) {
-          // Mapear campos do banco para o frontend
-          const receitasMapeadas = result.data.map(receita => ({
-            id: receita.id,
-            descricao: receita.nome, // Campo do banco: nome
-            valor: receita.valor_receita, // Campo do banco: valor_receita
-            schema: receita.schema_name,
-            status: receita.status,
-            created_at: receita.created_at,
-            updated_at: receita.updated_at,
-            itens: receita.itens || [] // Incluir itens se disponíveis
-          }));
-          console.log('Receitas mapeadas:', receitasMapeadas);
-          setReceitas(receitasMapeadas);
+          
+          // Para cada receita, buscar dados completos incluindo itens e impostos
+          const receitasCompletas = [];
+          for (const receita of result.data) {
+            try {
+              const receitaCompleta = await axios.get(`${process.env.REACT_APP_URL}/receita/get-receita/${receita.id}/${schema}`, {
+                withCredentials: true
+              });
+              if (receitaCompleta.data && receitaCompleta.data.success && receitaCompleta.data.data) {
+                const receitaData = receitaCompleta.data.data;
+                receitasCompletas.push({
+                  id: receitaData.receita?.id || receita.id,
+                  nome: receitaData.receita?.name || receita.nome,
+                  valor_receita: receitaData.receita.totalAmount || receita.valor_receita,
+                  total_amount: receitaCompleta.data.data.receita.total_amount || receita.total_amount,
+                  schema: receitaData.receita?.schema_name || receita.schema_name,
+                  status: receitaData.receita?.status || receita.status,
+                  created_at: receitaData.receita?.created_at || receita.created_at,
+                  updated_at: receitaData.receita?.updated_at || receita.updated_at,
+                  items: receitaData.items,
+                  taxes: receitaData.taxes || [],
+                  category_name: receitaData.category_name,
+                  vendor_name: receitaData.vendor_name
+                });
+              } else {
+                // Se não conseguir buscar dados completos, usar dados básicos
+                receitasCompletas.push({
+                  id: receita.id,
+                  nome: receita.nome,
+                  valor_receita: receita.valor_receita,
+                  total_amount: receita.total_amount,
+                  schema: receita.schema_name,
+                  status: receita.status,
+                  created_at: receita.created_at,
+                  updated_at: receita.updated_at,
+                  items: receita.items || [],
+                  taxes: [],
+                  category_name: null,
+                  vendor_name: null
+                });
+              }
+            } catch (error) {
+              console.error(`Erro ao buscar dados completos da receita ${receita.id}:`, error);
+              // Usar dados básicos em caso de erro
+              receitasCompletas.push({
+                id: receita.id,
+                nome: receita.nome,
+                valor_receita: receita.valor_receita,
+                total_amount: receita.total_amount,
+                schema: receita.schema_name,
+                status: receita.status,
+                created_at: receita.created_at,
+                updated_at: receita.updated_at,
+                items: receita.items || [],
+                taxes: [],
+                category_name: null,
+                vendor_name: null
+              });
+            }
+          }
+          setReceitas(receitasCompletas);
         } else {
           console.error('Resposta da API não tem dados:', result);
         }
@@ -649,7 +1030,7 @@ function Financeiro({ theme }) {
     }
   };
 
-  // Função para salvar receita
+  // Função para salvar receita (formato antigo - mantida para compatibilidade)
   const handleSalvarReceita = async () => {
     try {
       if (!novaReceita.descricao || novaReceita.itens.length === 0) {
@@ -669,41 +1050,136 @@ function Financeiro({ theme }) {
         return;
       }
       
-      console.log('Tentando salvar receita:', novaReceita);
       
       const response = await axios.post(`${process.env.REACT_APP_URL}/receita/create-receita`,
         {
           nome: novaReceita.descricao, 
           valor_receita: novaReceita.valorTotal, 
-          schema_name: schema
+          schema: schema
         }, 
         { withCredentials: true }
       );
       
-      console.log('Status da resposta:', response.status);
       
       if (response.data && response.data.success) {
         const result = response.data;
-        console.log('Resposta da API:', result);
         
         if (result.data) {
           // Mapear campos do banco para o frontend
           const receitaSalva = {
             id: result.data.id,
-            descricao: result.data.nome, // Campo do banco: nome
-            valor: result.data.valor_receita, // Campo do banco: valor_receita
+            nome: result.data.nome, // Campo do banco: nome
+            valor_receita: result.data.valor_receita, // Campo do banco: valor_receita
+            total_amount: result.data.total_amount, // Campo do banco: total_amount
             schema: result.data.schema_name,
             status: result.data.status,
             created_at: result.data.created_at,
             updated_at: result.data.updated_at,
-            itens: itensValidos // Incluir itens salvos
+            items: itensValidos // Incluir itens salvos
           };
           
           setReceitas(prev => [...prev, receitaSalva]);
           setNovaReceita({ descricao: '', itens: [{ id: 1, nome: '', valor: '' }], valorTotal: 0 });
           setShowReceitaModal(false);
           showSuccess('Receita salva com sucesso!');
-          console.log('Receita salva com sucesso:', receitaSalva);
+        } else {
+          throw new Error('Resposta inválida da API');
+        }
+      } else {
+        throw new Error('Resposta da API não tem sucesso');
+      }
+    } catch (error) {
+      console.error('Erro ao salvar receita:', error);
+      if (error.response) {
+        console.error('Status do erro:', error.response.status);
+        console.error('Dados do erro:', error.response.data);
+        showError(`Erro ao salvar receita: ${error.response.data?.message || error.response.data?.error || 'Erro desconhecido'}`);
+      } else {
+        showError('Erro ao salvar receita. Tente novamente.');
+      }
+    }
+  };
+
+  // Nova função para salvar receita do modal ReceitasModal
+  const handleSaveReceita = async (receitaData) => {
+    try {
+      
+      // Validar dados obrigatórios
+      if (!receitaData.nome || !receitaData.nome.trim()) {
+        showError('Por favor, preencha o nome da receita.');
+        return;
+      }
+      
+      if (!receitaData.valor_receita || parseFloat(receitaData.valor_receita) <= 0) {
+        showError('Por favor, preencha um valor válido para a receita.');
+        return;
+      }
+      
+      if (!receitaData.data) {
+        showError('Por favor, selecione uma data para a receita.');
+        return;
+      }
+
+      // Preparar dados para a API
+      const dadosReceita = {
+        nome: receitaData.nome,
+        valor_receita: receitaData.valor_receita,
+        data: receitaData.data,
+        observacoes: receitaData.observacoes || '',
+        status: receitaData.status || 'pendente',
+        itens: receitaData.itens || [],
+        schema: receitaData.schema
+      };
+
+      
+      let response;
+      
+      // Verificar se é edição ou criação
+      if (receitaData.id) {
+        // Atualizar receita existente
+        response = await axios.put(`${process.env.REACT_APP_URL}/receita/update-receita/${receitaData.id}/${schema}`,
+          dadosReceita,
+          { withCredentials: true }
+        );
+      } else {
+        // Criar nova receita
+        response = await axios.post(`${process.env.REACT_APP_URL}/receita/create-receita`,
+          dadosReceita,
+          { withCredentials: true }
+        );
+      }
+      
+      
+      if (response.data && response.data.success) {
+        const result = response.data;
+        
+        if (result.data) {
+          // Mapear campos do banco para o frontend
+          const receitaSalva = {
+            id: result.data.id,
+            nome: result.data.nome,
+            valor_receita: result.data.valor_receita,
+            total_amount: result.data.total_amount,
+            schema: result.data.schema_name,
+            status: result.data.status,
+            created_at: result.data.created_at,
+            updated_at: result.data.updated_at,
+            items: result.data.items || []
+          };
+          
+          if (receitaData.id) {
+            // Atualizar receita existente
+            setReceitas(prev => prev.map(r => r.id === receitaData.id ? receitaSalva : r));
+            showSuccess('Receita atualizada com sucesso!');
+          } else {
+            // Adicionar nova receita
+            setReceitas(prev => [...prev, receitaSalva]);
+            showSuccess('Receita criada com sucesso!');
+          }
+          
+          
+          // Recarregar lista de receitas
+          await carregarReceitas();
         } else {
           throw new Error('Resposta inválida da API');
         }
@@ -723,19 +1199,127 @@ function Financeiro({ theme }) {
   };
 
   // Funções para gestão de receitas
-  const handleEditarReceita = (receita) => {
-    // Para editar, precisamos carregar os itens existentes
-    // Se não houver itens, criar um item padrão com os dados da receita
-    const itensParaEditar = receita.itens && receita.itens.length > 0 
-      ? receita.itens.map(item => ({ ...item, id: item.id }))
-      : [{ id: 1, nome: receita.descricao, valor: receita.valor.toString() }];
-    
-    setNovaReceita({ 
-      descricao: receita.descricao, 
-      itens: itensParaEditar,
-      valorTotal: parseFloat(receita.valor) || 0
-    });
-    setShowReceitaModal(true);
+  const handleEditarReceita = async (receita) => {
+    try {
+      // Buscar dados completos da receita incluindo itens e impostos
+      const response = await axios.get(`${process.env.REACT_APP_URL}/receita/get-receita/${receita.id}/${schema}`, {
+        withCredentials: true
+      });
+      if (response.data && response.data.success && response.data.data) {
+        const receitaCompleta = response.data.data;
+        
+        // Para editar, precisamos carregar os itens existentes
+        // Se não houver itens, criar um item padrão com os dados da receita
+        const itensParaEditar = receitaCompleta.items && receitaCompleta.items.length > 0 
+          ? receitaCompleta.items.map(item => ({ 
+              id: item.id,
+              descricao: item.item_name || item.item_desc || '',
+              valor: Number(item.unit_price) || 0,
+              quantidade: Number(item.quantity) || 1,
+              observacoes: item.item_desc || ''
+            }))
+          : [{ 
+              id: 1, 
+              descricao: receitaCompleta.receita?.name || receitaCompleta.receita?.description || '', 
+              valor: Number(receitaCompleta.receita?.valor_receita || receitaCompleta.receita?.total_amount || 0) || 0,
+              quantidade: 1,
+              observacoes: ''
+            }];
+
+        // Mapear impostos corretamente
+        const impostosParaEditar = [];
+        if (receitaCompleta.items && receitaCompleta.items.length > 0) {
+          // Buscar todos os impostos disponíveis para mapear corretamente
+          try {
+            const taxRatesResponse = await axios.get(`${process.env.REACT_APP_URL}/expenses/get-tax-rates/${schema}`, {
+              withCredentials: true
+            });
+            
+            const taxRates = taxRatesResponse.data?.success ? taxRatesResponse.data.data : [];
+            
+            // Para cada item, buscar seus impostos
+            for (const item of receitaCompleta.items) {
+              if (item.taxes && Array.isArray(item.taxes)) {
+                for (const tax of item.taxes) {
+                  // Encontrar o imposto na lista de tax rates disponíveis
+                  const taxRate = taxRates.find(tr => tr.id === (tax.tax_rate_id || tax.id));
+                  
+                  if (taxRate) {
+                    impostosParaEditar.push({
+                      id: taxRate.id, // UUID do imposto
+                      tax_name: taxRate.name,
+                      tax_rate_percentage: taxRate.rate,
+                      tax_amount: tax.tax_amount || 0,
+                      aplicacao: 'item',
+                      expense_item_id: item.id,
+                      itemId: item.id,
+                      itemNome: item.item_name || item.item_desc || '',
+                      observacoes: '',
+                      valorCalculado: tax.tax_amount || 0
+                    });
+                  } else {
+                    // Usar dados básicos do imposto se não conseguir mapear
+                    impostosParaEditar.push({
+                      id: tax.tax_rate_id || tax.id,
+                      tax_name: 'Imposto',
+                      tax_rate_percentage: 0,
+                      tax_amount: tax.tax_amount || 0,
+                      aplicacao: 'item',
+                      expense_item_id: item.id,
+                      itemId: item.id,
+                      itemNome: item.item_name || item.item_desc || '',
+                      observacoes: '',
+                      valorCalculado: tax.tax_amount || 0
+                    });
+                  }
+                }
+              }
+            }
+          } catch (taxError) {
+            console.error('Erro ao buscar tax rates:', taxError);
+            // Em caso de erro, usar dados básicos dos impostos
+            for (const item of receitaCompleta.items) {
+              if (item.taxes && Array.isArray(item.taxes)) {
+                for (const tax of item.taxes) {
+                  impostosParaEditar.push({
+                    id: tax.tax_rate_id || tax.id,
+                    tax_name: 'Imposto',
+                    tax_rate_percentage: 0,
+                    tax_amount: tax.tax_amount || 0,
+                    aplicacao: 'item',
+                    expense_item_id: item.id,
+                    itemId: item.id,
+                    itemNome: item.item_name || item.item_desc || '',
+                    observacoes: '',
+                    valorCalculado: tax.tax_amount || 0
+                  });
+                }
+              }
+            }
+          }
+        }
+
+        // Preparar dados para o modal
+        const receitaParaEditar = {
+          id: receitaCompleta.receita?.id || receita.id,
+          descricao: receitaCompleta.receita?.name || receitaCompleta.receita?.description || '', 
+          valor_receita: receitaCompleta.receita?.valor_receita || receitaCompleta.receita?.total_amount || 0,
+          data: receitaCompleta.receita?.created_at ? new Date(receitaCompleta.receita.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          observacoes: receitaCompleta.receita?.notes || '',
+          status: receitaCompleta.receita?.status || 'pendente',
+          itens: itensParaEditar,
+          impostos: impostosParaEditar
+        };
+
+        setNovaReceita(receitaParaEditar);
+        setShowReceitaModal(true);
+      } else {
+        showError('Erro ao carregar dados da receita para edição');
+      }
+    } catch (error) {
+      console.error('Erro ao carregar receita para edição:', error);
+      showError('Erro ao carregar dados da receita para edição');
+    }
   };
 
   const handleExcluirReceita = async (receitaId) => {
@@ -743,8 +1327,6 @@ function Financeiro({ theme }) {
       try {
         setExcluindoReceita(receitaId);
         
-        console.log('Tentando excluir receita:', { receitaId, schema });
-        console.log('REACT_APP_URL:', process.env.REACT_APP_URL);
         
         // Chamar API para excluir receita
         const response = await axios.delete(`${process.env.REACT_APP_URL}/receita/delete-receita`, {
@@ -755,7 +1337,6 @@ function Financeiro({ theme }) {
           withCredentials: true
         });
         
-        console.log('Resposta da exclusão:', response.status, response.data);
         
         if (response.data && response.data.success) {
           // Remover do estado local apenas se a exclusão foi bem-sucedida
@@ -834,7 +1415,7 @@ function Financeiro({ theme }) {
                     <div className="ms-2">
                       <h6 className={`card-subtitle-${theme} mb-0`}>Maior Entrada</h6>
                       <h5 className={`header-text-${theme} mb-0`}>
-                        R$ {Math.max(...dailyVolume, 0).toFixed(2)}
+                        R$ {Math.max(...dailyData.fluxoCaixaData, 0).toFixed(2)}
                       </h5>
                     </div>
                   </div>
@@ -847,7 +1428,7 @@ function Financeiro({ theme }) {
                     <div className="ms-2">
                       <h6 className={`card-subtitle-${theme} mb-0`}>Maior Saída</h6>
                       <h5 className={`header-text-${theme} mb-0`}>
-                        R$ {Math.abs(Math.min(...dailyVolume, 0)).toFixed(2)}
+                        R$ {Math.abs(Math.min(...dailyData.fluxoCaixaData, 0)).toFixed(2)}
                       </h5>
                     </div>
                   </div>
@@ -860,7 +1441,7 @@ function Financeiro({ theme }) {
                     <div className="ms-2">
                       <h6 className={`card-subtitle-${theme} mb-0`}>Média Diária</h6>
                       <h5 className={`header-text-${theme} mb-0`}>
-                        R$ {(dailyVolume.reduce((a, b) => a + b, 0) / dailyVolume.length).toFixed(2)}
+                        R$ {(dailyData.fluxoCaixaData.reduce((a, b) => a + b, 0) / dailyData.fluxoCaixaData.length).toFixed(2)}
                       </h5>
                     </div>
                   </div>
@@ -873,7 +1454,7 @@ function Financeiro({ theme }) {
                     <div className="ms-2">
                       <h6 className={`card-subtitle-${theme} mb-0`}>Dias Positivos</h6>
                       <h5 className={`header-text-${theme} mb-0`}>
-                        {dailyVolume.filter(v => v > 0).length}/7
+                        {dailyData.fluxoCaixaData.filter(v => v > 0).length}/7
                       </h5>
                     </div>
                   </div>
@@ -902,7 +1483,7 @@ function Financeiro({ theme }) {
                   <div className="mt-3">
                     <small className={`text-${theme === 'light' ? 'muted' : 'light'}`}>
                       <i className="bi bi-info-circle me-1"></i>
-                      O gráfico mostra o fluxo de caixa diário (receitas - despesas) dos últimos 7 dias
+                      O gráfico mostra a perspectiva de ganhos baseado no aumento do saldo durantes os últimos meses
                     </small>
                     </div>
                 </div>
@@ -1137,47 +1718,57 @@ function Financeiro({ theme }) {
                             </tr>
                           </thead>
                          <tbody>
-                                                       {despesasFiltradas.map((despesa, index) => (
-                              <tr key={despesa.id}>
-                                <td className={`text-${theme === 'light' ? 'dark' : 'light'}`}>
-                                  {new Date(despesa.date_incurred).toLocaleDateString('pt-BR')}
-                                </td>
-                                <td>
-                                 <div>
-                                   <strong className={`header-text-${theme}`}>{despesa.description}</strong>
-                                   {despesa.vendor_name && (
-                                     <small className={`text-${theme === 'light' ? 'muted' : 'light'} d-block`}>
-                                       {despesa.vendor_name}
-                                     </small>
-                                   )}
-                                 </div>
-                               </td>
-                                                                                               <td style={{ textAlign: 'center' }}>
-                                   <span className={`badge bg-${
-                                     despesa.status === 'pago' ? 'success' : 
-                                     despesa.status === 'pendente' ? 'warning' : 'danger'
-                                   }`} style={{ 
-                                     textTransform: 'capitalize',
-                                     fontWeight: '500',
-                                     fontSize: '0.8rem',
-                                     padding: '6px 10px'
-                                   }}>
-                                     {despesa.status}
-                                   </span>
+                            {despesasFiltradas.map((despesa, index) => {
+                              // Verificar se a despesa tem a estrutura esperada
+                              if (!despesa || !despesa.expense) {
+                                console.warn('Despesa sem estrutura esperada:', despesa);
+                                return null;
+                              }
+                              
+                              return (
+                                <tr key={despesa.expense.id || despesa.id || index}>
+                                  <td className={`text-${theme === 'light' ? 'dark' : 'light'}`}>
+                                    {despesa.expense.date_incurred ? 
+                                      new Date(despesa.expense.date_incurred).toLocaleDateString('pt-BR') : 
+                                      'Data não informada'
+                                    }
+                                  </td>
+                                  <td>
+                                   <div>
+                                     <strong className={`header-text-${theme}`}>{despesa.expense.description || 'Sem descrição'}</strong>
+                                     {despesa.vendor_name && (
+                                       <small className={`text-${theme === 'light' ? 'muted' : 'light'} d-block`}>
+                                         {despesa.vendor_name}
+                                       </small>
+                                     )}
+                                   </div>
                                  </td>
-                                                                 <td style={{ textAlign: 'center' }}>
-                                   {despesa.category_name ? (
-                                     <span className={`badge bg-success`}>{despesa.category_name}</span>
-                                   ) : (
-                                     <span className={`badge bg-warning`}>Não categorizada</span>
-                                   )}
-                                 </td>
+                                                                                                 <td style={{ textAlign: 'center' }}>
+                                     <span className={`badge bg-${
+                                       despesa.expense.status === 'pago' ? 'success' : 
+                                       despesa.expense.status === 'pendente' ? 'warning' : 'danger'
+                                     }`} style={{ 
+                                       textTransform: 'capitalize',
+                                       fontWeight: '500',
+                                       fontSize: '0.8rem',
+                                       padding: '6px 10px'
+                                     }}>
+                                       {despesa.expense.status || 'pendente'}
+                                     </span>
+                                   </td>
+                                                                   <td style={{ textAlign: 'center' }}>
+                                     {despesa.category_name ? (
+                                       <span className={`badge bg-success`}>{despesa.category_name}</span>
+                                     ) : (
+                                       <span className={`badge bg-warning`}>Não categorizada</span>
+                                     )}
+                                   </td>
                                 <td style={{ textAlign: 'center' }}>
                                    <div className="d-flex align-items-center justify-content-center gap-1">
-                                     {despesa.documentos && despesa.documentos.length > 0 && (
+                                     {despesa.expense.documentos && despesa.expense.documentos.length > 0 && (
                                        <span className="badge bg-info">
                                          <i className="bi bi-file-earmark me-1"></i>
-                                         {despesa.documentos.length}
+                                         {despesa.expense.documentos.length}
                                        </span>
                                      )}
                                      {despesa.documentos && despesa.documentos.some(doc => doc.valorSugerido) && (
@@ -1199,7 +1790,7 @@ function Financeiro({ theme }) {
                                                                <td>
                                   <div>
                                     <strong className={`text-${theme === 'light' ? 'dark' : 'light'}`}>
-                                      R$ {parseFloat(despesa.total_amount || 0).toFixed(2)}
+                                      R$ {parseFloat(despesa.expense.total_amount || 0).toFixed(2)}
                                     </strong>
                                   </div>
                                 </td>
@@ -1217,13 +1808,14 @@ function Financeiro({ theme }) {
                                      className="icon-btn text-danger"
                                      data-bs-toggle="tooltip"
                                      title="Excluir"
-                                     onClick={() => handleExcluirDespesa(despesa.id)}
+                                     onClick={() => handleExcluirDespesa(despesa.expense?.id || despesa.id)}
                                    >
                                      <i className="bi bi-trash-fill"></i>
                                    </button>
                                  </td>
                             </tr>
-                          ))}
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -1339,14 +1931,14 @@ function Financeiro({ theme }) {
                         {receitas.map((receita, index) => (
                           <tr key={receita.id || index}>
                             <td className={`text-${theme === 'light' ? 'dark' : 'light'}`}>
-                              <strong>{receita.descricao}</strong>
+                              <strong>{receita.nome}</strong>
                             </td>
                             <td className={`text-${theme === 'light' ? 'dark' : 'light'}`}>
-                              {receita.itens && receita.itens.length > 0 ? (
+                              {receita.items && receita.items.length > 0 ? (
                                 <div>
-                                  {receita.itens.map((item, idx) => (
+                                  {receita.items.map((item, idx) => (
                                     <div key={idx} className="small">
-                                      {item.nome}: R$ {parseFloat(item.valor || 0).toFixed(2)}
+                                      {item.quantity}                                       {item.item_name}: R$ {parseFloat(item.unit_price || 0).toFixed(2)}
                                     </div>
                                   ))}
                                 </div>
@@ -1355,7 +1947,7 @@ function Financeiro({ theme }) {
                               )}
                             </td>
                             <td className={`text-${theme === 'light' ? 'dark' : 'light'}`}>
-                              <strong>R$ {parseFloat(receita.valor || 0).toFixed(2)}</strong>
+                              <strong>R$ {parseFloat(receita.total_amount || 0).toFixed(2)}</strong>
                             </td>
                             <td className={`text-${theme === 'light' ? 'dark' : 'light'}`}>
                               {receita.created_at ? new Date(receita.created_at).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR')}
@@ -1582,117 +2174,13 @@ function Financeiro({ theme }) {
       />
 
       {/* Modal de Receita */}
-      {showReceitaModal && (
-        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-lg">
-            <div className={`modal-content bg-form-${theme}`}>
-              <div className="modal-header">
-                <h5 className="modal-title">Nova Receita</h5>
-                <button type="button" className="btn-close" onClick={() => setShowReceitaModal(false)}></button>
-              </div>
-              <div className="modal-body">
-                <div className="mb-3">
-                  <label className={`form-label text-${theme === 'light' ? 'dark' : 'light'}`}>Descrição da Receita</label>
-                  <input
-                    type="text"
-                    className={`form-control input-${theme}`}
-                    placeholder="Nome da receita"
-                    value={novaReceita.descricao}
-                    onChange={e => setNovaReceita({ ...novaReceita, descricao: e.target.value })}
-                  />
-                </div>
-                
-                <div className="mb-3">
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <label className={`form-label text-${theme === 'light' ? 'dark' : 'light'} mb-0`}>Itens da Receita</label>
-                    <button 
-                      type="button" 
-                      className={`btn btn-sm btn-1-${theme}`}
-                      onClick={adicionarItemReceita}
-                    >
-                      <i className="bi bi-plus-circle me-1"></i>
-                      Adicionar Item
-                    </button>
-                  </div>
-                  
-                  <div className="table-responsive">
-                    <table className={`table table-sm custom-table-${theme}`}>
-                      <thead>
-                        <tr>
-                          <th className={`text-${theme === 'light' ? 'dark' : 'light'}`} style={{ width: '60%' }}>Nome do Item</th>
-                          <th className={`text-${theme === 'light' ? 'dark' : 'light'}`} style={{ width: '30%' }}>Valor</th>
-                          <th className={`text-${theme === 'light' ? 'dark' : 'light'}`} style={{ width: '10%' }}>Ações</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {novaReceita.itens.map((item, index) => (
-                          <tr key={item.id}>
-                            <td>
-                              <input
-                                type="text"
-                                className={`form-control form-control-sm input-${theme}`}
-                                placeholder="Nome do item"
-                                value={item.nome}
-                                onChange={e => atualizarItemReceita(item.id, 'nome', e.target.value)}
-                              />
-                            </td>
-                            <td>
-                              <input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                className={`form-control form-control-sm input-${theme}`}
-                                placeholder="0,00"
-                                value={item.valor}
-                                onChange={e => atualizarItemReceita(item.id, 'valor', e.target.value)}
-                              />
-                            </td>
-                            <td>
-                              {novaReceita.itens.length > 1 && (
-                                <button
-                                  type="button"
-                                  className="btn btn-sm btn-outline-danger"
-                                  onClick={() => removerItemReceita(item.id)}
-                                  title="Remover item"
-                                >
-                                  <i className="bi bi-trash"></i>
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                <div className="mb-3">
-                  <div className={`card card-${theme} p-3`}>
-                    <div className="d-flex justify-content-between align-items-center">
-                      <span className={`text-${theme === 'light' ? 'dark' : 'light'} fw-bold`}>Valor Total:</span>
-                      <span className={`text-${theme === 'light' ? 'dark' : 'light'} fw-bold fs-5`}>
-                        R$ {novaReceita.valorTotal.toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button className={`btn btn-2-${theme}`} onClick={() => setShowReceitaModal(false)}>
-                  Cancelar
-                </button>
-                <button 
-                  className={`btn btn-1-${theme}`} 
-                  onClick={handleSalvarReceita}
-                  disabled={!novaReceita.descricao || novaReceita.itens.length === 0 || novaReceita.valorTotal === 0}
-                >
-                  Salvar Receita
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <ReceitasModal
+        show={showReceitaModal}
+        onHide={() => setShowReceitaModal(false)}
+        theme={theme}
+        receita={novaReceita}
+        onSave={handleSaveReceita}
+      />
     </div>
   );
 }
