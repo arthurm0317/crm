@@ -106,7 +106,6 @@ const getQueueByIdController = async(req, res)=> {
             })
             
         }else{
-            console.log('------------------------')
             const result = await getQueueById(queue_id, schema)
             res.status(201).json({
                 result

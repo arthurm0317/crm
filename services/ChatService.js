@@ -138,7 +138,6 @@ const createChat = async (chat, instance, message, etapa, io) => {
     }
 
     const result = await pool.query(query, values);
-    console.log(`createChat: Novo chat criado - ID: ${result.rows[0].id}, Status: ${result.rows[0].status}`);
     if(result.rows[0].queue_id===null){
       await setChatQueue(schema, result.rows[0].id)
     }

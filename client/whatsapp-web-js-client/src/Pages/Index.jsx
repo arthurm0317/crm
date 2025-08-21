@@ -218,12 +218,10 @@
     if (!socketInstance) return;
 
     const handleLembrete = (lembrete) => {
-      console.log('Lembrete recebido via socket:', lembrete);
       // showToast(lembrete); // Comentado para evitar toasts automáticos
     };
 
     const handleLembreteCriado = (data) => {
-      console.log('Lembrete criado recebido via socket:', data);
       // Atualizar lista de lembretes
       fetchLembretes();
     };

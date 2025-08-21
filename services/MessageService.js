@@ -28,7 +28,6 @@ const saveMessage = async (chatId, message, schema, user_id) => {
             user_id
         ]
     );
-    console.log('Message saved:', result.rows[0]);
     return result.rows[0];
 };
 module.exports ={

@@ -24,7 +24,7 @@ const addUserinQueue = async (username, queue, schema) => {
     const userData = usuario.rows[0];
 
     if (!userData) {
-        console.log("Usuário não encontrado.");
+        console.error("Usuário não encontrado.");
         return;
     }
 
@@ -40,7 +40,7 @@ const addUserinQueue = async (username, queue, schema) => {
         )
         return result.rows[0];
     } else {
-        console.log('Fila não encontrada');
+        console.error('Fila não encontrada');
     }
 };
 

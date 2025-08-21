@@ -109,11 +109,9 @@ const searchUser = async (userMail, userPassword) => {
   }
 
   const changeOffline = async(userId, schema)=>{
-    console.log(userId, schema)
     const result = await pool.query(
       `UPDATE ${schema}.users SET online=false WHERE id=$1`,[userId]
     )
-    console.log(`✅ Usuário ${userId} marcado como offline. Linhas afetadas: ${result.rowCount}`);
     return result.rows[0]
   }
 

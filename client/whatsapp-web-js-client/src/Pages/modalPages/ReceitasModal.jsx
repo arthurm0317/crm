@@ -65,7 +65,7 @@ function ReceitaModal({ show, onHide, theme, receita = null, onSave }) {
         id: receita.id || null,
         nome: receita.descricao || receita.nome || '',
         valor_receita: valorTotal,
-        data: receita.data || new Date().toISOString().split('T')[0],
+        data: receita.due_date || receita.created_at ? new Date(receita.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         observacoes: receita.observacoes || '',
         status: receita.status || 'pendente',
         itens: receita.itens || [],
@@ -86,6 +86,11 @@ function ReceitaModal({ show, onHide, theme, receita = null, onSave }) {
         itens: [],
         impostos: []
       };
+      
+      // Garantir que a data seja sempre válida
+      if (!newFormData.data || isNaN(new Date(newFormData.data).getTime())) {
+        newFormData.data = new Date().toISOString().split('T')[0];
+      }
       setFormData(newFormData);
       setIsEditing(false);
     }
@@ -243,8 +248,15 @@ function ReceitaModal({ show, onHide, theme, receita = null, onSave }) {
       return;
     }
     
-    if (!formData.data) {
+    if (!formData.data || formData.data === null || formData.data === '' || formData.data === undefined) {
       showError('Por favor, selecione uma data para a receita.');
+      return;
+    }
+    
+    // Validar se a data é válida
+    const dataSelecionada = new Date(formData.data);
+    if (isNaN(dataSelecionada.getTime())) {
+      showError('Por favor, selecione uma data válida para a receita.');
       return;
     }
     
@@ -285,6 +297,7 @@ function ReceitaModal({ show, onHide, theme, receita = null, onSave }) {
       nome: formData.nome,
       valor_receita: valorFinal,
       data: formData.data,
+      due_date: formData.data,
       observacoes: formData.observacoes,
       status: formData.status,
       itens: itensComImpostos,

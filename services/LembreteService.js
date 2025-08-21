@@ -20,7 +20,6 @@ const lembreteQueue = new Queue('lembretes', { connection: redisConnection });
 
 const lembreteWorker = new Worker('lembretes', async job => {
     try {
-        console.log(`Processando lembrete: ${job.data.lembrete_name}`);
         const { tag, filas, schema } = job.data;
         
         const socketIo = getGlobalSocket();

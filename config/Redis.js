@@ -9,10 +9,8 @@ function createRedisConnection() {
     maxRetriesPerRequest: null,
   });
 
-  console.log('Tentando conectar ao Redis...');
 
   redis.ping().then((res) => {
-    console.log('Resposta do Redis:', res); 
   }).catch((err) => {
     console.error('Erro ao conectar ao Redis:', err.message);
   });

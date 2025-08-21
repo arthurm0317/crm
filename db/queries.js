@@ -1,12 +1,6 @@
 const {Pool} = require('pg');
 require('dotenv').config({ path: __dirname + '/../.env' });
 
-console.log('Variáveis de ambiente PostgreSQL:');
-console.log('Username:', process.env.postgres_username || 'não definido');
-console.log('Host:', process.env.postgres_host || 'não definido');
-console.log('Database:', process.env.postgres_db || 'não definido');
-console.log('Port:', process.env.postgres_port || 'não definido');
-
 const pool = new Pool({
     user: process.env.postgres_username || 'postgres',
     host: process.env.postgres_host || 'localhost',
@@ -16,7 +10,6 @@ const pool = new Pool({
 })
 
 pool.on('connect',()=>{
-    console.log('PostgreSQL conectado com sucesso')
 })
 
 pool.on('error',(err)=>{

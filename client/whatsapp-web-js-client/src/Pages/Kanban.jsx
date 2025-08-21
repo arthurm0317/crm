@@ -196,12 +196,7 @@ function KanbanPage({ theme }) {
 
   // Restaurar funil selecionado das preferências
   useEffect(() => {
-    console.log('Preferências carregadas:', preferences);
-    console.log('Funis disponíveis:', funis);
-    console.log('Funil salvo:', preferences.kanbanFunnel);
-    
     if (preferences.kanbanFunnel && funis.includes(preferences.kanbanFunnel)) {
-      console.log('Restaurando funil salvo:', preferences.kanbanFunnel);
       setFunilSelecionado(preferences.kanbanFunnel);
     }
   }, [preferences.kanbanFunnel, funis]);
@@ -231,7 +226,6 @@ function KanbanPage({ theme }) {
   // Entrar na sala do schema para receber eventos
   useEffect(() => {
     if (schema) {
-      console.log('🏠 Entrando na sala do schema:', `schema_${schema}`);
       socketInstance.emit('join', `schema_${schema}`);
     }
   }, [schema, socketInstance]);
@@ -297,7 +291,6 @@ function KanbanPage({ theme }) {
             let customValue = '';
             try {
               const resp = await axios.get(`${url}/contact/get-custom-values/${contato.number}/${schema}`);
-              console.log('DEBUG custom values', contato.number, resp.data, 'selectedCustomField:', selectedCustomField);
               const resultArr = resp.data.result && Array.isArray(resp.data.result) ? resp.data.result : [];
               if (selectedCustomField) {
                 const found = resultArr.find(f => String(f.field_id) === String(selectedCustomField));
@@ -341,18 +334,15 @@ function KanbanPage({ theme }) {
         withCredentials: true
       });
       const etapasAtualizadas = Array.isArray(etapasResp.data) ? etapasResp.data : [];
-      console.log('Etapas do backend:', etapasAtualizadas);
       let allContacts = [];
       for (const etapa of etapasAtualizadas) {
         const response = await axios.get(`${url}/kanban/get-contacts-in-stage/${etapa.id}/${schema}`, {
           withCredentials: true
         });
-        console.log(`Contatos da etapa ${etapa.etapa} (${etapa.id}):`, response.data);
         const contatos = Array.isArray(response.data) ? response.data : [response.data];
         allContacts = allContacts.concat(contatos.map(c => ({ ...c, etapa_id: etapa.id })));
       }
       setEtapas(etapasAtualizadas); // Atualiza as etapas no estado também
-      console.log('Todos os contatos montados para o kanban:', allContacts);
       setCards(allContacts);
     } catch (error) {
       setCards([]);
@@ -463,7 +453,6 @@ function KanbanPage({ theme }) {
 
   const handleManageTags = (lead) => {
     // TODO: Implementar gerenciamento de tags
-    console.log(`Gerenciar tags de ${lead.nome}`);
   };
 
   // Drag and drop handlers

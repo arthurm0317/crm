@@ -24,9 +24,7 @@ const getReceitaById = async (receita_id, schema) => {
     }
     
     // Buscar itens da receita diretamente
-    console.log('receita', receita_id)
     const receita_items = await pool.query(`SELECT * FROM ${schema}.financial_items WHERE financial_id = $1`, [receita_id]);
-    console.log('receita item', receita_items.rows)
     // Buscar categoria
     let category_name = null;
     if (receita.rows[0]?.category_id) {
@@ -129,10 +127,7 @@ const getReceitasStats = async (schema) => {
 
 const testConnection = async () => {
     try {
-        console.log('Testando conexão com PostgreSQL...');
         const result = await pool.query('SELECT NOW() as current_time, version() as db_version');
-        console.log('Conexão OK - Tempo atual:', result.rows[0].current_time);
-        console.log('Versão do banco:', result.rows[0].db_version);
         return true;
     } catch (error) {
         console.error('Erro na conexão com PostgreSQL:', error);

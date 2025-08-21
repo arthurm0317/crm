@@ -46,6 +46,7 @@ const refreshTokenController = (req, res) => {
   }
 };
 
+
 const createUserController = async (req, res) => {
     try {
       const { name, email, password, role } = req.body;

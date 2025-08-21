@@ -54,7 +54,8 @@ function Financeiro({ theme }) {
     dataFim: '',
     categorizada: ''
   });
-  
+  const [days, setDays] = useState([])
+  const datee = new Date
   // Mover a declaração do user e schema para o início
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   const schema = user.schema;
@@ -69,6 +70,22 @@ function Financeiro({ theme }) {
     }
     return labels;
   };
+
+
+useEffect(()=>{
+  const getLast7Dayss = async()=>{
+    const date = new Date()
+    const days = []
+    for(let i=0; i<7; i++){
+      const day = new Date(date)
+      day.setDate(date.getDate()-i)
+      days.push(day.toISOString().split('T')[0])
+    }
+    setDays(days)
+  }
+  getLast7Dayss()
+},[])
+  
 
   const generateLast6MonthsLabels = () => {
     const labels = [];
@@ -100,21 +117,20 @@ function Financeiro({ theme }) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
-      
-      // Calcular volume de receitas para o dia
-      const receitasDoDia = receitas.filter(receita => 
-        receita.created_at && receita.created_at.startsWith(dateStr)
-      );
+        const receitasDoDia = receitas.filter(receita => 
+          receita.due_date && receita.due_date.split('T')[0] === dateStr
+        );
       const volumeReceitas = receitasDoDia.reduce((total, receita) => 
-        total + (parseFloat(receita.valor) || 0), 0
+        total + (parseFloat(receita.total_amount) || 0), 0
       );
+      
       
       // Calcular volume de despesas para o dia
       const despesasDoDia = despesas.filter(despesa => 
-        despesa.date_incurred && despesa.date_incurred.startsWith(dateStr)
+        despesa.expense?.date_incurred && despesa.expense.date_incurred.split('T')[0] === dateStr
       );
       const volumeDespesas = despesasDoDia.reduce((total, despesa) => 
-        total + (parseFloat(despesa.total_amount) || 0), 0
+        total + (parseFloat(despesa.expense?.total_amount) || 0), 0
       );
       
       receitasData.push(volumeReceitas);
@@ -125,8 +141,7 @@ function Financeiro({ theme }) {
     return { receitasData, despesasData, fluxoCaixaData };
   };
 
-  const dailyData = useMemo(() => generateDailyData(), [receitas, despesas]);
-  
+      const dailyData = useMemo(() => generateDailyData(), [receitas, despesas]);
   const performanceChartData = useMemo(() => ({
     labels: generateLast7DaysLabels(),
     datasets: [
@@ -548,7 +563,7 @@ function Financeiro({ theme }) {
         payment_method: despesa.metodoPagamento || 'dinheiro',
         status: despesa.status || 'pendente',
         notes: despesa.observacoes || '',
-        created_at: new Date().toISOString(),
+        due_date: new Date().toISOString(),
         itens: despesa.itens,
         schema: schema
       };
@@ -716,6 +731,22 @@ function Financeiro({ theme }) {
     return Number.isFinite(n) ? n : 0;
   };
 
+  // Função para calcular receitas do mês atual
+  const calcularReceitasDoMes = () => {
+    const mesAtual = new Date().getMonth();
+    const anoAtual = new Date().getFullYear();
+    
+    return receitas.reduce((total, receita) => {
+      if (receita.due_date) {
+        const dataReceita = new Date(receita.due_date);
+        if (dataReceita.getMonth() === mesAtual && dataReceita.getFullYear() === anoAtual) {
+          return total + (parseFloat(receita.total_amount || receita.valor_receita || 0));
+        }
+      }
+      return total;
+    }, 0);
+  };
+
   const calcularImpostosItem = (item) => {
     const unitPrice = parseNumber(item.unit_price || item.price || item.valor);
     const quantity = parseInt(item.quantity || item.qty || item.quantidade || 1);
@@ -772,21 +803,42 @@ function Financeiro({ theme }) {
   };
 
   const calcularTotais = () => {
-    const totais = despesasFiltradas.reduce((acc, despesa) => {
+  const date = new Date();
+  const hojeISO = date.toISOString().split('T')[0];
+
+  // Filtra uma vez só
+  const despesasHoje = despesasFiltradas.filter(
+    (d) => d.expense.date_incurred.split('T')[0] === hojeISO
+  );
+
+  // Soma total de hoje
+  const totalHoje = despesasHoje.reduce(
+    (acc, d) => acc + (parseFloat(d.expense?.total_amount) || 0),
+    0
+  );
+
+  // Calcula totais gerais
+  const totais = despesasFiltradas.reduce(
+    (acc, despesa) => {
       const valorDespesa = parseFloat(despesa.expense?.total_amount) || 0;
       const valorImpostos = calcularImpostosDespesa(despesa);
-      
+
       return {
         total: acc.total + valorDespesa,
+        totalHoje: totalHoje,
         base: acc.base + valorDespesa,
         impostos: acc.impostos + valorImpostos,
-        categorizadas: acc.categorizadas + (despesa.category_name ? valorDespesa : 0),
-        naoCategorizadas: acc.naoCategorizadas + (!despesa.category_name ? valorDespesa : 0)
+        categorizadas:
+          acc.categorizadas + (despesa.category_name ? valorDespesa : 0),
+        naoCategorizadas:
+          acc.naoCategorizadas + (!despesa.category_name ? valorDespesa : 0),
       };
-    }, { total: 0, base: 0, impostos: 0, categorizadas: 0, naoCategorizadas: 0 });
+    },
+    { total: 0, totalHoje: 0, base: 0, impostos: 0, categorizadas: 0, naoCategorizadas: 0 }
+  );
 
-    return totais;
-  };
+  return totais;
+};
 
   // Função para simular despesas vindas do WhatsApp (não categorizadas)
   const simularDespesaWhatsApp = () => {
@@ -945,6 +997,7 @@ function Financeiro({ theme }) {
     }
   }, [schema]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  
   // Função para carregar receitas
   const carregarReceitas = async () => {
     try {
@@ -971,7 +1024,7 @@ function Financeiro({ theme }) {
                   total_amount: receitaCompleta.data.data.receita.total_amount || receita.total_amount,
                   schema: receitaData.receita?.schema_name || receita.schema_name,
                   status: receitaData.receita?.status || receita.status,
-                  created_at: receitaData.receita?.created_at || receita.created_at,
+                  due_date: receitaData.receita?.due_date || receita.due_date,
                   updated_at: receitaData.receita?.updated_at || receita.updated_at,
                   items: receitaData.items,
                   taxes: receitaData.taxes || [],
@@ -987,7 +1040,7 @@ function Financeiro({ theme }) {
                   total_amount: receita.total_amount,
                   schema: receita.schema_name,
                   status: receita.status,
-                  created_at: receita.created_at,
+                  due_date: receita.due_date,
                   updated_at: receita.updated_at,
                   items: receita.items || [],
                   taxes: [],
@@ -1005,7 +1058,7 @@ function Financeiro({ theme }) {
                 total_amount: receita.total_amount,
                 schema: receita.schema_name,
                 status: receita.status,
-                created_at: receita.created_at,
+                                  due_date: receita.due_date,
                 updated_at: receita.updated_at,
                 items: receita.items || [],
                 taxes: [],
@@ -1073,7 +1126,7 @@ function Financeiro({ theme }) {
             total_amount: result.data.total_amount, // Campo do banco: total_amount
             schema: result.data.schema_name,
             status: result.data.status,
-            created_at: result.data.created_at,
+            due_date: result.data.due_date,
             updated_at: result.data.updated_at,
             items: itensValidos // Incluir itens salvos
           };
@@ -1162,7 +1215,7 @@ function Financeiro({ theme }) {
             total_amount: result.data.total_amount,
             schema: result.data.schema_name,
             status: result.data.status,
-            created_at: result.data.created_at,
+            due_date: result.data.due_date,
             updated_at: result.data.updated_at,
             items: result.data.items || []
           };
@@ -1304,7 +1357,7 @@ function Financeiro({ theme }) {
           id: receitaCompleta.receita?.id || receita.id,
           descricao: receitaCompleta.receita?.name || receitaCompleta.receita?.description || '', 
           valor_receita: receitaCompleta.receita?.valor_receita || receitaCompleta.receita?.total_amount || 0,
-          data: receitaCompleta.receita?.created_at ? new Date(receitaCompleta.receita.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          data: receitaCompleta.receita?.data ? new Date(receitaCompleta.receita.due_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
           observacoes: receitaCompleta.receita?.notes || '',
           status: receitaCompleta.receita?.status || 'pendente',
           itens: itensParaEditar,
@@ -1379,7 +1432,7 @@ function Financeiro({ theme }) {
                     <i className="bi bi-cash-coin text-success" style={{ fontSize: '2rem' }}></i>
                     <div className="ms-3">
                       <h6 className={`card-subtitle-${theme} mb-1`}>Receitas do Mês</h6>
-                      <h4 className={`header-text-${theme} mb-0`}>R$ {receitas.reduce((total, receita) => total + (parseFloat(receita.valor) || 0), 0).toFixed(2)}</h4>
+                      <h4 className={`header-text-${theme} mb-0`}>R$ {calcularReceitasDoMes().toFixed(2)}</h4>
                     </div>
                   </div>
                 </div>
@@ -1401,7 +1454,7 @@ function Financeiro({ theme }) {
                     <i className="bi bi-graph-up text-primary" style={{ fontSize: '2rem' }}></i>
                     <div className="ms-3">
                       <h6 className={`card-subtitle-${theme} mb-1`}>Saldo</h6>
-                      <h4 className={`header-text-${theme} mb-0`}>R$ {(receitas.reduce((total, receita) => total + (parseFloat(receita.valor) || 0), 0) - calcularTotais().total).toFixed(2)}</h4>
+                      <h4 className={`header-text-${theme} mb-0`}>R$ {(calcularReceitasDoMes() - calcularTotais().total).toFixed(2)}</h4>
                     </div>
                   </div>
                 </div>
@@ -1555,7 +1608,7 @@ function Financeiro({ theme }) {
                       <i className="bi bi-calendar-day" style={{ fontSize: '1.5rem', color: `var(--primary-color)` }}></i>
                       <div className="ms-2">
                         <h6 className={`card-subtitle-${theme} mb-0`}>Hoje</h6>
-                        <h5 className={`header-text-${theme} mb-0`}>R$ {calcularTotais().total.toFixed(2)}</h5>
+                        <h5 className={`header-text-${theme} mb-0`}>R$ {calcularTotais().totalHoje.toFixed(2)}</h5>
                       </div>
                     </div>
                   </div>
@@ -1855,7 +1908,7 @@ function Financeiro({ theme }) {
                     <i className="bi bi-cash-coin text-success" style={{ fontSize: '1.5rem' }}></i>
                     <div className="ms-2">
                       <h6 className={`card-subtitle-${theme} mb-0`}>Total Receitas</h6>
-                      <h5 className={`header-text-${theme} mb-0`}>R$ {receitas.reduce((total, receita) => total + (parseFloat(receita.valor) || 0), 0).toFixed(2)}</h5>
+                      <h5 className={`header-text-${theme} mb-0`}>R$ {receitas.reduce((total, receita) => total + (parseFloat(receita.total_amount) || 0), 0).toFixed(2)}</h5>
                     </div>
                   </div>
                 </div>
@@ -1866,7 +1919,7 @@ function Financeiro({ theme }) {
                     <i className="bi bi-calendar-event text-info" style={{ fontSize: '1.5rem' }}></i>
                     <div className="ms-2">
                       <h6 className={`card-subtitle-${theme} mb-0`}>Este Mês</h6>
-                      <h5 className={`header-text-${theme} mb-0`}>R$ {receitas.reduce((total, receita) => total + (parseFloat(receita.valor) || 0), 0).toFixed(2)}</h5>
+                      <h5 className={`header-text-${theme} mb-0`}>R$ {receitas.filter(r=>new Date(r.due_date).getMonth()===datee.getMonth() ).reduce((total, receita) => total + (parseFloat(receita.total_amount) || 0), 0).toFixed(2)}</h5>
                     </div>
                   </div>
                 </div>
@@ -1877,7 +1930,7 @@ function Financeiro({ theme }) {
                     <i className="bi bi-calendar-week text-warning" style={{ fontSize: '1.5rem' }}></i>
                     <div className="ms-2">
                       <h6 className={`card-subtitle-${theme} mb-0`}>Esta Semana</h6>
-                      <h5 className={`header-text-${theme} mb-0`}>R$ {receitas.reduce((total, receita) => total + (parseFloat(receita.valor) || 0), 0).toFixed(2)}</h5>
+                      <h5 className={`header-text-${theme} mb-0`}>R$ {receitas.filter(r=>days.includes(r.due_date.split('T')[0])).reduce((total, receita) => total + (parseFloat(receita.total_amount) || 0), 0).toFixed(2)}</h5>
                     </div>
                   </div>
                 </div>
@@ -1888,7 +1941,7 @@ function Financeiro({ theme }) {
                     <i className="bi bi-calendar-day text-success" style={{ fontSize: '1.5rem' }}></i>
                     <div className="ms-2">
                       <h6 className={`card-subtitle-${theme} mb-0`}>Hoje</h6>
-                      <h5 className={`header-text-${theme} mb-0`}>R$ {receitas.reduce((total, receita) => total + (parseFloat(receita.valor) || 0), 0).toFixed(2)}</h5>
+                      <h5 className={`header-text-${theme} mb-0`}>R$ {receitas.filter(r=>r.due_date.split('T')[0]===datee.toISOString().split('T')[0]).reduce((total, receita) => total + (parseFloat(receita.total_amount) || 0), 0).toFixed(2)}</h5>
                     </div>
                   </div>
                 </div>
@@ -1950,7 +2003,7 @@ function Financeiro({ theme }) {
                               <strong>R$ {parseFloat(receita.total_amount || 0).toFixed(2)}</strong>
                             </td>
                             <td className={`text-${theme === 'light' ? 'dark' : 'light'}`}>
-                              {receita.created_at ? new Date(receita.created_at).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR')}
+                              {receita.due_date ? new Date(receita.due_date).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR')}
                             </td>
                             <td>
                               <button

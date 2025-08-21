@@ -104,7 +104,6 @@ function ImportarContatosModal({ theme, show, onHide, funil }) {
       });
 
       if (res.data.success) {
-        console.log('✅ Importação bem-sucedida!');
         
         setFile(null);
         setPreview([]);

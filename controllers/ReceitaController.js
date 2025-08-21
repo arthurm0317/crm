@@ -2,9 +2,10 @@ const { deleteAllExpensesItens, insertExpenseItens, insertExpenseItensTax } = re
 const { createReceita, getReceitas, getReceitaById, updateReceita, deleteReceita, getReceitasStats, testConnection } = require("../services/ReceitaService");
 
 const createReceitaController = async (req, res) => {
-    const { nome, user_id, category_id, valor_receita, due_date, payment_method, status, itens=[], schema } = req.body;
+    const { nome, user_id, category_id, valor_receita, data, payment_method, status, itens=[], schema } = req.body;
+    console.log(req.body)
     try {
-        const result = await createReceita(nome, user_id, category_id, valor_receita, due_date, payment_method, status, schema);
+        const result = await createReceita(nome, user_id, category_id, valor_receita, data, payment_method, status, schema);
         await deleteAllExpensesItens(result.id, schema)
         
         for(const item of itens){

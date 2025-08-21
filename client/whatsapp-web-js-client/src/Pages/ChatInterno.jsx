@@ -21,9 +21,6 @@ function ChatInterno() {
   const messagesEndRef = useRef(null);
   const schema = userData?.schema;
 
-  console.log('ChatInterno - userData:', userData);
-  console.log('ChatInterno - userId:', userId);
-  console.log('ChatInterno - schema:', schema);
 
 useEffect(() => {
   if (userId && schema) {
