@@ -3,9 +3,8 @@ const IORedis = require('ioredis');
 
 function createRedisConnection() {
   const redis = new IORedis({
-    host: process.env.REDIS_HOST,
-    port: process.env.REDIS_PORT,
-    password: process.env.REDIS_PASSWORD || undefined,
+    host: "127.0.0.1",
+    port: 6379,
     maxRetriesPerRequest: null,
   });
 

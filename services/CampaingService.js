@@ -43,6 +43,7 @@ const worker = new Worker(
       if(job.data.stage){
         await updateContactInKanban(job.data.number, job.data.stage, job.data.schema);
       }
+      await insertCampaingChatTable(job.data.chat_id, job.data.campaing_id, job.data.schema);
       console.log(`Job ${job.id} processado com sucesso`);
     } catch (err) {
       console.error(`Erro ao enviar mensagem dentro do job ${job.id}:`, err.message);
@@ -314,6 +315,7 @@ const scheduleCampaingBlast = async (campaing, sector, schema, intervalo, new_st
         instance: instance.rows[0].id,
         number: contactPhone,
         chat_id: chatToUse.id,
+        campaing_id: campaing.id,
         message: message.value,
         image: message.image,
         schema: schema,
@@ -518,6 +520,11 @@ const deleteCampaing = async(campaing_id, schema)=>{
     console.error('Erro ao deletar campanha:', error.message);
     throw error;
   }
+}
+
+const insertCampaingChatTable = async(chat_id, campaing_id, schema)=>{
+  const result = await pool.query(`INSERT INTO ${schema}.campaing_chats(chat_id, campaing_id, created_at) VALUES ($1, $2, $3) RETURNING *`, [chat_id, campaing_id, getCurrentTimestamp()]);
+  return result.rows[0];
 }
 
 

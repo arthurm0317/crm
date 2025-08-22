@@ -822,10 +822,11 @@ useEffect(()=>{
     (acc, despesa) => {
       const valorDespesa = parseFloat(despesa.expense?.total_amount) || 0;
       const valorImpostos = calcularImpostosDespesa(despesa);
-
+      const totalMes = despesas.filter(d=>new Date(d.expense.date_incurred).getMonth() === new Date().getMonth()).reduce((total, despesa)=>total+parseFloat(despesa.expense?.total_amount) || 0, 0);
       return {
         total: acc.total + valorDespesa,
         totalHoje: totalHoje,
+        totalMes: totalMes,
         base: acc.base + valorDespesa,
         impostos: acc.impostos + valorImpostos,
         categorizadas:
@@ -1597,7 +1598,7 @@ useEffect(()=>{
                       <i className="bi bi-calendar-event" style={{ fontSize: '1.5rem', color: `var(--primary-color)` }}></i>
                       <div className="ms-2">
                         <h6 className={`card-subtitle-${theme} mb-0`}>Este Mês</h6>
-                        <h5 className={`header-text-${theme} mb-0`}>R$ {calcularTotais().total.toFixed(2)}</h5>
+                        <h5 className={`header-text-${theme} mb-0`}>R$ {calcularTotais().totalMes.toFixed(2)}</h5>
                       </div>
                     </div>
                   </div>
