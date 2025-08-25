@@ -528,7 +528,8 @@ const insertCampaingChatTable = async(chat_id, campaing_id, schema)=>{
 }
 
 const getCampaingChats = async(campaing_id, schema)=>{
-  const chats = await pool.query(`SELECT cc.*, c.contact_name, c.contact_phone, c.id as chat_id FROM ${schema}.campaing_chats cc JOIN ${schema}.chats c ON cc.chat_id=c.id WHERE cc.campaing_id=$1 ORDER BY cc.created_at DESC`, [campaing_id]);
+  const chats = await pool.query(`SELECT cc.*, c.contact_name, c.contact_phone,c.status, c.id as chat_id FROM ${schema}.campaing_chats cc JOIN ${schema}.chats c ON cc.chat_id=c.id WHERE cc.campaing_id=$1 ORDER BY cc.created_at DESC`, [campaing_id]);
+  console.log(chats.rows)
   return chats.rows;
 }
 

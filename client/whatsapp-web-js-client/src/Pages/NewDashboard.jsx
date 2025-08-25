@@ -57,7 +57,6 @@ function NewDashboard({ theme }) {
     const fetchDisparos = async () => {
       try {
         const response = await axios.get(`${url}/campaing/get-campaing/${schema}`);
-        console.log('Resposta da API de disparos:', response.data);
         setDisparos(response.data);
       } catch (error) {
         console.error('Erro ao buscar disparos:', error);
@@ -68,7 +67,6 @@ function NewDashboard({ theme }) {
     const fetchCampaingData = async () => {
       try {
         const response = await axios.get(`${url}/campaing/get-campaings-data/${schema}`);
-        console.log('Resposta da API de campanhas:', response.data);
         setCampanhas(Array.isArray(response.data.result) ? response.data.result : [response.data.result]);
       } catch (error) {
         console.error('Erro ao buscar campanhas:', error);
@@ -78,38 +76,23 @@ function NewDashboard({ theme }) {
 
     const fetchCampaingChats = async () => {
       try {
-        const response = await axios.get(`${url}/campaing/get-campaing-chats/${schema}`);
-        console.log('🔍 Resposta COMPLETA da API de campanha chats:', response);
-        console.log('🔍 Dados da resposta:', response.data);
-        console.log('🔍 Tipo dos dados:', typeof response.data);
-        
-        // Verificar se tem uma estrutura aninhada como as outras APIs
-        let chatsData = response.data;
-        if (response.data && response.data.result) {
-          console.log('🔍 Encontrou propriedade "result":', response.data.result);
-          chatsData = Array.isArray(response.data.result) ? response.data.result : [response.data.result];
-        } else if (Array.isArray(response.data)) {
-          console.log('🔍 Dados já são um array');
-          chatsData = response.data;
-        } else {
-          console.log('🔍 Dados não são array, convertendo');
-          chatsData = [response.data];
+        const chats = [];
+        for(const campanha of campanhas){
+          const response = await axios.get(`${url}/campaing/get-campaing-chats/${campanha.campaing_id}/${schema}`);
+          chats.push(...response.data.result);
+          console.log(response.data.result);
         }
         
-        console.log('🔍 Dados finais dos chats:', chatsData);
-        setCampaingChats(chatsData);
+        setCampaingChats(chats);
       } catch (error) {
-        console.error('❌ Erro ao buscar campanha chats:', error);
-        console.error('❌ Status do erro:', error.response?.status);
-        console.error('❌ Dados do erro:', error.response?.data);
-        setCampaingChats([]);
+        console.error('Erro ao buscar chats das campanhas:', error);
       }
     }
 
     fetchDisparos();
     fetchCampaingData();
     fetchCampaingChats();
-  }, [url, schema])
+  }, [url, activeTab])
 
   // Usar hooks personalizados
   const { data, loading, error, lastUpdate, calculatedData } = useDashboardData(schema, url);
@@ -183,7 +166,6 @@ function NewDashboard({ theme }) {
   const generateCampaingLabels = () => {
     const labels = []
     for(const disparo of disparos){
-      console.log(disparo)
       const disparoa = disparo.campaing_name
       labels.push(disparoa)
     }
@@ -203,15 +185,8 @@ function NewDashboard({ theme }) {
   }), [dailyVolume, theme]);
 
    const campanhaChartData = useMemo(() => {
-    console.log('=== DEBUG GRÁFICO CAMPANHAS ===');
-    console.log('Disparos recebidos:', disparos);
-    console.log('Campanhas recebidas:', campanhas);
-    console.log('Campaing chats recebidos:', campaingChats);
-    console.log('Campaing chats é array?', Array.isArray(campaingChats));
-    console.log('Campaing chats length:', campaingChats?.length || 0);
     
     if (!disparos || disparos.length === 0) {
-      console.log('Nenhum disparo encontrado');
       return {
         labels: ['Sem dados'],
         datasets: [
@@ -236,68 +211,53 @@ function NewDashboard({ theme }) {
     // Contar quantas vezes cada campaing_id aparece em campanhas
     const campanhaCounts = {};
     campanhas.forEach(campanha => {
-      console.log('Processando campanha:', campanha);
       if (campanha.campaing_id) {
         campanhaCounts[campanha.campaing_id] = (campanhaCounts[campanha.campaing_id] || 0) + 1;
       }
     });
     
-    console.log('Contagem de chats por campanha:', campanhaCounts);
     
-    // Contar chats com status "disparo" (não responderam)
     const chatsNaoResponderam = {};
-    console.log('Analisando chats para status "disparo":');
-    campaingChats.forEach(chat => {
-      console.log(`Chat ID: ${chat.id}, Campaing ID: ${chat.campaing_id}, Status: ${chat.status}`);
-      if (chat.campaing_id && chat.status === 'disparo') {
-        chatsNaoResponderam[chat.campaing_id] = (chatsNaoResponderam[chat.campaing_id] || 0) + 1;
-        console.log(`✅ Chat com status "disparo" encontrado para campanha ${chat.campaing_id}`);
-      }
-    });
-    
-    console.log('Chats que não responderam por campanha:', chatsNaoResponderam);
-    
-    // Verificar se há inconsistência nos IDs
-    console.log('=== VERIFICAÇÃO DE IDs ===');
-    console.log('IDs dos disparos:', disparos.map(d => ({ id: d.id, name: d.campaing_name })));
-    console.log('IDs das campanhas:', campanhas.map(c => ({ campaing_id: c.campaing_id, chat_id: c.chat_id })));
-    console.log('IDs dos chats:', campaingChats.map(ch => ({ id: ch.id, campaing_id: ch.campaing_id, status: ch.status })));
+
+// Crie um Set para guardar os chat_id já processados
+const chatsProcessados = new Set();
+
+campaingChats.forEach(chat => {
+  if (
+    chat.campaing_id &&
+    chat.status === 'disparo' &&
+    !chatsProcessados.has(chat.chat_id)
+  ) {
+    chatsProcessados.add(chat.chat_id);
+    chatsNaoResponderam[chat.campaing_id] = (chatsNaoResponderam[chat.campaing_id] || 0) + 1;
+  }
+});
     
     // Pegar apenas os disparos que têm campanhas associadas
     const disparosComCampanhas = disparos.filter(disparo => 
       campanhaCounts[disparo.id] > 0
     );
     
-    console.log('Disparos com campanhas associadas:', disparosComCampanhas);
     
     // Criar labels usando o nome da campanha do disparo
     const labels = disparosComCampanhas.map(disparo => disparo.campaing_name || `Campanha ${disparo.id}`);
-    console.log('Labels das campanhas:', labels);
     
     // Criar dados para as duas barras
     const totalContatos = disparosComCampanhas.map(disparo => {
       const chatCount = campanhaCounts[disparo.id] || 0;
-      console.log(`Disparo ID: ${disparo.id}, Nome: ${disparo.campaing_name}, Total Chats: ${chatCount}`);
       return chatCount;
     });
+    
     
     const contatosResponderam = disparosComCampanhas.map(disparo => {
       const totalChats = campanhaCounts[disparo.id] || 0;
       const naoResponderam = chatsNaoResponderam[disparo.id] || 0;
+      console.log('Não Responderam:', naoResponderam);
       const responderam = totalChats - naoResponderam;
-      console.log(`📊 Disparo ID: ${disparo.id}, Nome: ${disparo.campaing_name}`);
-      console.log(`   Total Chats: ${totalChats}`);
-      console.log(`   Não responderam (status "disparo"): ${naoResponderam}`);
-      console.log(`   Responderam: ${responderam} (${totalChats} - ${naoResponderam})`);
+      
       return responderam;
     });
-    
-    console.log('=== RESUMO FINAL ===');
-    console.log('Labels:', labels);
-    console.log('Total de Contatos:', totalContatos);
-    console.log('Contatos que Responderam:', contatosResponderam);
-    console.log('========================');
-    
+
     return {
       labels: labels.length > 0 ? labels : ['Sem campanhas'],
       datasets: [
@@ -311,8 +271,8 @@ function NewDashboard({ theme }) {
         {
           label: 'Contatos que Responderam',
           data: contatosResponderam.length > 0 ? contatosResponderam : [0],
-          backgroundColor: theme === 'dark' ? 'rgba(255, 99, 132, 0.8)' : 'rgba(255, 99, 132, 0.6)',
-          borderColor: theme === 'dark' ? 'rgb(255, 99, 132)' : 'rgb(255, 99, 132)',
+          backgroundColor: theme === 'dark' ? 'rgba(99, 255, 112, 0.8)' : 'rgba(99, 255, 112, 0.8)',
+          borderColor: theme === 'dark' ? 'rgba(99, 255, 112, 0.8)' : 'rgba(99, 255, 112, 0.8)',
           borderWidth: 1
         }
       ]
@@ -352,7 +312,6 @@ function NewDashboard({ theme }) {
 
   const handleEditarDisparo = (disparo) => {
     // TODO: Implementar edição de disparo
-    console.log('Editar disparo:', disparo);
   };
 
   const handleExcluirDisparo = (disparoId) => {

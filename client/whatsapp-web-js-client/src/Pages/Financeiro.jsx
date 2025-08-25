@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef  } from 'react';
 import * as bootstrap from 'bootstrap';
 import DespesaModal from './modalPages/DespesaModal';
 import ReceitasModal from './modalPages/ReceitasModal';
