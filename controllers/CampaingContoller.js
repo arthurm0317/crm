@@ -1,4 +1,4 @@
-const { scheduleCampaingBlast, getCampaings, getCampaingById, createCampaing, startCampaing, deleteCampaing } = require("../services/CampaingService");
+const { scheduleCampaingBlast, getCampaings, getCampaingById, createCampaing, startCampaing, deleteCampaing, getCampaingChats, getCampaingsData } = require("../services/CampaingService");
 const { createMessageForBlast, getAllBlastMessages, deleteAllBlastMessages } = require("../services/MessageBlast");
 
 const startCampaingController = async (req, res) => {
@@ -113,11 +113,45 @@ const deleteCampaingController = async(req, res)=>{
   }
 }
 
+const getCampaingChatsController = async (req, res) => {
+  const {campaing_id, schema} = req.params;
+  try {
+    const result = await getCampaingChats(campaing_id, schema);
+    res.status(200).json({
+      success: true,
+      result
+    });
+  } catch (error) {
+    res.status(400).json({
+      success:false,
+      error:'Erro ao buscar chats da campanha'
+    })
+  }
+}
+
+const getCampaingsDataController = async (req, res) => {
+  const { schema } = req.params;
+  try {
+    const result = await getCampaingsData(schema);
+    res.status(200).json({
+      success: true,
+      result
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: 'Erro ao buscar dados das campanhas'
+    });
+  }
+}
+
 module.exports = {
   startCampaingController,
   getCampaingsController,
   getCampaingByIdController,
   createCampaingController,
   getAllBlastMessagesController,
-  deleteCampaingController
+  deleteCampaingController,
+  getCampaingChatsController,
+  getCampaingsDataController
 };

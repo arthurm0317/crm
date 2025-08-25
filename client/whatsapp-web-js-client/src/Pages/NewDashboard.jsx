@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Bar, Line, Doughnut } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -17,6 +17,7 @@ import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Tooltip from 'react-bootstrap/Tooltip';
 import useDashboardData from '../hooks/useDashboardData';
 import useDashboardFilters from '../hooks/useDashboardFilters';
+import axios from '../utils/axiosConfig';
 
 ChartJS.register(
   CategoryScale,
@@ -43,6 +44,72 @@ function NewDashboard({ theme }) {
   // Estados do modal
   const [showChatModal, setShowChatModal] = useState(false);
   const [modalChatId, setModalChatId] = useState(null);
+
+  // Estados para aba Disparos
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [disparos, setDisparos] = useState([]);
+  const [campanhas, setCampanhas] = useState([]);
+  const [contatos, setContatos] = useState([]);
+  const [campaingChats, setCampaingChats] = useState([]);
+
+
+  useEffect(() => {
+    const fetchDisparos = async () => {
+      try {
+        const response = await axios.get(`${url}/campaing/get-campaing/${schema}`);
+        console.log('Resposta da API de disparos:', response.data);
+        setDisparos(response.data);
+      } catch (error) {
+        console.error('Erro ao buscar disparos:', error);
+        setDisparos([]);
+      }
+    }
+    
+    const fetchCampaingData = async () => {
+      try {
+        const response = await axios.get(`${url}/campaing/get-campaings-data/${schema}`);
+        console.log('Resposta da API de campanhas:', response.data);
+        setCampanhas(Array.isArray(response.data.result) ? response.data.result : [response.data.result]);
+      } catch (error) {
+        console.error('Erro ao buscar campanhas:', error);
+        setCampanhas([]);
+      }
+    }
+
+    const fetchCampaingChats = async () => {
+      try {
+        const response = await axios.get(`${url}/campaing/get-campaing-chats/${schema}`);
+        console.log('🔍 Resposta COMPLETA da API de campanha chats:', response);
+        console.log('🔍 Dados da resposta:', response.data);
+        console.log('🔍 Tipo dos dados:', typeof response.data);
+        
+        // Verificar se tem uma estrutura aninhada como as outras APIs
+        let chatsData = response.data;
+        if (response.data && response.data.result) {
+          console.log('🔍 Encontrou propriedade "result":', response.data.result);
+          chatsData = Array.isArray(response.data.result) ? response.data.result : [response.data.result];
+        } else if (Array.isArray(response.data)) {
+          console.log('🔍 Dados já são um array');
+          chatsData = response.data;
+        } else {
+          console.log('🔍 Dados não são array, convertendo');
+          chatsData = [response.data];
+        }
+        
+        console.log('🔍 Dados finais dos chats:', chatsData);
+        setCampaingChats(chatsData);
+      } catch (error) {
+        console.error('❌ Erro ao buscar campanha chats:', error);
+        console.error('❌ Status do erro:', error.response?.status);
+        console.error('❌ Dados do erro:', error.response?.data);
+        setCampaingChats([]);
+      }
+    }
+
+    fetchDisparos();
+    fetchCampaingData();
+    fetchCampaingChats();
+  }, [url, schema])
 
   // Usar hooks personalizados
   const { data, loading, error, lastUpdate, calculatedData } = useDashboardData(schema, url);
@@ -113,6 +180,16 @@ function NewDashboard({ theme }) {
     return labels;
   };
 
+  const generateCampaingLabels = () => {
+    const labels = []
+    for(const disparo of disparos){
+      console.log(disparo)
+      const disparoa = disparo.campaing_name
+      labels.push(disparoa)
+    }
+    return labels
+  }
+
   // Dados para gráficos
   const performanceChartData = useMemo(() => ({
     labels: generateLast7DaysLabels(),
@@ -124,6 +201,123 @@ function NewDashboard({ theme }) {
       tension: 0.1
     }]
   }), [dailyVolume, theme]);
+
+   const campanhaChartData = useMemo(() => {
+    console.log('=== DEBUG GRÁFICO CAMPANHAS ===');
+    console.log('Disparos recebidos:', disparos);
+    console.log('Campanhas recebidas:', campanhas);
+    console.log('Campaing chats recebidos:', campaingChats);
+    console.log('Campaing chats é array?', Array.isArray(campaingChats));
+    console.log('Campaing chats length:', campaingChats?.length || 0);
+    
+    if (!disparos || disparos.length === 0) {
+      console.log('Nenhum disparo encontrado');
+      return {
+        labels: ['Sem dados'],
+        datasets: [
+          {
+            label: 'Total de Contatos',
+            data: [0],
+            backgroundColor: theme === 'dark' ? 'rgba(75, 192, 192, 0.8)' : 'rgba(75, 192, 192, 0.6)',
+            borderColor: theme === 'dark' ? 'rgb(75, 192, 192)' : 'rgb(75, 192, 192)',
+            borderWidth: 1
+          },
+          {
+            label: 'Contatos que Responderam',
+            data: [0],
+            backgroundColor: theme === 'dark' ? 'rgba(255, 99, 132, 0.8)' : 'rgba(255, 99, 132, 0.6)',
+            borderColor: theme === 'dark' ? 'rgb(255, 99, 132)' : 'rgb(255, 99, 132)',
+            borderWidth: 1
+          }
+        ]
+      };
+    }
+
+    // Contar quantas vezes cada campaing_id aparece em campanhas
+    const campanhaCounts = {};
+    campanhas.forEach(campanha => {
+      console.log('Processando campanha:', campanha);
+      if (campanha.campaing_id) {
+        campanhaCounts[campanha.campaing_id] = (campanhaCounts[campanha.campaing_id] || 0) + 1;
+      }
+    });
+    
+    console.log('Contagem de chats por campanha:', campanhaCounts);
+    
+    // Contar chats com status "disparo" (não responderam)
+    const chatsNaoResponderam = {};
+    console.log('Analisando chats para status "disparo":');
+    campaingChats.forEach(chat => {
+      console.log(`Chat ID: ${chat.id}, Campaing ID: ${chat.campaing_id}, Status: ${chat.status}`);
+      if (chat.campaing_id && chat.status === 'disparo') {
+        chatsNaoResponderam[chat.campaing_id] = (chatsNaoResponderam[chat.campaing_id] || 0) + 1;
+        console.log(`✅ Chat com status "disparo" encontrado para campanha ${chat.campaing_id}`);
+      }
+    });
+    
+    console.log('Chats que não responderam por campanha:', chatsNaoResponderam);
+    
+    // Verificar se há inconsistência nos IDs
+    console.log('=== VERIFICAÇÃO DE IDs ===');
+    console.log('IDs dos disparos:', disparos.map(d => ({ id: d.id, name: d.campaing_name })));
+    console.log('IDs das campanhas:', campanhas.map(c => ({ campaing_id: c.campaing_id, chat_id: c.chat_id })));
+    console.log('IDs dos chats:', campaingChats.map(ch => ({ id: ch.id, campaing_id: ch.campaing_id, status: ch.status })));
+    
+    // Pegar apenas os disparos que têm campanhas associadas
+    const disparosComCampanhas = disparos.filter(disparo => 
+      campanhaCounts[disparo.id] > 0
+    );
+    
+    console.log('Disparos com campanhas associadas:', disparosComCampanhas);
+    
+    // Criar labels usando o nome da campanha do disparo
+    const labels = disparosComCampanhas.map(disparo => disparo.campaing_name || `Campanha ${disparo.id}`);
+    console.log('Labels das campanhas:', labels);
+    
+    // Criar dados para as duas barras
+    const totalContatos = disparosComCampanhas.map(disparo => {
+      const chatCount = campanhaCounts[disparo.id] || 0;
+      console.log(`Disparo ID: ${disparo.id}, Nome: ${disparo.campaing_name}, Total Chats: ${chatCount}`);
+      return chatCount;
+    });
+    
+    const contatosResponderam = disparosComCampanhas.map(disparo => {
+      const totalChats = campanhaCounts[disparo.id] || 0;
+      const naoResponderam = chatsNaoResponderam[disparo.id] || 0;
+      const responderam = totalChats - naoResponderam;
+      console.log(`📊 Disparo ID: ${disparo.id}, Nome: ${disparo.campaing_name}`);
+      console.log(`   Total Chats: ${totalChats}`);
+      console.log(`   Não responderam (status "disparo"): ${naoResponderam}`);
+      console.log(`   Responderam: ${responderam} (${totalChats} - ${naoResponderam})`);
+      return responderam;
+    });
+    
+    console.log('=== RESUMO FINAL ===');
+    console.log('Labels:', labels);
+    console.log('Total de Contatos:', totalContatos);
+    console.log('Contatos que Responderam:', contatosResponderam);
+    console.log('========================');
+    
+    return {
+      labels: labels.length > 0 ? labels : ['Sem campanhas'],
+      datasets: [
+        {
+          label: 'Total de Contatos',
+          data: totalContatos.length > 0 ? totalContatos : [0],
+          backgroundColor: theme === 'dark' ? 'rgba(75, 192, 192, 0.8)' : 'rgba(75, 192, 192, 0.6)',
+          borderColor: theme === 'dark' ? 'rgb(75, 192, 192)' : 'rgb(75, 192, 192)',
+          borderWidth: 1
+        },
+        {
+          label: 'Contatos que Responderam',
+          data: contatosResponderam.length > 0 ? contatosResponderam : [0],
+          backgroundColor: theme === 'dark' ? 'rgba(255, 99, 132, 0.8)' : 'rgba(255, 99, 132, 0.6)',
+          borderColor: theme === 'dark' ? 'rgb(255, 99, 132)' : 'rgb(255, 99, 132)',
+          borderWidth: 1
+        }
+      ]
+    };
+  }, [disparos, campanhas, campaingChats, theme]);
 
   const channelDistributionData = useMemo(() => ({
     labels: data.connections?.map(conn => conn.name) || [],
@@ -151,6 +345,20 @@ function NewDashboard({ theme }) {
   const handleCloseChatModal = () => {
     setShowChatModal(false);
     setModalChatId(null);
+  };
+
+  // Funções para gerenciar disparos
+ 
+
+  const handleEditarDisparo = (disparo) => {
+    // TODO: Implementar edição de disparo
+    console.log('Editar disparo:', disparo);
+  };
+
+  const handleExcluirDisparo = (disparoId) => {
+    if (window.confirm('Tem certeza que deseja excluir este disparo?')) {
+      setDisparos(prev => prev.filter(d => d.id !== disparoId));
+    }
   };
 
   // Verificar se há erros
@@ -463,7 +671,93 @@ function NewDashboard({ theme }) {
           </div>
         </div>
 
-        {/* Seção 1 - KPIs Estratégicos */}
+        {/* Abas de navegação */}
+        <ul 
+          className="nav nav-tabs mb-4"
+          style={{
+            borderBottom: 'none',
+          }}
+        >
+          <li className="nav-item">
+            <button
+              className={`nav-link${activeTab === 'dashboard' ? ' active' : ''}`}
+              onClick={() => setActiveTab('dashboard')}
+              type="button"
+              style={{
+                transition: 'var(--TT) all',
+                backgroundColor: 'transparent',
+                border: `1px solid var(--border-color-${theme})`,
+                borderTop: activeTab === 'dashboard' ? `1px solid var(--primary-color)` : `1px solid var(--border-color-${theme})`,
+                position: 'relative',
+                paddingTop: activeTab === 'dashboard' ? '0.5rem' : undefined,
+                color: `var(--color-${theme})`,
+                fontWeight: activeTab === 'dashboard' ? 600 : 400,
+                outline: 'none'
+              }}
+              onFocus={e => e.currentTarget.style.transition = 'var(--TT) all'}
+              onBlur={e => e.currentTarget.style.transition = 'var(--TT) all'}
+            >
+              {activeTab === 'dashboard' && (
+                <span
+                  style={{
+                    transition: 'var(--TT) all',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '0',
+                    borderTop: '5px solid var(--primary-color)',
+                    borderRadius: '6px 6px 0 0',
+                    pointerEvents: 'none',
+                  }}
+                ></span>
+              )}
+              Dashboard
+            </button>
+          </li>
+          <li className="nav-item">
+            <button
+              className={`nav-link${activeTab === 'disparos' ? ' active' : ''}`}
+              onClick={() => setActiveTab('disparos')}
+              type="button"
+              style={{
+                transition: 'var(--TT) all',
+                backgroundColor: 'transparent',
+                border: `1px solid var(--border-color-${theme})`,
+                borderTop: activeTab === 'disparos' ? `1px solid var(--primary-color)` : `1px solid var(--border-color-${theme})`,
+                position: 'relative',
+                paddingTop: activeTab === 'disparos' ? '0.5rem' : undefined,
+                color: `var(--color-${theme})`,
+                fontWeight: activeTab === 'disparos' ? 600 : 400,
+                outline: 'none'
+              }}
+              onFocus={e => e.currentTarget.style.transition = 'var(--TT) all'}
+              onBlur={e => e.currentTarget.style.transition = 'var(--TT) all'}
+            >
+              {activeTab === 'disparos' && (
+                <span
+                  style={{
+                    transition: 'var(--TT) all',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '0',
+                    borderTop: '5px solid var(--primary-color)',
+                    borderRadius: '6px 6px 0 0',
+                    pointerEvents: 'none',
+                  }}
+                ></span>
+              )}
+              Disparos
+            </button>
+          </li>
+        </ul>
+
+        {/* Conteúdo da aba Dashboard */}
+        {activeTab === 'dashboard' && (
+          <>
+            {/* Seção 1 - KPIs Estratégicos */}
         <div className="mb-4">
           <div className="d-flex align-items-center mb-3">
             <h5 className={`header-text-${theme} mb-0`}>KPIs Estratégicos</h5>
@@ -993,6 +1287,116 @@ function NewDashboard({ theme }) {
             </div>
           </div>
         </div>
+          </>
+        )}
+
+        {/* Conteúdo da aba Disparos */}
+        {activeTab === 'disparos' && (
+          <div className="p-4">
+            <div className="d-flex justify-content-between align-items-center mb-4">
+              <h4 className={`header-text-${theme} mb-0`}>Gestão de Disparos</h4>
+              
+            </div>
+            
+            {/* Cards de métricas */}
+            <div className="row mb-4">
+              <div className="col-md-6">
+                <div className={`card card-${theme} p-3`}>
+                  <div className="d-flex align-items-center">
+                    <i className="bi bi-send text-success" style={{ fontSize: '2rem' }}></i>
+                    <div className="ms-3">
+                      <h6 className={`card-subtitle-${theme} mb-1`}>Total Disparos</h6>
+                      <h3 className={`header-text-${theme} mb-0`}>{disparos.length}</h3>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="col-md-6">
+                <div className={`card card-${theme} p-3`}>
+                  <div className="d-flex align-items-center">
+                    <i className="bi bi-people text-info" style={{ fontSize: '2rem' }}></i>
+                    <div className="ms-3">
+                      <h6 className={`card-subtitle-${theme} mb-1`}>Total Contatos</h6>
+                      <h3 className={`header-text-${theme} mb-0`}>{campanhas.length}</h3>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Área para gráficos */}
+            <div className="row">
+              <div className="col-12">
+                <div className={`card card-${theme} p-4`} style={{ minHeight: '400px' }}>
+                  <div className="d-flex align-items-center justify-content-between mb-3">
+                    <h5 className={`header-text-${theme} mb-0`}>Gráficos de Disparos</h5>
+                    <small className={`text-muted text-muted-${theme}`}>
+                      <i className="bi bi-bar-chart me-1"></i>
+                      Performance por Campanha
+                    </small>
+                  </div>
+                                     <div className="chart-container" style={{ height: '300px', overflow: 'hidden' }}>
+                     {disparos.length === 0 ? (
+                       <div className="d-flex align-items-center justify-content-center h-100">
+                         <div className="text-center">
+                           <i className="bi bi-graph-down text-muted" style={{ fontSize: '3rem' }}></i>
+                           <p className={`text-muted text-muted-${theme} mt-2`}>Nenhum dado disponível</p>
+                           <small className={`text-muted text-muted-${theme}`}>Os dados aparecerão aqui quando houver disparos</small>
+                         </div>
+                       </div>
+                     ) : (
+                                             <Bar data={campanhaChartData} options={{
+                         responsive: true,
+                         maintainAspectRatio: false,
+                         plugins: { 
+                           legend: { 
+                             display: true,
+                             position: 'top',
+                             labels: {
+                               color: theme === 'dark' ? '#ffffff' : '#000000',
+                               usePointStyle: true,
+                               padding: 20
+                             }
+                           },
+                           tooltip: {
+                             backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)',
+                             titleColor: theme === 'dark' ? '#fff' : '#000',
+                             bodyColor: theme === 'dark' ? '#fff' : '#000'
+                           }
+                         },
+                         datasets: {
+                           bar: {
+                             categoryPercentage: 0.8,
+                             barPercentage: 1.0
+                           }
+                         },
+                         scales: { 
+                           y: { 
+                             beginAtZero: true,
+                             grid: {
+                               color: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+                             },
+                             ticks: {
+                               color: theme === 'dark' ? '#ffffff' : '#000000'
+                             }
+                           },
+                           x: {
+                             grid: {
+                               color: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+                             },
+                             ticks: {
+                               color: theme === 'dark' ? '#ffffff' : '#000000'
+                             }
+                           }
+                         }
+                       }} />
+                     )}
+                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
 
