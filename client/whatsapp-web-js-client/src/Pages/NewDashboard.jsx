@@ -1284,7 +1284,7 @@ campaingChats.forEach(chat => {
             </div>
 
             {/* Área para gráficos */}
-            <div className="row">
+            <div className="row mb-4">
               <div className="col-12">
                 <div className={`card card-${theme} p-4`} style={{ minHeight: '400px' }}>
                   <div className="d-flex align-items-center justify-content-between mb-3">
@@ -1351,6 +1351,86 @@ campaingChats.forEach(chat => {
                        }} />
                      )}
                    </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Lista de Disparos com Downloads */}
+            <div className="row">
+              <div className="col-12">
+                <div className={`card card-${theme} p-4`}>
+                  <div className="d-flex align-items-center justify-content-between mb-3">
+                    <h5 className={`header-text-${theme} mb-0`}>Disparos e Downloads</h5>
+                    <small className={`text-muted text-muted-${theme}`}>
+                      <i className="bi bi-download me-1"></i>
+                      Relatórios por disparo
+                    </small>
+                  </div>
+                  
+                  <div className="row g-3">
+                    {disparos.length === 0 ? (
+                      <div className="col-12 text-center">
+                        <i className="bi bi-inbox text-muted" style={{ fontSize: '3rem' }}></i>
+                        <p className={`text-muted text-muted-${theme} mt-2`}>Nenhum disparo encontrado</p>
+                      </div>
+                    ) : (
+                      disparos.map((disparo) => {
+                        // Calcular estatísticas para este disparo específico
+                        const disparoCampanhas = campanhas.filter(camp => camp.campaing_id === disparo.id);
+                        const totalContatos = disparoCampanhas.length;
+                        
+                        // Contar não respondidos para este disparo
+                        const naoRespondidos = campaingChats.filter(chat => 
+                          chat.campaing_id === disparo.id && chat.status === 'disparo'
+                        ).length;
+                        
+                        const respondidos = totalContatos - naoRespondidos;
+                        
+                        return (
+                          <div key={disparo.id} className="col-md-6 col-lg-4">
+                            <div className={`card h-100 card-${theme}`} style={{ minHeight: '180px' }}>
+                              <div className="card-body d-flex flex-column justify-content-between p-3">
+                                <div>
+                                  <h6 className={`card-title mb-2 header-text-${theme}`} style={{ fontSize: '0.9rem' }}>
+                                    {disparo.campaing_name || `Campanha ${disparo.id}`}
+                                  </h6>
+                                  <div className="mb-2">
+                                    <small className={`card-subtitle-${theme} d-block`}>
+                                      <i className="bi bi-people me-1"></i>
+                                      Total: {totalContatos}
+                                    </small>
+                                    <small className={`card-subtitle-${theme} d-block`}>
+                                      <i className="bi bi-check-circle text-success me-1"></i>
+                                      Respondidos: {respondidos}
+                                    </small>
+                                    <small className={`card-subtitle-${theme} d-block`}>
+                                      <i className="bi bi-x-circle text-danger me-1"></i>
+                                      Não Respondidos: {naoRespondidos}
+                                    </small>
+                                  </div>
+                                </div>
+                                
+                                <div className="d-flex gap-1 mt-2 justify-content-center flex-wrap">
+                                  <button className={`btn btn-sm btn-1-${theme} mb-1`} style={{ fontSize: '0.75rem' }}>
+                                    <i className="bi bi-download me-1"></i>
+                                    Completa
+                                  </button>
+                                  <button className={`btn btn-sm btn-2-${theme} mb-1`} style={{ fontSize: '0.75rem' }}>
+                                    <i className="bi bi-download me-1"></i>
+                                    Não Respondidos
+                                  </button>
+                                  <button className={`btn btn-sm btn-1-${theme} mb-1`} style={{ fontSize: '0.75rem' }}>
+                                    <i className="bi bi-download me-1"></i>
+                                    Respondidos
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
